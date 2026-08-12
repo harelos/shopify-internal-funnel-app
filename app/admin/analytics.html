@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Funnel Analytics — Funnel Builder</title>
+  <title>Funnel Analytics & Path Attribution — Funnel Builder</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div class="top-bar-inner">
       <div class="brand">
         <a href="index.html" id="back-funnel-link" class="btn btn-ghost btn-sm">← Dashboard</a>
-        <span class="brand-name" id="analytics-title">Account & Funnel Analytics</span>
+        <span class="brand-name" id="analytics-title">Funnel Analytics & Path Attribution</span>
       </div>
       <div class="top-actions">
         <button class="btn btn-primary" id="btn-export-csv">Export CSV Report</button>
@@ -20,16 +20,27 @@
   </header>
 
   <main class="main">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
       <div>
         <h1 id="analytics-heading">Performance & Conversion Insights</h1>
-        <p class="muted">Real-time visitor telemetry, A/B test conversion rates, and attributed revenue</p>
+        <p class="muted">Stage-specific progression rates, visual drop-offs, and multi-step path revenue attribution</p>
       </div>
-      <div style="display:flex; gap:8px;" id="date-range-buttons">
-        <button class="btn btn-sm btn-primary active" data-days="7">Last 7 Days</button>
-        <button class="btn btn-sm" data-days="30">Last 30 Days</button>
-        <button class="btn btn-sm" data-days="90">Last 90 Days</button>
-        <button class="btn btn-sm" data-days="all">All Time</button>
+      
+      <!-- Date Range Controls -->
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <label class="eyebrow">From</label>
+          <input type="date" class="input" id="date-from" style="width:135px; margin:0; padding:6px 8px;">
+          <label class="eyebrow">To</label>
+          <input type="date" class="input" id="date-to" style="width:135px; margin:0; padding:6px 8px;">
+          <button class="btn btn-sm btn-primary" id="btn-apply-dates">Apply</button>
+        </div>
+        <div style="display:flex; gap:4px;" id="date-range-buttons">
+          <button class="btn btn-sm btn-primary active" data-days="7">7d</button>
+          <button class="btn btn-sm" data-days="30">30d</button>
+          <button class="btn btn-sm" data-days="90">90d</button>
+          <button class="btn btn-sm" data-days="all">All</button>
+        </div>
       </div>
     </div>
 
@@ -40,12 +51,12 @@
         <div class="metric-label">Unique Visitors</div>
       </div>
       <div class="metric-card">
-        <div class="metric-val" id="metric-views">0</div>
-        <div class="metric-label">Page Views</div>
-      </div>
-      <div class="metric-card">
         <div class="metric-val" id="metric-orders">0</div>
         <div class="metric-label">Paid Orders</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-conv-rate">0.0%</div>
+        <div class="metric-label">Overall Funnel Conv %</div>
       </div>
       <div class="metric-card">
         <div class="metric-val" id="metric-revenue">$0.00</div>
@@ -53,10 +64,48 @@
       </div>
     </div>
 
+    <!-- Visual Stepped Funnel Pipeline Card -->
+    <div class="panel" id="visual-funnel-panel" style="margin-bottom:28px; display:none;">
+      <div class="panel-header">
+        <h2>Visual Stepped Funnel Pipeline & Drop-offs</h2>
+        <span class="eyebrow" id="funnel-pipeline-status">Stage Telemetry</span>
+      </div>
+      <div class="panel-body">
+        <div id="visual-funnel-container" class="funnel-diagram">
+          <!-- Rendered stepped funnel bars -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Step Path Revenue Attribution Table -->
+    <div class="panel" id="path-attribution-panel" style="margin-bottom:28px; display:none;">
+      <div class="panel-header">
+        <h2>Multi-Step Path Revenue Attribution</h2>
+        <span class="eyebrow">Visitor Journey Combinations</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Visitor Path Combination</th>
+              <th>Visitors</th>
+              <th>Orders</th>
+              <th>Path Conv %</th>
+              <th>Revenue</th>
+              <th>Path AOV</th>
+            </tr>
+          </thead>
+          <tbody id="path-table-body">
+            <!-- Dynamically populated path rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Analytics Breakdown Table -->
     <div class="panel">
       <div class="panel-header">
-        <h2 id="breakdown-table-title">Conversion Breakdown</h2>
+        <h2 id="breakdown-table-title">Stage & Step Breakdown</h2>
         <span class="eyebrow" id="report-generated-at">Updated just now</span>
       </div>
       <div style="overflow-x:auto;">
@@ -68,7 +117,7 @@
               <th>Entries</th>
               <th>Page Views</th>
               <th>CTA Clicks</th>
-              <th>CTA Rate (%)</th>
+              <th>Stage Metric</th>
               <th>Orders</th>
               <th>Revenue</th>
             </tr>

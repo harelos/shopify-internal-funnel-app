@@ -222,6 +222,51 @@ a:hover { text-decoration: underline; }
   text-align: center;
 }
 
+/* === VISUAL FUNNEL DIAGRAM === */
+.funnel-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+}
+.funnel-stage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.funnel-stage-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 13px;
+}
+.funnel-bar-container {
+  height: 28px;
+  background: #eae5d9;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+.funnel-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #e06d53 100%);
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.funnel-dropoff-tag {
+  font-size: 11px;
+  color: var(--red);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
 /* === MODAL === */
 .modal-overlay {
   position: fixed;

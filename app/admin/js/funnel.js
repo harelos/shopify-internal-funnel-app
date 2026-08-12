@@ -398,8 +398,13 @@ document.addEventListener("DOMContentLoaded", () => {
         stepValEntries.textContent = (stepData.entries || 0).toLocaleString();
         stepValViews.textContent = (stepData.views || 0).toLocaleString();
         stepValCtas.textContent = (stepData.ctas || 0).toLocaleString();
-        stepValRate.textContent = `${stepData.ctaRate || 0}%`;
+        stepValRate.textContent = `${stepData.stageMetricValue || 0}%`;
         stepValRevenue.textContent = `$${(stepData.revenue || 0).toFixed(2)}`;
+
+        const rateLabel = stepInlineAnalytics.querySelector(".metric-label[data-role='stage-rate']");
+        if (rateLabel) {
+          rateLabel.textContent = stepData.stageMetricLabel || "Stage Metric";
+        }
       } else {
         stepInlineAnalytics.style.display = "none";
       }

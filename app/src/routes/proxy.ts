@@ -25,7 +25,7 @@ router.get("/preview/:versionId", async (req, res) => {
   }
 });
 
-// GET /f/:funnelSlug/:stepPosition — Live Funnel Page Serving with A/B Traffic Splitter & #next-step Resolution
+// GET /f/:funnelSlug/:stepPosition — Live Funnel Page Serving with A/B Traffic Splitter & Path Attribution Telemetry
 router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
   try {
     const { funnelSlug, stepPosition } = req.params;
@@ -96,17 +96,30 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
     const downsellStep = funnel.steps.find(s => s.position === pos + 2) || nextStep;
     const downsellUrl = downsellStep ? `/f/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
 
-    // Tracking pixel + CTA handler injection with #next-step, #accept-upsell, #decline-upsell link resolution
+    const variantLabel = `${step.name} (${variant?.name || 'Main'})`;
+
+    // Tracking pixel + CTA handler injection with Path History tracking
     const trackingPixelScript = `
       <script>
         (function() {
+          var stepNodeName = "${variantLabel.replace(/"/g, '\\"')}";
+          var pathKey = "_fpath_" + "${funnel.id}";
+          var pathHistory = JSON.parse(sessionStorage.getItem(pathKey) || "[]");
+          if (pathHistory.length === 0 || pathHistory[pathHistory.length - 1] !== stepNodeName) {
+            pathHistory.push(stepNodeName);
+            sessionStorage.setItem(pathKey, JSON.stringify(pathHistory));
+          }
+
           var t = {
             funnelId: "${funnel.id}",
             stepId: "${step.id}",
             variantId: "${variantId}",
+            stepKind: "${step.kind}",
             nextStepUrl: "${nextStepUrl}",
-            downsellUrl: "${downsellUrl}"
+            downsellUrl: "${downsellUrl}",
+            pathFingerprint: pathHistory.join(" ➔ ")
           };
+
           var vid = localStorage.getItem("_fv") || "${visitorId}";
           localStorage.setItem("_fv", vid);
           t.visitorId = vid;
