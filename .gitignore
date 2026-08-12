@@ -1,0 +1,9 @@
+app/node_modules/
+app/dist/
+app/.env
+app/.env.*
+!app/.env.example
+app/*.db
+app/coverage/
+.DS_Store
+Thumbs.db

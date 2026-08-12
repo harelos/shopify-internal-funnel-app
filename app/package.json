@@ -1,0 +1,26 @@
+{
+  "name": "funnel-control-local",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "latest",
+    "@shopify/shopify-app-react-router": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "prisma": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

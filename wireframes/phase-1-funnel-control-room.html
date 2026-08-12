@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Funnel Control Room — Phase 1 wireframe</title>
+  <style>
+    :root { --canvas:#f5f1e8; --surface:#fffdf8; --ink:#17231e; --muted:#66716a; --line:#d6d1c6; --signal:#d85336; --live:#197b5b; --notice:#b88a18; --pale-green:#e5efe7; --pale-orange:#fae6df; --pale-yellow:#fbf0c9; --mono:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--canvas); color:var(--ink); font:14px/1.45 Arial,Helvetica,sans-serif; }
+    button,input,select,textarea { font:inherit; color:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible { outline:3px solid #215fce; outline-offset:2px; }
+    .app { min-height:100vh; display:grid; grid-template-columns:238px minmax(0,1fr); }
+    .sidebar { border-right:1px solid var(--ink); display:flex; flex-direction:column; min-height:100vh; padding:18px 12px; background:#ece8de; }
+    .brand { display:flex; align-items:center; gap:9px; padding:0 8px 22px; border-bottom:1px solid var(--ink); }
+    .brand-mark { width:25px; height:25px; background:var(--signal); position:relative; }
+    .brand-mark:after { content:""; width:9px; height:9px; background:var(--canvas); position:absolute; top:8px; left:8px; }
+    .brand strong { font-size:14px; letter-spacing:.04em; text-transform:uppercase; }
+    .brand small { color:var(--muted); display:block; font:11px var(--mono); margin-top:2px; }
+    .nav { margin-top:18px; display:grid; gap:4px; }
+    .nav button { border:0; border-left:3px solid transparent; background:transparent; padding:9px 10px; text-align:left; font-weight:700; }
+    .nav button:hover,.nav button.active { background:var(--surface); border-left-color:var(--signal); }
+    .sidebar-footer { margin-top:auto; padding:14px 8px 2px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .store { font:12px var(--mono); color:var(--ink); margin-top:4px; overflow-wrap:anywhere; }
+    main { min-width:0; }
+    .topbar { min-height:63px; border-bottom:1px solid var(--ink); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 28px; background:var(--canvas); position:sticky; top:0; z-index:3; }
+    .eyebrow { color:var(--muted); font:11px var(--mono); letter-spacing:.03em; text-transform:uppercase; }
+    .topbar h1 { margin:1px 0 0; font-size:18px; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--ink); padding:4px 7px; font:11px var(--mono); }
+    .pill:before { content:""; height:7px; width:7px; border-radius:50%; background:var(--live); }
+    .button { border:1px solid var(--ink); background:var(--surface); padding:8px 11px; font-weight:700; white-space:nowrap; }
+    .button:hover { background:#e8e4da; }
+    .button.primary { background:var(--signal); color:#fff; border-color:var(--signal); }
+    .button.primary:hover { background:#b9432b; }
+    .button:disabled { color:#85847e; background:#e6e2d9; border-color:#c4beb3; cursor:not-allowed; }
+    .view { display:none; padding:28px; max-width:1560px; margin:auto; }
+    .view.active { display:block; }
+    .view-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:22px; }
+    .view-head h2 { font-size:26px; margin:2px 0 0; letter-spacing:-.03em; }
+    .view-head p { color:var(--muted); margin:4px 0 0; max-width:700px; }
+    .notice { border-left:4px solid var(--notice); background:var(--pale-yellow); padding:11px 13px; margin:0 0 20px; }
+    .notice strong { display:block; margin-bottom:2px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--ink); background:var(--surface); margin-bottom:20px; }
+    .metric { padding:14px 16px; border-right:1px solid var(--line); min-width:0; }
+    .metric:last-child { border:0; }
+    .metric .label { color:var(--muted); font:11px var(--mono); text-transform:uppercase; }
+    .metric .value { font:700 28px/1.1 var(--mono); margin:7px 0 4px; letter-spacing:-.05em; }
+    .metric .detail { font-size:12px; color:var(--muted); }
+    .panel { background:var(--surface); border:1px solid var(--ink); margin-bottom:18px; }
+    .panel-head { padding:12px 14px; display:flex; gap:12px; justify-content:space-between; align-items:center; border-bottom:1px solid var(--ink); }
+    .panel-head h3 { margin:0; font-size:14px; }
+    .panel-head .meta { font:11px var(--mono); color:var(--muted); }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:collapse; width:100%; min-width:740px; }
+    th { text-align:left; color:var(--muted); background:#f3f0e8; font:10px var(--mono); text-transform:uppercase; letter-spacing:.04em; }
+    th,td { padding:11px 13px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#faf7f0; }
+    .funnel-name { font-weight:700; display:block; }
+    .sub { color:var(--muted); font-size:12px; display:block; }
+    .num { font-family:var(--mono); font-size:12px; }
+    .status { display:inline-flex; align-items:center; gap:5px; font:11px var(--mono); text-transform:uppercase; }
+    .status:before { content:""; height:7px; width:7px; background:var(--notice); border-radius:50%; }
+    .status.live:before { background:var(--live); }.status.draft:before { background:var(--notice); }.status.archive:before { background:#777; }
+    .link-button { border:0; background:none; color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:3px; padding:2px; }
+    .empty { border:1px dashed #9a9b93; padding:20px; color:var(--muted); background:#fbf9f3; }
+    .empty strong { display:block; color:var(--ink); margin-bottom:4px; }
+    .workspace { display:grid; grid-template-columns:226px minmax(0,1fr); gap:18px; align-items:start; }
+    .step-rail { border:1px solid var(--ink); background:var(--surface); }
+    .step-rail h3 { margin:0; padding:11px 12px; font-size:12px; border-bottom:1px solid var(--ink); text-transform:uppercase; letter-spacing:.06em; }
+    .step { width:100%; display:grid; grid-template-columns:26px 1fr; gap:8px; text-align:left; border:0; border-bottom:1px solid var(--line); background:transparent; padding:11px 12px; }
+    .step:hover,.step.active { background:var(--pale-orange); }.step.active { box-shadow:inset 3px 0 var(--signal); }
+    .step-no { font:12px var(--mono); color:var(--muted); }.step-kind { display:block; font:10px var(--mono); color:var(--muted); text-transform:uppercase; margin-top:2px; }
+    .rail-foot { padding:10px; }.rail-foot .button { width:100%; }
+    .editor-top { display:flex; justify-content:space-between; gap:12px; padding:13px 14px; border-bottom:1px solid var(--ink); }
+    .editor-title h3 { margin:0; font-size:18px; }.editor-title p { margin:2px 0 0; color:var(--muted); font-size:12px; }
+    .version-select { min-width:186px; border:1px solid var(--ink); padding:7px; background:var(--surface); }
+    .tabs { display:flex; border-bottom:1px solid var(--ink); overflow-x:auto; }.tabs button { border:0; border-right:1px solid var(--line); background:#f0ede5; padding:10px 13px; white-space:nowrap; font-weight:700; }.tabs button.active { background:var(--surface); box-shadow:inset 0 -3px var(--signal); }
+    .editor-body { padding:14px; }.editor-pane { display:none; }.editor-pane.active { display:block; }
+    .source-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr); gap:14px; }
+    .codebox { min-height:300px; width:100%; resize:vertical; border:1px solid var(--ink); background:#1b2823; color:#eaf0e8; padding:14px; font:12px/1.5 var(--mono); }
+    .keyline { border-left:3px solid var(--live); background:var(--pale-green); padding:10px; font-size:12px; margin-bottom:10px; }.keyline.warn { border-color:var(--notice); background:var(--pale-yellow); }.keyline.alert { border-color:var(--signal); background:var(--pale-orange); }
+    .keyline strong { display:block; }.code-note { font-size:12px; color:var(--muted); margin:8px 0 0; }
+    .finding { display:grid; grid-template-columns:86px 1fr; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); }.finding:last-child { border:0; }.tag { align-self:start; padding:3px 5px; border:1px solid var(--ink); font:10px var(--mono); text-align:center; }.tag.ok { color:var(--live); border-color:var(--live); }.tag.map { color:#74580e; border-color:var(--notice); }.tag.block { color:var(--signal); border-color:var(--signal); }
+    .finding b { display:block; font-size:12px; }.finding span { color:var(--muted); font-size:12px; }
+    .preview-stage { border:1px dashed #85877f; background:#e9e7df; padding:18px; }.preview-label { color:var(--muted); font:10px var(--mono); text-transform:uppercase; margin-bottom:10px; }.page-preview { max-width:460px; margin:auto; background:#fff; min-height:330px; padding:24px; box-shadow:8px 8px 0 #c9c6bd; font-family:Georgia,serif; }.page-preview .rule { width:46px; height:4px; background:var(--signal); margin:10px 0 22px; }.page-preview h4 { font-size:31px; line-height:1; margin:0; letter-spacing:-.045em; }.page-preview p { color:#4e4b45; font-size:14px; }.page-preview button { border:0; background:#17231e; color:#fff; padding:10px 13px; font-family:Arial,sans-serif; font-weight:700; }
+    .audit-list { list-style:none; padding:0; margin:0; }.audit-list li { padding:10px 0; border-bottom:1px solid var(--line); font-size:12px; }.audit-list li:last-child { border:0; }.audit-list b { display:block; }.audit-list time { color:var(--muted); font-family:var(--mono); }
+    .two-col { display:grid; grid-template-columns:1.2fr .8fr; gap:18px; }.form { padding:14px; }.field { margin-bottom:14px; }.field label { display:block; font:11px var(--mono); text-transform:uppercase; margin-bottom:5px; color:var(--muted); }.field input,.field select { width:100%; padding:8px; border:1px solid var(--ink); background:var(--surface); }.allocation { display:grid; grid-template-columns:1fr 110px 78px; gap:8px; align-items:center; margin-bottom:9px; }.allocation input { width:100%; padding:8px; border:1px solid var(--ink); background:var(--surface); font-family:var(--mono); }.weight { text-align:right; font-family:var(--mono); }.allocation-total { margin-top:13px; padding-top:10px; border-top:1px solid var(--line); display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; }.good { color:var(--live); }.bad { color:var(--signal); }
+    .filterbar { display:flex; flex-wrap:wrap; gap:8px; padding:12px; border:1px solid var(--ink); background:var(--surface); margin-bottom:18px; }.filterbar select { padding:7px; border:1px solid var(--ink); background:var(--surface); }.filterbar label { font:11px var(--mono); color:var(--muted); display:grid; gap:3px; }.chart { padding:14px; height:224px; display:flex; align-items:end; gap:18px; border-bottom:1px solid var(--line); background:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,#e4e0d7 44px); }.bar { flex:1; min-width:45px; background:var(--ink); position:relative; }.bar.signal { background:var(--signal); }.bar:after { content:attr(data-value); position:absolute; bottom:calc(100% + 5px); left:0; font:11px var(--mono); }.bar-label { position:absolute; top:calc(100% + 7px); left:0; color:var(--muted); font:10px var(--mono); white-space:nowrap; }
+    .report-grid { display:grid; grid-template-columns:1.05fr .95fr; gap:18px; }.definition { padding:14px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }.definition b { color:var(--ink); }.export-options { padding:14px; display:grid; gap:9px; }.export { border:1px solid var(--ink); padding:12px; background:var(--surface); display:flex; justify-content:space-between; gap:12px; align-items:center; }.export small { display:block; color:var(--muted); margin-top:2px; }.error-demo { margin-top:18px; border:1px solid var(--signal); background:var(--pale-orange); padding:12px; font-size:12px; }.loading { display:inline-block; width:10px; height:10px; border:2px solid var(--line); border-top-color:var(--ink); border-radius:50%; animation:spin .8s linear infinite; margin-right:6px; vertical-align:middle; } @keyframes spin { to { transform:rotate(360deg); } }
+    .mobile-only { display:none; }
+    @media (max-width:920px) { .app { grid-template-columns:1fr; }.sidebar { min-width:0; min-height:0; border-right:0; border-bottom:1px solid var(--ink); padding:10px 14px; }.brand { border:0; padding:0; }.nav { min-width:0; grid-template-columns:repeat(5,auto); margin:8px 0 0; overflow:auto; }.nav button { border-bottom:3px solid transparent; border-left:0; white-space:nowrap; }.nav button:hover,.nav button.active { border-left:0; border-bottom-color:var(--signal); }.sidebar-footer { display:none; }.workspace,.two-col,.report-grid,.source-grid { grid-template-columns:1fr; }.step-rail { display:grid; grid-template-columns:repeat(4,minmax(155px,1fr)); overflow:auto; }.step-rail h3,.rail-foot { display:none; }.step { border-right:1px solid var(--line); border-bottom:0; }.metric-grid { grid-template-columns:repeat(2,1fr); }.metric:nth-child(2) { border-right:0; }.metric:nth-child(-n+2) { border-bottom:1px solid var(--line); } }
+    @media (max-width:560px) { body { overflow-x:hidden; }.app,main,.sidebar,.nav,.topbar,.view { width:100%; max-width:100%; }.topbar { padding:10px 14px; }.topbar h1 { font-size:15px; }.top-actions { display:none; }.view { padding:18px 14px; }.view-head { display:block; }.view-head p { overflow-wrap:anywhere; }.view-head .button { margin-top:12px; }.metric .value { font-size:22px; }.metric { padding:11px; }.editor-top { display:block; }.version-select { margin-top:10px; width:100%; }.allocation { grid-template-columns:1fr 86px 60px; }.chart { gap:10px; }.bar-label { transform:rotate(-45deg); transform-origin:top left; }.mobile-only { display:inline; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div><strong>Funnel Control</strong><small>private operator workspace</small></div></div>
+      <nav class="nav" aria-label="Primary navigation">
+        <button class="active" data-view-target="funnels">Funnels</button>
+        <button data-view-target="build">Build</button>
+        <button data-view-target="experiment">Experiment</button>
+        <button data-view-target="analytics">Analytics</button>
+        <button data-view-target="report">Report</button>
+      </nav>
+      <div class="sidebar-footer">STORE ALLOWLIST<br><span class="store">northstar-demo.myshopify.com</span><br><br>Environment: <b>test data</b><br>Shopify connection: not configured</div>
+    </aside>
+    <main>
+      <header class="topbar"><div><div class="eyebrow">Private Shopify internal app · Phase 1 visual model</div><h1 id="page-title">Funnels</h1></div><div class="top-actions"><span class="pill">Private / one store</span><button class="button" type="button">Preview mode</button></div></header>
+
+      <section class="view active" data-view="funnels">
+        <div class="view-head"><div><div class="eyebrow">Workspace</div><h2>Funnels</h2><p>Build pre-checkout paths, choose explicitly versioned HTML, and inspect attributable outcomes.</p></div><button class="button primary" type="button">+ New funnel</button></div>
+        <div class="metric-grid"><div class="metric"><div class="label">Active funnels</div><div class="value">03</div><div class="detail">1 published experiment</div></div><div class="metric"><div class="label">Visitors / 30 days</div><div class="value">12,842</div><div class="detail">deduplicated, consented where required</div></div><div class="metric"><div class="label">Paid orders</div><div class="value">386</div><div class="detail">webhook-confirmed</div></div><div class="metric"><div class="label">Attributed revenue</div><div class="value">$31,408</div><div class="detail">paid orders with funnel context</div></div></div>
+        <article class="panel"><div class="panel-head"><h3>Current funnels</h3><span class="meta">sorted by last activity</span></div><div class="table-wrap"><table><thead><tr><th>Funnel</th><th>Status</th><th>Active step / version</th><th>Visitors</th><th>Paid orders</th><th>Revenue</th><th></th></tr></thead><tbody><tr><td><span class="funnel-name">Summer Jersey Launch</span><span class="sub">/apps/f/summer-jersey</span></td><td><span class="status live">Published</span></td><td><span class="num">Sales page · B / r12</span></td><td class="num">8,404</td><td class="num">267</td><td class="num">$21,411</td><td><button class="link-button" data-view-target="build">Open build</button></td></tr><tr><td><span class="funnel-name">Collector Drop — waitlist</span><span class="sub">/apps/f/collector-drop</span></td><td><span class="status draft">Draft</span></td><td><span class="num">Landing · A / r03</span></td><td class="num">2,219</td><td class="num">—</td><td class="num">—</td><td><button class="link-button" type="button">Open build</button></td></tr><tr><td><span class="funnel-name">Bundle refresh</span><span class="sub">Archived 2026-07-08</span></td><td><span class="status archive">Archived</span></td><td><span class="num">Offer · A / r08</span></td><td class="num">2,219</td><td class="num">119</td><td class="num">$9,997</td><td><button class="link-button" type="button">View report</button></td></tr></tbody></table></div></article>
+        <div class="empty"><strong>Empty-state contract</strong>When no funnel exists, this space reads “No funnels yet” and offers only <b>New funnel</b>. It does not show a template marketplace or a drag-and-drop canvas.</div>
+      </section>
+
+      <section class="view" data-view="build">
+        <div class="view-head"><div><div class="eyebrow">Summer Jersey Launch / Build</div><h2>Versioned step editor</h2><p>Only a reviewed version can be published. The source is preserved; portability is made explicit.</p></div><button class="button primary" type="button">Publish r12</button></div>
+        <div class="notice"><strong>Shopify Basic boundary</strong>This tool tests pre-checkout steps. Native Shopify checkout starts after handoff and is measured, not A/B-tested or redesigned here.</div>
+        <div class="workspace"><aside class="step-rail"><h3>Ordered steps</h3><button class="step" type="button"><span class="step-no">01</span><span><b>Warm-up advertorial</b><small class="step-kind">Landing · published</small></span></button><button class="step active" type="button"><span class="step-no">02</span><span><b>Summer jersey page</b><small class="step-kind">Sales · B active</small></span></button><button class="step" type="button"><span class="step-no">03</span><span><b>Bundle offer</b><small class="step-kind">Offer · draft</small></span></button><button class="step" type="button"><span class="step-no">04</span><span><b>Checkout handoff</b><small class="step-kind">Native Shopify</small></span></button><div class="rail-foot"><button class="button" type="button">+ Add ordered step</button></div></aside>
+          <article class="panel"><div class="editor-top"><div class="editor-title"><h3>02 — Summer jersey page</h3><p>Step ID <span class="num">stp_84e2</span> · Experiment <span class="num">exp_102</span> · Published at 2026-08-10 14:32 UTC</p></div><select class="version-select" aria-label="Choose version"><option>Version B / r12 · published</option><option>Version B / r11 · archived</option><option>Version A / r08 · published earlier</option></select></div><div class="tabs" role="tablist"><button class="active" data-tab-target="source">Source HTML</button><button data-tab-target="portable">Portability · 2 review</button><button data-tab-target="preview">Sandbox preview</button><button data-tab-target="audit">Version audit</button></div><div class="editor-body">
+            <div class="editor-pane active" data-tab="source"><div class="source-grid"><div><label class="eyebrow" for="source-code">Original source · immutable once published</label><textarea id="source-code" class="codebox" aria-label="HTML source"><!doctype html>
+<html>
+  <head><title>Summer jersey</title><script src="https://example.test/tracker.js"></script></head>
+  <body>
+    <main class="hero"><h1>The 1999 home jersey.</h1>
+      <button data-funnel-cta="buy-now">Reserve yours</button>
+    </main>
+  </body>
+</html></textarea><p class="code-note">Static wireframe only. Import, validation, and saving are Phase 2 behavior.</p></div><aside><div class="keyline"><strong>Draft is editable</strong>r12 is the active published render. Create r13 to edit; publishing keeps r12 immutable.</div><div class="keyline warn"><strong>2 review items</strong>One external script and one generic form action need an explicit choice before publishing a new revision.</div><button class="button" type="button">Create draft r13</button></aside></div></div>
+            <div class="editor-pane" data-tab="portable"><div class="keyline"><strong>Portability assessment</strong>Source is retained. The production artifact extracts document-level tags and maps permitted elements into the approved storefront surface.</div><div class="finding"><span class="tag ok">PORTABLE</span><div><b>Body markup · 14 nodes</b><span>Preserve in scoped funnel shell.</span></div></div><div class="finding"><span class="tag map">MAPPED</span><div><b>“Reserve yours” button</b><span>Map to Shopify Ajax Cart, then native <span class="num">/checkout</span> handoff.</span></div></div><div class="finding"><span class="tag map">MAPPED</span><div><b>Document title and head styles</b><span>Extract into the app-proxy/Liquid render; full document tags are not injected into theme layout.</span></div></div><div class="finding"><span class="tag block">REVIEW</span><div><b><span class="num">tracker.js</span> external script</b><span>Disabled by default. Allowlist owner-approved source or remove it; no script runs in dashboard preview.</span></div></div><div class="finding"><span class="tag block">REVIEW</span><div><b>Generic form action</b><span>Replace with an explicit supported customer/contact action, or retain only after review.</span></div></div></div>
+            <div class="editor-pane" data-tab="preview"><div class="preview-stage"><div class="preview-label">Sandbox preview · scripts disabled · representative at 460px</div><div class="page-preview"><span class="eyebrow">Club archive / 1999</span><div class="rule"></div><h4>The home jersey people still ask for.</h4><p>Heavy knit. Crest stitched. Cut for the stands, not a spreadsheet.</p><button type="button">Reserve yours →</button></div></div></div>
+            <div class="editor-pane" data-tab="audit"><ul class="audit-list"><li><b>Published r12 as Variant B</b><time>2026-08-10 14:32 UTC · owner</time></li><li><b>Portability report attached; 2 review items accepted in prior revision</b><time>2026-08-10 14:27 UTC · owner</time></li><li><b>Created r12 from r11</b><time>2026-08-10 13:58 UTC · owner</time></li><li><b>Archived r10 after allocation end</b><time>2026-08-04 09:12 UTC · owner</time></li></ul></div>
+          </div></article>
+        </div>
+      </section>
+
+      <section class="view" data-view="experiment">
+        <div class="view-head"><div><div class="eyebrow">Summer Jersey Launch / Step 02</div><h2>Experiment allocation</h2><p>New eligible visitors are allocated deterministically. Existing assignments remain fixed even after a weight change.</p></div><button class="button primary" type="button">Save allocation</button></div>
+        <div class="two-col"><article class="panel"><div class="panel-head"><h3>exp_102 · Sales page message</h3><span class="status live">Running</span></div><div class="form"><div class="field"><label for="experiment-name">Experiment name</label><input id="experiment-name" value="Sales page message" readonly></div><div class="field"><label for="fallback">Fallback variant after pause/end</label><select id="fallback"><option>Variant A · Control</option></select></div><div class="field"><label>Traffic allocation · basis points</label><div class="allocation"><b>Variant A · Control</b><input value="5000" aria-label="Variant A allocation"><span class="weight">50.00%</span></div><div class="allocation"><b>Variant B · Archive-led</b><input value="5000" aria-label="Variant B allocation"><span class="weight">50.00%</span></div><div class="allocation-total"><span>Total: <b class="good">10,000 / 10,000</b></span><span class="good">valid</span></div></div><div class="keyline"><strong>Stability rule</strong><span class="num">hash(visitor_key + experiment_id + allocation_version)</span> selects a range. An assignment is persisted before render; returning visitors are not reassigned.</div></div></article><aside><article class="panel"><div class="panel-head"><h3>Decision guardrails</h3></div><div class="form"><div class="keyline warn"><strong>Sample-size caution</strong>Variant B has 3,996 assigned visitors. Do not declare a winner from conversion rate alone; report interval/method in Phase 3.</div><div class="keyline"><strong>Allocation change effect</strong>Applies to new visitors only and writes allocation version <span class="num">v3</span>.</div><div class="keyline alert"><strong>Basic checkout unavailable</strong>“Checkout variant” is not an experiment target. Test the handoff page or offer step instead.</div></div></article><article class="panel"><div class="panel-head"><h3>Paused/invalid state</h3></div><div class="form"><p class="code-note">If weights equal 9,500, the publish button is disabled and the missing 500 basis points are named. If paused, the fallback is served without deleting assignments or events.</p><button class="button" disabled>Publish invalid allocation</button></div></article></aside></div>
+      </section>
+
+      <section class="view" data-view="analytics">
+        <div class="view-head"><div><div class="eyebrow">Summer Jersey Launch / 30 day readout</div><h2>Funnel analytics</h2><p>Use confirmed paid orders for revenue. Checkout browser events are useful measurement signals, not the financial source of truth.</p></div><button class="button" type="button"><span class="loading"></span>Refresh test data</button></div>
+        <div class="notice"><strong>Attribution coverage: 92.1%</strong>Paid orders without a matching checkout token/funnel context remain unattributed. Consent, browser blocking, completion-page loading, and cross-device journeys limit coverage.</div>
+        <div class="filterbar"><label>Funnel<select><option>Summer Jersey Launch</option></select></label><label>Step<select><option>All steps</option></select></label><label>Variant<select><option>All variants</option></select></label><label>Date range<select><option>Last 30 days</option></select></label><label>Source<select><option>All sources</option></select></label><label>Device<select><option>All devices</option></select></label></div>
+        <div class="metric-grid"><div class="metric"><div class="label">Unique step entry</div><div class="value">8,404</div><div class="detail">consented / deduplicated</div></div><div class="metric"><div class="label">Checkout started</div><div class="value">622</div><div class="detail">7.4% of step entry</div></div><div class="metric"><div class="label">Paid purchase</div><div class="value">267</div><div class="detail">42.9% of started checkout</div></div><div class="metric"><div class="label">Attributed AOV</div><div class="value">$80.19</div><div class="detail">paid orders only</div></div></div>
+        <div class="two-col"><article class="panel"><div class="panel-head"><h3>Step progression</h3><span class="meta">unique visitors</span></div><div class="chart"><div class="bar" style="height:178px" data-value="8,404"><span class="bar-label">Step entry</span></div><div class="bar" style="height:132px" data-value="6,244"><span class="bar-label">CTA click</span></div><div class="bar" style="height:93px" data-value="3,901"><span class="bar-label">Next step</span></div><div class="bar signal" style="height:48px" data-value="622"><span class="bar-label">Checkout start</span></div><div class="bar signal" style="height:31px" data-value="267"><span class="bar-label">Paid order</span></div></div><div class="definition"><b>Drop-off:</b> Step entry → CTA click: 25.7%; CTA click → next step: 37.5%. This is a static design chart, not live data.</div></article><article class="panel"><div class="panel-head"><h3>Variant comparison</h3><span class="meta">Sales page / 30 days</span></div><div class="table-wrap"><table><thead><tr><th>Variant</th><th>Assigned</th><th>Checkout starts</th><th>Paid order</th><th>Revenue</th></tr></thead><tbody><tr><td><b>A · Control</b></td><td class="num">4,408</td><td class="num">295 / 6.7%</td><td class="num">119 / 2.7%</td><td class="num">$9,997</td></tr><tr><td><b>B · Archive-led</b></td><td class="num">3,996</td><td class="num">327 / 8.2%</td><td class="num">148 / 3.7%</td><td class="num">$11,414</td></tr></tbody></table></div><div class="definition"><b>Caveat:</b> apparent difference is descriptive only. Phase 3 report will state sample size, attribution coverage, interval/method, and exclusions.</div></article></div>
+      </section>
+
+      <section class="view" data-view="report">
+        <div class="view-head"><div><div class="eyebrow">Summer Jersey Launch</div><h2>Final funnel report</h2><p>Reproducible analytics export—not a payment receipt. Shopify paid orders remain the source for payment status.</p></div></div>
+        <div class="report-grid"><article class="panel"><div class="panel-head"><h3>Report configuration</h3><span class="meta">will be stored with export</span></div><div class="form"><div class="field"><label for="report-range">Date range</label><select id="report-range"><option>2026-07-12 → 2026-08-10</option></select></div><div class="field"><label for="attribution-model">Attribution model</label><select id="attribution-model"><option>Last pre-checkout funnel touch · 30 days</option></select></div><div class="field"><label for="revenue-definition">Revenue definition</label><select id="revenue-definition"><option>Paid gross revenue · refunds excluded</option></select></div><div class="keyline"><strong>Included</strong>Variant comparison, step conversion, checkout starts, confirmed paid purchases, revenue, AOV, source/device splits, coverage, and assumptions.</div><div class="keyline warn"><strong>Explicitly not included</strong>Payment receipt, buyer PII, or claims that an unattributed order belongs to a variant.</div></div></article><article class="panel"><div class="panel-head"><h3>Exports</h3><span class="meta">Phase 3 capability</span></div><div class="export-options"><div class="export"><div><b>CSV</b><small>Row-level aggregate slices and report summary</small></div><button class="button" type="button">Prepare CSV</button></div><div class="export"><div><b>JSON</b><small>Schema-labelled report data and filters</small></div><button class="button" type="button">Prepare JSON</button></div><div class="export"><div><b>PDF</b><small>Not included in initial reporting phase</small></div><button class="button" disabled title="PDF is later scope">Unavailable</button></div></div><div class="definition"><b>Prior export log:</b> empty in local wireframe. Production records the filter set, creator, timestamp, format, and storage key—not secrets.</div></article></div>
+        <div class="error-demo"><b>Example export error state:</b> “No confirmed paid orders match this date range. You can still export observed funnel events, but revenue and AOV will be blank.”</div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const title = document.getElementById('page-title');
+    const navButtons = document.querySelectorAll('[data-view-target]');
+    function openView(name) {
+      document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.dataset.view === name));
+      document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.viewTarget === name));
+      title.textContent = name[0].toUpperCase() + name.slice(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    navButtons.forEach((button) => button.addEventListener('click', () => openView(button.dataset.viewTarget)));
+    document.querySelectorAll('[data-tab-target]').forEach((button) => button.addEventListener('click', () => {
+      const name = button.dataset.tabTarget;
+      document.querySelectorAll('[data-tab-target]').forEach((tab) => tab.classList.toggle('active', tab === button));
+      document.querySelectorAll('.editor-pane').forEach((pane) => pane.classList.toggle('active', pane.dataset.tab === name));
+    }));
+  </script>
+</body>
+</html>

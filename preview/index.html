@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>99 Jerseys | Example funnel preview</title>
+  <style>
+    :root{--ink:#18221e;--paper:#f5f0e7;--card:#fffdf8;--line:#d6cec1;--orange:#d95535;--green:#19785a;--muted:#647069}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 Georgia,serif}button{font:inherit;cursor:pointer}a{color:inherit}
+    .top{border-bottom:1px solid var(--ink);background:var(--card)}.top-inner{max-width:1100px;margin:auto;padding:14px 22px;display:flex;justify-content:space-between;gap:18px;align-items:center}.brand{font:bold 13px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}.mode{font:12px ui-monospace,monospace;color:var(--muted)}
+    .shell{max-width:1100px;margin:auto;padding:28px 22px 80px}.notice{border-left:4px solid #ba8a16;background:#fbefc7;padding:12px 15px;font:13px/1.45 Arial,sans-serif;margin-bottom:22px}.step-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:25px}.step-nav button,.variant button{border:1px solid var(--ink);background:var(--card);padding:8px 12px}.step-nav button.active,.variant button.active{background:var(--ink);color:#fff}.eyebrow{font:12px ui-monospace,monospace;letter-spacing:.12em;color:var(--orange);text-transform:uppercase}.hero{max-width:780px;margin:30px auto 24px;text-align:center}.hero h1{font-size:clamp(36px,7vw,72px);line-height:1.02;margin:10px 0}.hero p{font-size:21px;color:#3f4b45}.content{max-width:780px;margin:auto}.content h2{font-size:29px;line-height:1.12;margin-top:38px}.content h3{font-size:20px;margin-top:28px}.content p{margin:16px 0}.content ul{padding-left:24px}.cta{display:inline-block;border:0;background:var(--orange);color:#fff;padding:14px 21px;font:bold 15px Arial,sans-serif;text-decoration:none}.cta.secondary{background:var(--green)}.variant{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:15px 0 30px}.card{border:1px solid var(--line);background:var(--card);padding:22px;margin:20px 0}.price{font:bold 30px Arial,sans-serif}.muted{color:var(--muted);font:14px/1.5 Arial,sans-serif}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid .card{margin:0}.footer{border-top:1px solid var(--line);margin-top:46px;padding-top:18px;color:var(--muted);font:12px/1.5 Arial,sans-serif}@media(max-width:700px){.top-inner{align-items:flex-start;flex-direction:column}.shell{padding:20px 16px 60px}.grid{grid-template-columns:1fr}.content p{font-size:17px}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="top-inner"><div class="brand">99 Jerseys / Funnel preview</div><div class="mode">STATIC DEMO · NO SHOPIFY CONNECTION</div></div></header>
+  <main class="shell">
+    <div class="notice"><strong>Preview only:</strong> this example uses placeholder product, price, policy, and proof fields. Checkout is represented as a Shopify handoff and does not accept payment.</div>
+    <nav class="step-nav" aria-label="Funnel steps"><button class="active" data-step="presell">1 · Pre-sell</button><button data-step="sales">2 · Sales page</button><button data-step="checkout">3 · Shopify checkout</button></nav>
+    <section id="presell" class="screen">
+      <div class="hero"><div class="eyebrow">Experiment 1 / Pre-sell angle</div><h1 id="presell-title">The small detail that can make a football shirt feel like yours</h1><p id="presell-dek">A personal matchday story, then a clear path to choose your shirt.</p><div class="variant"><button class="active" data-presell="story">A · Advertorial</button><button data-presell="listicle">B · 7 reasons</button></div></div>
+      <article id="presell-story" class="content">
+        <p><strong>The shirt in the wardrobe was not the problem. It was the feeling that it could have belonged to anybody.</strong></p>
+        <p>The scarf comes out. The same jacket goes on. The group chat fills with predictions. But when the matchday photo happens, there is nothing in the outfit that carries the story of the day.</p>
+        <p>No name on the back. No number connected to a player, child, partner, or memory. Just another shirt among hundreds that looks close enough to the same.</p>
+        <h2>What changes when the detail is personal?</h2>
+        <p>You choose the available style, size, name, and number, check the details, then continue to Shopify checkout. The shirt becomes something you can explain without saying a word.</p>
+        <div class="card"><h3>What you can decide</h3><ul><li>Available style: [OWNER TO CONFIRM]</li><li>Size and fit: [OWNER TO CONFIRM]</li><li>Name and number: [OWNER TO CONFIRM]</li><li>Delivery and returns: [OWNER TO CONFIRM]</li></ul></div>
+        <a class="cta next" href="#sales">See the shirt, choose my name and number</a>
+      </article>
+      <article id="presell-listicle" class="content" hidden>
+        <h2>7 reasons supporters are choosing a more personal matchday shirt</h2>
+        <p>The difference between a shirt you own and a shirt you remember is often one small detail.</p>
+        <div class="grid"><div class="card"><h3>1. It becomes your shirt.</h3><p>The same colours feel different when the back carries your name or a number with a story.</p></div><div class="card"><h3>2. It makes a clearer gift.</h3><p>Choose a detail connected to the supporter who will wear it.</p></div><div class="card"><h3>3. It belongs in the photo.</h3><p>A personal detail keeps the shirt from disappearing into the crowd.</p></div><div class="card"><h3>4. The options are visible.</h3><p>Review style, size, personalisation, and terms before payment.</p></div><div class="card"><h3>5. It fits different stories.</h3><p>Surname, favourite number, special year, or your own name.</p></div><div class="card"><h3>6. The offer is clearer.</h3><p>Price, personalisation, and shipping should not appear as surprises.</p></div><div class="card"><h3>7. The reason is yours.</h3><p>The strongest detail is the one only you can explain.</p></div></div>
+        <p><a class="cta next" href="#sales">Show me the available shirts</a></p>
+      </article>
+    </section>
+    <section id="sales" class="screen" hidden>
+      <div class="hero"><div class="eyebrow">Experiment 2 / Sales-page angle</div><h1 id="sales-title">Make the next shirt the one you meant to buy</h1><p>One shirt. Your chosen detail. Clear options before checkout.</p><div class="variant"><button class="active" data-sales="story">A · Story and proof</button><button data-sales="offer">B · Offer and value</button></div></div>
+      <article id="sales-story" class="content"><h2>The shirt that carries your matchday detail</h2><p>You are choosing the available style, size, name, and number, reviewing the exact price, and continuing through Shopify checkout.</p><div class="card"><h3>Choose your shirt</h3><p>Style: [AVAILABLE OPTIONS]</p><p>Size: [SIZE RANGE]</p><p>Name and number: [PERSONALISATION RULE]</p><p class="price">[VERIFIED PRICE]</p><p class="muted">Shipping and returns: [OWNER TO CONFIRM]</p></div><h2>What happens next</h2><ol><li>Select the shirt and size.</li><li>Add the name and number, then review.</li><li>Continue to native Shopify checkout.</li></ol><div class="card"><h3>Proof section</h3><p class="muted">Verified reviews, customer photos, and policy details appear here after owner approval. This preview does not invent proof.</p></div><a class="cta next" href="#checkout">Choose my shirt and continue</a></article>
+      <article id="sales-offer" class="content" hidden><h2>One shirt. Your detail. No guesswork.</h2><div class="card"><h3>Your order can include</h3><ul><li>[SHIRT STYLE]</li><li>[SIZE]</li><li>[NAME]</li><li>[NUMBER]</li></ul><p class="price">[VERIFIED TOTAL]</p><p class="muted">Personalisation: [INCLUDED OR VERIFIED ADD-ON] · Shipping: [VERIFIED TERMS]</p></div><h2>Why choose the personalised version?</h2><p><strong>A clearer gift.</strong> Choose a name or number connected to the person.</p><p><strong>A stronger memory.</strong> The shirt carries a detail you recognise when you wear it again.</p><p><strong>A simpler decision.</strong> Options and policies are visible before the handoff.</p><a class="cta next" href="#checkout">Build my shirt</a></article>
+    </section>
+    <section id="checkout" class="screen" hidden><div class="hero"><div class="eyebrow">Native Shopify boundary</div><h1>Your shirt is ready for checkout</h1><p>Shopify collects payment and delivery information on the next screen.</p></div><article class="content"><div class="card"><h3>Review before you continue</h3><p>Style: [SELECTED STYLE]</p><p>Size: [SELECTED SIZE]</p><p>Name: [SELECTED NAME]</p><p>Number: [SELECTED NUMBER]</p><p class="price">[VERIFIED TOTAL]</p></div><a class="cta secondary" href="#" onclick="event.preventDefault();alert('Demo only. Native Shopify checkout is not connected.')">Continue to secure Shopify checkout</a><p class="muted">This demo does not collect payment. Checkout itself is not A/B-tested on Shopify Basic.</p></article></section>
+    <footer class="footer">Example funnel only. Replace bracketed facts before publication. Reports should separate observed checkout starts from confirmed paid orders and attributed revenue.</footer>
+  </main>
+  <script>
+    const screens=[...document.querySelectorAll('.screen')];
+    function showStep(id){screens.forEach(s=>s.hidden=s.id!==id);document.querySelectorAll('[data-step]').forEach(b=>b.classList.toggle('active',b.dataset.step===id));window.scrollTo({top:0,behavior:'smooth'})}
+    document.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>showStep(b.dataset.step)));
+    document.querySelectorAll('.next').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showStep(a.getAttribute('href').slice(1))}));
+    document.querySelectorAll('[data-presell]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-presell]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelector('#presell-story').hidden=b.dataset.presell!=='story';document.querySelector('#presell-listicle').hidden=b.dataset.presell!=='listicle';}));
+    document.querySelectorAll('[data-sales]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-sales]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelector('#sales-story').hidden=b.dataset.sales!=='story';document.querySelector('#sales-offer').hidden=b.dataset.sales!=='offer';}));
+  </script>
+</body>
+</html>

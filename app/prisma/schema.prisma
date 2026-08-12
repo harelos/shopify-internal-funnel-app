@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FunnelStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum StepKind {
+  LANDING
+  ADVERTORIAL
+  SALES
+  OFFER
+  PRE_CHECKOUT
+  CHECKOUT_HANDOFF
+}
+
+enum VersionState {
+  DRAFT
+  PREVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ConsentState {
+  UNKNOWN
+  GRANTED
+  DENIED
+}
+
+enum EventSource {
+  LOCAL_SYNTHETIC
+  STOREFRONT
+  PIXEL
+  WEBHOOK
+}
+
+enum EventName {
+  FUNNEL_STEP_ENTERED
+  FUNNEL_PAGE_VIEWED
+  FUNNEL_CTA_CLICKED
+  FUNNEL_NEXT_STEP_ENTERED
+  CART_CHECKOUT_STARTED
+  CHECKOUT_COMPLETED_OBSERVED
+  SHOPIFY_ORDER_PAID
+}
+
+enum AttributionConfidence {
+  HIGH
+  MEDIUM
+  LOW
+  UNATTRIBUTED
+}
+
+model Shop {
+  id        String   @id @default(uuid())
+  domain    String   @unique
+  status    String   @default("LOCAL_ONLY")
+  createdAt DateTime @default(now())
+  funnels   Funnel[]
+  visitors  Visitor[]
+  events    Event[]
+  checkouts CheckoutAttribution[]
+  orders    OrderAttribution[]
+}
+
+model Funnel {
+  id          String       @id @default(uuid())
+  shopId      String
+  name        String
+  slug        String
+  status      FunnelStatus @default(DRAFT)
+  archivedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  shop        Shop         @relation(fields: [shopId], references: [id])
+  steps       Step[]
+  events      Event[]
+  checkouts   CheckoutAttribution[]
+  orders      OrderAttribution[]
+
+  @@unique([shopId, slug])
+  @@index([shopId, status])
+}
+
+model Step {
+  id         String   @id @default(uuid())
+  funnelId   String
+  position   Int
+  name       String
+  kind       StepKind
+  createdAt  DateTime @default(now())
+  funnel     Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  variants   Variant[]
+  experiment Experiment?
+  events     Event[]
+
+  @@unique([funnelId, position])
+  @@index([funnelId])
+}
+
+model Variant {
+  id                 String          @id @default(uuid())
+  stepId             String
+  name               String
+  publishedVersionId String?         @unique
+  createdAt          DateTime        @default(now())
+  step               Step            @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  versions           ContentVersion[] @relation("VariantVersions")
+  publishedVersion   ContentVersion? @relation("VariantPublishedVersion", fields: [publishedVersionId], references: [id])
+  allocations        ExperimentAllocation[]
+  assignments        Assignment[]
+  events             Event[]
+  checkoutAttributions CheckoutAttribution[]
+  orderAttributions  OrderAttribution[]
+
+  @@unique([stepId, name])
+  @@index([stepId])
+}
+
+model ContentVersion {
+  id                    String       @id @default(uuid())
+  variantId             String
+  revision              Int
+  state                 VersionState @default(DRAFT)
+  rawHtml               String
+  normalizedHtml        String
+  portabilityReportJson Json
+  createdAt             DateTime     @default(now())
+  publishedAt           DateTime?
+  variant               Variant      @relation("VariantVersions", fields: [variantId], references: [id], onDelete: Cascade)
+  publishedFor          Variant?     @relation("VariantPublishedVersion")
+
+  @@unique([variantId, revision])
+  @@index([variantId, state])
+}
+
+model Experiment {
+  id                String           @id @default(uuid())
+  stepId            String           @unique
+  status            ExperimentStatus @default(DRAFT)
+  allocationVersion Int              @default(1)
+  createdAt         DateTime         @default(now())
+  step              Step             @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  allocations       ExperimentAllocation[]
+  assignments       Assignment[]
+}
+
+model ExperimentAllocation {
+  id                String     @id @default(uuid())
+  experimentId      String
+  variantId         String
+  weightBasisPoints Int
+  experiment        Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant           Variant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, variantId])
+  @@index([experimentId])
+}
+
+model Visitor {
+  id               String       @id @default(uuid())
+  shopId           String
+  anonymousKeyHash String
+  consentState     ConsentState @default(UNKNOWN)
+  firstSeenAt      DateTime     @default(now())
+  shop             Shop         @relation(fields: [shopId], references: [id])
+  assignments      Assignment[]
+  events           Event[]
+  checkouts        CheckoutAttribution[]
+
+  @@unique([shopId, anonymousKeyHash])
+}
+
+model Assignment {
+  id          String     @id @default(uuid())
+  visitorId   String
+  experimentId String
+  variantId   String
+  assignedAt  DateTime   @default(now())
+  visitor     Visitor    @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  experiment  Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant     Variant    @relation(fields: [variantId], references: [id])
+
+  @@unique([visitorId, experimentId])
+  @@index([experimentId, variantId])
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  shopId        String
+  eventKey      String      @unique
+  name          EventName
+  source        EventSource
+  occurredAt    DateTime
+  receivedAt    DateTime    @default(now())
+  visitorId     String?
+  funnelId      String?
+  stepId        String?
+  variantId     String?
+  checkoutToken String?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  deviceClass   String?
+  payloadJson   Json
+  isTest        Boolean     @default(true)
+  shop          Shop        @relation(fields: [shopId], references: [id])
+  visitor       Visitor?    @relation(fields: [visitorId], references: [id])
+  funnel        Funnel?     @relation(fields: [funnelId], references: [id])
+  step          Step?       @relation(fields: [stepId], references: [id])
+  variant       Variant?    @relation(fields: [variantId], references: [id])
+
+  @@index([funnelId, stepId, variantId, occurredAt])
+  @@index([checkoutToken])
+}
+
+model CheckoutAttribution {
+  id              String                  @id @default(uuid())
+  shopId          String
+  checkoutToken   String                  @unique
+  visitorId       String?
+  funnelId        String?
+  lastStepId      String?
+  lastVariantId   String?
+  startedAt       DateTime
+  completedAt     DateTime?
+  confidence      AttributionConfidence  @default(MEDIUM)
+  shop            Shop                    @relation(fields: [shopId], references: [id])
+  visitor         Visitor?                @relation(fields: [visitorId], references: [id])
+  funnel          Funnel?                 @relation(fields: [funnelId], references: [id])
+  lastVariant     Variant?                @relation(fields: [lastVariantId], references: [id])
+  orders          OrderAttribution[]
+
+  @@index([funnelId])
+}
+
+model OrderAttribution {
+  id              String                 @id @default(uuid())
+  shopId          String
+  shopifyOrderGid String                 @unique
+  checkoutToken   String?
+  funnelId        String?
+  variantId       String?
+  currency        String
+  grossAmount     Decimal                @db.Decimal(12, 2)
+  netRevenueAmount Decimal                @db.Decimal(12, 2)
+  confidence      AttributionConfidence
+  isTest          Boolean               @default(true)
+  paidAt          DateTime
+  shop            Shop                   @relation(fields: [shopId], references: [id])
+  checkout        CheckoutAttribution?   @relation(fields: [checkoutToken], references: [checkoutToken])
+  funnel          Funnel?                @relation(fields: [funnelId], references: [id])
+  variant         Variant?               @relation(fields: [variantId], references: [id])
+
+  @@index([funnelId, variantId, paidAt])
+}
