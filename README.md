@@ -4,7 +4,15 @@ Private, code-first Shopify funnel control room for one owner/store.
 
 ## Preview
 
-The static example funnel is available at:
+The live static example funnel is available at:
+
+https://harelos.github.io/shopify-internal-funnel-app/preview/
+
+Source repository:
+
+https://github.com/harelos/shopify-internal-funnel-app
+
+The local source file is:
 
 `preview/index.html`
 
