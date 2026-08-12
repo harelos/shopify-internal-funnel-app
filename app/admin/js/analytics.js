@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     visualFunnelPanel.style.display = "none";
     pathAttributionPanel.style.display = "none";
 
-    // Show Storewide Benchmarks
+    // Show Dynamic Date-Driven Storewide Benchmarks
     if (report.benchmarks) {
       accountBenchmarksPanel.style.display = "block";
       bmDiscovery.textContent = `${report.benchmarks.avgDiscoveryToSales}%`;
@@ -208,14 +208,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     accountBenchmarksPanel.style.display = "none";
 
-    // 1. Render Visual Stepped Funnel Chart
+    // 1. Render Visual Stepped Funnel Chart (Fix 0% bar rendering)
     const flow = report.funnelFlow || [];
     if (flow.length > 0) {
       visualFunnelPanel.style.display = "block";
       const maxCount = flow[0]?.count || 1;
 
       visualFunnelContainer.innerHTML = flow.map((stage, i) => {
-        const widthPct = Math.max(12, Math.round((stage.count / maxCount) * 100));
+        // If count === 0, width is 0%. Otherwise calculate percentage width.
+        const widthPct = stage.count === 0 ? 0 : Math.max(5, Math.round((stage.count / maxCount) * 100));
         return `
           <div class="funnel-stage-row">
             <div class="funnel-stage-header">
@@ -223,8 +224,8 @@ document.addEventListener("DOMContentLoaded", () => {
               <span>${stage.count.toLocaleString()} Visitors (${stage.percentage}%)</span>
             </div>
             <div class="funnel-bar-container">
-              <div class="funnel-bar-fill" style="width: ${widthPct}%;">
-                ${stage.percentage}%
+              <div class="funnel-bar-fill" style="width: ${widthPct}%; ${stage.count === 0 ? 'padding:0;' : ''}">
+                ${widthPct > 0 ? `${stage.percentage}%` : ''}
               </div>
             </div>
             ${i < flow.length - 1 && stage.dropoff > 0 ? `<div class="funnel-dropoff-tag">Drop-off to next stage: -${stage.dropoff}%</div>` : ''}

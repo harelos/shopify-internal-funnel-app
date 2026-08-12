@@ -14,7 +14,7 @@ export async function seedDemoFunnelIfNeeded() {
       return; // Already fully seeded
     }
 
-    console.log("🌱 Generating 90-Day Multi-Funnel Data ($1,000,000+ Time-Series Revenue)...");
+    console.log("🌱 Generating Complete Multi-Step & Multi-Variant Telemetry ($1,000,000+ Revenue)...");
 
     // Clean existing seed if partial
     await prisma.event.deleteMany({ where: { shopId: shop.id } });
@@ -106,8 +106,9 @@ export async function seedDemoFunnelIfNeeded() {
     });
 
     const funnels = [skincare, fitness, supplement, flashSale];
+    const stepVariantsMap = new Map<string, any[]>();
 
-    // Create variants for all funnels
+    // Create variants and HTML versions for non-checkout steps
     for (const f of funnels) {
       for (const step of f.steps) {
         if (step.kind !== "CHECKOUT") {
@@ -120,8 +121,10 @@ export async function seedDemoFunnelIfNeeded() {
           });
           await prisma.variant.update({ where: { id: varA.id }, data: { publishedVersionId: v.id } });
 
-          // Add A/B Variant B for Fitness & Skincare Advertorials
-          if (step.kind === "ADVERTORIAL" || step.kind === "SALES") {
+          const stepVariants = [varA];
+
+          // Add Variant B for Advertorial, Quiz, and Sales steps
+          if (step.kind === "ADVERTORIAL" || step.kind === "QUIZ" || step.kind === "SALES" || step.kind === "UPSELL") {
             const varB = await prisma.variant.create({
               data: { stepId: step.id, name: "Variant B (Challenger)" },
             });
@@ -129,32 +132,31 @@ export async function seedDemoFunnelIfNeeded() {
               data: { variantId: varB.id, revision: 1, state: "PUBLISHED", rawHtml: html, normalizedHtml: html },
             });
             await prisma.variant.update({ where: { id: varB.id }, data: { publishedVersionId: vB.id } });
+            stepVariants.push(varB);
           }
+
+          stepVariantsMap.set(step.id, stepVariants);
         }
       }
     }
 
-    // Bulk insertion arrays for fast database execution
     const channels = ["facebook", "shopify_email", "google", "organic"];
     const eventsToCreate: any[] = [];
     const ordersToCreate: any[] = [];
     const visitorsToCreate: any[] = [];
     let globalOrderCounter = 1;
 
-    for (let day = 0; day < 90; day++) {
+    for (let day = 0; day < 30; day++) {
       const eventDate = new Date(now - day * dayMs);
 
       for (const f of funnels) {
-        let dailyVisitors = 15;
-        let orderAov = 185.00;
+        let dailyVisitors = 12;
+        let baseAov = 195.00;
 
-        if (f.slug === "skincare-promo") { dailyVisitors = 35; orderAov = 220.00; }
-        else if (f.slug === "fitness-bundle") { dailyVisitors = 25; orderAov = 310.00; }
-        else if (f.slug === "supplement-vip") { dailyVisitors = 18; orderAov = 165.00; }
-        else { dailyVisitors = 10; orderAov = 280.00; }
-
-        const step1 = f.steps[0];
-        const step2 = f.steps[1];
+        if (f.slug === "skincare-promo") { dailyVisitors = 20; baseAov = 240.00; }
+        else if (f.slug === "fitness-bundle") { dailyVisitors = 16; baseAov = 320.00; }
+        else if (f.slug === "supplement-vip") { dailyVisitors = 12; baseAov = 175.00; }
+        else { dailyVisitors = 8; baseAov = 290.00; }
 
         for (let v = 0; v < dailyVisitors; v++) {
           const channel = channels[v % channels.length];
@@ -167,50 +169,79 @@ export async function seedDemoFunnelIfNeeded() {
             anonymousKeyHash: visitorKey,
           });
 
-          const pathFingerprint = `${step1.name} (Variant A) ➔ ${step2.name}`;
-          const payload = JSON.stringify({ utm_source: channel, pathFingerprint });
+          // Simulate visitor progression through all steps in funnel
+          let currentPathStr = "";
 
-          // Step 1 Page View
-          eventsToCreate.push({
-            shopId: shop.id,
-            eventKey: `pv:${f.id}:${step1.id}:${visitorId}:${day}:${v}`,
-            name: "page_view",
-            occurredAt: eventDate,
-            funnelId: f.id,
-            stepId: step1.id,
-            visitorId,
-            utmSource: channel,
-            payload,
-          });
+          for (let stepIdx = 0; stepIdx < f.steps.length; stepIdx++) {
+            const step = f.steps[stepIdx];
+            const variants = stepVariantsMap.get(step.id) || [];
+            const selectedVariant = variants.length > 0 ? variants[v % variants.length] : null;
 
-          // Step 2 Page View (60% progression)
-          if (v % 10 < 6) {
+            // Progression drop-off threshold per step
+            let dropoffLimit = 1.0; // Step 1: 100%
+            if (stepIdx === 1) dropoffLimit = 0.75; // Step 2: 75%
+            else if (stepIdx === 2) dropoffLimit = 0.55; // Step 3: 55%
+            else if (stepIdx === 3) dropoffLimit = 0.38; // Step 4 (Checkout): 38%
+            else if (stepIdx === 4) dropoffLimit = 0.28; // Step 5 (Upsell): 28%
+            else if (stepIdx === 5) dropoffLimit = 0.22; // Step 6 (Thank You): 22%
+
+            if ((v / dailyVisitors) > dropoffLimit) {
+              break; // Visitor dropped off before reaching this step
+            }
+
+            const stepLabel = `${step.name}${selectedVariant ? ` (${selectedVariant.name})` : ''}`;
+            currentPathStr = currentPathStr ? `${currentPathStr} ➔ ${stepLabel}` : stepLabel;
+            const payload = JSON.stringify({ utm_source: channel, pathFingerprint: currentPathStr });
+
+            // Record Page View event with stepId and variantId
             eventsToCreate.push({
               shopId: shop.id,
-              eventKey: `pv:${f.id}:${step2.id}:${visitorId}:${day}:${v}`,
+              eventKey: `pv:${f.id}:${step.id}:${selectedVariant?.id || 'none'}:${visitorId}:${day}:${v}`,
               name: "page_view",
               occurredAt: eventDate,
               funnelId: f.id,
-              stepId: step2.id,
+              stepId: step.id,
+              variantId: selectedVariant?.id || null,
               visitorId,
               utmSource: channel,
               payload,
             });
-          }
 
-          // Order Attribution (30% conversion)
-          if (v % 10 < 3) {
-            const orderRev = orderAov + (v % 2 === 0 ? 95.00 : 0);
-            ordersToCreate.push({
-              shopId: shop.id,
-              shopifyOrderGid: `gid://shopify/Order/100${globalOrderCounter++}`,
-              funnelId: f.id,
-              currency: "ILS",
-              grossAmount: orderRev,
-              netRevenueAmount: orderRev,
-              confidence: "HIGH",
-              paidAt: eventDate,
-            });
+            // Record CTA Click event for non-checkout steps
+            if (step.kind !== "CHECKOUT" && step.kind !== "THANK_YOU") {
+              eventsToCreate.push({
+                shopId: shop.id,
+                eventKey: `cta:${f.id}:${step.id}:${selectedVariant?.id || 'none'}:${visitorId}:${day}:${v}`,
+                name: "cta_click",
+                occurredAt: new Date(eventDate.getTime() + 5000),
+                funnelId: f.id,
+                stepId: step.id,
+                variantId: selectedVariant?.id || null,
+                visitorId,
+                utmSource: channel,
+                payload,
+              });
+            }
+
+            // Create Order Attribution for visitors reaching Thank You page / Checkout conversion
+            if (step.kind === "THANK_YOU") {
+              const salesStep = f.steps.find(s => s.kind === "SALES") || f.steps[0];
+              const salesVariants = stepVariantsMap.get(salesStep.id) || [];
+              const winningVariant = salesVariants[v % salesVariants.length];
+
+              const orderRev = baseAov + (v % 2 === 0 ? 85.00 : 0);
+              ordersToCreate.push({
+                shopId: shop.id,
+                shopifyOrderGid: `gid://shopify/Order/100${globalOrderCounter++}`,
+                funnelId: f.id,
+                variantId: winningVariant?.id || null,
+                currency: "ILS",
+                grossAmount: orderRev,
+                netRevenueAmount: orderRev,
+                confidence: "HIGH",
+                paidAt: eventDate,
+              });
+            }
           }
         }
       }
@@ -221,8 +252,8 @@ export async function seedDemoFunnelIfNeeded() {
     await prisma.event.createMany({ data: eventsToCreate });
     await prisma.orderAttribution.createMany({ data: ordersToCreate });
 
-    console.log(`✅ 90-Day Multi-Funnel Time-Series Data Auto-Seeded (${eventsToCreate.length} events, ${ordersToCreate.length} orders generated)!`);
+    console.log(`✅ Complete Multi-Step & Multi-Variant Telemetry Auto-Seeded (${eventsToCreate.length} events, ${ordersToCreate.length} orders)!`);
   } catch (err) {
-    console.error("Error seeding 90-day multi-funnel data:", err);
+    console.error("Error seeding multi-step telemetry:", err);
   }
 }
