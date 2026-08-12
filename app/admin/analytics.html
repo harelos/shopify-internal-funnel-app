@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Funnel Analytics — Funnel Builder</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a href="#" id="back-funnel-link" class="btn btn-ghost btn-sm">← Back to Funnel</a>
+        <span class="brand-name" id="analytics-title">Funnel Analytics</span>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-primary" id="btn-export-csv">📥 Export CSV Report</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+      <div>
+        <h1>Performance & Conversion Insights</h1>
+        <p class="muted">Real-time visitor telemetry, A/B test conversion rates, and attributed revenue</p>
+      </div>
+      <div style="display:flex; gap:8px;" id="date-range-buttons">
+        <button class="btn btn-sm active" data-days="7">Last 7 Days</button>
+        <button class="btn btn-sm" data-days="30">Last 30 Days</button>
+        <button class="btn btn-sm" data-days="90">Last 90 Days</button>
+        <button class="btn btn-sm" data-days="all">All Time</button>
+      </div>
+    </div>
+
+    <!-- Summary Metrics Row -->
+    <div class="grid-4" style="margin-bottom:28px;">
+      <div class="metric-card">
+        <div class="metric-val" id="metric-visitors">0</div>
+        <div class="metric-label">Unique Visitors</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-views">0</div>
+        <div class="metric-label">Page Views</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-orders">0</div>
+        <div class="metric-label">Paid Orders</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-revenue">$0.00</div>
+        <div class="metric-label">Attributed Revenue</div>
+      </div>
+    </div>
+
+    <!-- Step & Variant Breakdown Table -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Funnel Step & Variant Conversion Breakdown</h2>
+        <span class="eyebrow" id="report-generated-at">Updated just now</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:30px;"></th>
+              <th>Step / Variant</th>
+              <th>Entries</th>
+              <th>Page Views</th>
+              <th>CTA Clicks</th>
+              <th>CTA Rate (%)</th>
+              <th>Orders</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody id="analytics-table-body">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/analytics.js"></script>
+</body>
+</html>

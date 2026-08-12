@@ -1,4 +1,18 @@
-import type { PortabilityFinding, PortabilityReport } from "./types.js";
+export type FindingSeverity = "portable" | "mapped" | "review" | "unsupported";
+
+export interface PortabilityFinding {
+  severity: FindingSeverity;
+  subject: string;
+  message: string;
+  fallback: string;
+}
+
+export interface PortabilityReport {
+  findings: PortabilityFinding[];
+  scriptsRemoved: number;
+  iframesRemoved: number;
+  documentTagsExtracted: boolean;
+}
 
 const scriptPattern = /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi;
 const iframePattern = /<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi;
@@ -37,6 +51,5 @@ export function analyzeHtml(rawHtml: string): { normalizedHtml: string; report: 
 }
 
 export function renderSandboxDocument(normalizedHtml: string): string {
-  // CSP and a sandboxed iframe are defense in depth. This is a local preview, not a production HTML sanitizer.
   return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><style>body{margin:0;padding:24px;font-family:Arial,sans-serif;color:#17231e;background:#fffdf8}*{max-width:100%;box-sizing:border-box}</style></head><body>${normalizedHtml}</body></html>`;
 }
