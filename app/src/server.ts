@@ -18,6 +18,9 @@ app.use(express.urlencoded({ extended: true }));
 // Serve admin UI static files
 app.use("/admin", express.static(path.join(__dirname, "../admin")));
 
+// Serve standalone preview static files
+app.use("/preview", express.static(path.join(__dirname, "../../preview")));
+
 // Mount API routes
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
