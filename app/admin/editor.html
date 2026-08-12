@@ -11,7 +11,8 @@
     .editor-tabs { display: flex; background: #2d2d2d; border-bottom: 1px solid #333; }
     .editor-tab { padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; color: #999; border-bottom: 2px solid transparent; }
     .editor-tab.active { color: #fff; border-bottom-color: #d85336; background: #1e1e1e; }
-    #editor-container { flex: 1; width: 100%; height: calc(100vh - 100px); }
+    #editor-container { flex: 1; width: 100%; height: calc(100vh - 100px); position: relative; }
+    .editor-loader { position: absolute; top:0; left:0; right:0; bottom:0; background: #1e1e1e; display: flex; align-items: center; justify-content: center; font-family: var(--mono); color: #888; font-size: 14px; z-index: 10; }
     .port-bar { padding: 8px 18px; font-family: var(--mono); font-size: 12px; background: #2d2d2d; border-top: 1px solid #333; color: #a3e635; display: flex; justify-content: space-between; }
   </style>
 </head>
@@ -34,10 +35,12 @@
     <div class="editor-tab active" data-mode="html">HTML Markup</div>
   </div>
 
-  <div id="editor-container"></div>
+  <div id="editor-container">
+    <div id="editor-loader" class="editor-loader">⚡ Loading Monaco Code Editor environment...</div>
+  </div>
 
   <div class="port-bar">
-    <span id="port-status">Monaco Editor Ready</span>
+    <span id="port-status">Initializing Editor...</span>
     <span id="port-report" style="color:#cbd5e1;">Portability: Safe</span>
   </div>
 

@@ -140,8 +140,9 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
       </script>
     `;
 
-    pageHtml = pageHtml.replace("</body>", `${trackingPixelScript}</body>`);
-    if (!pageHtml.includes("</body>")) {
+    if (pageHtml.includes("</body>")) {
+      pageHtml = pageHtml.replace("</body>", `${trackingPixelScript}</body>`);
+    } else {
       pageHtml += trackingPixelScript;
     }
 

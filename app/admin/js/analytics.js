@@ -32,7 +32,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnExportCsv?.addEventListener("click", () => {
-    window.location.href = `/api/analytics/${funnelId}/csv`;
+    let csvUrl = `/api/analytics/${funnelId}/csv`;
+    if (currentDays !== "all") {
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - parseInt(currentDays, 10));
+      csvUrl += `?from=${fromDate.toISOString()}`;
+    }
+    window.location.href = csvUrl;
   });
 
   async function loadReport() {
@@ -68,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let rowsHtml = "";
 
     steps.forEach(step => {
-      const rowId = `step-row-${step.stepId}`;
       rowsHtml += `
         <tr style="background:rgba(0,0,0,0.02); font-weight:bold; cursor:pointer;" onclick="toggleStepExpand('${step.stepId}')">
           <td style="text-align:center;" id="toggle-icon-${step.stepId}">▶</td>

@@ -13,12 +13,15 @@ async function getOrCreateShop() {
   return shop;
 }
 
-// GET /api/funnels — List all active/draft funnels
+// GET /api/funnels — List all active/draft funnels (excluding archived)
 router.get("/funnels", async (_req, res) => {
   try {
     const shop = await getOrCreateShop();
     const funnels = await prisma.funnel.findMany({
-      where: { shopId: shop.id },
+      where: {
+        shopId: shop.id,
+        NOT: { status: "ARCHIVED" },
+      },
       include: {
         _count: { select: { steps: true } },
       },
@@ -42,7 +45,7 @@ router.post("/funnels", async (req, res) => {
 
     // Check slug collision
     const existing = await prisma.funnel.findFirst({
-      where: { shopId: shop.id, slug },
+      where: { shopId: shop.id, slug, NOT: { status: "ARCHIVED" } },
     });
     if (existing) {
       return res.status(400).json({ error: "A funnel with this URL slug already exists" });

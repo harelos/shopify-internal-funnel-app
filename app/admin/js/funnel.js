@@ -19,9 +19,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const variantList = document.getElementById("variant-list");
   const btnAnalytics = document.getElementById("btn-analytics");
   const btnPublishFunnel = document.getElementById("btn-publish-funnel");
+  const btnDraftFunnel = document.getElementById("btn-draft-funnel");
   const btnAddStep = document.getElementById("btn-add-step");
   const btnAddStepSidebar = document.getElementById("btn-add-step-sidebar");
   const btnDeleteStep = document.getElementById("btn-delete-step");
+  const btnMoveUp = document.getElementById("btn-move-up");
+  const btnMoveDown = document.getElementById("btn-move-down");
   const btnAddVariant = document.getElementById("btn-add-variant");
   const btnStartAb = document.getElementById("btn-start-ab");
 
@@ -40,12 +43,28 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnPublishFunnel.addEventListener("click", async () => {
+    btnPublishFunnel.disabled = true;
     try {
       await API.patch(`/api/funnels/${funnelId}`, { status: "PUBLISHED" });
-      loadFunnel();
+      await loadFunnel();
       alert("Funnel is now PUBLISHED!");
     } catch (err) {
       alert("Error publishing funnel: " + err.message);
+    } finally {
+      btnPublishFunnel.disabled = false;
+    }
+  });
+
+  btnDraftFunnel.addEventListener("click", async () => {
+    btnDraftFunnel.disabled = true;
+    try {
+      await API.patch(`/api/funnels/${funnelId}`, { status: "DRAFT" });
+      await loadFunnel();
+      alert("Funnel reverted to DRAFT.");
+    } catch (err) {
+      alert("Error setting status: " + err.message);
+    } finally {
+      btnDraftFunnel.disabled = false;
     }
   });
 
@@ -115,6 +134,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  btnMoveUp?.addEventListener("click", async () => {
+    const steps = currentFunnel?.steps || [];
+    const idx = steps.findIndex(s => s.id === selectedStepId);
+    if (idx <= 0) return;
+    const currentStep = steps[idx];
+    const prevStep = steps[idx - 1];
+
+    try {
+      await API.patch(`/api/steps/${currentStep.id}`, { position: prevStep.position });
+      await API.patch(`/api/steps/${prevStep.id}`, { position: currentStep.position });
+      loadFunnel();
+    } catch (err) {
+      alert("Failed to move step: " + err.message);
+    }
+  });
+
+  btnMoveDown?.addEventListener("click", async () => {
+    const steps = currentFunnel?.steps || [];
+    const idx = steps.findIndex(s => s.id === selectedStepId);
+    if (idx < 0 || idx >= steps.length - 1) return;
+    const currentStep = steps[idx];
+    const nextStep = steps[idx + 1];
+
+    try {
+      await API.patch(`/api/steps/${currentStep.id}`, { position: nextStep.position });
+      await API.patch(`/api/steps/${nextStep.id}`, { position: currentStep.position });
+      loadFunnel();
+    } catch (err) {
+      alert("Failed to move step: " + err.message);
+    }
+  });
+
   btnStartAb?.addEventListener("click", async () => {
     try {
       await API.post(`/api/steps/${selectedStepId}/experiments`, {});
@@ -138,13 +189,27 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderHeader() {
     topFunnelName.textContent = currentFunnel.name;
     topFunnelStatus.textContent = currentFunnel.status;
-    topFunnelStatus.className = `badge ${currentFunnel.status === 'PUBLISHED' ? 'badge-published' : 'badge-draft'}`;
+    const isPublished = currentFunnel.status === 'PUBLISHED';
+    topFunnelStatus.className = `badge ${isPublished ? 'badge-published' : 'badge-draft'}`;
+
+    if (isPublished) {
+      btnPublishFunnel.style.display = "none";
+      btnDraftFunnel.style.display = "inline-block";
+    } else {
+      btnPublishFunnel.style.display = "inline-block";
+      btnDraftFunnel.style.display = "none";
+    }
   }
 
   function renderStepFlow() {
     const steps = currentFunnel.steps || [];
     if (!selectedStepId && steps.length > 0) {
       selectedStepId = steps[0].id;
+    }
+
+    if (steps.length === 0) {
+      stepFlowContainer.innerHTML = "<p class='muted' style='text-align:center; padding:16px;'>No steps yet. Click + Add Step below.</p>";
+      return;
     }
 
     stepFlowContainer.innerHTML = steps.map((step, idx) => {
@@ -169,15 +234,20 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function renderStepDetail() {
-    const step = currentFunnel?.steps?.find(s => s.id === selectedStepId);
+    const steps = currentFunnel?.steps || [];
+    const step = steps.find(s => s.id === selectedStepId);
     if (!step) {
-      stepTitle.textContent = "Select a Step";
+      stepTitle.textContent = "Select or Add a Step";
       variantList.innerHTML = "<p class='muted'>No step selected.</p>";
       return;
     }
 
     stepTitle.textContent = step.name;
     stepKindBadge.textContent = step.kind;
+
+    const idx = steps.findIndex(s => s.id === selectedStepId);
+    btnMoveUp.disabled = idx <= 0;
+    btnMoveDown.disabled = idx >= steps.length - 1;
 
     const variants = step.variants || [];
     const isCheckout = step.kind === "CHECKOUT";
@@ -190,16 +260,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (experiment && experiment.status === "RUNNING") {
       abBanner.style.display = "block";
       const allocations = experiment.allocations || [];
+
+      // Fix C2: Pre-populate weightState with ALL current variant weights
+      window.weightState[experiment.id] = {};
+      allocations.forEach(a => {
+        const percent = Math.round((a.weightBasisPoints / 10000) * 100);
+        window.weightState[experiment.id][a.variantId] = percent;
+      });
+
       abControls.innerHTML = allocations.map(a => {
         const v = variants.find(varItem => varItem.id === a.variantId);
-        const percent = Math.round((a.weightBasisPoints / 10000) * 100);
+        const percent = window.weightState[experiment.id][a.variantId];
         return `
-          <div style="flex:1;">
-            <label class="eyebrow">${escapeHtml(v?.name || 'Variant')}: ${percent}%</label>
-            <input type="range" min="0" max="100" value="${percent}" onchange="updateWeight('${experiment.id}', '${a.variantId}', this.value)" style="width:100%;">
+          <div style="flex:1; min-width:180px;">
+            <label class="eyebrow">${escapeHtml(v?.name || 'Variant')}: <span id="weight-label-${a.variantId}">${percent}%</span></label>
+            <input type="range" min="0" max="100" value="${percent}" oninput="updateWeightLabel('${experiment.id}', '${a.variantId}', this.value)" style="width:100%;">
           </div>
         `;
       }).join("") + `<button class="btn btn-sm btn-primary" onclick="saveWeights('${experiment.id}')">Save Splits</button>`;
+
+      updateTotalWeightLabel(experiment.id);
     } else {
       abBanner.style.display = "none";
     }
@@ -222,7 +302,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     variantList.innerHTML = variants.map(v => {
       const isPublished = v.versions && v.versions.some(ver => ver.state === "PUBLISHED");
-      const hasDraft = v.versions && v.versions.length > 0;
       return `
         <div class="panel">
           <div class="panel-header">
@@ -264,18 +343,37 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.weightState = {};
-  window.updateWeight = function(expId, varId, val) {
+  window.updateWeightLabel = function(expId, varId, val) {
     if (!window.weightState[expId]) window.weightState[expId] = {};
     window.weightState[expId][varId] = Number(val);
+    const label = document.getElementById(`weight-label-${varId}`);
+    if (label) label.textContent = `${val}%`;
+    updateTotalWeightLabel(expId);
   };
 
+  function updateTotalWeightLabel(expId) {
+    const weights = window.weightState[expId] || {};
+    const sum = Object.values(weights).reduce((a, b) => a + Number(b), 0);
+    const label = document.getElementById("ab-total-weight-label");
+    if (label) {
+      label.textContent = `${sum}%`;
+      label.style.color = sum === 100 ? "var(--green)" : "var(--red)";
+    }
+  }
+
   window.saveWeights = async function(expId) {
-    const weights = window.weightState[expId];
-    if (!weights) return;
+    const weights = window.weightState[expId] || {};
+    const sum = Object.values(weights).reduce((a, b) => a + Number(b), 0);
+    if (sum !== 100) {
+      alert(`Traffic split weights must total 100%. Currently total ${sum}%.`);
+      return;
+    }
+
     const allocations = Object.keys(weights).map(vId => ({
       variantId: vId,
       weightBasisPoints: Math.round(weights[vId] * 100),
     }));
+
     try {
       await API.patch(`/api/experiments/${expId}/allocations`, { allocations });
       loadFunnel();

@@ -112,14 +112,25 @@ router.get("/analytics/:funnelId", async (req, res) => {
 router.get("/analytics/:funnelId/csv", async (req, res) => {
   try {
     const { funnelId } = req.params;
+    const { from, to } = req.query;
+
     const funnel = await prisma.funnel.findUnique({
       where: { id: funnelId },
       include: { steps: { orderBy: { position: "asc" }, include: { variants: true } } },
     });
     if (!funnel) return res.status(404).send("Funnel not found");
 
-    const events = await prisma.event.findMany({ where: { funnelId } });
-    const orders = await prisma.orderAttribution.findMany({ where: { funnelId } });
+    const dateFilter: any = {};
+    if (from) dateFilter.gte = new Date(from as string);
+    if (to) dateFilter.lte = new Date(to as string);
+
+    const eventWhere: any = { funnelId };
+    if (from || to) eventWhere.occurredAt = dateFilter;
+
+    const events = await prisma.event.findMany({ where: eventWhere });
+    const orders = await prisma.orderAttribution.findMany({
+      where: { funnelId, ...(from || to ? { paidAt: dateFilter } : {}) },
+    });
 
     let csv = "Step,Variant,Entries,Views,CTA Clicks,CTA Rate (%),Orders,Revenue ($)\n";
 
@@ -155,10 +166,10 @@ router.get("/analytics/:funnelId/csv", async (req, res) => {
   }
 });
 
-// POST /api/track — Event tracking endpoint
+// POST /api/track — Idempotent Event tracking endpoint
 router.post("/track", async (req, res) => {
   try {
-    const { event, funnelId, stepId, variantId, visitorId, checkoutToken, payload } = req.body;
+    const { event, funnelId, stepId, variantId, visitorId, checkoutToken, payload, explicitEventKey } = req.body;
     if (!event || !funnelId) {
       return res.status(400).json({ error: "event name and funnelId are required" });
     }
@@ -176,7 +187,15 @@ router.post("/track", async (req, res) => {
       });
     }
 
-    const eventKey = `${event}:${funnelId}:${stepId || 'none'}:${visitorId || 'anon'}:${Date.now()}`;
+    // Deduplication window key (same event within same minute for same visitor/step/variant)
+    const minuteBucket = Math.floor(Date.now() / 60000);
+    const eventKey = explicitEventKey || `${event}:${funnelId}:${stepId || 'none'}:${variantId || 'none'}:${visitorId || 'anon'}:${minuteBucket}`;
+
+    // Upsert event for deduplication
+    const existingEvent = await prisma.event.findUnique({ where: { eventKey } });
+    if (existingEvent) {
+      return res.json({ success: true, eventId: existingEvent.id, duplicate: true });
+    }
 
     const createdEvent = await prisma.event.create({
       data: {
@@ -194,7 +213,7 @@ router.post("/track", async (req, res) => {
       },
     });
 
-    res.status(201).json({ success: true, eventId: createdEvent.id });
+    res.status(201).json({ success: true, eventId: createdEvent.id, duplicate: false });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to record event" });
   }

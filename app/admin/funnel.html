@@ -17,6 +17,7 @@
       <div class="top-actions">
         <button class="btn" id="btn-analytics">📊 Analytics</button>
         <button class="btn btn-primary" id="btn-publish-funnel">🚀 Publish Funnel</button>
+        <button class="btn" id="btn-draft-funnel" style="display:none;">📝 Revert to Draft</button>
       </div>
     </div>
   </header>
@@ -47,20 +48,23 @@
               <h2 id="step-title">Select a Step</h2>
               <span class="badge badge-kind" id="step-kind-badge">LANDING</span>
             </div>
-            <button class="btn btn-sm btn-danger" id="btn-delete-step">Delete Step</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-sm" id="btn-move-up" title="Move Step Up">↑</button>
+              <button class="btn btn-sm" id="btn-move-down" title="Move Step Down">↓</button>
+              <button class="btn btn-sm btn-danger" id="btn-delete-step">Delete Step</button>
+            </div>
           </div>
 
           <div class="panel-body">
-            <!-- A/B Experiment Status Banner -->
+            <!-- A/B Test Experiment Status Banner -->
             <div id="ab-status-banner" style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px 18px; border-radius:8px; margin-bottom:20px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <div>
                   <strong style="font-size:14px;">A/B Split Test Active</strong>
-                  <span class="muted" style="font-size:12px; margin-left:8px;" id="ab-status-text">Splitting traffic across variants</span>
+                  <span class="muted" style="font-size:12px; margin-left:8px;" id="ab-status-text">Traffic Split: <span id="ab-total-weight-label" style="font-weight:bold; color:var(--green)">100%</span></span>
                 </div>
-                <button class="btn btn-sm" id="btn-toggle-ab">Pause Test</button>
               </div>
-              <div id="ab-weight-controls" style="display:flex; gap:16px; align-items:center;">
+              <div id="ab-weight-controls" style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
                 <!-- Weight inputs dynamically rendered -->
               </div>
             </div>

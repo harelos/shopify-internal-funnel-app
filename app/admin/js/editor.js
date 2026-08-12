@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSave = document.getElementById("btn-save");
   const btnPublish = document.getElementById("btn-publish");
   const btnPreviewTab = document.getElementById("btn-preview-tab");
+  const editorLoader = document.getElementById("editor-loader");
 
   let editor = null;
   let currentVersionId = null;
@@ -39,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const initialHtml = latestVersion?.rawHtml || `<main>\n  <h1>Special Offer Page</h1>\n  <p>Customize this high-converting landing page HTML</p>\n  <button class="cta-btn">Claim Offer Now</button>\n</main>`;
 
+      if (editorLoader) editorLoader.style.display = "none";
+
       editor = monaco.editor.create(document.getElementById('editor-container'), {
         value: initialHtml,
         language: 'html',
@@ -49,12 +52,15 @@ document.addEventListener("DOMContentLoaded", () => {
         wordWrap: 'on',
       });
 
+      portStatus.textContent = "Monaco Editor Ready";
+
       // Ctrl+S key binding
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         saveContent();
       });
 
     } catch (err) {
+      if (editorLoader) editorLoader.textContent = "Failed to load editor: " + err.message;
       alert("Failed to load variant: " + err.message);
     }
   });
@@ -63,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!editor) return;
     const html = editor.getValue();
     portStatus.textContent = "Saving content...";
+    btnSave.disabled = true;
     try {
       const result = await API.put(`/api/variants/${variantId}/content`, { html });
       currentVersionId = result.version.id;
@@ -72,12 +79,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       portStatus.textContent = "Error saving: " + err.message;
+    } finally {
+      btnSave.disabled = false;
     }
   }
 
   btnSave?.addEventListener("click", saveContent);
 
   btnPublish?.addEventListener("click", async () => {
+    btnPublish.disabled = true;
     await saveContent();
     try {
       const pub = await API.post(`/api/variants/${variantId}/publish`, {});
@@ -86,6 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`Revision #${pub.revision} Published to Live Storefront!`);
     } catch (err) {
       alert("Failed to publish: " + err.message);
+    } finally {
+      btnPublish.disabled = false;
     }
   });
 
