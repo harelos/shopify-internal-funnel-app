@@ -90,7 +90,7 @@
               <div class="step-inline-grid">
                 <div class="metric-card" style="padding:10px;">
                   <div class="metric-val" style="font-size:18px;" id="step-val-entries">0</div>
-                  <div class="metric-label" style="font-size:9px;">Entries</div>
+                  <div class="metric-label" style="font-size:9px;">Unique Visitors</div>
                 </div>
                 <div class="metric-card" style="padding:10px;">
                   <div class="metric-val" style="font-size:18px;" id="step-val-views">0</div>
@@ -102,11 +102,11 @@
                 </div>
                 <div class="metric-card" style="padding:10px;">
                   <div class="metric-val" style="font-size:18px;" id="step-val-rate">0.0%</div>
-                  <div class="metric-label" style="font-size:9px;">CTA Conv %</div>
+                  <div class="metric-label" style="font-size:9px;" data-role="stage-rate">Progression Rate</div>
                 </div>
                 <div class="metric-card" style="padding:10px;">
                   <div class="metric-val" style="font-size:18px;" id="step-val-revenue">$0.00</div>
-                  <div class="metric-label" style="font-size:9px;">Revenue</div>
+                  <div class="metric-label" style="font-size:9px;">Attributed Revenue</div>
                 </div>
               </div>
             </div>
@@ -123,12 +123,15 @@
       <h2>Add Funnel Step</h2>
       <form id="form-add-step">
         <label class="eyebrow">Step Name</label>
-        <input class="input" name="name" placeholder="Special Offer Page" required>
+        <input class="input" name="name" placeholder="5 Secrets Advertorial Page" required>
         <label class="eyebrow">Step Type</label>
         <select class="select" name="kind" required>
+          <option value="ADVERTORIAL">Advertorial / Listicle Page</option>
+          <option value="QUIZ">Interactive Quiz Page</option>
+          <option value="SALES">Sales Page / Offer Page</option>
           <option value="LANDING">Landing Page</option>
-          <option value="UPSELL">Upsell Offer</option>
-          <option value="DOWNSELL">Downsell Offer</option>
+          <option value="UPSELL">Post-Purchase Upsell</option>
+          <option value="DOWNSELL">Post-Purchase Downsell</option>
           <option value="THANK_YOU">Thank You Page</option>
           <option value="OTHER">Custom / Other Page</option>
         </select>

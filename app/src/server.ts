@@ -7,6 +7,7 @@ import stepRoutes from "./routes/steps.js";
 import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
 import proxyRoutes from "./routes/proxy.js";
+import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -39,6 +40,7 @@ app.get("/", (_req, res) => {
 export default app;
 
 const port = Number(process.env.APP_PORT ?? 3000);
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`\n  Shopify Funnel Builder running at http://localhost:${port}/admin/\n`);
+  await seedDemoFunnelIfNeeded();
 });
