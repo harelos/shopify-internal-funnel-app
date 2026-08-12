@@ -42,6 +42,14 @@ npm run dev
 Open `http://localhost:3000`. The dashboard is visibly marked local-only and
 synthetic. The app does not connect to a Shopify store by default.
 
+To see the seeded example inside the running software, open:
+
+`http://localhost:3000/preview/`
+
+That route reads the in-memory funnel records created by the Node app. It lets
+you switch between the Advertorial/Listicle variants, the Story/Proof and
+Offer/Value variants, and the Shopify checkout boundary.
+
 ## Shopify Basic boundary
 
 The app tests pre-checkout pages. Shopify checkout is the measurement boundary,

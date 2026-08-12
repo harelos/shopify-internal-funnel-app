@@ -7,3 +7,5 @@ app/*.db
 app/coverage/
 .DS_Store
 Thumbs.db
+local-*.png
+.chrome-preview-profile*/
