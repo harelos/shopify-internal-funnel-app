@@ -14,7 +14,7 @@ export async function seedDemoFunnelIfNeeded() {
       return; // Already fully seeded
     }
 
-    console.log("🌱 Generating Complete Multi-Step & Multi-Variant Telemetry ($1,000,000+ Revenue)...");
+    console.log("🌱 Generating Time-Varying 90-Day Multi-Funnel Benchmarks ($1,000,000+ Revenue)...");
 
     // Clean existing seed if partial
     await prisma.event.deleteMany({ where: { shopId: shop.id } });
@@ -146,17 +146,32 @@ export async function seedDemoFunnelIfNeeded() {
     const visitorsToCreate: any[] = [];
     let globalOrderCounter = 1;
 
-    for (let day = 0; day < 30; day++) {
+    for (let day = 0; day < 90; day++) {
       const eventDate = new Date(now - day * dayMs);
 
+      // Varying performance ratios across time so 7d vs 30d vs 90d benchmark numbers change
+      let step2Ratio = 0.85; // Day 0-7: 85% progression
+      let step3Ratio = 0.65;
+      let orderRatio = 0.40;
+
+      if (day > 7 && day <= 30) {
+        step2Ratio = 0.70; // Day 8-30: 70% progression
+        step3Ratio = 0.50;
+        orderRatio = 0.25;
+      } else if (day > 30) {
+        step2Ratio = 0.52; // Day 31-90: 52% progression
+        step3Ratio = 0.35;
+        orderRatio = 0.15;
+      }
+
       for (const f of funnels) {
-        let dailyVisitors = 12;
+        let dailyVisitors = 15;
         let baseAov = 195.00;
 
-        if (f.slug === "skincare-promo") { dailyVisitors = 20; baseAov = 240.00; }
-        else if (f.slug === "fitness-bundle") { dailyVisitors = 16; baseAov = 320.00; }
-        else if (f.slug === "supplement-vip") { dailyVisitors = 12; baseAov = 175.00; }
-        else { dailyVisitors = 8; baseAov = 290.00; }
+        if (f.slug === "skincare-promo") { dailyVisitors = 25; baseAov = 240.00; }
+        else if (f.slug === "fitness-bundle") { dailyVisitors = 20; baseAov = 320.00; }
+        else if (f.slug === "supplement-vip") { dailyVisitors = 15; baseAov = 175.00; }
+        else { dailyVisitors = 10; baseAov = 290.00; }
 
         for (let v = 0; v < dailyVisitors; v++) {
           const channel = channels[v % channels.length];
@@ -177,13 +192,13 @@ export async function seedDemoFunnelIfNeeded() {
             const variants = stepVariantsMap.get(step.id) || [];
             const selectedVariant = variants.length > 0 ? variants[v % variants.length] : null;
 
-            // Progression drop-off threshold per step
-            let dropoffLimit = 1.0; // Step 1: 100%
-            if (stepIdx === 1) dropoffLimit = 0.75; // Step 2: 75%
-            else if (stepIdx === 2) dropoffLimit = 0.55; // Step 3: 55%
-            else if (stepIdx === 3) dropoffLimit = 0.38; // Step 4 (Checkout): 38%
-            else if (stepIdx === 4) dropoffLimit = 0.28; // Step 5 (Upsell): 28%
-            else if (stepIdx === 5) dropoffLimit = 0.22; // Step 6 (Thank You): 22%
+            // Progression drop-off threshold per step using date-varying ratios
+            let dropoffLimit = 1.0;
+            if (stepIdx === 1) dropoffLimit = step2Ratio;
+            else if (stepIdx === 2) dropoffLimit = step3Ratio;
+            else if (stepIdx === 3) dropoffLimit = step3Ratio * 0.7;
+            else if (stepIdx === 4) dropoffLimit = orderRatio * 1.2;
+            else if (stepIdx === 5) dropoffLimit = orderRatio;
 
             if ((v / dailyVisitors) > dropoffLimit) {
               break; // Visitor dropped off before reaching this step
@@ -252,7 +267,7 @@ export async function seedDemoFunnelIfNeeded() {
     await prisma.event.createMany({ data: eventsToCreate });
     await prisma.orderAttribution.createMany({ data: ordersToCreate });
 
-    console.log(`✅ Complete Multi-Step & Multi-Variant Telemetry Auto-Seeded (${eventsToCreate.length} events, ${ordersToCreate.length} orders)!`);
+    console.log(`✅ Complete Time-Varying Benchmark Telemetry Auto-Seeded (${eventsToCreate.length} events, ${ordersToCreate.length} orders)!`);
   } catch (err) {
     console.error("Error seeding multi-step telemetry:", err);
   }

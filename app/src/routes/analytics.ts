@@ -3,7 +3,7 @@ import prisma from "../lib/db.js";
 
 const router = Router();
 
-// GET /api/analytics/account — Store-wide account-level analytics with dynamic benchmarks & channels
+// GET /api/analytics/account — Store-wide account-level analytics with dynamic date-driven benchmarks
 router.get("/analytics/account", async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -32,7 +32,7 @@ router.get("/analytics/account", async (req, res) => {
     const aov = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
     const overallConvRate = uniqueVisitorIds.size > 0 ? Number(((totalOrders / uniqueVisitorIds.size) * 100).toFixed(1)) : 0;
 
-    // Dynamic Account Benchmarks calculated from live date-filtered events
+    // Dynamic Date-Driven Account Benchmarks calculated from live date-filtered events
     const discoveryVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && (s.kind === "ADVERTORIAL" || s.kind === "LANDING")))).map(e => e.visitorId).filter(Boolean));
     const salesVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && (s.kind === "SALES" || s.kind === "OFFER")))).map(e => e.visitorId).filter(Boolean));
     const checkoutVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && s.kind === "CHECKOUT"))).map(e => e.visitorId).filter(Boolean));
@@ -41,7 +41,7 @@ router.get("/analytics/account", async (req, res) => {
     const avgDiscoveryToSales = discoveryVisitorIds.size > 0 ? Number(((salesVisitorIds.size / discoveryVisitorIds.size) * 100).toFixed(1)) : 61.2;
     const avgSalesToCheckout = salesVisitorIds.size > 0 ? Number(((checkoutVisitorIds.size / salesVisitorIds.size) * 100).toFixed(1)) : 38.5;
     const avgCheckoutConv = checkoutVisitorIds.size > 0 ? Number(((totalOrders / checkoutVisitorIds.size) * 100).toFixed(1)) : 24.8;
-    const avgUpsellTake = upsellVisitorIds.size > 0 ? Number(((orders.filter(o => o.variantId && activeFunnels.some(f => f.steps.some(s => (s.kind === "UPSELL" || s.kind === "DOWNSELL") && s.variants.some(v => v.id === o.variantId)))).length / upsellVisitorIds.size) * 100).toFixed(1)) : 32.4;
+    const avgUpsellTake = upsellVisitorIds.size > 0 ? Number(((orders.filter(o => o.variantId && activeFunnels.some(f => f.steps.some(s => (s.kind === "UPSELL" || s.kind === "DOWNSELL") && s.variants.some(v => v.id === o.variantId)))).length / (upsellVisitorIds.size || 1)) * 100).toFixed(1)) : 32.4;
 
     // Channel Attribution Matrix (Facebook Ads, Shopify Email, Google Ads, Organic)
     const channelMap = new Map<string, { visitors: Set<string>; orders: number; revenue: number }>();
@@ -138,7 +138,7 @@ router.get("/analytics/account", async (req, res) => {
   }
 });
 
-// GET /api/analytics/:funnelId — Full funnel report with stage-specific metrics & path attribution
+// GET /api/analytics/:funnelId — Full funnel report with dynamic next-step metric labels
 router.get("/analytics/:funnelId", async (req, res) => {
   try {
     const { funnelId } = req.params;
@@ -297,7 +297,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
       aov: data.orders > 0 ? Number((data.revenue / data.orders).toFixed(2)) : 0,
     })).sort((a, b) => b.revenue - a.revenue);
 
-    // Build step & variant metrics breakdown with smart stage metric resolver
+    // Build step & variant metrics breakdown with dynamic "Progression to [Next Step Name]"
     const stepMetrics = funnel.steps.map((step, idx) => {
       const stepEvents = events.filter(e => e.stepId === step.id);
       const stepEntries = new Set(stepEvents.map(e => e.visitorId).filter(Boolean)).size;
@@ -308,20 +308,12 @@ router.get("/analytics/:funnelId", async (req, res) => {
 
       const nextStep = funnel.steps[idx + 1];
 
-      // Smart Stage Metric Label Resolver
-      let stageMetricLabel = "Progression Rate";
+      // Dynamic Stage Metric Label: "Progression to [Next Step Name]"
+      let stageMetricLabel = nextStep ? `Progression to ${nextStep.name}` : "Progression Rate";
       let stageMetricValue = stepEntries > 0 ? Number(((stepCtas / stepEntries) * 100).toFixed(1)) : 0;
 
-      if (step.kind === "ADVERTORIAL" || step.kind === "LANDING") {
-        if (nextStep && nextStep.kind === "QUIZ") {
-          stageMetricLabel = "Progression to Quiz";
-        } else {
-          stageMetricLabel = "Progression to Sales Page";
-        }
-      } else if (step.kind === "QUIZ") {
-        stageMetricLabel = "Progression to Sales Page";
-      } else if (step.kind === "SALES" || step.kind === "OFFER") {
-        stageMetricLabel = "Checkout Progression Rate";
+      if (step.kind === "SALES" || step.kind === "OFFER") {
+        stageMetricLabel = nextStep ? `Progression to ${nextStep.name}` : "Checkout Progression Rate";
       } else if (step.kind === "CHECKOUT") {
         stageMetricLabel = "Checkout Conversion Rate";
         stageMetricValue = stepEntries > 0 ? Number(((stepOrders.length / stepEntries) * 100).toFixed(1)) : overallConvRate;
@@ -330,17 +322,15 @@ router.get("/analytics/:funnelId", async (req, res) => {
       }
 
       const variantMetrics = step.variants.map((variant, vIdx) => {
-        // Match explicit variant events or split step events if unassigned
         let varEvents = stepEvents.filter(e => e.variantId === variant.id);
         if (varEvents.length === 0 && stepEvents.length > 0) {
-          // Distributed fallback if variantId wasn't stored explicitly
           varEvents = stepEvents.filter((_, i) => i % step.variants.length === vIdx);
         }
 
         const varEntries = new Set(varEvents.map(e => e.visitorId).filter(Boolean)).size;
         const varViews = varEvents.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
         const varCtas = varEvents.filter(e => e.name === "cta_click" || e.name === "FUNNEL_CTA_CLICKED").length;
-        
+
         let varOrders = orders.filter(o => o.variantId === variant.id);
         if (varOrders.length === 0 && stepOrders.length > 0) {
           varOrders = stepOrders.filter((_, i) => i % step.variants.length === vIdx);
