@@ -10,11 +10,11 @@
   <header class="top-bar">
     <div class="top-bar-inner">
       <div class="brand">
-        <a href="#" id="back-funnel-link" class="btn btn-ghost btn-sm">← Back to Funnel</a>
-        <span class="brand-name" id="analytics-title">Funnel Analytics</span>
+        <a href="index.html" id="back-funnel-link" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span class="brand-name" id="analytics-title">Account & Funnel Analytics</span>
       </div>
       <div class="top-actions">
-        <button class="btn btn-primary" id="btn-export-csv">📥 Export CSV Report</button>
+        <button class="btn btn-primary" id="btn-export-csv">Export CSV Report</button>
       </div>
     </div>
   </header>
@@ -22,7 +22,7 @@
   <main class="main">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
       <div>
-        <h1>Performance & Conversion Insights</h1>
+        <h1 id="analytics-heading">Performance & Conversion Insights</h1>
         <p class="muted">Real-time visitor telemetry, A/B test conversion rates, and attributed revenue</p>
       </div>
       <div style="display:flex; gap:8px;" id="date-range-buttons">
@@ -53,15 +53,15 @@
       </div>
     </div>
 
-    <!-- Step & Variant Breakdown Table -->
+    <!-- Analytics Breakdown Table -->
     <div class="panel">
       <div class="panel-header">
-        <h2>Funnel Step & Variant Conversion Breakdown</h2>
+        <h2 id="breakdown-table-title">Conversion Breakdown</h2>
         <span class="eyebrow" id="report-generated-at">Updated just now</span>
       </div>
       <div style="overflow-x:auto;">
         <table class="table">
-          <thead>
+          <thead id="analytics-table-head">
             <tr>
               <th style="width:30px;"></th>
               <th>Step / Variant</th>

@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentFunnel = null;
   let selectedStepId = null;
+  let draggedStepId = null;
 
   // DOM Elements
   const topFunnelName = document.getElementById("top-funnel-name");
@@ -27,6 +28,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnMoveDown = document.getElementById("btn-move-down");
   const btnAddVariant = document.getElementById("btn-add-variant");
   const btnStartAb = document.getElementById("btn-start-ab");
+
+  // Inline Step Telemetry Elements
+  const stepInlineAnalytics = document.getElementById("step-inline-analytics");
+  const stepValEntries = document.getElementById("step-val-entries");
+  const stepValViews = document.getElementById("step-val-views");
+  const stepValCtas = document.getElementById("step-val-ctas");
+  const stepValRate = document.getElementById("step-val-rate");
+  const stepValRevenue = document.getElementById("step-val-revenue");
 
   // Modals
   const modalAddStep = document.getElementById("modal-add-step");
@@ -138,33 +147,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const steps = currentFunnel?.steps || [];
     const idx = steps.findIndex(s => s.id === selectedStepId);
     if (idx <= 0) return;
-    const currentStep = steps[idx];
-    const prevStep = steps[idx - 1];
-
-    try {
-      await API.patch(`/api/steps/${currentStep.id}`, { position: prevStep.position });
-      await API.patch(`/api/steps/${prevStep.id}`, { position: currentStep.position });
-      loadFunnel();
-    } catch (err) {
-      alert("Failed to move step: " + err.message);
-    }
+    const reordered = [...steps];
+    const temp = reordered[idx];
+    reordered[idx] = reordered[idx - 1];
+    reordered[idx - 1] = temp;
+    await saveBatchReorder(reordered.map(s => s.id));
   });
 
   btnMoveDown?.addEventListener("click", async () => {
     const steps = currentFunnel?.steps || [];
     const idx = steps.findIndex(s => s.id === selectedStepId);
     if (idx < 0 || idx >= steps.length - 1) return;
-    const currentStep = steps[idx];
-    const nextStep = steps[idx + 1];
-
-    try {
-      await API.patch(`/api/steps/${currentStep.id}`, { position: nextStep.position });
-      await API.patch(`/api/steps/${nextStep.id}`, { position: currentStep.position });
-      loadFunnel();
-    } catch (err) {
-      alert("Failed to move step: " + err.message);
-    }
+    const reordered = [...steps];
+    const temp = reordered[idx];
+    reordered[idx] = reordered[idx + 1];
+    reordered[idx + 1] = temp;
+    await saveBatchReorder(reordered.map(s => s.id));
   });
+
+  async function saveBatchReorder(stepIds) {
+    try {
+      await API.patch(`/api/funnels/${funnelId}/steps/reorder`, { stepIds });
+      await loadFunnel();
+    } catch (err) {
+      alert("Failed to reorder steps: " + err.message);
+    }
+  }
 
   btnStartAb?.addEventListener("click", async () => {
     try {
@@ -181,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderHeader();
       renderStepFlow();
       renderStepDetail();
+      loadInlineStepTelemetry();
     } catch (err) {
       console.error("Error loading funnel:", err);
     }
@@ -215,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
     stepFlowContainer.innerHTML = steps.map((step, idx) => {
       const isActive = step.id === selectedStepId;
       return `
-        <div class="step-node ${isActive ? 'active' : ''}" onclick="selectStep('${step.id}')">
+        <div class="step-node ${isActive ? 'active' : ''}" draggable="true" data-id="${step.id}" data-index="${idx}">
           <div class="step-node-icon">${step.position}</div>
           <div class="step-node-info">
             <span class="step-node-name">${escapeHtml(step.name)}</span>
@@ -225,12 +234,66 @@ document.addEventListener("DOMContentLoaded", () => {
         ${idx < steps.length - 1 ? '<div class="step-connector"></div>' : ''}
       `;
     }).join("");
+
+    attachDragAndDropHandlers();
+  }
+
+  function attachDragAndDropHandlers() {
+    const nodes = stepFlowContainer.querySelectorAll(".step-node");
+    nodes.forEach(node => {
+      node.addEventListener("dragstart", (e) => {
+        draggedStepId = node.dataset.id;
+        node.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      node.addEventListener("dragend", () => {
+        node.classList.remove("dragging");
+        nodes.forEach(n => n.classList.remove("drag-over"));
+      });
+
+      node.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (node.dataset.id !== draggedStepId) {
+          node.classList.add("drag-over");
+        }
+      });
+
+      node.addEventListener("dragleave", () => {
+        node.classList.remove("drag-over");
+      });
+
+      node.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        node.classList.remove("drag-over");
+        const targetId = node.dataset.id;
+        if (!draggedStepId || draggedStepId === targetId) return;
+
+        const steps = currentFunnel.steps || [];
+        const fromIdx = steps.findIndex(s => s.id === draggedStepId);
+        const toIdx = steps.findIndex(s => s.id === targetId);
+
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const reordered = [...steps];
+          const [moved] = reordered.splice(fromIdx, 1);
+          reordered.splice(toIdx, 0, moved);
+
+          await saveBatchReorder(reordered.map(s => s.id));
+        }
+      });
+
+      node.addEventListener("click", () => {
+        selectStep(node.dataset.id);
+      });
+    });
   }
 
   window.selectStep = function(id) {
     selectedStepId = id;
     renderStepFlow();
     renderStepDetail();
+    loadInlineStepTelemetry();
   };
 
   function renderStepDetail() {
@@ -261,7 +324,6 @@ document.addEventListener("DOMContentLoaded", () => {
       abBanner.style.display = "block";
       const allocations = experiment.allocations || [];
 
-      // Fix C2: Pre-populate weightState with ALL current variant weights
       window.weightState[experiment.id] = {};
       allocations.forEach(a => {
         const percent = Math.round((a.weightBasisPoints / 10000) * 100);
@@ -284,7 +346,6 @@ document.addEventListener("DOMContentLoaded", () => {
       abBanner.style.display = "none";
     }
 
-    // Show "Start A/B Test" button if step has 2+ variants and no active experiment
     if (!isCheckout && variants.length >= 2 && (!experiment || experiment.status !== "RUNNING")) {
       btnStartAb.style.display = "inline-block";
     } else {
@@ -311,15 +372,40 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="panel-body">
             <p class="eyebrow" style="margin-bottom:12px;">Revisions: ${v.versions?.length || 0}</p>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <a href="editor.html?variantId=${v.id}&funnelId=${funnelId}" class="btn btn-sm btn-primary">✏ Edit HTML</a>
-              <a href="/f/${currentFunnel.slug}/${step.position}?vid=preview" target="_blank" class="btn btn-sm">👁 Live View</a>
-              ${experiment?.status === 'RUNNING' ? `<button class="btn btn-sm" onclick="promoteVariant('${experiment.id}', '${v.id}')">🏆 Promote</button>` : ''}
+              <a href="editor.html?variantId=${v.id}&funnelId=${funnelId}" class="btn btn-sm btn-primary">Edit HTML</a>
+              <a href="/f/${currentFunnel.slug}/${step.position}?vid=preview" target="_blank" class="btn btn-sm">Live View</a>
+              ${experiment?.status === 'RUNNING' ? `<button class="btn btn-sm" onclick="promoteVariant('${experiment.id}', '${v.id}')">Promote Winner</button>` : ''}
               ${variants.length > 1 ? `<button class="btn btn-sm btn-danger" onclick="deleteVariant('${v.id}')">Delete</button>` : ''}
             </div>
           </div>
         </div>
       `;
     }).join("");
+  }
+
+  async function loadInlineStepTelemetry() {
+    if (!selectedStepId) {
+      stepInlineAnalytics.style.display = "none";
+      return;
+    }
+
+    try {
+      const report = await API.get(`/api/analytics/${funnelId}`);
+      const stepData = report.steps?.find(s => s.stepId === selectedStepId);
+
+      if (stepData) {
+        stepInlineAnalytics.style.display = "block";
+        stepValEntries.textContent = (stepData.entries || 0).toLocaleString();
+        stepValViews.textContent = (stepData.views || 0).toLocaleString();
+        stepValCtas.textContent = (stepData.ctas || 0).toLocaleString();
+        stepValRate.textContent = `${stepData.ctaRate || 0}%`;
+        stepValRevenue.textContent = `$${(stepData.revenue || 0).toFixed(2)}`;
+      } else {
+        stepInlineAnalytics.style.display = "none";
+      }
+    } catch {
+      stepInlineAnalytics.style.display = "none";
+    }
   }
 
   window.promoteVariant = async function(expId, varId) {

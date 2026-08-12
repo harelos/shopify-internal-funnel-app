@@ -15,9 +15,9 @@
         <span class="badge badge-draft" id="top-funnel-status">DRAFT</span>
       </div>
       <div class="top-actions">
-        <button class="btn" id="btn-analytics">📊 Analytics</button>
-        <button class="btn btn-primary" id="btn-publish-funnel">🚀 Publish Funnel</button>
-        <button class="btn" id="btn-draft-funnel" style="display:none;">📝 Revert to Draft</button>
+        <button class="btn" id="btn-analytics">Analytics Overview</button>
+        <button class="btn btn-primary" id="btn-publish-funnel">Publish Funnel</button>
+        <button class="btn" id="btn-draft-funnel" style="display:none;">Revert to Draft</button>
       </div>
     </div>
   </header>
@@ -29,11 +29,11 @@
         <div class="panel">
           <div class="panel-header">
             <h3>Funnel Steps</h3>
-            <button class="btn btn-sm btn-ghost" id="btn-add-step-sidebar">+</button>
+            <span class="eyebrow" style="font-size:10px;">Drag to Reorder</span>
           </div>
           <div class="panel-body" style="padding:14px 10px;">
             <div id="step-flow" class="step-flow">
-              <!-- Rendered step flow nodes -->
+              <!-- Rendered step flow nodes (draggable) -->
             </div>
             <button class="btn btn-sm" id="btn-add-step" style="width:100%; margin-top:12px;">+ Add Step</button>
           </div>
@@ -72,7 +72,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
               <h3>Step Variants</h3>
               <div style="display:flex; gap:8px;">
-                <button class="btn btn-sm" id="btn-start-ab" style="display:none;">⚡ Start A/B Test</button>
+                <button class="btn btn-sm" id="btn-start-ab" style="display:none;">Start A/B Test</button>
                 <button class="btn btn-sm btn-primary" id="btn-add-variant">+ New Variant</button>
               </div>
             </div>
@@ -80,6 +80,37 @@
             <div id="variant-list" class="grid-2">
               <!-- Rendered variant cards -->
             </div>
+
+            <!-- Inline Per-Step Realtime Telemetry & Performance Metrics -->
+            <div class="step-inline-metrics" id="step-inline-analytics" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="font-size:13px; font-weight:700;">Step Performance Telemetry</h4>
+                <span class="eyebrow" id="inline-step-updated">Realtime</span>
+              </div>
+              <div class="step-inline-grid">
+                <div class="metric-card" style="padding:10px;">
+                  <div class="metric-val" style="font-size:18px;" id="step-val-entries">0</div>
+                  <div class="metric-label" style="font-size:9px;">Entries</div>
+                </div>
+                <div class="metric-card" style="padding:10px;">
+                  <div class="metric-val" style="font-size:18px;" id="step-val-views">0</div>
+                  <div class="metric-label" style="font-size:9px;">Page Views</div>
+                </div>
+                <div class="metric-card" style="padding:10px;">
+                  <div class="metric-val" style="font-size:18px;" id="step-val-ctas">0</div>
+                  <div class="metric-label" style="font-size:9px;">CTA Clicks</div>
+                </div>
+                <div class="metric-card" style="padding:10px;">
+                  <div class="metric-val" style="font-size:18px;" id="step-val-rate">0.0%</div>
+                  <div class="metric-label" style="font-size:9px;">CTA Conv %</div>
+                </div>
+                <div class="metric-card" style="padding:10px;">
+                  <div class="metric-val" style="font-size:18px;" id="step-val-revenue">$0.00</div>
+                  <div class="metric-label" style="font-size:9px;">Revenue</div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>

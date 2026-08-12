@@ -127,6 +127,42 @@ router.get("/funnels/:id", async (req, res) => {
   }
 });
 
+// PATCH /api/funnels/:funnelId/steps/reorder — Batch reorder steps via drag and drop
+router.patch("/funnels/:funnelId/steps/reorder", async (req, res) => {
+  try {
+    const { funnelId } = req.params;
+    const { stepIds } = req.body; // Array of step IDs in new order
+
+    if (!Array.isArray(stepIds)) {
+      return res.status(400).json({ error: "stepIds array is required" });
+    }
+
+    // Step positions in SQLite must temporarily avoid position unique collision
+    for (let i = 0; i < stepIds.length; i++) {
+      await prisma.step.update({
+        where: { id: stepIds[i] },
+        data: { position: 1000 + i },
+      });
+    }
+
+    for (let i = 0; i < stepIds.length; i++) {
+      await prisma.step.update({
+        where: { id: stepIds[i] },
+        data: { position: i + 1 },
+      });
+    }
+
+    const updatedSteps = await prisma.step.findMany({
+      where: { funnelId },
+      orderBy: { position: "asc" },
+    });
+
+    res.json(updatedSteps);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to reorder steps" });
+  }
+});
+
 // PATCH /api/funnels/:id — Update funnel properties
 router.patch("/funnels/:id", async (req, res) => {
   try {

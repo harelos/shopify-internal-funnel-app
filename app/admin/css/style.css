@@ -114,7 +114,7 @@ a:hover { text-decoration: underline; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 
 @media (max-width: 900px) {
-  .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .layout-split { flex-direction: column; }
   .sidebar { width: 100%; }
 }
@@ -150,7 +150,7 @@ a:hover { text-decoration: underline; }
 }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--accent); }
 
-/* === STEP FLOW SIDEBAR === */
+/* === STEP FLOW SIDEBAR & DRAG AND DROP === */
 .step-flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
 .step-node {
   display: flex;
@@ -160,12 +160,17 @@ a:hover { text-decoration: underline; }
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: var(--radius);
-  cursor: pointer;
+  cursor: grab;
   width: 100%;
   transition: all 0.2s ease;
+  user-select: none;
 }
+.step-node:active { cursor: grabbing; }
 .step-node:hover { border-color: var(--ink); }
 .step-node.active { border-color: var(--accent); background: #fff; box-shadow: 0 2px 8px rgba(216, 83, 54, 0.15); }
+.step-node.dragging { opacity: 0.4; border-style: dashed; }
+.step-node.drag-over { border-color: var(--green); background: #f0fdf4; transform: scale(1.02); }
+
 .step-node-icon {
   width: 28px;
   height: 28px;
@@ -200,6 +205,22 @@ a:hover { text-decoration: underline; }
 }
 .metric-val { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
 .metric-label { font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+
+/* === INLINE STEP METRICS CARD === */
+.step-inline-metrics {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 24px;
+}
+.step-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  text-align: center;
+}
 
 /* === MODAL === */
 .modal-overlay {

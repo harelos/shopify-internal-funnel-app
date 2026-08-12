@@ -3,11 +3,81 @@ import prisma from "../lib/db.js";
 
 const router = Router();
 
+// GET /api/analytics/account — Store-wide account-level analytics across all funnels
+router.get("/analytics/account", async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const dateFilter: any = {};
+    if (from) dateFilter.gte = new Date(from as string);
+    if (to) dateFilter.lte = new Date(to as string);
+
+    const eventWhere: any = {};
+    if (from || to) eventWhere.occurredAt = dateFilter;
+
+    const events = await prisma.event.findMany({ where: eventWhere });
+    const orders = await prisma.orderAttribution.findMany({
+      where: from || to ? { paidAt: dateFilter } : {},
+    });
+
+    const activeFunnels = await prisma.funnel.findMany({
+      where: { NOT: { status: "ARCHIVED" } },
+      include: { steps: { include: { variants: true } } },
+    });
+
+    const uniqueVisitorIds = new Set(events.map(e => e.visitorId).filter(Boolean));
+    const totalViews = events.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
+    const totalCtas = events.filter(e => e.name === "cta_click" || e.name === "FUNNEL_CTA_CLICKED").length;
+    const totalRevenue = orders.reduce((sum, o) => sum + o.netRevenueAmount, 0);
+    const totalOrders = orders.length;
+    const aov = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
+
+    const funnelSummaries = activeFunnels.map(funnel => {
+      const funnelEvents = events.filter(e => e.funnelId === funnel.id);
+      const funnelOrders = orders.filter(o => o.funnelId === funnel.id);
+      const funnelVisitors = new Set(funnelEvents.map(e => e.visitorId).filter(Boolean)).size;
+      const funnelViews = funnelEvents.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
+      const funnelCtas = funnelEvents.filter(e => e.name === "cta_click" || e.name === "FUNNEL_CTA_CLICKED").length;
+      const funnelRev = funnelOrders.reduce((sum, o) => sum + o.netRevenueAmount, 0);
+
+      return {
+        funnelId: funnel.id,
+        name: funnel.name,
+        slug: funnel.slug,
+        status: funnel.status,
+        stepsCount: funnel.steps.length,
+        visitors: funnelVisitors,
+        views: funnelViews,
+        ctas: funnelCtas,
+        orders: funnelOrders.length,
+        revenue: Number(funnelRev.toFixed(2)),
+      };
+    });
+
+    res.json({
+      accountMode: true,
+      totalFunnels: activeFunnels.length,
+      totalVisitors: uniqueVisitorIds.size,
+      totalViews,
+      totalCtas,
+      totalOrders,
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      aov,
+      funnels: funnelSummaries,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch account analytics" });
+  }
+});
+
 // GET /api/analytics/:funnelId — Full funnel report with step + variant breakdown
 router.get("/analytics/:funnelId", async (req, res) => {
   try {
     const { funnelId } = req.params;
     const { from, to } = req.query;
+
+    if (funnelId === "account") {
+      return res.redirect("/api/analytics/account");
+    }
 
     const funnel = await prisma.funnel.findUnique({
       where: { id: funnelId },

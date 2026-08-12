@@ -38,10 +38,7 @@ app.get("/", (_req, res) => {
 
 export default app;
 
-const isMainModule = process.argv[1] && process.argv[1].endsWith("server.ts");
-if (isMainModule || process.env.START_SERVER === "true") {
-  const port = Number(process.env.APP_PORT ?? 3000);
-  app.listen(port, () => {
-    console.log(`\n  Shopify Funnel Builder running at http://localhost:${port}/admin/\n`);
-  });
-}
+const port = Number(process.env.APP_PORT ?? 3000);
+app.listen(port, () => {
+  console.log(`\n  Shopify Funnel Builder running at http://localhost:${port}/admin/\n`);
+});

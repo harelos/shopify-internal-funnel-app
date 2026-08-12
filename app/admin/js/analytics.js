@@ -2,20 +2,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   const funnelId = urlParams.get("funnelId");
 
-  if (!funnelId) {
-    window.location.href = "index.html";
-    return;
+  const backFunnelLink = document.getElementById("back-funnel-link");
+  if (funnelId) {
+    backFunnelLink.href = `funnel.html?id=${funnelId}`;
+    backFunnelLink.textContent = "← Back to Funnel";
+  } else {
+    backFunnelLink.href = "index.html";
+    backFunnelLink.textContent = "← Dashboard";
   }
 
-  const backFunnelLink = document.getElementById("back-funnel-link");
-  backFunnelLink.href = `funnel.html?id=${funnelId}`;
-
   const analyticsTitle = document.getElementById("analytics-title");
+  const analyticsHeading = document.getElementById("analytics-heading");
   const metricVisitors = document.getElementById("metric-visitors");
   const metricViews = document.getElementById("metric-views");
   const metricOrders = document.getElementById("metric-orders");
   const metricRevenue = document.getElementById("metric-revenue");
   const reportGeneratedAt = document.getElementById("report-generated-at");
+  const breakdownTableTitle = document.getElementById("breakdown-table-title");
+  const analyticsTableHead = document.getElementById("analytics-table-head");
   const analyticsTableBody = document.getElementById("analytics-table-body");
   const btnExportCsv = document.getElementById("btn-export-csv");
   const dateButtons = document.querySelectorAll("#date-range-buttons button");
@@ -32,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnExportCsv?.addEventListener("click", () => {
-    let csvUrl = `/api/analytics/${funnelId}/csv`;
+    let csvUrl = funnelId ? `/api/analytics/${funnelId}/csv` : `/api/analytics/account`;
     if (currentDays !== "all") {
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - parseInt(currentDays, 10));
@@ -42,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function loadReport() {
-    let url = `/api/analytics/${funnelId}`;
+    let url = funnelId ? `/api/analytics/${funnelId}` : `/api/analytics/account`;
     if (currentDays !== "all") {
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - parseInt(currentDays, 10));
@@ -51,19 +55,83 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const data = await API.get(url);
-      renderReport(data);
+      if (data.accountMode) {
+        renderAccountReport(data);
+      } else {
+        renderFunnelReport(data);
+      }
     } catch (err) {
       console.error("Failed to load analytics:", err);
     }
   }
 
-  function renderReport(report) {
-    analyticsTitle.textContent = `${report.funnelName} — Analytics`;
+  function renderAccountReport(report) {
+    analyticsTitle.textContent = "Account Analytics — Storewide";
+    analyticsHeading.textContent = "Storewide Performance & Revenue Insights";
     metricVisitors.textContent = report.totalVisitors.toLocaleString();
     metricViews.textContent = report.totalViews.toLocaleString();
     metricOrders.textContent = report.totalOrders.toLocaleString();
     metricRevenue.textContent = `$${report.totalRevenue.toFixed(2)}`;
     reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+    breakdownTableTitle.textContent = "Active Funnels Overview";
+
+    analyticsTableHead.innerHTML = `
+      <tr>
+        <th>Funnel Name</th>
+        <th>Path Slug</th>
+        <th>Steps</th>
+        <th>Visitors</th>
+        <th>Views</th>
+        <th>CTA Clicks</th>
+        <th>Orders</th>
+        <th>Revenue</th>
+        <th>Action</th>
+      </tr>
+    `;
+
+    const funnels = report.funnels || [];
+    if (funnels.length === 0) {
+      analyticsTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;" class="muted">No active funnels found.</td></tr>`;
+      return;
+    }
+
+    analyticsTableBody.innerHTML = funnels.map(f => `
+      <tr>
+        <td><strong>${escapeHtml(f.name)}</strong></td>
+        <td><span class="eyebrow">/apps/funnels/${escapeHtml(f.slug)}</span></td>
+        <td>${f.stepsCount}</td>
+        <td>${f.visitors}</td>
+        <td>${f.views}</td>
+        <td>${f.ctas}</td>
+        <td>${f.orders}</td>
+        <td>$${f.revenue.toFixed(2)}</td>
+        <td><a href="analytics.html?funnelId=${f.funnelId}" class="btn btn-sm">Funnel Detail</a></td>
+      </tr>
+    `).join("");
+  }
+
+  function renderFunnelReport(report) {
+    analyticsTitle.textContent = `${report.funnelName} — Analytics`;
+    analyticsHeading.textContent = `${report.funnelName} Conversion Telemetry`;
+    metricVisitors.textContent = report.totalVisitors.toLocaleString();
+    metricViews.textContent = report.totalViews.toLocaleString();
+    metricOrders.textContent = report.totalOrders.toLocaleString();
+    metricRevenue.textContent = `$${report.totalRevenue.toFixed(2)}`;
+    reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+    breakdownTableTitle.textContent = "Step & Variant Breakdown";
+
+    analyticsTableHead.innerHTML = `
+      <tr>
+        <th style="width:30px;"></th>
+        <th>Step / Variant</th>
+        <th>Entries</th>
+        <th>Page Views</th>
+        <th>CTA Clicks</th>
+        <th>CTA Rate (%)</th>
+        <th>Orders</th>
+        <th>Revenue</th>
+      </tr>
+    `;
 
     const steps = report.steps || [];
     if (steps.length === 0) {

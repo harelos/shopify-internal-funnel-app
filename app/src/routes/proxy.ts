@@ -25,7 +25,7 @@ router.get("/preview/:versionId", async (req, res) => {
   }
 });
 
-// GET /f/:funnelSlug/:stepPosition — Live Funnel Page Serving with A/B Traffic Splitter & Pixel Injection
+// GET /f/:funnelSlug/:stepPosition — Live Funnel Page Serving with A/B Traffic Splitter & #next-step Resolution
 router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
   try {
     const { funnelSlug, stepPosition } = req.params;
@@ -56,7 +56,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
         <!DOCTYPE html>
         <html>
         <head><title>Redirecting to Checkout...</title></head>
-        <body style="font-family:sans-serif; text-align:center; padding:100px;">
+        <body style="font-family:sans-serif; text-align:center; padding:100px; background:#f5f1e8; color:#17231e;">
           <h2>Proceeding to Secure Shopify Checkout</h2>
           <p>You are being redirected to payment...</p>
           <a href="https://${shopDomain}/checkout" class="btn" style="display:inline-block; padding:12px 24px; background:#197b5b; color:white; text-decoration:none; border-radius:6px; font-weight:bold;">Continue to Checkout</a>
@@ -92,7 +92,11 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
     const nextStep = funnel.steps.find(s => s.position === pos + 1);
     const nextStepUrl = nextStep ? `/f/${funnel.slug}/${nextStep.position}` : `/f/${funnel.slug}/${pos}`;
 
-    // Tracking pixel + CTA handler injection
+    // Downsell / decline step target (next step after downsell or next step)
+    const downsellStep = funnel.steps.find(s => s.position === pos + 2) || nextStep;
+    const downsellUrl = downsellStep ? `/f/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
+
+    // Tracking pixel + CTA handler injection with #next-step, #accept-upsell, #decline-upsell link resolution
     const trackingPixelScript = `
       <script>
         (function() {
@@ -100,7 +104,8 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             funnelId: "${funnel.id}",
             stepId: "${step.id}",
             variantId: "${variantId}",
-            nextStepUrl: "${nextStepUrl}"
+            nextStepUrl: "${nextStepUrl}",
+            downsellUrl: "${downsellUrl}"
           };
           var vid = localStorage.getItem("_fv") || "${visitorId}";
           localStorage.setItem("_fv", vid);
@@ -114,26 +119,39 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
           });
 
           // Expose CTA tracking helper
-          window.__trackCta = function(ctaName) {
+          window.__trackCta = function(ctaName, targetUrl) {
             fetch("/api/track", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ event: "cta_click", ctaName: ctaName || "primary", ...t })
             }).then(function() {
-              window.location.href = t.nextStepUrl;
+              window.location.href = targetUrl || t.nextStepUrl;
             });
           };
 
-          // Attach tracking to buttons/links automatically
+          // Attach tracking & dynamic navigation to links and buttons
           document.addEventListener("DOMContentLoaded", function() {
-            var btns = document.querySelectorAll("button, a.cta-btn, .btn");
-            btns.forEach(function(btn) {
-              btn.addEventListener("click", function(e) {
-                if (btn.getAttribute("href") === "#" || !btn.getAttribute("href")) {
+            var links = document.querySelectorAll("a, button");
+            links.forEach(function(el) {
+              var href = el.getAttribute("href") || "";
+              var action = el.getAttribute("data-action") || "";
+
+              if (href === "#next-step" || action === "next-step" || href === "#" || !href) {
+                el.addEventListener("click", function(e) {
                   e.preventDefault();
-                  window.__trackCta(btn.innerText || "cta");
-                }
-              });
+                  window.__trackCta(el.innerText || "next-step", t.nextStepUrl);
+                });
+              } else if (href === "#accept-upsell" || action === "accept-upsell") {
+                el.addEventListener("click", function(e) {
+                  e.preventDefault();
+                  window.__trackCta("accept-upsell", t.nextStepUrl);
+                });
+              } else if (href === "#decline-upsell" || action === "decline-upsell") {
+                el.addEventListener("click", function(e) {
+                  e.preventDefault();
+                  window.__trackCta("decline-upsell", t.downsellUrl);
+                });
+              }
             });
           });
         })();
