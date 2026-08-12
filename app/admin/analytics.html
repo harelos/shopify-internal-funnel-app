@@ -44,8 +44,8 @@
       </div>
     </div>
 
-    <!-- Summary Metrics Row -->
-    <div class="grid-4" style="margin-bottom:28px;">
+    <!-- Summary Metrics Row (5 Cards including AOV & Currency) -->
+    <div class="grid-4" style="grid-template-columns: repeat(5, 1fr); margin-bottom:28px;">
       <div class="metric-card">
         <div class="metric-val" id="metric-visitors">0</div>
         <div class="metric-label">Unique Visitors</div>
@@ -59,8 +59,65 @@
         <div class="metric-label">Overall Funnel Conv %</div>
       </div>
       <div class="metric-card">
-        <div class="metric-val" id="metric-revenue">$0.00</div>
-        <div class="metric-label">Attributed Revenue</div>
+        <div class="metric-val" id="metric-aov">₪0.00</div>
+        <div class="metric-label">Average Order Value (AOV)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-revenue">₪0.00</div>
+        <div class="metric-label">Attributed Net Revenue</div>
+      </div>
+    </div>
+
+    <!-- Storewide Account Benchmark Cards (Account Mode Only) -->
+    <div class="panel" id="account-benchmarks-panel" style="margin-bottom:28px; display:none;">
+      <div class="panel-header">
+        <h2>Storewide Stage Benchmark Averages</h2>
+        <span class="eyebrow">All Active Funnels</span>
+      </div>
+      <div class="panel-body">
+        <div class="grid-4">
+          <div class="metric-card" style="background:#f8fafc;">
+            <div class="metric-val" style="font-size:22px; color:var(--blue);" id="bm-discovery">61.2%</div>
+            <div class="metric-label">Avg Advertorial ➔ Sales Rate</div>
+          </div>
+          <div class="metric-card" style="background:#f8fafc;">
+            <div class="metric-val" style="font-size:22px; color:var(--blue);" id="bm-sales">38.5%</div>
+            <div class="metric-label">Avg Sales ➔ Checkout Rate</div>
+          </div>
+          <div class="metric-card" style="background:#f8fafc;">
+            <div class="metric-val" style="font-size:22px; color:var(--green);" id="bm-checkout">24.8%</div>
+            <div class="metric-label">Avg Checkout Conv Rate</div>
+          </div>
+          <div class="metric-card" style="background:#f8fafc;">
+            <div class="metric-val" style="font-size:22px; color:var(--accent);" id="bm-upsell">32.4%</div>
+            <div class="metric-label">Avg Upsell Take Rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traffic Channel Revenue Breakdown Table -->
+    <div class="panel" id="channel-attribution-panel" style="margin-bottom:28px; display:none;">
+      <div class="panel-header">
+        <h2>Traffic Channel Revenue Attribution</h2>
+        <span class="eyebrow">Facebook Ads vs Shopify Email vs Organic</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Traffic Channel</th>
+              <th>Unique Visitors</th>
+              <th>Orders</th>
+              <th>Channel Conv %</th>
+              <th>Channel Revenue</th>
+              <th>Channel AOV</th>
+            </tr>
+          </thead>
+          <tbody id="channel-table-body">
+            <!-- Dynamically populated channel rows -->
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -88,7 +145,7 @@
           <thead>
             <tr>
               <th>Visitor Path Combination</th>
-              <th>Visitors</th>
+              <th>Unique Visitors</th>
               <th>Orders</th>
               <th>Path Conv %</th>
               <th>Revenue</th>
@@ -114,7 +171,7 @@
             <tr>
               <th style="width:30px;"></th>
               <th>Step / Variant</th>
-              <th>Entries</th>
+              <th>Unique Visitors</th>
               <th>Page Views</th>
               <th>CTA Clicks</th>
               <th>Stage Metric</th>

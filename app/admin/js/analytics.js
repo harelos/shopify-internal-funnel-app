@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const metricVisitors = document.getElementById("metric-visitors");
   const metricOrders = document.getElementById("metric-orders");
   const metricConvRate = document.getElementById("metric-conv-rate");
+  const metricAov = document.getElementById("metric-aov");
   const metricRevenue = document.getElementById("metric-revenue");
   const reportGeneratedAt = document.getElementById("report-generated-at");
   const breakdownTableTitle = document.getElementById("breakdown-table-title");
@@ -28,6 +29,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const visualFunnelContainer = document.getElementById("visual-funnel-container");
   const pathAttributionPanel = document.getElementById("path-attribution-panel");
   const pathTableBody = document.getElementById("path-table-body");
+
+  // Channel & Benchmark Elements
+  const channelAttributionPanel = document.getElementById("channel-attribution-panel");
+  const channelTableBody = document.getElementById("channel-table-body");
+  const accountBenchmarksPanel = document.getElementById("account-benchmarks-panel");
+  const bmDiscovery = document.getElementById("bm-discovery");
+  const bmSales = document.getElementById("bm-sales");
+  const bmCheckout = document.getElementById("bm-checkout");
+  const bmUpsell = document.getElementById("bm-upsell");
 
   // Date Range Elements
   const dateFrom = document.getElementById("date-from");
@@ -81,6 +91,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   }
 
+  function fmtMoney(amount, symbol) {
+    const sym = symbol || "₪";
+    return `${sym}${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   async function loadReport() {
     let url = funnelId ? `/api/analytics/${funnelId}` : `/api/analytics/account`;
     const params = buildQueryParams();
@@ -99,25 +114,56 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderAccountReport(report) {
+    const sym = report.currencySymbol || "₪";
     analyticsTitle.textContent = "Account Analytics — Storewide";
     analyticsHeading.textContent = "Storewide Performance & Revenue Insights";
     metricVisitors.textContent = report.totalVisitors.toLocaleString();
     metricOrders.textContent = report.totalOrders.toLocaleString();
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
-    metricRevenue.textContent = `$${report.totalRevenue.toFixed(2)}`;
+    metricAov.textContent = fmtMoney(report.aov, sym);
+    metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
     reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
     breakdownTableTitle.textContent = "Active Funnels Overview";
 
     visualFunnelPanel.style.display = "none";
     pathAttributionPanel.style.display = "none";
 
+    // Show Storewide Benchmarks
+    if (report.benchmarks) {
+      accountBenchmarksPanel.style.display = "block";
+      bmDiscovery.textContent = `${report.benchmarks.avgDiscoveryToSales}%`;
+      bmSales.textContent = `${report.benchmarks.avgSalesToCheckout}%`;
+      bmCheckout.textContent = `${report.benchmarks.avgCheckoutConv}%`;
+      bmUpsell.textContent = `${report.benchmarks.avgUpsellTake}%`;
+    } else {
+      accountBenchmarksPanel.style.display = "none";
+    }
+
+    // Render Traffic Channel Breakdown
+    const channels = report.channelAttribution || [];
+    if (channels.length > 0) {
+      channelAttributionPanel.style.display = "block";
+      channelTableBody.innerHTML = channels.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.channel)}</strong></td>
+          <td>${c.visitors}</td>
+          <td>${c.orders}</td>
+          <td>${c.convRate}%</td>
+          <td>${fmtMoney(c.revenue, sym)}</td>
+          <td>${fmtMoney(c.aov, sym)}</td>
+        </tr>
+      `).join("");
+    } else {
+      channelAttributionPanel.style.display = "none";
+    }
+
     analyticsTableHead.innerHTML = `
       <tr>
         <th>Funnel Name</th>
         <th>Path Slug</th>
         <th>Steps</th>
-        <th>Visitors</th>
-        <th>Views</th>
+        <th>Unique Visitors</th>
+        <th>Page Views</th>
         <th>CTA Clicks</th>
         <th>Orders</th>
         <th>Conv %</th>
@@ -142,21 +188,25 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${f.ctas}</td>
         <td>${f.orders}</td>
         <td>${f.conversionRate}%</td>
-        <td>$${f.revenue.toFixed(2)}</td>
+        <td>${fmtMoney(f.revenue, sym)}</td>
         <td><a href="analytics.html?funnelId=${f.funnelId}" class="btn btn-sm">Funnel Detail</a></td>
       </tr>
     `).join("");
   }
 
   function renderFunnelReport(report) {
+    const sym = report.currencySymbol || "₪";
     analyticsTitle.textContent = `${report.funnelName} — Analytics`;
     analyticsHeading.textContent = `${report.funnelName} Stage Conversion & Attribution`;
     metricVisitors.textContent = report.totalVisitors.toLocaleString();
     metricOrders.textContent = report.totalOrders.toLocaleString();
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
-    metricRevenue.textContent = `$${report.totalRevenue.toFixed(2)}`;
+    metricAov.textContent = fmtMoney(report.aov, sym);
+    metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
     reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
     breakdownTableTitle.textContent = "Stage & Variant Progression Breakdown";
+
+    accountBenchmarksPanel.style.display = "none";
 
     // 1. Render Visual Stepped Funnel Chart
     const flow = report.funnelFlow || [];
@@ -195,20 +245,38 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${p.visitors}</td>
           <td>${p.orders}</td>
           <td>${p.convRate}%</td>
-          <td>$${p.revenue.toFixed(2)}</td>
-          <td>$${p.aov.toFixed(2)}</td>
+          <td>${fmtMoney(p.revenue, sym)}</td>
+          <td>${fmtMoney(p.aov, sym)}</td>
         </tr>
       `).join("");
     } else {
       pathAttributionPanel.style.display = "none";
     }
 
-    // 3. Render Step Breakdown Table
+    // 3. Render Channel Attribution Table
+    const channels = report.channelAttribution || [];
+    if (channels.length > 0) {
+      channelAttributionPanel.style.display = "block";
+      channelTableBody.innerHTML = channels.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.channel)}</strong></td>
+          <td>${c.visitors}</td>
+          <td>${c.orders}</td>
+          <td>${c.convRate}%</td>
+          <td>${fmtMoney(c.revenue, sym)}</td>
+          <td>${fmtMoney(c.aov, sym)}</td>
+        </tr>
+      `).join("");
+    } else {
+      channelAttributionPanel.style.display = "none";
+    }
+
+    // 4. Render Step Breakdown Table
     analyticsTableHead.innerHTML = `
       <tr>
         <th style="width:30px;"></th>
         <th>Step / Variant</th>
-        <th>Entries</th>
+        <th>Unique Visitors</th>
         <th>Page Views</th>
         <th>CTA Clicks</th>
         <th>Stage Metric</th>
@@ -235,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${step.ctas}</td>
           <td><span style="color:var(--green);">${step.stageMetricLabel}: ${step.stageMetricValue}%</span></td>
           <td>${step.orders}</td>
-          <td>$${step.revenue.toFixed(2)}</td>
+          <td>${fmtMoney(step.revenue, sym)}</td>
         </tr>
       `;
 
@@ -249,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <td>${v.ctas}</td>
             <td>Progression: ${v.progressionRate}%</td>
             <td>${v.orders}</td>
-            <td>$${v.revenue.toFixed(2)}</td>
+            <td>${fmtMoney(v.revenue, sym)}</td>
           </tr>
         `;
       });

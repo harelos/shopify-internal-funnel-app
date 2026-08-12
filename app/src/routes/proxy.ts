@@ -74,7 +74,6 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
       return res.status(404).send("No active variant found for this step");
     }
 
-    // Fetch published version, or fallback to latest draft version for local preview
     const variant = await prisma.variant.findUnique({
       where: { id: variantId },
       include: {
@@ -92,13 +91,13 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
     const nextStep = funnel.steps.find(s => s.position === pos + 1);
     const nextStepUrl = nextStep ? `/f/${funnel.slug}/${nextStep.position}` : `/f/${funnel.slug}/${pos}`;
 
-    // Downsell / decline step target (next step after downsell or next step)
+    // Downsell / decline step target (#down, #decline-upsell)
     const downsellStep = funnel.steps.find(s => s.position === pos + 2) || nextStep;
     const downsellUrl = downsellStep ? `/f/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
 
     const variantLabel = `${step.name} (${variant?.name || 'Main'})`;
 
-    // Tracking pixel + CTA handler injection with Path History tracking
+    // Tracking pixel + CTA handler injection with UTM, Dwell Time, and #down link resolution
     const trackingPixelScript = `
       <script>
         (function() {
@@ -110,6 +109,11 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             sessionStorage.setItem(pathKey, JSON.stringify(pathHistory));
           }
 
+          var urlParams = new URLSearchParams(window.location.search);
+          var utm_source = urlParams.get("utm_source") || (document.referrer.indexOf("facebook") >= 0 ? "facebook" : "organic");
+          var utm_medium = urlParams.get("utm_medium") || "";
+          var utm_campaign = urlParams.get("utm_campaign") || "";
+
           var t = {
             funnelId: "${funnel.id}",
             stepId: "${step.id}",
@@ -117,7 +121,10 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             stepKind: "${step.kind}",
             nextStepUrl: "${nextStepUrl}",
             downsellUrl: "${downsellUrl}",
-            pathFingerprint: pathHistory.join(" ➔ ")
+            pathFingerprint: pathHistory.join(" ➔ "),
+            utm_source: utm_source,
+            utm_medium: utm_medium,
+            utm_campaign: utm_campaign
           };
 
           var vid = localStorage.getItem("_fv") || "${visitorId}";
@@ -159,7 +166,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
                   e.preventDefault();
                   window.__trackCta("accept-upsell", t.nextStepUrl);
                 });
-              } else if (href === "#decline-upsell" || action === "decline-upsell") {
+              } else if (href === "#decline-upsell" || href === "#down" || action === "decline-upsell" || action === "down") {
                 el.addEventListener("click", function(e) {
                   e.preventDefault();
                   window.__trackCta("decline-upsell", t.downsellUrl);

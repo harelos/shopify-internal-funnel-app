@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAddStep = document.getElementById("btn-add-step");
   const btnAddStepSidebar = document.getElementById("btn-add-step-sidebar");
   const btnDeleteStep = document.getElementById("btn-delete-step");
+  const btnRenameStep = document.getElementById("btn-rename-step");
   const btnMoveUp = document.getElementById("btn-move-up");
   const btnMoveDown = document.getElementById("btn-move-down");
   const btnAddVariant = document.getElementById("btn-add-variant");
@@ -129,6 +130,20 @@ document.addEventListener("DOMContentLoaded", () => {
       loadFunnel();
     } catch (err) {
       alert("Failed to add variant: " + err.message);
+    }
+  });
+
+  btnRenameStep?.addEventListener("click", async () => {
+    const currentStep = currentFunnel?.steps?.find(s => s.id === selectedStepId);
+    if (!currentStep) return;
+    const newName = prompt("Enter new name for this step:", currentStep.name);
+    if (!newName || newName.trim() === "") return;
+
+    try {
+      await API.patch(`/api/steps/${selectedStepId}`, { name: newName.trim() });
+      loadFunnel();
+    } catch (err) {
+      alert("Failed to rename step: " + err.message);
     }
   });
 
@@ -373,6 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p class="eyebrow" style="margin-bottom:12px;">Revisions: ${v.versions?.length || 0}</p>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <a href="editor.html?variantId=${v.id}&funnelId=${funnelId}" class="btn btn-sm btn-primary">Edit HTML</a>
+              <button class="btn btn-sm" onclick="renameVariant('${v.id}', '${escapeHtml(v.name)}')">Rename</button>
               <a href="/f/${currentFunnel.slug}/${step.position}?vid=preview" target="_blank" class="btn btn-sm">Live View</a>
               ${experiment?.status === 'RUNNING' ? `<button class="btn btn-sm" onclick="promoteVariant('${experiment.id}', '${v.id}')">Promote Winner</button>` : ''}
               ${variants.length > 1 ? `<button class="btn btn-sm btn-danger" onclick="deleteVariant('${v.id}')">Delete</button>` : ''}
@@ -392,6 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const report = await API.get(`/api/analytics/${funnelId}`);
       const stepData = report.steps?.find(s => s.stepId === selectedStepId);
+      const sym = report.currencySymbol || "₪";
 
       if (stepData) {
         stepInlineAnalytics.style.display = "block";
@@ -399,9 +416,9 @@ document.addEventListener("DOMContentLoaded", () => {
         stepValViews.textContent = (stepData.views || 0).toLocaleString();
         stepValCtas.textContent = (stepData.ctas || 0).toLocaleString();
         stepValRate.textContent = `${stepData.stageMetricValue || 0}%`;
-        stepValRevenue.textContent = `$${(stepData.revenue || 0).toFixed(2)}`;
+        stepValRevenue.textContent = `${sym}${(stepData.revenue || 0).toFixed(2)}`;
 
-        const rateLabel = stepInlineAnalytics.querySelector(".metric-label[data-role='stage-rate']");
+        const rateLabel = stepInlineAnalytics.querySelector("[data-role='stage-rate']");
         if (rateLabel) {
           rateLabel.textContent = stepData.stageMetricLabel || "Stage Metric";
         }
@@ -412,6 +429,17 @@ document.addEventListener("DOMContentLoaded", () => {
       stepInlineAnalytics.style.display = "none";
     }
   }
+
+  window.renameVariant = async function(varId, oldName) {
+    const newName = prompt("Enter new name for variant:", oldName);
+    if (!newName || newName.trim() === "") return;
+    try {
+      await API.patch(`/api/variants/${varId}`, { name: newName.trim() });
+      loadFunnel();
+    } catch (err) {
+      alert("Failed to rename variant: " + err.message);
+    }
+  };
 
   window.promoteVariant = async function(expId, varId) {
     if (!confirm("Promote this variant to 100% traffic and finish A/B test?")) return;

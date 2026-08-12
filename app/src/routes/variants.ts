@@ -90,6 +90,23 @@ router.get("/variants/:id", async (req, res) => {
   }
 });
 
+// PATCH /api/variants/:id — Rename variant
+router.patch("/variants/:id", async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: "Name is required" });
+
+    const updated = await prisma.variant.update({
+      where: { id: req.params.id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to rename variant" });
+  }
+});
+
 // PUT /api/variants/:id/content — Save variant HTML content (creates DRAFT version)
 router.put("/variants/:id/content", async (req, res) => {
   try {
@@ -179,7 +196,7 @@ router.delete("/variants/:id", async (req, res) => {
 router.post("/steps/:stepId/experiments", async (req, res) => {
   try {
     const { stepId } = req.params;
-    const { allocations } = req.body; // Array of { variantId, weightBasisPoints }
+    const { allocations } = req.body;
 
     const step = await prisma.step.findUnique({ where: { id: stepId }, include: { variants: true } });
     if (!step) return res.status(404).json({ error: "Step not found" });
@@ -222,7 +239,7 @@ router.post("/steps/:stepId/experiments", async (req, res) => {
 // PATCH /api/experiments/:id/allocations — Update A/B traffic weights
 router.patch("/experiments/:id/allocations", async (req, res) => {
   try {
-    const { allocations } = req.body; // [{ variantId, weightBasisPoints }]
+    const { allocations } = req.body;
     if (!Array.isArray(allocations)) {
       return res.status(400).json({ error: "Allocations array is required" });
     }
@@ -267,7 +284,6 @@ router.post("/experiments/:id/promote/:variantId", async (req, res) => {
     const experiment = await prisma.experiment.findUnique({ where: { id } });
     if (!experiment) return res.status(404).json({ error: "Experiment not found" });
 
-    // Set promoted variant weight to 100%, stop experiment
     await prisma.experimentAllocation.deleteMany({ where: { experimentId: id } });
     await prisma.experimentAllocation.create({
       data: {
