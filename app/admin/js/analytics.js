@@ -38,6 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const bmSales = document.getElementById("bm-sales");
   const bmCheckout = document.getElementById("bm-checkout");
   const bmUpsell = document.getElementById("bm-upsell");
+  const shopifyLiveBadge = document.getElementById("shopify-live-badge");
+  const shopifyLiveBody = document.getElementById("shopify-live-body");
 
   // Date Range Elements
   const dateFrom = document.getElementById("date-from");
@@ -96,6 +98,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${sym}${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
+  function renderDataMode(report) {
+    const mode = report.dataMode || "TEST";
+    reportGeneratedAt.textContent = `${mode} data · Updated: ${new Date().toLocaleTimeString()}`;
+  }
+
+  async function loadShopifyAnalytics() {
+    if (!shopifyLiveBadge || !shopifyLiveBody) return;
+    const range = currentDays === "7" || currentDays === "90" ? `${currentDays}d` : "30d";
+    try {
+      const report = await API.get(`/api/shopify/analytics?range=${range}`);
+      shopifyLiveBadge.textContent = "SHOPIFY LIVE";
+      shopifyLiveBadge.style.color = "var(--green)";
+      const columns = report.tableData?.columns || [];
+      const rows = report.tableData?.rows || [];
+      shopifyLiveBody.innerHTML = `
+        <p class="muted">Source: ShopifyQL · ${escapeHtml(report.range || range)} · store totals, not funnel attribution.</p>
+        <div style="overflow-x:auto;"><table class="table"><thead><tr>${columns.map(c => `<th>${escapeHtml(c.displayName || c.name)}</th>`).join("")}</tr></thead><tbody>
+          ${rows.length ? rows.map(row => `<tr>${columns.map(column => `<td>${escapeHtml(row[column.name] == null ? "—" : String(row[column.name]))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${Math.max(columns.length, 1)}" class="muted">No Shopify rows returned.</td></tr>`}
+        </tbody></table></div>`;
+    } catch (_) {
+      shopifyLiveBadge.textContent = "NOT CONNECTED";
+      shopifyLiveBadge.style.color = "var(--accent)";
+      shopifyLiveBody.innerHTML = `<p class="muted">Shopify store analytics are unavailable. The local funnel report below is labelled TEST and must not be treated as Shopify Analytics.</p>`;
+    }
+  }
+
   async function loadReport() {
     let url = funnelId ? `/api/analytics/${funnelId}` : `/api/analytics/account`;
     const params = buildQueryParams();
@@ -103,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const data = await API.get(url);
+      renderDataMode(data);
       if (data.accountMode) {
         renderAccountReport(data);
       } else {
@@ -122,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
     metricAov.textContent = fmtMoney(report.aov, sym);
     metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
-    reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+    renderDataMode(report);
     breakdownTableTitle.textContent = "Active Funnels Overview";
 
     visualFunnelPanel.style.display = "none";
@@ -203,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
     metricAov.textContent = fmtMoney(report.aov, sym);
     metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
-    reportGeneratedAt.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+    renderDataMode(report);
     breakdownTableTitle.textContent = "Stage & Variant Progression Breakdown";
 
     accountBenchmarksPanel.style.display = "none";
@@ -349,4 +378,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   loadReport();
+  loadShopifyAnalytics();
 });

@@ -96,6 +96,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
     const downsellUrl = downsellStep ? `/f/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
 
     const variantLabel = `${step.name} (${variant?.name || 'Main'})`;
+    const trackingEndpoint = JSON.stringify(`${process.env.SHOPIFY_APP_PROXY_PATH || ""}/api/track`.replace(/^\/\/api/, "/api"));
 
     // Tracking pixel + CTA handler injection with UTM, Dwell Time, and #down link resolution
     const trackingPixelScript = `
@@ -129,10 +130,18 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
 
           var vid = localStorage.getItem("_fv") || "${visitorId}";
           localStorage.setItem("_fv", vid);
+          document.cookie = "_fv=" + encodeURIComponent(vid) + "; Path=/; SameSite=Lax";
+          document.cookie = "_funnel_context=" + encodeURIComponent(JSON.stringify({
+            shopDomain: "${(process.env.SHOP_DOMAIN || "").replace(/"/g, '\\"')}",
+            visitorId: vid,
+            funnelId: "${funnel.id}",
+            stepId: "${step.id}",
+            variantId: "${variantId}"
+          })) + "; Path=/; SameSite=Lax";
           t.visitorId = vid;
 
           // Track page view event automatically
-          fetch("/api/track", {
+          fetch(${trackingEndpoint}, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ event: "page_view", ...t })
@@ -140,7 +149,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
 
           // Expose CTA tracking helper
           window.__trackCta = function(ctaName, targetUrl) {
-            fetch("/api/track", {
+            fetch(${trackingEndpoint}, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ event: "cta_click", ctaName: ctaName || "primary", ...t })

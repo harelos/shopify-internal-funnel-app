@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <title>Funnel Analytics & Path Attribution — Funnel Builder</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -41,6 +43,16 @@
           <button class="btn btn-sm" data-days="90">90d</button>
           <button class="btn btn-sm" data-days="all">All</button>
         </div>
+      </div>
+    </div>
+
+    <div class="panel" id="shopify-live-panel" style="margin-bottom:28px; border-left:4px solid var(--green);">
+      <div class="panel-header">
+        <h2>Shopify Store Analytics</h2>
+        <span class="eyebrow" id="shopify-live-badge">Checking connection…</span>
+      </div>
+      <div class="panel-body" id="shopify-live-body">
+        <p class="muted">Store-level net sales and orders come from ShopifyQL. Funnel attribution remains tied to verified Shopify order webhooks.</p>
       </div>
     </div>
 

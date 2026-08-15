@@ -1,0 +1,18 @@
+type = "web_pixel_extension"
+name = "Funnel Control Analytics Pixel"
+uid = "00000000-0000-4000-8000-000000000001"
+runtime_context = "strict"
+
+[customer_privacy]
+analytics = true
+marketing = false
+preferences = false
+sale_of_data = "disabled"
+
+[settings]
+type = "object"
+
+[settings.fields.endpoint]
+name = "Ingest endpoint"
+description = "Public HTTPS endpoint ending in /api/shopify/pixel"
+type = "single_line_text_field"

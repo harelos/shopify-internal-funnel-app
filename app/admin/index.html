@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <title>Funnel Builder — Control Panel</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -24,6 +26,7 @@
     <div class="intro">
       <h1>Your Funnels</h1>
       <p class="muted">Create, edit, and A/B test high-converting sales funnels for your store</p>
+      <div id="shopify-connection-status" class="muted" style="margin-top:12px; font-size:12px;">Checking Shopify connection...</div>
     </div>
 
     <div id="funnel-list" class="grid-3">

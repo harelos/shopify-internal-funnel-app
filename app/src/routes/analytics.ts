@@ -1,22 +1,26 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
+import { analyticsDataContract, analyticsModeForRequest, isTestForMode } from "../lib/analytics-config.js";
 
 const router = Router();
 
 // GET /api/analytics/account — Store-wide account-level analytics with dynamic date-driven benchmarks
 router.get("/analytics/account", async (req, res) => {
   try {
+    const mode = analyticsModeForRequest(req.query as Record<string, unknown>);
     const { from, to } = req.query;
     const dateFilter: any = {};
     if (from) dateFilter.gte = new Date(from as string);
     if (to) dateFilter.lte = new Date(to as string);
 
-    const eventWhere: any = {};
+    const eventWhere: any = { isTest: isTestForMode(mode) };
     if (from || to) eventWhere.occurredAt = dateFilter;
 
+    const ordersWhere: any = { isTest: isTestForMode(mode) };
+    if (from || to) ordersWhere.paidAt = dateFilter;
     const events = await prisma.event.findMany({ where: eventWhere });
     const orders = await prisma.orderAttribution.findMany({
-      where: from || to ? { paidAt: dateFilter } : {},
+      where: ordersWhere,
     });
 
     const activeFunnels = await prisma.funnel.findMany({
@@ -38,10 +42,12 @@ router.get("/analytics/account", async (req, res) => {
     const checkoutVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && s.kind === "CHECKOUT"))).map(e => e.visitorId).filter(Boolean));
     const upsellVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && (s.kind === "UPSELL" || s.kind === "DOWNSELL")))).map(e => e.visitorId).filter(Boolean));
 
-    const avgDiscoveryToSales = discoveryVisitorIds.size > 0 ? Number(((salesVisitorIds.size / discoveryVisitorIds.size) * 100).toFixed(1)) : 61.2;
-    const avgSalesToCheckout = salesVisitorIds.size > 0 ? Number(((checkoutVisitorIds.size / salesVisitorIds.size) * 100).toFixed(1)) : 38.5;
-    const avgCheckoutConv = checkoutVisitorIds.size > 0 ? Number(((totalOrders / checkoutVisitorIds.size) * 100).toFixed(1)) : 24.8;
-    const avgUpsellTake = upsellVisitorIds.size > 0 ? Number(((orders.filter(o => o.variantId && activeFunnels.some(f => f.steps.some(s => (s.kind === "UPSELL" || s.kind === "DOWNSELL") && s.variants.some(v => v.id === o.variantId)))).length / (upsellVisitorIds.size || 1)) * 100).toFixed(1)) : 32.4;
+    const avgDiscoveryToSales = discoveryVisitorIds.size > 0 ? Number(((salesVisitorIds.size / discoveryVisitorIds.size) * 100).toFixed(1)) : 0;
+    const avgSalesToCheckout = salesVisitorIds.size > 0 ? Number(((checkoutVisitorIds.size / salesVisitorIds.size) * 100).toFixed(1)) : 0;
+    const avgCheckoutConv = checkoutVisitorIds.size > 0 ? Number(((totalOrders / checkoutVisitorIds.size) * 100).toFixed(1)) : 0;
+    const avgUpsellTake = upsellVisitorIds.size > 0
+      ? Number(((orders.filter(o => o.variantId && activeFunnels.some(f => f.steps.some(s => (s.kind === "UPSELL" || s.kind === "DOWNSELL") && s.variants.some(v => v.id === o.variantId)))).length / upsellVisitorIds.size) * 100).toFixed(1))
+      : 0;
 
     // Channel Attribution Matrix (Facebook Ads, Shopify Email, Google Ads, Organic)
     const channelMap = new Map<string, { visitors: Set<string>; orders: number; revenue: number }>();
@@ -62,7 +68,7 @@ router.get("/analytics/account", async (req, res) => {
     });
 
     orders.forEach(o => {
-      const matchingEvent = events.find(e => (o.checkoutToken && e.checkoutToken === o.checkoutToken) || (o.funnelId && e.funnelId === o.funnelId));
+      const matchingEvent = o.checkoutToken ? events.find(e => e.checkoutToken === o.checkoutToken) : undefined;
       let channel = "Organic / Direct";
       if (matchingEvent) {
         try {
@@ -115,6 +121,7 @@ router.get("/analytics/account", async (req, res) => {
 
     res.json({
       accountMode: true,
+      ...analyticsDataContract(mode),
       currencySymbol: "₪",
       totalFunnels: activeFunnels.length,
       totalVisitors: uniqueVisitorIds.size,
@@ -141,6 +148,7 @@ router.get("/analytics/account", async (req, res) => {
 // GET /api/analytics/:funnelId — Full funnel report with dynamic next-step metric labels
 router.get("/analytics/:funnelId", async (req, res) => {
   try {
+    const mode = analyticsModeForRequest(req.query as Record<string, unknown>);
     const { funnelId } = req.params;
     const { from, to } = req.query;
 
@@ -167,16 +175,13 @@ router.get("/analytics/:funnelId", async (req, res) => {
     if (from) dateFilter.gte = new Date(from as string);
     if (to) dateFilter.lte = new Date(to as string);
 
-    const eventWhere: any = { funnelId };
+    const eventWhere: any = { funnelId, isTest: isTestForMode(mode) };
     if (from || to) eventWhere.occurredAt = dateFilter;
 
     const events = await prisma.event.findMany({ where: eventWhere });
-    const orders = await prisma.orderAttribution.findMany({
-      where: {
-        funnelId,
-        ...(from || to ? { paidAt: dateFilter } : {}),
-      },
-    });
+    const orderWhere: any = { funnelId, isTest: isTestForMode(mode) };
+    if (from || to) orderWhere.paidAt = dateFilter;
+    const orders = await prisma.orderAttribution.findMany({ where: orderWhere });
 
     const uniqueVisitorIds = new Set(events.map(e => e.visitorId).filter(Boolean));
     const totalViews = events.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
@@ -225,7 +230,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
     });
 
     orders.forEach(o => {
-      const matchingEvent = events.find(e => (o.checkoutToken && e.checkoutToken === o.checkoutToken) || (o.variantId && e.variantId === o.variantId));
+      const matchingEvent = o.checkoutToken ? events.find(e => e.checkoutToken === o.checkoutToken) : undefined;
       let pathFingerprint = "Direct / Unattributed Path";
       if (matchingEvent) {
         try {
@@ -270,7 +275,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
     });
 
     orders.forEach(o => {
-      const matchingEvent = events.find(e => (o.checkoutToken && e.checkoutToken === o.checkoutToken) || (o.variantId && e.variantId === o.variantId));
+      const matchingEvent = o.checkoutToken ? events.find(e => e.checkoutToken === o.checkoutToken) : undefined;
       let channel = "Organic / Direct";
       if (matchingEvent) {
         try {
@@ -323,19 +328,11 @@ router.get("/analytics/:funnelId", async (req, res) => {
 
       const variantMetrics = step.variants.map((variant, vIdx) => {
         let varEvents = stepEvents.filter(e => e.variantId === variant.id);
-        if (varEvents.length === 0 && stepEvents.length > 0) {
-          varEvents = stepEvents.filter((_, i) => i % step.variants.length === vIdx);
-        }
-
         const varEntries = new Set(varEvents.map(e => e.visitorId).filter(Boolean)).size;
         const varViews = varEvents.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
         const varCtas = varEvents.filter(e => e.name === "cta_click" || e.name === "FUNNEL_CTA_CLICKED").length;
 
         let varOrders = orders.filter(o => o.variantId === variant.id);
-        if (varOrders.length === 0 && stepOrders.length > 0) {
-          varOrders = stepOrders.filter((_, i) => i % step.variants.length === vIdx);
-        }
-
         const varRevenue = varOrders.reduce((sum, o) => sum + o.netRevenueAmount, 0);
         const varProgressionRate = varEntries > 0 ? Number(((varCtas / varEntries) * 100).toFixed(1)) : 0;
 
@@ -368,6 +365,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
     });
 
     res.json({
+      ...analyticsDataContract(mode),
       funnelId: funnel.id,
       funnelName: funnel.name,
       currencySymbol: "₪",
@@ -391,6 +389,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
 // GET /api/analytics/:funnelId/csv — Download CSV report
 router.get("/analytics/:funnelId/csv", async (req, res) => {
   try {
+    const mode = analyticsModeForRequest(req.query as Record<string, unknown>);
     const { funnelId } = req.params;
     const { from, to } = req.query;
 
@@ -404,15 +403,15 @@ router.get("/analytics/:funnelId/csv", async (req, res) => {
     if (from) dateFilter.gte = new Date(from as string);
     if (to) dateFilter.lte = new Date(to as string);
 
-    const eventWhere: any = { funnelId };
+    const eventWhere: any = { funnelId, isTest: isTestForMode(mode) };
     if (from || to) eventWhere.occurredAt = dateFilter;
 
     const events = await prisma.event.findMany({ where: eventWhere });
-    const orders = await prisma.orderAttribution.findMany({
-      where: { funnelId, ...(from || to ? { paidAt: dateFilter } : {}) },
-    });
+    const orderWhere: any = { funnelId, isTest: isTestForMode(mode) };
+    if (from || to) orderWhere.paidAt = dateFilter;
+    const orders = await prisma.orderAttribution.findMany({ where: orderWhere });
 
-    let csv = "Step,Variant,Unique Visitors,Page Views,CTA Clicks,Progression Rate (%),Orders,Revenue (ILS)\n";
+    let csv = `Data Mode,${mode}\nData Source,${analyticsDataContract(mode).dataSource}\nCaveat,"${analyticsDataContract(mode).sampleSizeCaveat}"\n\nStep,Variant,Unique Visitors,Page Views,CTA Clicks,Progression Rate (%),Orders,Revenue (ILS)\n`;
 
     for (const step of funnel.steps) {
       const stepEvents = events.filter(e => e.stepId === step.id);
@@ -449,13 +448,23 @@ router.get("/analytics/:funnelId/csv", async (req, res) => {
 // POST /api/track — Idempotent Event tracking endpoint with UTM & Dwell Time
 router.post("/track", async (req, res) => {
   try {
+    const mode = analyticsModeForRequest(req.query as Record<string, unknown>);
     const { event, funnelId, stepId, variantId, visitorId, checkoutToken, payload, explicitEventKey, pathFingerprint, utm_source, utm_medium, utm_campaign } = req.body;
-    if (!event || !funnelId) {
+    const allowedEvents = new Set(["page_view", "cta_click", "checkout_started", "FUNNEL_PAGE_VIEWED", "FUNNEL_CTA_CLICKED", "CHECKOUT_STARTED"]);
+    if (!event || !funnelId || !allowedEvents.has(event)) {
       return res.status(400).json({ error: "event name and funnelId are required" });
     }
 
     const shop = await prisma.shop.findFirst();
     if (!shop) return res.status(400).json({ error: "No shop record configured" });
+
+    const funnel = await prisma.funnel.findUnique({ where: { id: funnelId }, include: { steps: { include: { variants: true } } } });
+    if (!funnel) return res.status(404).json({ error: "Funnel not found" });
+    const step = stepId ? funnel.steps.find(item => item.id === stepId) : undefined;
+    if (stepId && !step) return res.status(400).json({ error: "Step does not belong to funnel" });
+    if (variantId && (!step || !step.variants.some(item => item.id === variantId))) {
+      return res.status(400).json({ error: "Variant does not belong to step" });
+    }
 
     let visitor = null;
     if (visitorId) {
@@ -498,10 +507,28 @@ router.post("/track", async (req, res) => {
         utmMedium: utm_medium || null,
         utmCampaign: utm_campaign || null,
         payload: JSON.stringify(mergedPayload),
+        isTest: isTestForMode(mode),
       },
     });
 
-    res.status(201).json({ success: true, eventId: createdEvent.id, duplicate: false });
+    if (checkoutToken && (event === "checkout_started" || event === "CHECKOUT_STARTED")) {
+      await prisma.checkoutAttribution.upsert({
+        where: { checkoutToken },
+        update: { visitorId: visitor?.id || null, funnelId, lastStepId: stepId || null, lastVariantId: variantId || null },
+        create: {
+          shopId: shop.id,
+          checkoutToken,
+          visitorId: visitor?.id || null,
+          funnelId,
+          lastStepId: stepId || null,
+          lastVariantId: variantId || null,
+          startedAt: new Date(),
+          confidence: "MEDIUM",
+        },
+      });
+    }
+
+    res.status(201).json({ success: true, eventId: createdEvent.id, duplicate: false, dataMode: mode });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to record event" });
   }

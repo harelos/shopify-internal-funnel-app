@@ -9,6 +9,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const slugInput = document.querySelector('[name="slug"]');
   const nameInput = document.querySelector('[name="name"]');
   const slugPreview = document.getElementById("slug-preview");
+  const connectionStatus = document.getElementById("shopify-connection-status");
+
+  async function loadShopifyStatus() {
+    if (!connectionStatus) return;
+    try {
+      const status = await API.get("/api/shopify/status");
+      connectionStatus.textContent = status.ok
+        ? `Shopify connected: ${status.shopDomain}`
+        : `Local mode: ${status.note}`;
+      connectionStatus.style.color = status.ok ? "#197b5b" : "#8a6a1f";
+    } catch {
+      connectionStatus.textContent = "Shopify status unavailable. The local funnel panel is still usable.";
+    }
+  }
 
   function openModal() {
     formNewFunnel.reset();
@@ -104,4 +118,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   loadFunnels();
+  loadShopifyStatus();
 });

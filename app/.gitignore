@@ -3,3 +3,8 @@ dist/
 .env
 *.db
 coverage/
+cloudflared.exe
+meta_deep_extraction_raw.json
+meta_audit_data.json
+meta_deep_insights.json
+meta_all_accounts_raw.json

@@ -3,18 +3,25 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "npx prisma db push --skip-generate && npx prisma generate && tsx watch src/server.ts",
     "db:push": "prisma db push",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/analytics-contract.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
+    "dotenv": "^16.6.1",
     "express": "^5.0.1"
   },
   "devDependencies": {
+    "@shopify/web-pixels-extension": "^2.18.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "prisma": "^6.0.0",

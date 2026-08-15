@@ -1,0 +1,3966 @@
+{
+  "products": [
+    {
+      "product_name": "Uncategorized / Catalog",
+      "accounts": [
+        "JacobNew4",
+        "JacobNew5",
+        "JacobNew6",
+        "Celestiva Limited 1",
+        "Shopify Store 3",
+        "Shopify Store 1",
+        "JacobNew2",
+        "JacobNew1",
+        "JacobNew8"
+      ],
+      "total_spend_usd": 19056.089177377904,
+      "total_revenue_usd": 49874.17172236504,
+      "roas": 2.617230180764072,
+      "total_purchases": 875,
+      "cpa_usd": 21.778387631289032,
+      "ctr": 4.699092196675638,
+      "ad_count": 683,
+      "top_creatives": [
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/neufelief",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "סוף סוף, הקלה מכאב נוירופתי",
+          "copy_text": "נוירופתיה גזלה ממני את ההליכות בפארק. חיפשתי פתרונות וגיליתי מכשיר חדש שעזר לי להחזיר את התחושה! עכשיו אני מטיילת שוב, ואפילו קצת קופצת! (טוב נו, לא לגמרי ילדה, אבל קרוב מספיק!)  רוצים גם אתם לחזור ליהנות מהחיים? לחצו כאן כדי לגלות על המכשיר הסודי שעזר לי לעשות את זה ב10 דקות ביום:\n\nhttps://tigermarketingltd.clickfunnels.com/neufelief",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/neufelief",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/563115371_24993233523700378_2378542545255408464_n.png?_nc_cat=107&ccb=1-7&_nc_ohc=sji1kwPJOCQQ7kNvwH0cqk6&_nc_oc=AdquqiUEqxbFmKgxb5iVyiErqphVsGf4VN8WCreScb8Qp1pBLaHDgrvbhLe165ss6qI&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=moIDUfyTNrfwyPffO1_71Q&_nc_tpa=Q5bMBQICN-ktUCROKG3BItnAlAij7Wmn_58HQJZgTRyECG_i60BXBaOiEvIvU9ZIM-Eap9xbUg0RPNVe&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQGYdgzlOvKrxn87sMt0e9Iw1vk5RoYZG9RQ_kq-q1Q8dQ&oe=6A869252",
+          "accounts": [
+            "JacobNew8"
+          ],
+          "ad_count": 3,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 24.009999999999998,
+          "revenue_usd": 6393.73,
+          "roas": 266.29446064139944,
+          "purchases": 82,
+          "cpa_usd": 0.29280487804878047,
+          "ctr": 1.2678936605316973,
+          "impressions": 12225,
+          "clicks": 155
+        },
+        {
+          "key": "‎אווטר 3: מודעה 1 - אישה עם בעיות רפואיות כרוניות‎",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "‎אווטר 3: מודעה 1 - אישה עם בעיות רפואיות כרוניות‎"
+          ],
+          "spend_usd": 4.63,
+          "revenue_usd": 140.16,
+          "roas": 30.272138228941685,
+          "purchases": 3,
+          "cpa_usd": 1.5433333333333332,
+          "ctr": 10.526315789473683,
+          "impressions": 190,
+          "clicks": 20
+        },
+        {
+          "key": "winner #2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #2"
+          ],
+          "spend_usd": 17.439999999999998,
+          "revenue_usd": 332.91999999999996,
+          "roas": 19.089449541284402,
+          "purchases": 5,
+          "cpa_usd": 3.4879999999999995,
+          "ctr": 3.6170212765957444,
+          "impressions": 470,
+          "clicks": 17
+        },
+        {
+          "key": "winner #4",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #4"
+          ],
+          "spend_usd": 7.28,
+          "revenue_usd": 63.07,
+          "roas": 8.663461538461538,
+          "purchases": 1,
+          "cpa_usd": 7.28,
+          "ctr": 6.25,
+          "impressions": 176,
+          "clicks": 11
+        },
+        {
+          "key": "חדשנות טכנולוגית",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "חדשנות טכנולוגית"
+          ],
+          "spend_usd": 26.27,
+          "revenue_usd": 131.02,
+          "roas": 4.98743814236772,
+          "purchases": 2,
+          "cpa_usd": 13.135,
+          "ctr": 7.742998352553541,
+          "impressions": 1214,
+          "clicks": 94
+        }
+      ],
+      "untapped_creatives": [
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/neufelief",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "סוף סוף, הקלה מכאב נוירופתי",
+          "copy_text": "נוירופתיה גזלה ממני את ההליכות בפארק. חיפשתי פתרונות וגיליתי מכשיר חדש שעזר לי להחזיר את התחושה! עכשיו אני מטיילת שוב, ואפילו קצת קופצת! (טוב נו, לא לגמרי ילדה, אבל קרוב מספיק!)  רוצים גם אתם לחזור ליהנות מהחיים? לחצו כאן כדי לגלות על המכשיר הסודי שעזר לי לעשות את זה ב10 דקות ביום:\n\nhttps://tigermarketingltd.clickfunnels.com/neufelief",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/neufelief",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/563115371_24993233523700378_2378542545255408464_n.png?_nc_cat=107&ccb=1-7&_nc_ohc=sji1kwPJOCQQ7kNvwH0cqk6&_nc_oc=AdquqiUEqxbFmKgxb5iVyiErqphVsGf4VN8WCreScb8Qp1pBLaHDgrvbhLe165ss6qI&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=moIDUfyTNrfwyPffO1_71Q&_nc_tpa=Q5bMBQICN-ktUCROKG3BItnAlAij7Wmn_58HQJZgTRyECG_i60BXBaOiEvIvU9ZIM-Eap9xbUg0RPNVe&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQGYdgzlOvKrxn87sMt0e9Iw1vk5RoYZG9RQ_kq-q1Q8dQ&oe=6A869252",
+          "accounts": [
+            "JacobNew8"
+          ],
+          "ad_count": 3,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 24.009999999999998,
+          "revenue_usd": 6393.73,
+          "roas": 266.29446064139944,
+          "purchases": 82,
+          "cpa_usd": 0.29280487804878047,
+          "ctr": 1.2678936605316973,
+          "impressions": 12225,
+          "clicks": 155
+        },
+        {
+          "key": "‎אווטר 3: מודעה 1 - אישה עם בעיות רפואיות כרוניות‎",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "‎אווטר 3: מודעה 1 - אישה עם בעיות רפואיות כרוניות‎"
+          ],
+          "spend_usd": 4.63,
+          "revenue_usd": 140.16,
+          "roas": 30.272138228941685,
+          "purchases": 3,
+          "cpa_usd": 1.5433333333333332,
+          "ctr": 10.526315789473683,
+          "impressions": 190,
+          "clicks": 20
+        },
+        {
+          "key": "winner #2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #2"
+          ],
+          "spend_usd": 17.439999999999998,
+          "revenue_usd": 332.91999999999996,
+          "roas": 19.089449541284402,
+          "purchases": 5,
+          "cpa_usd": 3.4879999999999995,
+          "ctr": 3.6170212765957444,
+          "impressions": 470,
+          "clicks": 17
+        },
+        {
+          "key": "winner #4",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #4"
+          ],
+          "spend_usd": 7.28,
+          "revenue_usd": 63.07,
+          "roas": 8.663461538461538,
+          "purchases": 1,
+          "cpa_usd": 7.28,
+          "ctr": 6.25,
+          "impressions": 176,
+          "clicks": 11
+        },
+        {
+          "key": "חדשנות טכנולוגית",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "חדשנות טכנולוגית"
+          ],
+          "spend_usd": 26.27,
+          "revenue_usd": 131.02,
+          "roas": 4.98743814236772,
+          "purchases": 2,
+          "cpa_usd": 13.135,
+          "ctr": 7.742998352553541,
+          "impressions": 1214,
+          "clicks": 94
+        },
+        {
+          "key": "winner #7",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #7"
+          ],
+          "spend_usd": 38.27,
+          "revenue_usd": 163.67,
+          "roas": 4.276718055918473,
+          "purchases": 2,
+          "cpa_usd": 19.135,
+          "ctr": 6.421052631578947,
+          "impressions": 950,
+          "clicks": 61
+        },
+        {
+          "key": "luminacaps",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Celestiva Limited 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "LuminaCaps"
+          ],
+          "spend_usd": 21.641388174807197,
+          "revenue_usd": 35.138817480719794,
+          "roas": 1.62368592979747,
+          "purchases": 1,
+          "cpa_usd": 21.641388174807197,
+          "ctr": 10.380622837370241,
+          "impressions": 578,
+          "clicks": 60
+        },
+        {
+          "key": "coppergrow-news3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "CopperGrow-News3"
+          ],
+          "spend_usd": 44.50771208226221,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 21.033653846153847,
+          "impressions": 1664,
+          "clicks": 350
+        },
+        {
+          "key": "1x - copy 2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew6"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "1x - Copy 2"
+          ],
+          "spend_usd": 41.21,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.401350337584396,
+          "impressions": 1333,
+          "clicks": 72
+        },
+        {
+          "key": "אווטר 4: מודעה 2: אישה בשנות ה-50 המאוחרות",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "אווטר 4: מודעה 2: אישה בשנות ה-50 המאוחרות"
+          ],
+          "spend_usd": 41.11,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 11.677160847166572,
+          "impressions": 1747,
+          "clicks": 204
+        },
+        {
+          "key": "coppergrow-3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "CopperGrow-3"
+          ],
+          "spend_usd": 36.51156812339332,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.345572354211663,
+          "impressions": 1852,
+          "clicks": 99
+        },
+        {
+          "key": "winner#5",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Winner#5"
+          ],
+          "spend_usd": 36.14,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 16.78486997635934,
+          "impressions": 1692,
+          "clicks": 284
+        },
+        {
+          "key": "winner#3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Winner#3"
+          ],
+          "spend_usd": 35.78,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 9.022038567493112,
+          "impressions": 1452,
+          "clicks": 131
+        },
+        {
+          "key": "new sales ad - copy 3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Celestiva Limited 1"
+          ],
+          "ad_count": 20,
+          "ad_names_sample": [
+            "New Sales Ad - Copy 3"
+          ],
+          "spend_usd": 33.67866323907455,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.486486486486487,
+          "impressions": 1110,
+          "clicks": 72
+        },
+        {
+          "key": "coppergrow6",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "CopperGrow6"
+          ],
+          "spend_usd": 31.309768637532134,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 7.8699743370402055,
+          "impressions": 1169,
+          "clicks": 92
+        },
+        {
+          "key": "coppergrow-industry",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "CopperGrow-industry"
+          ],
+          "spend_usd": 30.93701799485861,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.5198973042362,
+          "impressions": 1558,
+          "clicks": 86
+        },
+        {
+          "key": "lashes",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "lashes"
+          ],
+          "spend_usd": 29.674807197943444,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.708357021034679,
+          "impressions": 1759,
+          "clicks": 118
+        },
+        {
+          "key": "coppergrow6 - copy",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "CopperGrow6 - Copy"
+          ],
+          "spend_usd": 26.452442159383033,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 9.239653512993263,
+          "impressions": 1039,
+          "clicks": 96
+        },
+        {
+          "key": "כימיקלים",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "כימיקלים"
+          ],
+          "spend_usd": 19.8,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.272564789991064,
+          "impressions": 1119,
+          "clicks": 59
+        },
+        {
+          "key": "winner#2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Winner#2"
+          ],
+          "spend_usd": 19.6,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 8.383233532934131,
+          "impressions": 668,
+          "clicks": 56
+        },
+        {
+          "key": "us versus them with winner",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Us Versus Them With Winner"
+          ],
+          "spend_usd": 16.38,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 8.399366085578446,
+          "impressions": 631,
+          "clicks": 53
+        },
+        {
+          "key": "red-ad-3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Celestiva Limited 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "RED-AD-3"
+          ],
+          "spend_usd": 15.383033419023135,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.128205128205128,
+          "impressions": 429,
+          "clicks": 22
+        },
+        {
+          "key": "אווטר 2: מודעה 1: אישה בשנות ה-40 המוקדמות",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "אווטר 2: מודעה 1: אישה בשנות ה-40 המוקדמות"
+          ],
+          "spend_usd": 14.43,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.167400881057269,
+          "impressions": 454,
+          "clicks": 28
+        },
+        {
+          "key": "‎אווטר 3: מודעה 2 - אישה עם בעיות רפואיות כרוניות‎",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "‎אווטר 3: מודעה 2 - אישה עם בעיות רפואיות כרוניות‎"
+          ],
+          "spend_usd": 12.03,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 9.197080291970803,
+          "impressions": 685,
+          "clicks": 63
+        },
+        {
+          "key": "luminacaps 2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Celestiva Limited 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "LuminaCaps 2"
+          ],
+          "spend_usd": 8.679948586118252,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.938775510204081,
+          "impressions": 245,
+          "clicks": 17
+        },
+        {
+          "key": "coppergrow4",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "CopperGrow4"
+          ],
+          "spend_usd": 7.822622107969151,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 9,
+          "impressions": 200,
+          "clicks": 18
+        },
+        {
+          "key": "luminacaps 3",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Celestiva Limited 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "LuminaCaps 3"
+          ],
+          "spend_usd": 6.533419023136246,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 10.294117647058822,
+          "impressions": 136,
+          "clicks": 14
+        },
+        {
+          "key": "coppergrow7",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Coppergrow7"
+          ],
+          "spend_usd": 4.736503856041131,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.434782608695652,
+          "impressions": 184,
+          "clicks": 10
+        },
+        {
+          "key": "אווטר 4: מודעה 1: אישה בשנות ה-50 המאוחרות",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "אווטר 4: מודעה 1: אישה בשנות ה-50 המאוחרות"
+          ],
+          "spend_usd": 3.88,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 12.727272727272727,
+          "impressions": 165,
+          "clicks": 21
+        },
+        {
+          "key": "‎אווטר 1: מודעה 1 - אמא צעירה אחרי לידה",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "‎אווטר 1: מודעה 1 - אמא צעירה אחרי לידה"
+          ],
+          "spend_usd": 2.24,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.405405405405405,
+          "impressions": 111,
+          "clicks": 6
+        },
+        {
+          "key": "ad2",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "ad2"
+          ],
+          "spend_usd": 2.177377892030848,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.23728813559322,
+          "impressions": 118,
+          "clicks": 5
+        },
+        {
+          "key": "coppergrow8",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "CopperGrow8"
+          ],
+          "spend_usd": 2.0411311053984575,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.285714285714286,
+          "impressions": 70,
+          "clicks": 3
+        },
+        {
+          "key": "v1",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "v1"
+          ],
+          "spend_usd": 1.6285347043701799,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.705882352941177,
+          "impressions": 85,
+          "clicks": 4
+        },
+        {
+          "key": "מומחים ממליצים",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "מומחים ממליצים"
+          ],
+          "spend_usd": 1.49,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.301075268817205,
+          "impressions": 93,
+          "clicks": 4
+        },
+        {
+          "key": "lash serum - pack#2 - 21/08/2025 - abo",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Lash Serum - Pack#2 - 21/08/2025 - ABO"
+          ],
+          "spend_usd": 1.331619537275064,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.838709677419355,
+          "impressions": 62,
+          "clicks": 3
+        },
+        {
+          "key": "winner #6",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Winner #6"
+          ],
+          "spend_usd": 1.27,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 7.547169811320755,
+          "impressions": 53,
+          "clicks": 4
+        },
+        {
+          "key": "אווטר 2: מודעה 2: אישה בשנות ה-40 המוקדמות",
+          "product_name": "Uncategorized / Catalog",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "אווטר 2: מודעה 2: אישה בשנות ה-40 המוקדמות"
+          ],
+          "spend_usd": 1.15,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 7.142857142857142,
+          "impressions": 42,
+          "clicks": 3
+        }
+      ]
+    },
+    {
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "accounts": [
+        "Shopify Store 1",
+        "JacobNew5",
+        "JacobNew2",
+        "JacobNew9",
+        "JacobNew7"
+      ],
+      "total_spend_usd": 11090.413213367614,
+      "total_revenue_usd": 22626.98411311054,
+      "roas": 2.0402291310334175,
+      "total_purchases": 412,
+      "cpa_usd": 26.918478673222364,
+      "ctr": 3.916845831784161,
+      "ad_count": 302,
+      "top_creatives": [
+        {
+          "key": "novahair - statics #1 - flexible - copy 2 - a+",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "NovaHair - Statics #1 - Flexible - Copy 2 - a+"
+          ],
+          "spend_usd": 6.858611825192802,
+          "revenue_usd": 56.61825192802056,
+          "roas": 8.255059970014992,
+          "purchases": 1,
+          "cpa_usd": 6.858611825192802,
+          "ctr": 3.9215686274509802,
+          "impressions": 153,
+          "clicks": 6
+        },
+        {
+          "key": "nova-v1 - copy 2 - related media",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1 - Copy 2 - related media"
+          ],
+          "spend_usd": 13.964010282776348,
+          "revenue_usd": 41.736503856041125,
+          "roas": 2.988862297496318,
+          "purchases": 1,
+          "cpa_usd": 13.964010282776348,
+          "ctr": 4.947916666666666,
+          "impressions": 384,
+          "clicks": 19
+        },
+        {
+          "key": "nova-v1",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 36,
+          "ad_names_sample": [
+            "Nova-v1"
+          ],
+          "spend_usd": 4815.964010282777,
+          "revenue_usd": 13583.40616966581,
+          "roas": 2.820495780421797,
+          "purchases": 248,
+          "cpa_usd": 19.419209718882165,
+          "ctr": 4.329530214387063,
+          "impressions": 205796,
+          "clicks": 8910
+        },
+        {
+          "key": "nova-v2",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 31,
+          "ad_names_sample": [
+            "Nova-v2"
+          ],
+          "spend_usd": 705.1696658097687,
+          "revenue_usd": 1679.4164524421594,
+          "roas": 2.3815778441258275,
+          "purchases": 29,
+          "cpa_usd": 24.316195372750645,
+          "ctr": 3.111929061402041,
+          "impressions": 29885,
+          "clicks": 930
+        },
+        {
+          "key": "novawinner1",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 25,
+          "ad_names_sample": [
+            "NovaWinner1"
+          ],
+          "spend_usd": 385.06169665809773,
+          "revenue_usd": 854.4318766066839,
+          "roas": 2.2189479868348143,
+          "purchases": 17,
+          "cpa_usd": 22.650688038711632,
+          "ctr": 4.712362301101591,
+          "impressions": 11438,
+          "clicks": 539
+        }
+      ],
+      "untapped_creatives": [
+        {
+          "key": "novahair - statics #1 - flexible - copy 2 - a+",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "NovaHair - Statics #1 - Flexible - Copy 2 - a+"
+          ],
+          "spend_usd": 6.858611825192802,
+          "revenue_usd": 56.61825192802056,
+          "roas": 8.255059970014992,
+          "purchases": 1,
+          "cpa_usd": 6.858611825192802,
+          "ctr": 3.9215686274509802,
+          "impressions": 153,
+          "clicks": 6
+        },
+        {
+          "key": "nova-v1 - copy 2 - related media",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1 - Copy 2 - related media"
+          ],
+          "spend_usd": 13.964010282776348,
+          "revenue_usd": 41.736503856041125,
+          "roas": 2.988862297496318,
+          "purchases": 1,
+          "cpa_usd": 13.964010282776348,
+          "ctr": 4.947916666666666,
+          "impressions": 384,
+          "clicks": 19
+        },
+        {
+          "key": "nova-v1 - copy 2",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 3,
+          "ad_names_sample": [
+            "Nova-v1 - Copy 2"
+          ],
+          "spend_usd": 39.8637532133676,
+          "revenue_usd": 59.86632390745501,
+          "roas": 1.501773392661379,
+          "purchases": 1,
+          "cpa_usd": 39.8637532133676,
+          "ctr": 4.023845007451564,
+          "impressions": 1342,
+          "clicks": 54
+        },
+        {
+          "key": "novawinner5",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 25,
+          "ad_names_sample": [
+            "NovaWinner5"
+          ],
+          "spend_usd": 26.857326478149098,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.632768361581921,
+          "impressions": 885,
+          "clicks": 41
+        },
+        {
+          "key": "nova-v1flexi",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1flexi"
+          ],
+          "spend_usd": 21.719794344473005,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.6538024971623155,
+          "impressions": 881,
+          "clicks": 41
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/barak6",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "הסוד של הוליווד נחשף!",
+          "copy_text": "הן לא סתם נראות כל כך טוב! הכוכבות כבר גילו את הסוד לשיער מלא ובריא. עכשיו תורך! עם הספריי שלנו, את יכולה להרגיש כמו סלב בעצמך. 10 שניות ביום ואת בדרך לשיער חלומי!\n\nhttps://bit.ly/3wWRLhM",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/barak6",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/562333994_9303215533136586_677298259900493694_n.png?stp=dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=d5bd00&_nc_ohc=WgLHrUHOx_0Q7kNvwFEaB5t&_nc_oc=AdpxTcThbHjy50Cs0Ht00c1BIupxbzklu3STKESdpNkkD17CsAxDbmSoGp2Rxb0tgr8&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=RIkcsnst-sZwII97mvespA&_nc_tpa=Q5bMBQJ39BR6xZSY71br3GB5xBGmkFmIwAucUrlK3lKXElg5CBHmk6om7iDxb89PxrNmzPiNtcO4v9uT&oh=00_AQEWc63WrYi8T9ZMVvRFmhxMHXydTexvSZl__V_JhR1cYw&oe=6A869768",
+          "accounts": [
+            "JacobNew5"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "Adset1"
+          ],
+          "spend_usd": 13.809999999999999,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.735294117647059,
+          "impressions": 680,
+          "clicks": 39
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/barakhair4",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "שיער ארוך וחזק בגיל 55?",
+          "copy_text": "רוב התכשירים בשוק מבטיחים תוצאות אבל לא תמיד מקיימים ‍♀️. יש דרך פשוטה ומהירה יותר לטפל בשיער שלך! גילינו שגרת טיפוח ייחודית של 10 שניות ביום שעשויה לעזור לך להצמיח שיער חזק ובריא יותר. לחצי כאן כדי ללמוד עוד\nhttps://bit.ly/44K9JAv",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/barakhair4",
+          "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/562546665_24552067914490028_3707377590661615862_n.png?_nc_cat=110&ccb=1-7&_nc_ohc=WVH_W4JCmxIQ7kNvwEVPlTk&_nc_oc=Adq0jqcQjLYipFA97NSROhajjSLNW_jAnGWkwWqlqt9SFhVbYPrbdtiUwxX8f5senio&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=1lr5S-GMJvPbm9Ya7DuT_w&_nc_tpa=Q5bMBQKliJN_ycnMaabVcx-Y_4ADaIx71QGQVO0oqpL4GqAL_3Irkawb0rZ2uyoIRDacFOBJYz9iORyP&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQHrijyqBAzHhDC2O4AjX-QNzCVI_RfMMtTHz_NngExEjg&oe=6A86833A",
+          "accounts": [
+            "JacobNew5"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 13.24,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.47427293064877,
+          "impressions": 894,
+          "clicks": 40
+        },
+        {
+          "key": "nova-v1 - related media",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1 - related media"
+          ],
+          "spend_usd": 12.730077120822623,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.88836104513064,
+          "impressions": 421,
+          "clicks": 29
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/risebloomadv",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "שיער דליל? יש פתרון מדהים",
+          "copy_text": "יאללה, אני לא יודע איך את מרגישה לגבי השיער שלך, אבל אם את כמוני ויש לך שיער דליל ונושר, תביני שיש משהו שאת חייבת לנסות. את שומעת על זה? נשות שבט ה-יאו בדרום סין מצאו שיטה שמפסיקה את הנשירה וממלאת את השיער. כן כן, זה נשמע מדהים ואפילו פשוט בטירוף. אז יאללה, לחצי כאן לקריאה:\n\nhttps://bit.ly/4bQf77h",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/risebloomadv",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/599253527_32737377359243372_1393840771848103495_n.png?stp=dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=d5bd00&_nc_ohc=EQnpkDbJbVEQ7kNvwGIrNa0&_nc_oc=AdoD8TE_GLzRUlqkYdXheC6jCi_V9zb_9O4es3GFZMZd7qBWDS3jKM2YBqhW-Z0dArg&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=eFqNelpesSfj9oDxjnY4_g&_nc_tpa=Q5bMBQKrkrNT3TqfZ1MGuPlv7MZZJuVcENaw5co9XLz4NPKVvJyW-G1cGEEcg5DHkQXtQN2oX1bg6_hw&oh=00_AQEtEA-TQLnz1Wai0ldvT-mny22KrU6WWnv2vtK8T7SSSg&oe=6A86A741",
+          "accounts": [
+            "JacobNew9"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "RiceBloom"
+          ],
+          "spend_usd": 12.34,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 19.723865877712033,
+          "impressions": 507,
+          "clicks": 100
+        },
+        {
+          "key": "nova-v1 - copy - related media",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1 - Copy - related media"
+          ],
+          "spend_usd": 11.643958868894602,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.790419161676647,
+          "impressions": 334,
+          "clicks": 16
+        },
+        {
+          "key": "nova-v1 - 3things",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "Nova-v1 - 3things"
+          ],
+          "spend_usd": 8.073264781491002,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.017921146953405,
+          "impressions": 279,
+          "clicks": 14
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/advetorial2",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "הר!צח השקט של השיער שלך נחשף",
+          "copy_text": "רוב התכשירים בשוק מבטיחים תוצאות אבל לא תמיד מקיימים ‍♀️. יש דרך פשוטה ומהירה להצמיח את השיער שלך ולהחזיר לו את הברק הישן...\n\nיש שמפו מיוחד, קוראים אותו, OceAura, שב3 דקות ביום בלבד, תוך 4 שבועות בלבד, הוא יצמיח לך שיער כמו בצמחייה פראית באמזונס...\n\nלא מאמינה?\n\nתשמעי את מומחית נשירת השיער, ולמה היא החליטה להמליץ על השמפו הזה ללקוחות שלה בחום: https://bit.ly/3z1JppP",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/advetorial2",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/567152199_32036389085976764_8101281254098686343_n.png?_nc_cat=102&ccb=1-7&_nc_ohc=rKti2oDw3k8Q7kNvwE4Qcbv&_nc_oc=AdopVp-ROFnTdNuDOl1e2Dzdx8AQzPXuRIKT4w_PlY5FlnI5KlBt_PS4kQROVZm6rg8&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=aaJtFhc0gT-UiZ8UBAK5HQ&_nc_tpa=Q5bMBQLLnMpcoPFkuB7yAyqiijf9QmDAHVHO8JjzbHXUr5ryL5U7EkJdGurwJrKAaHIbLx3k4kE1JpHf&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQG2YCiFflYizEpUXs6R407HFRsVnRTFv0VkhpQ6IL_kmw&oe=6A868D2A",
+          "accounts": [
+            "JacobNew7"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 7.97,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 4.81283422459893,
+          "impressions": 187,
+          "clicks": 9
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/ricebloomv2adv",
+          "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+          "headline": "שיער דליל? יש פתרון מדהים",
+          "copy_text": "יאללה, אני לא יודע איך את מרגישה לגבי השיער שלך, אבל אם את כמוני ויש לך שיער דליל ונושר, תביני שיש משהו שאת חייבת לנסות. את שומעת על זה? נשות שבט ה-יאו בדרום סין מצאו שיטה שמפסיקה את הנשירה וממלאת את השיער. כן כן, זה נשמע מדהים ואפילו פשוט בטירוף. אז יאללה, לחצי כאן לקריאה:\n\nhttps://bit.ly/3WwzXEk",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/ricebloomv2adv",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/599253527_32737377359243372_1393840771848103495_n.png?stp=dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=d5bd00&_nc_ohc=EQnpkDbJbVEQ7kNvwGIrNa0&_nc_oc=AdoD8TE_GLzRUlqkYdXheC6jCi_V9zb_9O4es3GFZMZd7qBWDS3jKM2YBqhW-Z0dArg&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=eFqNelpesSfj9oDxjnY4_g&_nc_tpa=Q5bMBQKrkrNT3TqfZ1MGuPlv7MZZJuVcENaw5co9XLz4NPKVvJyW-G1cGEEcg5DHkQXtQN2oX1bg6_hw&oh=00_AQEtEA-TQLnz1Wai0ldvT-mny22KrU6WWnv2vtK8T7SSSg&oe=6A86A741",
+          "accounts": [
+            "JacobNew9"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "RiceBloom"
+          ],
+          "spend_usd": 2.25,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 13.88888888888889,
+          "impressions": 72,
+          "clicks": 10
+        }
+      ]
+    },
+    {
+      "product_name": "Dynamic Catalog / Multi-Product",
+      "accounts": [
+        "JacobNew4",
+        "Shopify Store 3"
+      ],
+      "total_spend_usd": 7329.080000000001,
+      "total_revenue_usd": 24989.52,
+      "roas": 3.4096394090390607,
+      "total_purchases": 266,
+      "cpa_usd": 27.55293233082707,
+      "ctr": 11.130467730942016,
+      "ad_count": 97,
+      "top_creatives": [
+        {
+          "key": "dynamic statics 2",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Dynamic Statics 2"
+          ],
+          "spend_usd": 7.870000000000001,
+          "revenue_usd": 181.49,
+          "roas": 23.060991105463785,
+          "purchases": 3,
+          "cpa_usd": 2.6233333333333335,
+          "ctr": 6.349206349206349,
+          "impressions": 252,
+          "clicks": 16
+        },
+        {
+          "key": "dynamic-08/02/2024 -v3",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 46,
+          "ad_names_sample": [
+            "dynamic-08/02/2024 -v3"
+          ],
+          "spend_usd": 6310.590000000001,
+          "revenue_usd": 21961.809999999998,
+          "roas": 3.480151618152977,
+          "purchases": 229,
+          "cpa_usd": 27.557161572052408,
+          "ctr": 11.924854407340902,
+          "impressions": 389271,
+          "clicks": 46420
+        },
+        {
+          "key": "dynamic - statics + videos creatives",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Dynamic - Statics + Videos Creatives"
+          ],
+          "spend_usd": 60.14,
+          "revenue_usd": 202.5,
+          "roas": 3.3671433322248085,
+          "purchases": 2,
+          "cpa_usd": 30.07,
+          "ctr": 5.976896032144651,
+          "impressions": 1991,
+          "clicks": 119
+        },
+        {
+          "key": "dynamic-08/02/2024 -v322",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 40,
+          "ad_names_sample": [
+            "dynamic-08/02/2024 -v322"
+          ],
+          "spend_usd": 922.0699999999999,
+          "revenue_usd": 2643.7200000000003,
+          "roas": 2.867157591072262,
+          "purchases": 32,
+          "cpa_usd": 28.814687499999998,
+          "ctr": 6.759001933301112,
+          "impressions": 66208,
+          "clicks": 4475
+        },
+        {
+          "key": "dynamic-08/02/2024 -v2",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "dynamic-08/02/2024 -v2"
+          ],
+          "spend_usd": 28.41,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.551839464882943,
+          "impressions": 1495,
+          "clicks": 83
+        }
+      ],
+      "untapped_creatives": [
+        {
+          "key": "dynamic statics 2",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 3"
+          ],
+          "ad_count": 5,
+          "ad_names_sample": [
+            "Dynamic Statics 2"
+          ],
+          "spend_usd": 7.870000000000001,
+          "revenue_usd": 181.49,
+          "roas": 23.060991105463785,
+          "purchases": 3,
+          "cpa_usd": 2.6233333333333335,
+          "ctr": 6.349206349206349,
+          "impressions": 252,
+          "clicks": 16
+        },
+        {
+          "key": "dynamic-08/02/2024 -v2",
+          "product_name": "Dynamic Catalog / Multi-Product",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "dynamic-08/02/2024 -v2"
+          ],
+          "spend_usd": 28.41,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 5.551839464882943,
+          "impressions": 1495,
+          "clicks": 83
+        }
+      ]
+    },
+    {
+      "product_name": "Posture Corrector (תומך גב)",
+      "accounts": [
+        "JacobNew7",
+        "JacobNew5",
+        "JacobNew4"
+      ],
+      "total_spend_usd": 314.84999999999997,
+      "total_revenue_usd": 52.34,
+      "roas": 0.1662378910592346,
+      "total_purchases": 1,
+      "cpa_usd": 314.84999999999997,
+      "ctr": 4.023031481343005,
+      "ad_count": 6,
+      "top_creatives": [
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/7reasonscleansponge",
+          "product_name": "Posture Corrector (תומך גב)",
+          "headline": "פתרון חסכוני להסרת איפור!",
+          "copy_text": "רוצה להפסיק להשתמש במגבונים חד פעמיים להסרת איפור? מטלית הסרת האיפור שלנו, CleanSponge, היא הפתרון המושלם עבורך. 50% הנחה על הרכישה הראשונה!\n\nhttps://bit.ly/3RnEjKF",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/7reasonscleansponge",
+          "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/598753883_25464937543158900_2383456234038722616_n.png?_nc_cat=101&ccb=1-7&_nc_ohc=rjPDYA4IUJMQ7kNvwG22a47&_nc_oc=AdrJDPOqi3RepnRVlTnKwIFvkvWmZ3USSfQp3L-R7ov20C8qSH_l_kyu3HE3TCnP0Yw&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=RIkcsnst-sZwII97mvespA&_nc_tpa=Q5bMBQIKbAMB9zHOidgGWmA-Zg0FIFBMRqFUoVEWseHW-MyF8mX_jX-9bnMSaBK6wIHkjjAFueD1c53L&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQEiUoQWdLoI-pjqdlLA96fqklkqCcSdDSJK8ZiA8uLJSg&oe=6A869750",
+          "accounts": [
+            "JacobNew5"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 31.71,
+          "revenue_usd": 52.34,
+          "roas": 1.6505834121728162,
+          "purchases": 1,
+          "cpa_usd": 31.71,
+          "ctr": 1.0439560439560438,
+          "impressions": 1820,
+          "clicks": 19
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/halomit",
+          "product_name": "Posture Corrector (תומך גב)",
+          "headline": "השותף האולטימטיבי לאימונים שלכם!",
+          "copy_text": "האם אתם נוהגים לטייל או לנסוע בתדירות גבוהה? עם אוזניות השינה וסרט הראש של חלומית, תהנו מאיכות שמע מעולה ונוחות ללא תחרות בכל נסיעה. טכנולוגיית בלוטות' 5.2 מבטיחה חיבור יציב וצליל נקי, כך שתמיד תוכלו להאזין למוזיקה או לפודקאסטים שלכם בלי הפרעות. המוצר המושלם לשינה, נסיעות ואימונים!\n\nל-50% הנחה לחץ פה:\n\nhttps://bit.ly/3KEYS1u",
+          "copy_type": "Medium (150-400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/halomit",
+          "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/561729912_24749156251403825_6430381056873715346_n.png?_nc_cat=109&ccb=1-7&_nc_ohc=inwB-AsjwEEQ7kNvwEYaEXD&_nc_oc=Adp-t2_ATIcsYGaLknmxrjNvPhG1IgKTkMXiWgFY-oKPFfy5Vclwzxn685b3XqNYD3k&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=aaJtFhc0gT-UiZ8UBAK5HQ&_nc_tpa=Q5bMBQIODfAv6nLwxoAno49WhM00WrnP2WL6J_hvVUYKPAZ6h4TqWFgmZF-Khu6zAQKLluRujVLj_Le4&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQHHfxFRhZILW9lIsjW4w_d3nhEgpzN4Y7L2iGfzVjjG7A&oe=6A8687DD",
+          "accounts": [
+            "JacobNew7"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "חלומית"
+          ],
+          "spend_usd": 268.4,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.609790441480991,
+          "impressions": 12073,
+          "clicks": 798
+        },
+        {
+          "key": "comeback1",
+          "product_name": "Posture Corrector (תומך גב)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "comeback1"
+          ],
+          "spend_usd": 9.6,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 2.179656538969617,
+          "impressions": 9084,
+          "clicks": 198
+        },
+        {
+          "key": "comingback1 - copy",
+          "product_name": "Posture Corrector (תומך גב)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 2,
+          "ad_names_sample": [
+            "comingback1 - Copy"
+          ],
+          "spend_usd": 2.93,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 1.2442396313364055,
+          "impressions": 2170,
+          "clicks": 27
+        },
+        {
+          "key": "comingback1",
+          "product_name": "Posture Corrector (תומך גב)",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "JacobNew4"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "comingback1"
+          ],
+          "spend_usd": 2.21,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 2.1263289555972484,
+          "impressions": 1599,
+          "clicks": 34
+        }
+      ],
+      "untapped_creatives": []
+    },
+    {
+      "product_name": "Nighttime Skin Renewal (קרם / סרום חידוש עור בלילה)",
+      "accounts": [
+        "JacobNew7",
+        "JacobNew5"
+      ],
+      "total_spend_usd": 83.02000000000001,
+      "total_revenue_usd": 0,
+      "roas": 0,
+      "total_purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 2.3410066328521264,
+      "ad_count": 2,
+      "top_creatives": [
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/halomitsweetdreams",
+          "product_name": "Nighttime Skin Renewal (קרם / סרום חידוש עור בלילה)",
+          "headline": "כשהאזעקות נשמעות, חֲלוֹמִית™ שומרת על שקטכם",
+          "copy_text": "איך שומרים על רוגע ביתי כשהלילה מלא באזעקות? סיפור אמיתי של אב שמצא פתרון\n\nבלילות שבהם השקט הוא רק רגע שבין אזעקה לאזעקה, אני, אב לשלושה, מוצא את עצמי לא רק נאבק לשמור על שקטי הנפשי אלא גם להעניק ביטחון ושלווה לילדיי. \n\nהאם גם אתם חווים את זה?\n\n האם גם אתם מחפשים דרך להרגיע את הבית כשמחוץ לו הכל נראה כל כך בלתי ודאי?\n\nוהיום אני רוצה לספר לכם איך מצאתי פתרון שלא רק שיפר את איכות השינה שלי, אלא גם הפך את לילות המתיחות של משפחתי לקצת יותר נסבלים.\n\nבעבר, לכל צפצופי האזעקה הייתה תגובה מיידית בבית שלי - ילדים קמים בבהלה, בכי שלא פוסק, וחוסר יכולת לחזור ולהירגע. אני זוכר לילות שבהם ישבתי ליד מיטות הילדים, ניסיתי לשיר להם שירי ערש כשקולי רועד מדאגה. \n\nניסיתי כל דבר - מסיפורים לילדים על אפליקציות וספרי שינה. כלום לא עזר להשיג את הרגיעה הנחוצה.\n\nאז גיליתי את חֲלוֹמִית™, מערכת אוזניות שינה חדשנית שמבטיחה לא רק לחסום רעשים חיצוניים אלא גם לשדר צלילים ומוזיקה מרגיעה שמסייעת להירגע ולהירדם במהירות. החלטתי לנסות את המוצר, לא בטוח שיעבוד, אבל עם תקווה שמשהו ישתנה.\n\nהשינוי היה דרמטי. הלילה הראשון עם חֲלוֹמִית™ היה הראשון מזה חודשים שבו הילדים שלי ישנו ללא הפרעה. ולא רק שינו ישנו, אלא גם ישנו בשקט. כשהילדים ישנים טוב, גם אני ישן טוב - וכל המשפחה נהנית משינה איכותית יותר.\n\nמאז, חֲלוֹמִית™ הפכה לחלק בלתי נפרד משגרת הלילה שלנו. היא לא רק מסייעת לנו להתמודד עם האזעקות והחרדות, אלא גם מאפשרת לנו לקום בבוקר עם תחושת מנוחה ושקט נפשי.\n\nאני מזמין אתכם לנסות את חֲלוֹמִית™ ולחוות בעצמכם את השינוי. כעת, במבצע מיוחד לגולשי העמוד שלנו, תוכלו להשיג את חֲלוֹמִית™ במחיר מופחת במיוחד.\n\n[לחץ כאן והזמן את חֲלוֹמִית™ - הרוגע שאתה ומשפחתך זקוקים לו]\n\nהאם אתם מוכנים להשיב את השקט ללילות שלכם? זה הזמן לקחת צעד קדימה ולהפוך כל לילה לחוויה של רוגע ושלווה.\n\nhttps://bit.ly/3Upnh0W",
+          "copy_type": "Long (>400 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/halomitsweetdreams",
+          "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/559901449_24154090430932019_1399941735597391871_n.png?_nc_cat=100&ccb=1-7&_nc_ohc=0kozsjNnhZoQ7kNvwFc0gUY&_nc_oc=AdokSwMywWqadNsrvkh78m_qV2oEQmdOad74nHHU5kbhKeT3uF9jLDw6S7yZCrFdFd8&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=aaJtFhc0gT-UiZ8UBAK5HQ&_nc_tpa=Q5bMBQJ6xjJxB589mL5lk15r3DC3kAwF6LJkPFl5e8T7Uj6qx5QsIyt1vM_qGPj8sijmcDpp83FiQq_K&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQGdBnLIsGMb9uPf2c6hu2VUCQkjRrCeaOW_MlDrLq4w8Q&oe=6A868E84",
+          "accounts": [
+            "JacobNew7"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "חלומית"
+          ],
+          "spend_usd": 46.07,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 2.3905723905723906,
+          "impressions": 2970,
+          "clicks": 71
+        },
+        {
+          "key": "https://tigermarketingltd.clickfunnels.com/cleansponge",
+          "product_name": "Nighttime Skin Renewal (קרם / סרום חידוש עור בלילה)",
+          "headline": "פתרון חסכוני להסרת איפור!",
+          "copy_text": "מחפשת פתרון חסכוני להסרת איפור? המטלית שלנו, CleanSponge לשימוש רב פעמי תחסוך לך כסף ותשמור על העור שלך. 50% הנחה עכשיו!\nhttps://bit.ly/3VDrdf6",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "https://tigermarketingltd.clickfunnels.com/cleansponge",
+          "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/598753883_25464937543158900_2383456234038722616_n.png?_nc_cat=101&ccb=1-7&_nc_ohc=rjPDYA4IUJMQ7kNvwG22a47&_nc_oc=AdrJDPOqi3RepnRVlTnKwIFvkvWmZ3USSfQp3L-R7ov20C8qSH_l_kyu3HE3TCnP0Yw&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=RIkcsnst-sZwII97mvespA&_nc_tpa=Q5bMBQKictrPMtVZqdhfMBcW7oeM39_dnqa4B_1C8MQLzZOwLK-JSLyfx5U7nCt8nUNhMoBFZFE8tqNF&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQHO7Td_W6S8uKDodzP-RfkXPx2SvSncVqxDWM5_LJe0-A&oe=6A869750",
+          "accounts": [
+            "JacobNew5"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "New Sales Ad"
+          ],
+          "spend_usd": 36.95,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 2.272727272727273,
+          "impressions": 2156,
+          "clicks": 49
+        }
+      ],
+      "untapped_creatives": []
+    },
+    {
+      "product_name": "OceAura Skincare",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "total_spend_usd": 16.853470437017993,
+      "total_revenue_usd": 0,
+      "roas": 0,
+      "total_purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 10.20220588235294,
+      "ad_count": 3,
+      "top_creatives": [
+        {
+          "key": "oceaura1 - copy",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1 - Copy"
+          ],
+          "spend_usd": 8.037275064267352,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.415929203539823,
+          "impressions": 452,
+          "clicks": 29
+        },
+        {
+          "key": "oceaura1",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1"
+          ],
+          "spend_usd": 4.701799485861182,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 13.216957605985039,
+          "impressions": 401,
+          "clicks": 53
+        },
+        {
+          "key": "oceaura1 - copy 2",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1 - Copy 2"
+          ],
+          "spend_usd": 4.11439588688946,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 12.340425531914894,
+          "impressions": 235,
+          "clicks": 29
+        }
+      ],
+      "untapped_creatives": [
+        {
+          "key": "oceaura1 - copy",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1 - Copy"
+          ],
+          "spend_usd": 8.037275064267352,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 6.415929203539823,
+          "impressions": 452,
+          "clicks": 29
+        },
+        {
+          "key": "oceaura1",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1"
+          ],
+          "spend_usd": 4.701799485861182,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 13.216957605985039,
+          "impressions": 401,
+          "clicks": 53
+        },
+        {
+          "key": "oceaura1 - copy 2",
+          "product_name": "OceAura Skincare",
+          "headline": "N/A",
+          "copy_text": "N/A",
+          "copy_type": "Short (<150 chars)",
+          "landing_url": "N/A",
+          "image_thumb": "",
+          "accounts": [
+            "Shopify Store 1"
+          ],
+          "ad_count": 1,
+          "ad_names_sample": [
+            "oceaura1 - Copy 2"
+          ],
+          "spend_usd": 4.11439588688946,
+          "revenue_usd": 0,
+          "roas": 0,
+          "purchases": 0,
+          "cpa_usd": 0,
+          "ctr": 12.340425531914894,
+          "impressions": 235,
+          "clicks": 29
+        }
+      ]
+    }
+  ],
+  "grouped_creatives": [
+    {
+      "key": "dynamic-08/02/2024 -v3",
+      "product_name": "Dynamic Catalog / Multi-Product",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 46,
+      "ad_names_sample": [
+        "dynamic-08/02/2024 -v3"
+      ],
+      "spend_usd": 6310.590000000001,
+      "revenue_usd": 21961.809999999998,
+      "roas": 3.480151618152977,
+      "purchases": 229,
+      "cpa_usd": 27.557161572052408,
+      "ctr": 11.924854407340902,
+      "impressions": 389271,
+      "clicks": 46420
+    },
+    {
+      "key": "new sales ad",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4",
+        "JacobNew5",
+        "JacobNew6",
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 44,
+      "ad_names_sample": [
+        "New Sales Ad"
+      ],
+      "spend_usd": 5671.344061696659,
+      "revenue_usd": 16088.123727506425,
+      "roas": 2.836739149042819,
+      "purchases": 177,
+      "cpa_usd": 32.04149187399243,
+      "ctr": 7.8933338503145505,
+      "impressions": 309489,
+      "clicks": 24429
+    },
+    {
+      "key": "nova-v1",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 36,
+      "ad_names_sample": [
+        "Nova-v1"
+      ],
+      "spend_usd": 4815.964010282777,
+      "revenue_usd": 13583.40616966581,
+      "roas": 2.820495780421797,
+      "purchases": 248,
+      "cpa_usd": 19.419209718882165,
+      "ctr": 4.329530214387063,
+      "impressions": 205796,
+      "clicks": 8910
+    },
+    {
+      "key": "1x",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 40,
+      "ad_names_sample": [
+        "1x"
+      ],
+      "spend_usd": 2597.9100000000003,
+      "revenue_usd": 6386.740000000001,
+      "roas": 2.4584146486983767,
+      "purchases": 193,
+      "cpa_usd": 13.460673575129535,
+      "ctr": 3.0067920814698312,
+      "impressions": 113809,
+      "clicks": 3422
+    },
+    {
+      "key": "nova-v1 - copy",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 23,
+      "ad_names_sample": [
+        "Nova-v1 - Copy"
+      ],
+      "spend_usd": 1598.4318766066838,
+      "revenue_usd": 2533.840616966581,
+      "roas": 1.5852040077839784,
+      "purchases": 39,
+      "cpa_usd": 40.98543273350471,
+      "ctr": 4.325532212046847,
+      "impressions": 50121,
+      "clicks": 2168
+    },
+    {
+      "key": "storyad",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 7,
+      "ad_names_sample": [
+        "storyad"
+      ],
+      "spend_usd": 1439.05,
+      "revenue_usd": 3429.2299999999996,
+      "roas": 2.382981828289496,
+      "purchases": 36,
+      "cpa_usd": 39.97361111111111,
+      "ctr": 9.925493820030033,
+      "impressions": 69256,
+      "clicks": 6874
+    },
+    {
+      "key": "new sales ad - copy",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4",
+        "JacobNew6",
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 29,
+      "ad_names_sample": [
+        "New Sales Ad - Copy"
+      ],
+      "spend_usd": 1070.8056555269923,
+      "revenue_usd": 2326.0019794344475,
+      "roas": 2.172198071077348,
+      "purchases": 33,
+      "cpa_usd": 32.44865622809068,
+      "ctr": 7.233739283543296,
+      "impressions": 47707,
+      "clicks": 3451
+    },
+    {
+      "key": "nova-v3",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 35,
+      "ad_names_sample": [
+        "Nova-v3"
+      ],
+      "spend_usd": 1066.762210796915,
+      "revenue_usd": 1708.8419023136244,
+      "roas": 1.601895797412105,
+      "purchases": 33,
+      "cpa_usd": 32.32612759990651,
+      "ctr": 3.8621630842715797,
+      "impressions": 43965,
+      "clicks": 1698
+    },
+    {
+      "key": "h - 18 - copy",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 66,
+      "ad_names_sample": [
+        "H - 18 - Copy"
+      ],
+      "spend_usd": 1060.9000000000003,
+      "revenue_usd": 2878.1799999999994,
+      "roas": 2.712960693750588,
+      "purchases": 89,
+      "cpa_usd": 11.920224719101126,
+      "ctr": 8.294884145413983,
+      "impressions": 39446,
+      "clicks": 3272
+    },
+    {
+      "key": "dynamic-08/02/2024 -v322",
+      "product_name": "Dynamic Catalog / Multi-Product",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 40,
+      "ad_names_sample": [
+        "dynamic-08/02/2024 -v322"
+      ],
+      "spend_usd": 922.0699999999999,
+      "revenue_usd": 2643.7200000000003,
+      "roas": 2.867157591072262,
+      "purchases": 32,
+      "cpa_usd": 28.814687499999998,
+      "ctr": 6.759001933301112,
+      "impressions": 66208,
+      "clicks": 4475
+    },
+    {
+      "key": "https://tigermarketingltd.clickfunnels.com/growesa",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "Long and Strong Hair at 55?",
+      "copy_text": "Most hair products on the market promise results but don't always deliver.\n\nThere's a faster and easier way to care for your hair!\n\nWe've discovered a unique 10-second-a-day hair care routine that may help you grow stronger, healthier hair.\n\nClick here to learn more\n\nhttps://bit.ly/3vB54nz",
+      "copy_type": "Medium (150-400 chars)",
+      "landing_url": "https://tigermarketingltd.clickfunnels.com/growesa",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/566720884_24583290444697317_4968990804861212593_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=qA43qEJ1JsgQ7kNvwH2O38Z&_nc_oc=AdpGBNFTlR8Q7esvbpnHPPmAQ_jUQPIa8vgylvwWlZyYDZQzWsY5CueGApDisU7dLKU&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=a2c2hU3xFmFh4TdVmSBPUg&_nc_tpa=Q5bMBQKoO29OzlnzAa_YSrgemPbFfNW8DtZjqw8Y7p7o1qqZ3bmLYLtpOEAZISCa3bMKqv3Ry2-2Xtbl&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQGtC1V9hIgZ1UmFtGGdzqWJwKoy7UHw_PERshg3S1tvHw&oe=6A869BBC",
+      "accounts": [
+        "JacobNew5"
+      ],
+      "ad_count": 3,
+      "ad_names_sample": [
+        "New Sales Ad"
+      ],
+      "spend_usd": 785.78,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 2.0926094228522114,
+      "impressions": 130937,
+      "clicks": 2740
+    },
+    {
+      "key": "beforeafter29/01",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 4,
+      "ad_names_sample": [
+        "beforeafter29/01"
+      ],
+      "spend_usd": 750.3,
+      "revenue_usd": 1705.95,
+      "roas": 2.273690523790484,
+      "purchases": 17,
+      "cpa_usd": 44.13529411764706,
+      "ctr": 8.000748316288352,
+      "impressions": 32072,
+      "clicks": 2566
+    },
+    {
+      "key": "nova-v2",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 31,
+      "ad_names_sample": [
+        "Nova-v2"
+      ],
+      "spend_usd": 705.1696658097687,
+      "revenue_usd": 1679.4164524421594,
+      "roas": 2.3815778441258275,
+      "purchases": 29,
+      "cpa_usd": 24.316195372750645,
+      "ctr": 3.111929061402041,
+      "impressions": 29885,
+      "clicks": 930
+    },
+    {
+      "key": "winner#1",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 3",
+        "JacobNew4"
+      ],
+      "ad_count": 7,
+      "ad_names_sample": [
+        "Winner#1"
+      ],
+      "spend_usd": 605.4399999999999,
+      "revenue_usd": 2653.41,
+      "roas": 4.38261429704017,
+      "purchases": 41,
+      "cpa_usd": 14.766829268292682,
+      "ctr": 5.746118533037603,
+      "impressions": 19387,
+      "clicks": 1114
+    },
+    {
+      "key": "novahair - statics #1 - flexible",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 4,
+      "ad_names_sample": [
+        "NovaHair - Statics #1 - Flexible"
+      ],
+      "spend_usd": 583.2365038560412,
+      "revenue_usd": 1148.9974293059124,
+      "roas": 1.9700368919115472,
+      "purchases": 26,
+      "cpa_usd": 22.432173225232354,
+      "ctr": 6.114197620640508,
+      "impressions": 34379,
+      "clicks": 2102
+    },
+    {
+      "key": "ze bemet oved",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 44,
+      "ad_names_sample": [
+        "Ze Bemet Oved"
+      ],
+      "spend_usd": 460.77000000000004,
+      "revenue_usd": 1362.8300000000004,
+      "roas": 2.957722942031817,
+      "purchases": 38,
+      "cpa_usd": 12.125526315789475,
+      "ctr": 5.760107477224065,
+      "impressions": 23819,
+      "clicks": 1372
+    },
+    {
+      "key": "novawinner1",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 25,
+      "ad_names_sample": [
+        "NovaWinner1"
+      ],
+      "spend_usd": 385.06169665809773,
+      "revenue_usd": 854.4318766066839,
+      "roas": 2.2189479868348143,
+      "purchases": 17,
+      "cpa_usd": 22.650688038711632,
+      "ctr": 4.712362301101591,
+      "impressions": 11438,
+      "clicks": 539
+    },
+    {
+      "key": "new engagement ad",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 7,
+      "ad_names_sample": [
+        "New Engagement Ad"
+      ],
+      "spend_usd": 325.11,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 0.77205278431802,
+      "impressions": 200893,
+      "clicks": 1551
+    },
+    {
+      "key": "h - 18 - copy 2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 14,
+      "ad_names_sample": [
+        "H - 18 - Copy 2"
+      ],
+      "spend_usd": 305.91,
+      "revenue_usd": 1125.52,
+      "roas": 3.6792520676015816,
+      "purchases": 33,
+      "cpa_usd": 9.270000000000001,
+      "ctr": 4.627873903768666,
+      "impressions": 16876,
+      "clicks": 781
+    },
+    {
+      "key": "coppergrow-132",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "CopperGrow-132"
+      ],
+      "spend_usd": 279.89588688946014,
+      "revenue_usd": 566.9370179948586,
+      "roas": 2.0255282215660433,
+      "purchases": 10,
+      "cpa_usd": 27.989588688946014,
+      "ctr": 12.298578199052132,
+      "impressions": 8440,
+      "clicks": 1038
+    },
+    {
+      "key": "1 - copy",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 46,
+      "ad_names_sample": [
+        "1 - Copy"
+      ],
+      "spend_usd": 272.9434447300771,
+      "revenue_usd": 666.1169665809769,
+      "roas": 2.440494466682364,
+      "purchases": 21,
+      "cpa_usd": 12.997306891908433,
+      "ctr": 3.8679944037527774,
+      "impressions": 12151,
+      "clicks": 470
+    },
+    {
+      "key": "https://tigermarketingltd.clickfunnels.com/barakhair3",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "רוצה שיער פצצה?",
+      "copy_text": "מחקרים הוכיחו: ספריי חדש שמצמיח שיער ב-4 שבועות! ג'ינג'ר, ג'ינסנג, ועוד מרכיבים מדהימים. תתחילי היום ותראי תוצאות מהר!\n\nhttps://bit.ly/3wWRLhM",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "https://tigermarketingltd.clickfunnels.com/barakhair3",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/567459126_31947682454877675_5130560470326111168_n.png?_nc_cat=110&ccb=1-7&_nc_ohc=zVJ40Ie9AugQ7kNvwGNXKef&_nc_oc=AdohRdyDnpgiKR-GvzqXcA5YoEZhhdboYMJc3tXw5VnNixBdK5vjjWfNsDbUWgVcjz4&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=RIkcsnst-sZwII97mvespA&_nc_tpa=Q5bMBQJHcEQhBU1fCGq4g3wQdOQ3hJGDiy42avn26tYSEJ8f0vGZlIX8C4voTY9HBDFV242LGxpTsMkr&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQH3eycbvTAdO80OUxC_5fon4nwkhcFoZWHN76DOnm_-nw&oe=6A867BF3",
+      "accounts": [
+        "JacobNew5"
+      ],
+      "ad_count": 12,
+      "ad_names_sample": [
+        "Adset1",
+        "New Sales Ad"
+      ],
+      "spend_usd": 271.52,
+      "revenue_usd": 436.65999999999997,
+      "roas": 1.6082056570418386,
+      "purchases": 6,
+      "cpa_usd": 45.25333333333333,
+      "ctr": 7.19890153001177,
+      "impressions": 15294,
+      "clicks": 1101
+    },
+    {
+      "key": "https://tigermarketingltd.clickfunnels.com/halomit",
+      "product_name": "Posture Corrector (תומך גב)",
+      "headline": "השותף האולטימטיבי לאימונים שלכם!",
+      "copy_text": "האם אתם נוהגים לטייל או לנסוע בתדירות גבוהה? עם אוזניות השינה וסרט הראש של חלומית, תהנו מאיכות שמע מעולה ונוחות ללא תחרות בכל נסיעה. טכנולוגיית בלוטות' 5.2 מבטיחה חיבור יציב וצליל נקי, כך שתמיד תוכלו להאזין למוזיקה או לפודקאסטים שלכם בלי הפרעות. המוצר המושלם לשינה, נסיעות ואימונים!\n\nל-50% הנחה לחץ פה:\n\nhttps://bit.ly/3KEYS1u",
+      "copy_type": "Medium (150-400 chars)",
+      "landing_url": "https://tigermarketingltd.clickfunnels.com/halomit",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/561729912_24749156251403825_6430381056873715346_n.png?_nc_cat=109&ccb=1-7&_nc_ohc=inwB-AsjwEEQ7kNvwEYaEXD&_nc_oc=Adp-t2_ATIcsYGaLknmxrjNvPhG1IgKTkMXiWgFY-oKPFfy5Vclwzxn685b3XqNYD3k&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=aaJtFhc0gT-UiZ8UBAK5HQ&_nc_tpa=Q5bMBQIODfAv6nLwxoAno49WhM00WrnP2WL6J_hvVUYKPAZ6h4TqWFgmZF-Khu6zAQKLluRujVLj_Le4&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQHHfxFRhZILW9lIsjW4w_d3nhEgpzN4Y7L2iGfzVjjG7A&oe=6A8687DD",
+      "accounts": [
+        "JacobNew7"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "חלומית"
+      ],
+      "spend_usd": 268.4,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 6.609790441480991,
+      "impressions": 12073,
+      "clicks": 798
+    },
+    {
+      "key": "2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 5,
+      "ad_names_sample": [
+        "2"
+      ],
+      "spend_usd": 267.51028277634964,
+      "revenue_usd": 631.7275064267351,
+      "roas": 2.3615073778486755,
+      "purchases": 16,
+      "cpa_usd": 16.719392673521853,
+      "ctr": 6.848533272457483,
+      "impressions": 8761,
+      "clicks": 600
+    },
+    {
+      "key": "3",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 5,
+      "ad_names_sample": [
+        "3"
+      ],
+      "spend_usd": 247.0244215938303,
+      "revenue_usd": 397.34832904884314,
+      "roas": 1.6085386476572052,
+      "purchases": 12,
+      "cpa_usd": 20.585368466152527,
+      "ctr": 6.330284657280854,
+      "impressions": 9731,
+      "clicks": 616
+    },
+    {
+      "key": "novawinner4",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 25,
+      "ad_names_sample": [
+        "NovaWinner4"
+      ],
+      "spend_usd": 240.36118251928025,
+      "revenue_usd": 245.5218508997429,
+      "roas": 1.021470473419928,
+      "purchases": 5,
+      "cpa_usd": 48.07223650385605,
+      "ctr": 4.88846047920683,
+      "impressions": 7262,
+      "clicks": 355
+    },
+    {
+      "key": "imagead - copy 2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 13,
+      "ad_names_sample": [
+        "ImageAd - Copy 2"
+      ],
+      "spend_usd": 213.23000000000005,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 1.783846206100129,
+      "impressions": 147210,
+      "clicks": 2626
+    },
+    {
+      "key": "5x",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 11,
+      "ad_names_sample": [
+        "5x"
+      ],
+      "spend_usd": 205.32999999999998,
+      "revenue_usd": 244.23,
+      "roas": 1.189451127453368,
+      "purchases": 5,
+      "cpa_usd": 41.065999999999995,
+      "ctr": 2.7139874739039667,
+      "impressions": 7664,
+      "clicks": 208
+    },
+    {
+      "key": "v4",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 9,
+      "ad_names_sample": [
+        "v4"
+      ],
+      "spend_usd": 181.39,
+      "revenue_usd": 535.05,
+      "roas": 2.9497215943547053,
+      "purchases": 19,
+      "cpa_usd": 9.546842105263158,
+      "ctr": 4.943410953557955,
+      "impressions": 7687,
+      "clicks": 380
+    },
+    {
+      "key": "imagead",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 9,
+      "ad_names_sample": [
+        "ImageAd"
+      ],
+      "spend_usd": 166.09,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 2.216865915888077,
+      "impressions": 124049,
+      "clicks": 2750
+    },
+    {
+      "key": "1",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 17,
+      "ad_names_sample": [
+        "1"
+      ],
+      "spend_usd": 159.19922879177378,
+      "revenue_usd": 268.64781491002566,
+      "roas": 1.687494449243886,
+      "purchases": 11,
+      "cpa_usd": 14.472657162888526,
+      "ctr": 3.616912888436067,
+      "impressions": 5889,
+      "clicks": 213
+    },
+    {
+      "key": "lash serum - pack#1 - 20/08/2025",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "Lash Serum - Pack#1 - 20/08/2025"
+      ],
+      "spend_usd": 152.99614395886888,
+      "revenue_usd": 47.520565552699225,
+      "roas": 0.3105997597264578,
+      "purchases": 1,
+      "cpa_usd": 152.99614395886888,
+      "ctr": 7.974276527331189,
+      "impressions": 4665,
+      "clicks": 372
+    },
+    {
+      "key": "say goodbye to razor burns forever",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "Say Goodbye to Razor Burns Forever",
+      "copy_text": "Embarrassing ingrowns,  ditch them for good.  \n\nThis is the 24 karat gold black soap.  \n\nIt is going to exfoliate your skin and get your skin prepped for shaving.  You can use this alone as well.  \n\nNext up, we're gonna go in with the Soft Serve Whip shaving cream. \n\n You guys are never gonna wanna touch anything else,  so you're welcome,  hop on subscription.  \n\nThis is gonna soften the hairs,  open the pores.  \n\nYou're gonna get the closest shave of your life.  It's gonna help prevent redness ingrown hairs,  laser burn,  all the yucky things that we deal with.  \n\nOkay,  rinse your shaving cream off,  dry off, and now we're gonna go in with the Glazed Donut Aftershave Oil.\n\n This is going to just take your experience to the next level.  Hop on subscription,  you're going to thank me later.  \n\nThis is going to soften your skin,  close those pores,  hydrate your skin,  and prevent all those razor burns and ingrown hairs and redness and bumps,  all the things. \n\n Then we're gonna follow up with Glazed Donut Aftershave Glow Cream.  \n\nThis is like the icing on the cake.  Talk about hydration,  you are welcome.  \n\nand don't forget to hop on subscription.",
+      "copy_type": "Long (>400 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t15.13418-10/406131974_284555614587363_5666514980216865921_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=yd8idcsG8HYQ7kNvwHwMgjD&_nc_oc=Adoo-5BbwuMvhn8a6oPLe6w5G1kvYGhqADoi4_wOjVo7ifGDKFz_4ELORC1WFOkUQ-8&_nc_zt=23&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=1AsIleKa8Wy9UkD7LK4xVw&_nc_tpa=Q5bMBQLVmFdGDL5Z4xW-9bzUO-RbYwsz3V7lyGk1dPk8_u_WNzPGuR751BJmpMin0v43XUMFWk9krcST&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=aaa768&_nc_sid=58080a&oh=00_AQGgwikahvtypBJq9owa9x0tWwZi-JdbbXn3yXSVVORH-g&oe=6A8690AA",
+      "accounts": [
+        "JacobNew2"
+      ],
+      "ad_count": 5,
+      "ad_names_sample": [
+        "TrustBeauty"
+      ],
+      "spend_usd": 150.28999999999996,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 2.0500782472613457,
+      "impressions": 6390,
+      "clicks": 131
+    },
+    {
+      "key": "h - 18",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 58,
+      "ad_names_sample": [
+        "H - 18"
+      ],
+      "spend_usd": 120.09999999999997,
+      "revenue_usd": 56.17,
+      "roas": 0.4676935886761034,
+      "purchases": 2,
+      "cpa_usd": 60.04999999999998,
+      "ctr": 6.30353613002416,
+      "impressions": 4553,
+      "clicks": 287
+    },
+    {
+      "key": "coppergrow-2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 3,
+      "ad_names_sample": [
+        "CopperGrow-2"
+      ],
+      "spend_usd": 117.24550128534703,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 9.867894315452363,
+      "impressions": 4996,
+      "clicks": 493
+    },
+    {
+      "key": "new sales ad - copy 2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 19,
+      "ad_names_sample": [
+        "New Sales Ad - Copy 2"
+      ],
+      "spend_usd": 114.95115681233932,
+      "revenue_usd": 152.29305912596402,
+      "roas": 1.3248501654888634,
+      "purchases": 6,
+      "cpa_usd": 19.158526135389888,
+      "ctr": 9.04896180466547,
+      "impressions": 3901,
+      "clicks": 353
+    },
+    {
+      "key": "new engagement ad - copy",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 6,
+      "ad_names_sample": [
+        "New Engagement Ad - Copy"
+      ],
+      "spend_usd": 113,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 2.225372351787483,
+      "impressions": 51497,
+      "clicks": 1146
+    },
+    {
+      "key": "1.5x",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew6"
+      ],
+      "ad_count": 15,
+      "ad_names_sample": [
+        "1.5x"
+      ],
+      "spend_usd": 112.14999999999999,
+      "revenue_usd": 132.21,
+      "roas": 1.1788675880517165,
+      "purchases": 5,
+      "cpa_usd": 22.43,
+      "ctr": 4.092852779474649,
+      "impressions": 3274,
+      "clicks": 134
+    },
+    {
+      "key": "מודעת סיפור",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 4,
+      "ad_names_sample": [
+        "מודעת סיפור"
+      ],
+      "spend_usd": 99.22,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 4.823304680038205,
+      "impressions": 4188,
+      "clicks": 202
+    },
+    {
+      "key": "v3",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1",
+        "JacobNew6"
+      ],
+      "ad_count": 9,
+      "ad_names_sample": [
+        "v3"
+      ],
+      "spend_usd": 90.64041131105398,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 4.662471395881007,
+      "impressions": 3496,
+      "clicks": 163
+    },
+    {
+      "key": "winner#4",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "JacobNew4"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "Winner#4"
+      ],
+      "spend_usd": 88.59,
+      "revenue_usd": 144.7,
+      "roas": 1.6333671972005868,
+      "purchases": 1,
+      "cpa_usd": 88.59,
+      "ctr": 11.32485262178095,
+      "impressions": 3223,
+      "clicks": 365
+    },
+    {
+      "key": "coppergrow5",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "CopperGrow5"
+      ],
+      "spend_usd": 87.56426735218508,
+      "revenue_usd": 316.3033419023136,
+      "roas": 3.6122422018348623,
+      "purchases": 6,
+      "cpa_usd": 14.594044558697513,
+      "ctr": 15.140634350688211,
+      "impressions": 3342,
+      "clicks": 506
+    },
+    {
+      "key": "https://tigermarketingltd.clickfunnels.com/14reasons",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "שיער ארוך וחזק בגיל 55?",
+      "copy_text": "רוב התכשירים בשוק מבטיחים תוצאות אבל לא תמיד מקיימים ‍♀️. יש דרך פשוטה ומהירה יותר לטפל בשיער שלך! גילינו שמפו מוזר שמכיל פרי הודי, שב-3 דקות ביום מצמיח את השיער שלך כמו גו'נגל.\n\nבואי תגלי על 14 סיבות שמעל 7,000 נשות ישראל בחרו בו כבר:\n\nhttps://bit.ly/3x6yElh",
+      "copy_type": "Medium (150-400 chars)",
+      "landing_url": "https://tigermarketingltd.clickfunnels.com/14reasons",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/562869058_25745154108406723_4596940413095968640_n.png?_nc_cat=108&ccb=1-7&_nc_ohc=s6Quw1UYRBkQ7kNvwEZ5fmG&_nc_oc=AdrurUsWvJTjSxqVFzNY1iWRLN0_dVltFzp2n_4AN1mSIFet-Ssl3UNfQCfxWfPwdRk&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=RIkcsnst-sZwII97mvespA&_nc_tpa=Q5bMBQIqdVFxizsNBFOuQu0jbU2gdKjJKzALlkORz1fjgHNpckUv3syCghz-sMrkpX5AAuqxXN0yFQET&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQGKCBWJW8j4ftqgBAPrJ7_ttHbZe67vaGMmSV_s5Ife1w&oe=6A867D17",
+      "accounts": [
+        "JacobNew5"
+      ],
+      "ad_count": 2,
+      "ad_names_sample": [
+        "New Sales Ad",
+        "Adset1"
+      ],
+      "spend_usd": 87.24,
+      "revenue_usd": 80.22,
+      "roas": 0.9195323246217332,
+      "purchases": 2,
+      "cpa_usd": 43.62,
+      "ctr": 6.927334404570612,
+      "impressions": 5601,
+      "clicks": 388
+    },
+    {
+      "key": "novawinner2",
+      "product_name": "NovaHair (שמפו צבע לשיער / Hair Dye Shampoo)",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 25,
+      "ad_names_sample": [
+        "NovaWinner2"
+      ],
+      "spend_usd": 79.7146529562982,
+      "revenue_usd": 140.80848329048843,
+      "roas": 1.7664065271372829,
+      "purchases": 3,
+      "cpa_usd": 26.571550985432733,
+      "ctr": 4.414742810854597,
+      "impressions": 2469,
+      "clicks": 109
+    },
+    {
+      "key": "test - new sales ad - copy",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 3"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "Test - New Sales Ad - Copy"
+      ],
+      "spend_usd": 79.63,
+      "revenue_usd": 118.93,
+      "roas": 1.4935325882205202,
+      "purchases": 1,
+      "cpa_usd": 79.63,
+      "ctr": 5.270180120080053,
+      "impressions": 2998,
+      "clicks": 158
+    },
+    {
+      "key": "https://sportenbelts.funnelish.com/advetorial1",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "כך נפטרתי מכאבי מפרקים ב15 דקות ביום",
+      "copy_text": "הגנן חושף את סוד הבריאות: איך גיליתי את ההנאה והנוחות מחדש בגן הירק שלי עם החגורה של קסם האור האדום ונפטרתי מכאבי הפרקים ב15 דקות ביום בלבד - לחץ כאן למאמר המלא\n\nhttps://sportenbelts.funnelish.com/advetorial1",
+      "copy_type": "Medium (150-400 chars)",
+      "landing_url": "https://sportenbelts.funnelish.com/advetorial1",
+      "image_thumb": "https://scontent.fasu11-1.fna.fbcdn.net/v/t45.1600-4/534887992_23988656360808564_3876712800012003757_n.jpg?_nc_cat=100&ccb=1-7&_nc_ohc=eV6eolmqmgMQ7kNvwHZcbIO&_nc_oc=Adqq82uiOi9E5EFOpdksGtGoUTzk1IAsXELhHqnqIBaEZ_jwKMKAFGW-MtwWBz_ZeY8&_nc_zt=1&_nc_ht=scontent.fasu11-1.fna&edm=ALjApogEAAAA&_nc_gid=1AsIleKa8Wy9UkD7LK4xVw&_nc_tpa=Q5bMBQLkqPsSAc8KyIN_s69XPPjIKfeus_mszd4eTzeTLAE3ip5noXRZRaqb79tfzSFQ3X82vP-Igkwu&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQHgnl6KP-2bgsPdVWlbm5GySgNN-XtucqweHCjYpB5TyA&oe=6A86A8CF",
+      "accounts": [
+        "JacobNew2"
+      ],
+      "ad_count": 2,
+      "ad_names_sample": [
+        "New Sales Ad"
+      ],
+      "spend_usd": 77.52,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 4.173913043478262,
+      "impressions": 9775,
+      "clicks": 408
+    },
+    {
+      "key": "v2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1",
+        "JacobNew6"
+      ],
+      "ad_count": 9,
+      "ad_names_sample": [
+        "v2"
+      ],
+      "spend_usd": 67.06989717223651,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 4.221425726802071,
+      "impressions": 2511,
+      "clicks": 106
+    },
+    {
+      "key": "red-ad-2",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Celestiva Limited 1"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "RED-AD-2"
+      ],
+      "spend_usd": 66.82133676092545,
+      "revenue_usd": 96.91259640102828,
+      "roas": 1.4503241194914114,
+      "purchases": 3,
+      "cpa_usd": 22.273778920308484,
+      "ctr": 5.920484010371651,
+      "impressions": 2314,
+      "clicks": 137
+    },
+    {
+      "key": "coppergrow-news-egypt",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "N/A",
+      "copy_text": "N/A",
+      "copy_type": "Short (<150 chars)",
+      "landing_url": "N/A",
+      "image_thumb": "",
+      "accounts": [
+        "Shopify Store 1"
+      ],
+      "ad_count": 2,
+      "ad_names_sample": [
+        "CopperGrow-News-Egypt"
+      ],
+      "spend_usd": 63.53341902313625,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 28.861921941620206,
+      "impressions": 3049,
+      "clicks": 880
+    },
+    {
+      "key": "https://www.aicashcourse.org/course",
+      "product_name": "Uncategorized / Catalog",
+      "headline": "מכונת כסף מבוססת AI",
+      "copy_text": "בדיוק סיימתי לכתוב קורס חדש שנקרא מכונת כסף מבוססת בינה מלאכותית.\n\nדמיין את זה:\n\nאת בונה מכונה שרק מקבלת מטבעות של שקל.\n\nאבל כל פעם שאתה שם שקל בפנים, אתה מקבל שתי שקל.\n\nמה היית עושה?\n\nנו תכל'ס, ברור שהיית יושב שם כל היום ומאכיל את המכונה הזאת נכון? חחח\nאז הנה העניין...\n\nאם יש לך משפך שיווקי רצחני משולב עם בינה מלאכותית ולקינוח, מריץ הכל בפרום בפייסבוק...\n\n...אז אשכרה יש לך מכונה כזאת ביד.\n\nאיך אני יודע?\n\nכי עשינו 10,000 ש\"ח בשבוע מזה עכשיו.\n\nאני לא חושב ש10,000 ש\"ח זה הרבה כסף בעולם העסקים אם להיות כנה בשבוע...\n\nועם זאת, קח בחשבון שלא דיברנו עם אף אחד בטלפון/בווצאפ/באימייל - והכל היה 100% און ליין!\n\nלא היית מתנגד לזה אני מניח, נכון? =]\n\nבקיצור, רוצה לראות איך אנחנו עושים את זה?\n\nתלחץ כאן למטה ותבדוק את הקורס החדש. \n\nhttps://www.aicashcourse.org/course\n\nאני חושב שגם אתה הולך לצחוק מהמחיר ביחס למה שאתה תקבל...\n\n(אין לי מושג למה בחרתי את המחיר המוזר הזה)\n\nhttps://www.aicashcourse.org/course",
+      "copy_type": "Long (>400 chars)",
+      "landing_url": "https://www.aicashcourse.org/course",
+      "image_thumb": "https://scontent.fasu11-2.fna.fbcdn.net/v/t45.1600-4/567691301_25827920643462293_4940455766311231118_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=cGwZc9xoID4Q7kNvwHtExHH&_nc_oc=AdoRrCt66U9EPshbKSnqsHo3rAQ71uCUYjmN7H9ZxwF2FL_ST1j2FHJBSadCzbgqosQ&_nc_zt=1&_nc_ht=scontent.fasu11-2.fna&edm=ALjApogEAAAA&_nc_gid=_6b2OOFNx30jPJ1QqK68Wg&_nc_tpa=Q5bMBQKGl4E6jF3sTxKz-R-4OWf8IBt7mFpu8XscrZ9cs-snS9x_PYwxMPXUCaFsUI2yYVcFgxIwcIVh&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQF_X4yi84XX1UsL0-5bw27770qRhp-mL6C2GBUPC3gttQ&oe=6A867EE5",
+      "accounts": [
+        "JacobNew1"
+      ],
+      "ad_count": 1,
+      "ad_names_sample": [
+        "New Sales Ad"
+      ],
+      "spend_usd": 62.49,
+      "revenue_usd": 0,
+      "roas": 0,
+      "purchases": 0,
+      "cpa_usd": 0,
+      "ctr": 9.14408866995074,
+      "impressions": 3248,
+      "clicks": 297
+    }
+  ],
+  "demographics": [
+    {
+      "gender": "female",
+      "age": "45-54",
+      "spend_usd": 25098.167120822625,
+      "revenue_usd": 60505.50753213367,
+      "purchases": 1369,
+      "impressions": 1114430,
+      "clicks": 59605,
+      "roas": 2.4107540299998815,
+      "cpa_usd": 18.333211921711193,
+      "ctr": 5.348474107839882
+    },
+    {
+      "gender": "female",
+      "age": "55-64",
+      "spend_usd": 23268.065244215937,
+      "revenue_usd": 52732.238329048836,
+      "purchases": 1172,
+      "impressions": 902197,
+      "clicks": 68457,
+      "roas": 2.2662923528700873,
+      "cpa_usd": 19.85329798994534,
+      "ctr": 7.587810644460134
+    },
+    {
+      "gender": "female",
+      "age": "65+",
+      "spend_usd": 23255.02203084833,
+      "revenue_usd": 58115.099820051415,
+      "purchases": 1123,
+      "impressions": 823227,
+      "clicks": 81154,
+      "roas": 2.4990343910644497,
+      "cpa_usd": 20.707944818208663,
+      "ctr": 9.85803429673711
+    },
+    {
+      "gender": "female",
+      "age": "35-44",
+      "spend_usd": 13456.24149100257,
+      "revenue_usd": 34230.512287917736,
+      "purchases": 825,
+      "impressions": 783563,
+      "clicks": 31710,
+      "roas": 2.5438390289595914,
+      "cpa_usd": 16.31059574666978,
+      "ctr": 4.046898590158034
+    },
+    {
+      "gender": "female",
+      "age": "25-34",
+      "spend_usd": 5975.731311053984,
+      "revenue_usd": 14577.051670951158,
+      "purchases": 354,
+      "impressions": 637384,
+      "clicks": 19201,
+      "roas": 2.439375352098971,
+      "cpa_usd": 16.880596923881313,
+      "ctr": 3.01246971998042
+    },
+    {
+      "gender": "female",
+      "age": "18-24",
+      "spend_usd": 2923.57676092545,
+      "revenue_usd": 5072.9396658097685,
+      "purchases": 128,
+      "impressions": 680023,
+      "clicks": 11100,
+      "roas": 1.7351826480533195,
+      "cpa_usd": 22.840443444730077,
+      "ctr": 1.6322977311061537
+    },
+    {
+      "gender": "male",
+      "age": "45-54",
+      "spend_usd": 911.2221593830334,
+      "revenue_usd": 1742.6534447300771,
+      "purchases": 32,
+      "impressions": 54137,
+      "clicks": 2889,
+      "roas": 1.912435323028125,
+      "cpa_usd": 28.475692480719793,
+      "ctr": 5.3364612002881575
+    },
+    {
+      "gender": "unknown",
+      "age": "45-54",
+      "spend_usd": 362.2769922879177,
+      "revenue_usd": 1412.5224935732647,
+      "purchases": 29,
+      "impressions": 17869,
+      "clicks": 853,
+      "roas": 3.8990124232086756,
+      "cpa_usd": 12.492310078893714,
+      "ctr": 4.773630309474509
+    },
+    {
+      "gender": "male",
+      "age": "65+",
+      "spend_usd": 664.8164010282776,
+      "revenue_usd": 1811.2510796915167,
+      "purchases": 27,
+      "impressions": 42330,
+      "clicks": 2796,
+      "roas": 2.724438020617479,
+      "cpa_usd": 24.622829667713987,
+      "ctr": 6.6052445074415305
+    },
+    {
+      "gender": "male",
+      "age": "35-44",
+      "spend_usd": 540.8623136246787,
+      "revenue_usd": 1242.1910025706943,
+      "purchases": 25,
+      "impressions": 45138,
+      "clicks": 2011,
+      "roas": 2.2966861829324823,
+      "cpa_usd": 21.634492544987147,
+      "ctr": 4.455226195223537
+    },
+    {
+      "gender": "male",
+      "age": "25-34",
+      "spend_usd": 369.23699228791764,
+      "revenue_usd": 967.5745501285347,
+      "purchases": 25,
+      "impressions": 35626,
+      "clicks": 1452,
+      "roas": 2.620470240896273,
+      "cpa_usd": 14.769479691516706,
+      "ctr": 4.07567506877
+    },
+    {
+      "gender": "male",
+      "age": "55-64",
+      "spend_usd": 619.9730334190231,
+      "revenue_usd": 1039.298354755784,
+      "purchases": 20,
+      "impressions": 38004,
+      "clicks": 2288,
+      "roas": 1.676360581401853,
+      "cpa_usd": 30.998651670951155,
+      "ctr": 6.02041890327334
+    },
+    {
+      "gender": "unknown",
+      "age": "55-64",
+      "spend_usd": 279.6783033419023,
+      "revenue_usd": 482.6939845758355,
+      "purchases": 12,
+      "impressions": 10758,
+      "clicks": 778,
+      "roas": 1.7258899914940837,
+      "cpa_usd": 23.306525278491858,
+      "ctr": 7.2318274772262505
+    },
+    {
+      "gender": "unknown",
+      "age": "35-44",
+      "spend_usd": 266.6055784061696,
+      "revenue_usd": 487.86110539845754,
+      "purchases": 10,
+      "impressions": 16837,
+      "clicks": 731,
+      "roas": 1.8298983401435376,
+      "cpa_usd": 26.660557840616963,
+      "ctr": 4.341628556156085
+    },
+    {
+      "gender": "unknown",
+      "age": "65+",
+      "spend_usd": 348.95385604113113,
+      "revenue_usd": 372.44,
+      "purchases": 6,
+      "impressions": 12638,
+      "clicks": 1129,
+      "roas": 1.0673044402641607,
+      "cpa_usd": 58.15897600685519,
+      "ctr": 8.933375534103497
+    },
+    {
+      "gender": "male",
+      "age": "18-24",
+      "spend_usd": 177.34658097686378,
+      "revenue_usd": 281.8811311053985,
+      "purchases": 6,
+      "impressions": 20601,
+      "clicks": 633,
+      "roas": 1.5894365121263434,
+      "cpa_usd": 29.557763496143963,
+      "ctr": 3.072666375418669
+    },
+    {
+      "gender": "unknown",
+      "age": "18-24",
+      "spend_usd": 72.39930591259642,
+      "revenue_usd": 190.79,
+      "purchases": 5,
+      "impressions": 8046,
+      "clicks": 177,
+      "roas": 2.6352462581662035,
+      "cpa_usd": 14.479861182519283,
+      "ctr": 2.1998508575689786
+    },
+    {
+      "gender": "unknown",
+      "age": "25-34",
+      "spend_usd": 79.84413881748071,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 5488,
+      "clicks": 150,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 2.7332361516034984
+    },
+    {
+      "gender": "unknown",
+      "age": "Unknown",
+      "spend_usd": 0.01,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 11,
+      "clicks": 0,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0
+    }
+  ],
+  "devices": [
+    {
+      "platform": "mobile_app",
+      "device": "android_smartphone",
+      "spend_usd": 65722.25437243188,
+      "revenue_usd": 161421.81185089974,
+      "purchases": 3491,
+      "impressions": 3255355,
+      "clicks": 199718,
+      "roas": 2.4561210413775822,
+      "cpa_usd": 18.826197184884528,
+      "ctr": 6.135060538712367
+    },
+    {
+      "platform": "mobile_app",
+      "device": "iphone",
+      "spend_usd": 29857.08290325707,
+      "revenue_usd": 65247.86437017995,
+      "purchases": 1518,
+      "impressions": 1705085,
+      "clicks": 79700,
+      "roas": 2.1853395585093196,
+      "cpa_usd": 19.668697564727978,
+      "ctr": 4.674253776204705
+    },
+    {
+      "platform": "desktop",
+      "device": "desktop",
+      "spend_usd": 1995.490077611825,
+      "revenue_usd": 5877.91796915167,
+      "purchases": 104,
+      "impressions": 241698,
+      "clicks": 3710,
+      "roas": 2.9456012009772965,
+      "cpa_usd": 19.187404592421395,
+      "ctr": 1.5349733965527228
+    },
+    {
+      "platform": "mobile_app",
+      "device": "ipad",
+      "spend_usd": 626.0390568046274,
+      "revenue_usd": 1162.5405141388173,
+      "purchases": 20,
+      "impressions": 21126,
+      "clicks": 2366,
+      "roas": 1.856977614260287,
+      "cpa_usd": 31.301952840231372,
+      "ctr": 11.19946984758118
+    },
+    {
+      "platform": "mobile_app",
+      "device": "android_tablet",
+      "spend_usd": 208.8213730745501,
+      "revenue_usd": 716.5721079691516,
+      "purchases": 15,
+      "impressions": 12716,
+      "clicks": 834,
+      "roas": 3.4315075004958056,
+      "cpa_usd": 13.921424871636674,
+      "ctr": 6.558666247247562
+    },
+    {
+      "platform": "mobile_web",
+      "device": "android_smartphone",
+      "spend_usd": 184.409931277635,
+      "revenue_usd": 547.9664267352185,
+      "purchases": 14,
+      "impressions": 8040,
+      "clicks": 519,
+      "roas": 2.971458331656974,
+      "cpa_usd": 13.172137948402499,
+      "ctr": 6.455223880597015
+    },
+    {
+      "platform": "mobile_web",
+      "device": "iphone",
+      "spend_usd": 37.3731180437018,
+      "revenue_usd": 237.81192802056555,
+      "purchases": 5,
+      "impressions": 2232,
+      "clicks": 132,
+      "roas": 6.363181357854142,
+      "cpa_usd": 7.474623608740361,
+      "ctr": 5.913978494623656
+    },
+    {
+      "platform": "mobile_app",
+      "device": "other",
+      "spend_usd": 8.943937897172237,
+      "revenue_usd": 52.05,
+      "purchases": 1,
+      "impressions": 827,
+      "clicks": 52,
+      "roas": 5.819584236654461,
+      "cpa_usd": 8.943937897172237,
+      "ctr": 6.287787182587666
+    },
+    {
+      "platform": "mobile_web",
+      "device": "android_tablet",
+      "spend_usd": 1.2101788354755785,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 56,
+      "clicks": 1,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 1.7857142857142856
+    },
+    {
+      "platform": "mobile_app",
+      "device": "desktop",
+      "spend_usd": 27.207102190231364,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 1075,
+      "clicks": 82,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 7.627906976744186
+    },
+    {
+      "platform": "mobile_web",
+      "device": "ipad",
+      "spend_usd": 0.6488193701799486,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 46,
+      "clicks": 0,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0
+    },
+    {
+      "platform": "mobile_app",
+      "device": "ipod",
+      "spend_usd": 0.03898760154241645,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 22,
+      "clicks": 0,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0
+    },
+    {
+      "platform": "mobile_web",
+      "device": "other",
+      "spend_usd": 0.499761,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 17,
+      "clicks": 1,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 5.88235294117647
+    },
+    {
+      "platform": "unknown",
+      "device": "other",
+      "spend_usd": 0.009998,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 11,
+      "clicks": 0,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0
+    }
+  ],
+  "placements": [
+    {
+      "platform": "facebook",
+      "position": "feed",
+      "spend_usd": 49153.672807051415,
+      "revenue_usd": 118616.27532133675,
+      "purchases": 2422,
+      "impressions": 1843338,
+      "clicks": 186044,
+      "roas": 2.4131721710187337,
+      "cpa_usd": 20.294662595809832,
+      "ctr": 10.09277734197418
+    },
+    {
+      "platform": "instagram",
+      "position": "feed",
+      "spend_usd": 18629.02437468895,
+      "revenue_usd": 39706.83753213368,
+      "purchases": 978,
+      "impressions": 1108727,
+      "clicks": 32869,
+      "roas": 2.1314501894196307,
+      "cpa_usd": 19.048082182708537,
+      "ctr": 2.9645710801667136
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_stories",
+      "spend_usd": 14163.304874835474,
+      "revenue_usd": 32515.7459125964,
+      "purchases": 806,
+      "impressions": 1014119,
+      "clicks": 31357,
+      "roas": 2.2957739171715823,
+      "cpa_usd": 17.572338554386445,
+      "ctr": 3.092043438689148
+    },
+    {
+      "platform": "facebook",
+      "position": "facebook_reels",
+      "spend_usd": 4830.747151002572,
+      "revenue_usd": 11566.313393316195,
+      "purchases": 259,
+      "impressions": 296043,
+      "clicks": 12463,
+      "roas": 2.394311486767782,
+      "cpa_usd": 18.65153340155433,
+      "ctr": 4.209861405268829
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_reels",
+      "spend_usd": 5266.678274272493,
+      "revenue_usd": 10173.302262210798,
+      "purchases": 241,
+      "impressions": 285158,
+      "clicks": 8714,
+      "roas": 1.9316354127623407,
+      "cpa_usd": 21.853436822707437,
+      "ctr": 3.055849739442695
+    },
+    {
+      "platform": "audience_network",
+      "position": "an_classic",
+      "spend_usd": 1432.96766918509,
+      "revenue_usd": 9420.402544987146,
+      "purchases": 185,
+      "impressions": 188681,
+      "clicks": 3943,
+      "roas": 6.574051004475493,
+      "cpa_usd": 7.74577118478427,
+      "ctr": 2.089770565133744
+    },
+    {
+      "platform": "facebook",
+      "position": "facebook_stories",
+      "spend_usd": 2970.191310637532,
+      "revenue_usd": 7214.489691516709,
+      "purchases": 151,
+      "impressions": 86454,
+      "clicks": 5626,
+      "roas": 2.428964648061059,
+      "cpa_usd": 19.67014113004988,
+      "ctr": 6.507506882272654
+    },
+    {
+      "platform": "audience_network",
+      "position": "rewarded_video",
+      "spend_usd": 659.0461688251929,
+      "revenue_usd": 1821.8891002570695,
+      "purchases": 47,
+      "impressions": 51233,
+      "clicks": 1829,
+      "roas": 2.764433186076698,
+      "cpa_usd": 14.022258911174317,
+      "ctr": 3.5699646712080106
+    },
+    {
+      "platform": "facebook",
+      "position": "instream_video",
+      "spend_usd": 171.57784613367608,
+      "revenue_usd": 627.6556041131105,
+      "purchases": 18,
+      "impressions": 22146,
+      "clicks": 335,
+      "roas": 3.658138962906113,
+      "cpa_usd": 9.532102562982004,
+      "ctr": 1.512688521629188
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_explore",
+      "spend_usd": 257.13776904113115,
+      "revenue_usd": 660.1922622107969,
+      "purchases": 16,
+      "impressions": 41087,
+      "clicks": 748,
+      "roas": 2.567465155634893,
+      "cpa_usd": 16.071110565070697,
+      "ctr": 1.8205271740453184
+    },
+    {
+      "platform": "facebook",
+      "position": "marketplace",
+      "spend_usd": 208.64444034190234,
+      "revenue_usd": 550.3700257069409,
+      "purchases": 11,
+      "impressions": 20332,
+      "clicks": 474,
+      "roas": 2.6378370054100566,
+      "cpa_usd": 18.967676394718396,
+      "ctr": 2.3313004131418453
+    },
+    {
+      "platform": "facebook",
+      "position": "right_hand_column",
+      "spend_usd": 170.4006420462725,
+      "revenue_usd": 926.24,
+      "purchases": 10,
+      "impressions": 190016,
+      "clicks": 519,
+      "roas": 5.435660270273385,
+      "cpa_usd": 17.04006420462725,
+      "ctr": 0.2731348939036713
+    },
+    {
+      "platform": "facebook",
+      "position": "video_feeds",
+      "spend_usd": 340.1182657172236,
+      "revenue_usd": 566.3630848329049,
+      "purchases": 9,
+      "impressions": 37391,
+      "clicks": 1079,
+      "roas": 1.6651945570714588,
+      "cpa_usd": 37.79091841302485,
+      "ctr": 2.8857211628466746
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_profile_feed",
+      "spend_usd": 194.42241429305915,
+      "revenue_usd": 509.25,
+      "purchases": 7,
+      "impressions": 21533,
+      "clicks": 510,
+      "roas": 2.6192967608785636,
+      "cpa_usd": 27.774630613294164,
+      "ctr": 2.368457716063716
+    },
+    {
+      "platform": "facebook",
+      "position": "facebook_reels_overlay",
+      "spend_usd": 107.90532549357326,
+      "revenue_usd": 191.36496143958868,
+      "purchases": 5,
+      "impressions": 13999,
+      "clicks": 241,
+      "roas": 1.7734524275262595,
+      "cpa_usd": 21.581065098714653,
+      "ctr": 1.721551539395671
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_explore_grid_home",
+      "spend_usd": 38.763384280205656,
+      "revenue_usd": 137.98843187660668,
+      "purchases": 2,
+      "impressions": 9503,
+      "clicks": 132,
+      "roas": 3.5597622457095377,
+      "cpa_usd": 19.381692140102828,
+      "ctr": 1.3890350415658215
+    },
+    {
+      "platform": "facebook",
+      "position": "search",
+      "spend_usd": 28.82894123650385,
+      "revenue_usd": 59.86632390745501,
+      "purchases": 1,
+      "impressions": 4371,
+      "clicks": 79,
+      "roas": 2.0766050135636243,
+      "cpa_usd": 28.82894123650385,
+      "ctr": 1.8073667353008465
+    },
+    {
+      "platform": "facebook",
+      "position": "biz_disco_feed",
+      "spend_usd": 10.915254868894602,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 407,
+      "clicks": 55,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 13.513513513513514
+    },
+    {
+      "platform": "facebook",
+      "position": "facebook_notification",
+      "spend_usd": 1.78670411311054,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 67,
+      "clicks": 3,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 4.477611940298507
+    },
+    {
+      "platform": "facebook",
+      "position": "facebook_profile_feed",
+      "spend_usd": 5.609645431876607,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 3881,
+      "clicks": 56,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 1.442927080649317
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_profile_reels",
+      "spend_usd": 2.3819698843187664,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 115,
+      "clicks": 5,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 4.3478260869565215
+    },
+    {
+      "platform": "instagram",
+      "position": "instagram_search",
+      "spend_usd": 0.8201562287917739,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 80,
+      "clicks": 4,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 5
+    },
+    {
+      "platform": "messenger",
+      "position": "messenger_inbox",
+      "spend_usd": 20.089751555269928,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 9071,
+      "clicks": 26,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0.28662771469518245
+    },
+    {
+      "platform": "messenger",
+      "position": "messenger_stories",
+      "spend_usd": 1.0476906709511566,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 33,
+      "clicks": 2,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 6.0606060606060606
+    },
+    {
+      "platform": "threads",
+      "position": "threads_feed",
+      "spend_usd": 3.9367888174807195,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 493,
+      "clicks": 2,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0.4056795131845842
+    },
+    {
+      "platform": "unknown",
+      "position": "unknown",
+      "spend_usd": 0.009998,
+      "revenue_usd": 0,
+      "purchases": 0,
+      "impressions": 11,
+      "clicks": 0,
+      "roas": 0,
+      "cpa_usd": 0,
+      "ctr": 0
+    }
+  ]
+}

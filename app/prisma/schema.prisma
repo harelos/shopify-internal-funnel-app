@@ -16,6 +16,7 @@ model Shop {
   events    Event[]
   checkouts CheckoutAttribution[]
   orders    OrderAttribution[]
+  webhookDeliveries ShopifyWebhookDelivery[]
 }
 
 model Funnel {
@@ -190,11 +191,26 @@ model OrderAttribution {
   currency         String
   grossAmount      Float
   netRevenueAmount Float
+  refundedAmount   Float      @default(0)
+  status           String     @default("PAID")
   confidence       String
   isTest           Boolean             @default(true)
   paidAt           DateTime
+  cancelledAt      DateTime?
+  updatedAt        DateTime             @default(now()) @updatedAt
   shop             Shop                @relation(fields: [shopId], references: [id])
   checkout         CheckoutAttribution? @relation(fields: [checkoutToken], references: [checkoutToken])
 
   @@index([funnelId, variantId, paidAt])
+}
+
+model ShopifyWebhookDelivery {
+  id         String   @id @default(uuid())
+  shopId     String
+  webhookId  String   @unique
+  topic      String
+  receivedAt DateTime @default(now())
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, topic, receivedAt])
 }
