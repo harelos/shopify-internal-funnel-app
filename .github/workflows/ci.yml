@@ -36,6 +36,14 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Production dependency audit
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Full dependency audit visibility
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
       - name: Validate Prisma schema
         run: npm run db:validate
 
