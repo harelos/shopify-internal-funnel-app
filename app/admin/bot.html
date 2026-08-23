@@ -2,193 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <title>TIGER Bot</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    .module-tabs,.brain-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
-    .hidden{display:none!important}
-    .builder-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px}
-    .brain-nav{display:flex;flex-direction:column;gap:7px;position:sticky;top:12px;align-self:start}
-    .brain-nav .btn{text-align:left;justify-content:flex-start}
-    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-    .form-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-    .field label{display:block;margin-bottom:6px}
-    .check-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)}
-    .check-row:last-child{border-bottom:0}
-    .policy-note{padding:12px;border:1px solid #d8dee8;border-radius:8px;background:#f8fafc;margin-top:12px}
-    .status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .status-tile{padding:12px;border:1px solid #d8dee8;border-radius:8px;background:#fff}
-    .status-tile strong{display:block;font-size:13px}.status-tile span{font-size:12px;color:#667085}
-    @media(max-width:900px){.builder-grid{grid-template-columns:1fr}.brain-nav{position:static;flex-direction:row;flex-wrap:wrap}.form-grid,.form-grid-3,.status-grid{grid-template-columns:1fr}}
-  </style>
+  <title>TIGER Bot Studio</title>
+  <link rel="stylesheet" href="css/bot.css">
 </head>
-<body>
-<header class="top-bar">
-  <div class="top-bar-inner">
-    <div class="brand">
-      <a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a>
-      <span class="brand-name">TIGER Bot</span>
-      <span class="eyebrow">Private Draft</span>
+<body class="bot-studio">
+<div class="bot-shell">
+  <header class="bot-topbar">
+    <div class="bot-brand">
+      <a class="bot-mark" href="index.html" aria-label="Back to dashboard">T</a>
+      <div><h1>TIGER Bot Studio</h1><small>Sales brain · private draft</small></div>
     </div>
-  </div>
-</header>
-
-<main class="main">
-  <div class="module-tabs">
-    <a class="btn" href="profit-analytics.html">Profit OS</a>
-    <a class="btn" href="analytics.html">Funnel Analytics</a>
-    <button class="btn btn-primary" data-tab="builder">Builder</button>
-    <button class="btn" data-tab="analytics">Analytics</button>
-    <a class="btn" href="popups.html">Popups</a>
-  </div>
-
-  <section data-panel="builder">
-    <div class="panel" style="margin-bottom:16px">
-      <div class="panel-header"><h3>Sales brain status</h3><span class="eyebrow">NOT DEPLOYED</span></div>
-      <div class="panel-body">
-        <div class="status-grid">
-          <div class="status-tile"><strong>Default role</strong><span>Sales</span></div>
-          <div class="status-tile"><strong>Specialists</strong><span>Support · Retention · Risk · Security</span></div>
-          <div class="status-tile"><strong>Offers</strong><span>Deterministic policy only</span></div>
-          <div class="status-tile"><strong>Storefront runtime</strong><span>Disabled on this branch</span></div>
-        </div>
-      </div>
+    <div class="bot-top-actions">
+      <span class="bot-pill"><i class="bot-dot"></i>Storefront off</span>
+      <a class="bot-btn ghost" href="profit-analytics.html">Profit OS</a>
+      <button class="bot-btn primary" id="btn-bot-save">Save draft</button>
     </div>
+  </header>
 
-    <div class="builder-grid">
-      <aside class="panel brain-nav" aria-label="Bot configuration sections">
-        <button class="btn btn-primary" data-brain-tab="overview">Overview</button>
-        <button class="btn" data-brain-tab="routing">Brain / Routing</button>
-        <button class="btn" data-brain-tab="playbook">Sales Playbook</button>
-        <button class="btn" data-brain-tab="offers">Offers & Coupons</button>
-        <button class="btn" data-brain-tab="models">Models & Experiments</button>
-        <button class="btn" data-brain-tab="crm">CRM & Memory</button>
-        <button class="btn" data-brain-tab="security">Security</button>
-      </aside>
+  <div class="bot-layout">
+    <aside class="bot-side">
+      <nav class="bot-nav" aria-label="Bot studio sections">
+        <button class="active" data-section="overview">Overview</button>
+        <button data-section="routing">Brain & routing</button>
+        <button data-section="knowledge">Knowledge</button>
+        <button data-section="offers">Offers</button>
+        <button data-section="models">Models & tests</button>
+        <button data-section="crm">CRM & memory</button>
+        <button data-section="security">Security</button>
+        <button data-section="simulator">Simulator</button>
+        <button data-section="analytics">Analytics</button>
+        <div class="bot-nav-sep"></div>
+        <a class="bot-btn ghost small" href="analytics.html">Funnel analytics</a>
+        <a class="bot-btn ghost small" href="popups.html">Popups</a>
+      </nav>
+      <div class="bot-side-note">Draft-only workspace. Nothing on this page injects a widget into the storefront.</div>
+    </aside>
 
-      <div>
-        <section class="panel" data-brain-panel="overview">
-          <div class="panel-header"><h3>Identity & placement</h3></div>
-          <div class="panel-body">
-            <div class="form-grid">
-              <div class="field"><label class="eyebrow" for="bot-name">Assistant name</label><input class="input" id="bot-name" placeholder="TIGER Sales Assistant"></div>
-              <div class="field"><label class="eyebrow" for="bot-label">Transparent label</label><input class="input" id="bot-label" value="Digital sales assistant"></div>
-              <div class="field"><label class="eyebrow" for="bot-welcome">Welcome message</label><textarea class="input" id="bot-welcome" rows="4" placeholder="What can I help you choose today?"></textarea></div>
-              <div class="field"><label class="eyebrow" for="bot-placement">Placement</label><select class="select" id="bot-placement"><option value="all-funnels">All funnel pages</option><option value="selected-funnel">Selected funnel</option><option value="selected-steps">Selected steps</option><option value="product-pages">Selected product pages</option></select></div>
+    <main class="bot-main">
+      <section class="bot-section active" data-panel="overview">
+        <div class="bot-section-head"><div><h2>Make the chat feel trustworthy.</h2><p>Natural, fast and calm. The customer should feel guided, not trapped inside a support script.</p></div><div class="bot-save-state" id="bot-save-status">Loading configuration…</div></div>
+        <div class="bot-preview-wrap">
+          <div>
+            <div class="bot-card">
+              <div class="bot-card-head"><h3>Identity & placement</h3><span>Customer-facing</span></div>
+              <div class="bot-card-body">
+                <div class="bot-grid">
+                  <div class="bot-field"><label class="bot-label">Assistant name</label><input class="bot-input" id="bot-name" placeholder="Sara"></div>
+                  <div class="bot-field"><label class="bot-label">Transparent label <span class="bot-help">Shown subtly</span></label><input class="bot-input" id="bot-label" placeholder="Digital sales assistant"></div>
+                  <div class="bot-field"><label class="bot-label">Subtitle</label><input class="bot-input" id="bot-subtitle" placeholder="כאן כדי לעזור לבחור נכון"></div>
+                  <div class="bot-field"><label class="bot-label">Avatar URL <span class="bot-help">HTTPS only</span></label><input class="bot-input" id="bot-avatar-url" placeholder="https://…"></div>
+                </div>
+                <div class="bot-field"><label class="bot-label">Welcome message</label><textarea class="bot-textarea" id="bot-welcome" dir="rtl" placeholder="מה תרצי לדעת לפני שאת מחליטה?"></textarea></div>
+                <div class="bot-grid">
+                  <div class="bot-field"><label class="bot-label">Trust line</label><input class="bot-input" id="bot-trust-line" dir="rtl" placeholder="מידע על המוצר, משלוחים והזמנות במקום אחד"></div>
+                  <div class="bot-field"><label class="bot-label">Placement</label><select class="bot-select" id="bot-placement"><option value="all-funnels">All funnel pages</option><option value="selected-funnel">Selected funnel</option><option value="selected-steps">Selected steps</option><option value="product-pages">Selected product pages</option></select></div>
+                </div>
+                <div class="bot-callout"><strong>Trust rule:</strong> the chat can have a warm name and real profile photo, but it must not falsely claim to be a human or deny being digital when directly asked.</div>
+              </div>
             </div>
-            <div class="policy-note"><strong>Trust rule:</strong> natural/humanized language is allowed, but the assistant must not falsely claim to be a human or falsely deny being AI when asked.</div>
+            <div class="bot-card pad">
+              <div class="bot-row wrap"><span class="bot-badge good">Sales default</span><span class="bot-badge">Support</span><span class="bot-badge">Retention</span><span class="bot-badge">Risk</span><span class="bot-badge">Security</span></div>
+              <div style="height:10px"></div>
+              <div class="bot-callout good">The language model writes the reply. Deterministic backend policy owns routing, discounts, order access and tool permissions.</div>
+            </div>
           </div>
-        </section>
 
-        <section class="panel hidden" data-brain-panel="routing">
-          <div class="panel-header"><h3>Brain / routing</h3></div>
-          <div class="panel-body">
-            <div class="check-row"><input type="checkbox" id="route-sales" checked disabled><div><strong>Sales is the default route</strong><div class="muted">Product, funnel and cart questions stay with the sales agent unless a higher-priority route applies.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="route-support" checked><div><strong>Support specialist</strong><div class="muted">Order status, delivery, refund and active service issues. Selling is blocked while an unresolved complaint is active.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="route-retention" checked><div><strong>Retention specialist</strong><div class="muted">Returning/VIP customer with purchase intent or a relevant repeat-purchase opportunity.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="route-risk" checked><div><strong>Risk / dispute specialist</strong><div class="muted">Chargeback or legal-risk conversation. Legal threats can require human escalation.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="route-security" checked disabled><div><strong>Security gate</strong><div class="muted">Prompt injection, API extraction, off-topic abuse and scope violations run before all agents.</div></div></div>
-            <div class="policy-note">Routing precedence: <strong>Security → Risk → Support → Retention → Sales</strong>. The model can suggest intent but cannot override deterministic access/tool boundaries.</div>
+          <div class="bot-phone" aria-label="Chat design preview">
+            <div class="bot-chat">
+              <div class="bot-chat-head">
+                <div class="bot-avatar" id="preview-avatar">S</div>
+                <div><div class="bot-chat-name" id="preview-name">Sara</div><div class="bot-chat-sub"><i class="bot-online"></i><span id="preview-subtitle">כאן כדי לעזור לבחור נכון</span></div></div>
+              </div>
+              <div class="bot-chat-body" id="preview-body" dir="rtl">
+                <div class="bot-msg assistant" id="preview-welcome">מה תרצי לדעת לפני שאת מחליטה?</div>
+                <div class="bot-msg user">זה מתאים גם אם אני מתלבטת בין שני גוונים?</div>
+                <div class="bot-msg assistant">כן. אם תגידי לי בין אילו שני גוונים את מתלבטת ומה הצבע הנוכחי שלך, אני אעזור לך לצמצם את הבחירה.</div>
+              </div>
+              <div class="bot-chat-foot"><div class="bot-compose"><textarea id="preview-input" placeholder="כתבי הודעה…" dir="rtl"></textarea><button class="bot-send" id="preview-send" aria-label="Send">↑</button></div><div class="bot-trust" id="preview-trust">מידע על המוצר, משלוחים והזמנות במקום אחד</div></div>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="panel hidden" data-brain-panel="playbook">
-          <div class="panel-header"><h3>Sales playbook</h3></div>
-          <div class="panel-body">
-            <div class="form-grid">
-              <div class="field"><label class="eyebrow">Sales stages</label><textarea class="input" id="sales-stages" rows="5">DISCOVER
+      <section class="bot-section" data-panel="routing">
+        <div class="bot-section-head"><div><h2>Brain & routing</h2><p>Sales is default. Higher-priority service, risk and security needs take control automatically.</p></div></div>
+        <div class="bot-grid">
+          <div class="bot-card"><div class="bot-card-head"><h3>Agent router</h3><span>Deterministic</span></div><div class="bot-card-body">
+            <div class="bot-check"><input type="checkbox" checked disabled><div><strong>Sales</strong><span>Default for product, funnel, cart and purchase-intent questions.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="route-support" checked><div><strong>Support</strong><span>Order, delivery, refund and unresolved service issues. Selling is paused.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="route-retention" checked><div><strong>Retention</strong><span>Returning or VIP customers with relevant purchase intent.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="route-risk" checked><div><strong>Risk</strong><span>Chargeback, dispute or legal-risk conversations.</span></div></div>
+            <div class="bot-check"><input type="checkbox" checked disabled><div><strong>Security</strong><span>Prompt injection, secret extraction, off-topic abuse and API misuse.</span></div></div>
+          </div></div>
+          <div class="bot-card"><div class="bot-card-head"><h3>Sales state machine</h3><span>Conversation stage</span></div><div class="bot-card-body">
+            <div class="bot-field"><label class="bot-label">Stages</label><textarea class="bot-textarea" id="sales-stages">DISCOVER
 QUALIFY
 RECOMMEND
 OBJECTION
 OFFER
 CLOSE
 FOLLOW_UP</textarea></div>
-              <div class="field"><label class="eyebrow">Method library</label><textarea class="input" id="sales-methods" rows="5">SPIN Selling
-Cialdini / Influence
-Cashvertising
-Dan Kennedy direct response
+            <div class="bot-field"><label class="bot-label">Method library</label><textarea class="bot-textarea" id="sales-methods">SPIN Selling
+Cialdini / truthful influence principles
+Cashvertising / benefit-proof framing
+Dan Kennedy / reason-why direct response
 Gap Selling
 Never Split the Difference
 The Challenger Sale</textarea></div>
-            </div>
-            <div class="policy-note">The system stores compact principles and approved examples, not copied book text. Product truth and store policy outrank persuasion playbooks.</div>
-          </div>
-        </section>
-
-        <section class="panel hidden" data-brain-panel="offers">
-          <div class="panel-header"><h3>Offers & coupons</h3></div>
-          <div class="panel-body">
-            <div class="form-grid-3">
-              <div class="field"><label class="eyebrow" for="discount-first">First save offer %</label><input class="input" id="discount-first" type="number" min="0" max="100" value="5"></div>
-              <div class="field"><label class="eyebrow" for="discount-second">Second save offer %</label><input class="input" id="discount-second" type="number" min="0" max="100" value="10"></div>
-              <div class="field"><label class="eyebrow" for="discount-max">Absolute max %</label><input class="input" id="discount-max" type="number" min="0" max="100" value="10"></div>
-              <div class="field"><label class="eyebrow" for="discount-first-msgs">Min messages before first offer</label><input class="input" id="discount-first-msgs" type="number" min="0" value="3"></div>
-              <div class="field"><label class="eyebrow" for="discount-second-msgs">Min messages before second offer</label><input class="input" id="discount-second-msgs" type="number" min="0" value="5"></div>
-              <div class="field"><label class="eyebrow" for="margin-floor">Minimum contribution margin ₪</label><input class="input" id="margin-floor" type="number" min="0" placeholder="Configured from Profit OS"></div>
-            </div>
-            <div class="policy-note"><strong>Fail closed:</strong> no unit economics = no automatic discount. The LLM never sees the coupon pool and cannot invent a code. A server tool allocates a code only after an approved offer authorization.</div>
-          </div>
-        </section>
-
-        <section class="panel hidden" data-brain-panel="models">
-          <div class="panel-header"><h3>Models & experiments</h3></div>
-          <div class="panel-body">
-            <p class="muted">Traffic is sticky per eligible visitor/conversation. All variants must total 100% and share the same knowledge, tools and offer policy for a fair comparison.</p>
-            <div class="form-grid">
-              <div class="field"><label class="eyebrow">Variant A</label><input class="input model-provider" placeholder="provider / model"><input class="input model-weight" type="number" min="0" max="100" value="50" style="margin-top:6px"></div>
-              <div class="field"><label class="eyebrow">Variant B</label><input class="input model-provider" placeholder="provider / model"><input class="input model-weight" type="number" min="0" max="100" value="50" style="margin-top:6px"></div>
-            </div>
-            <p class="muted" id="model-weight-status">Traffic allocation: 100%</p>
-            <div class="policy-note">Core metrics: purchase conversion, assisted revenue, contribution profit, AI cost, profit after AI cost, latency p50/p95, handoff/error rate and sample size.</div>
-          </div>
-        </section>
-
-        <section class="panel hidden" data-brain-panel="crm">
-          <div class="panel-header"><h3>CRM & memory</h3></div>
-          <div class="panel-body">
-            <div class="check-row"><input type="checkbox" id="crm-progressive" checked><div><strong>Progressive profiling</strong><div class="muted">Deliver value before asking for contact fields.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="crm-email" checked><div><strong>Email capture</strong><div class="muted">Ask when it unlocks a real benefit such as saved recommendation, cart, coupon or order update.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="crm-phone"><div><strong>Phone capture</strong><div class="muted">Only for explicit callback/follow-up need or opted-in channel.</div></div></div>
-            <div class="check-row"><input type="checkbox" id="crm-attribution" checked disabled><div><strong>Automatic attribution</strong><div class="muted">UTM/referrer/funnel context should be captured automatically rather than asked when already known.</div></div></div>
-            <div class="policy-note">CRM facts need provenance/confidence. Do not save guesses as facts, and do not proactively ask age unless a legitimate product/compliance need requires it.</div>
-          </div>
-        </section>
-
-        <section class="panel hidden" data-brain-panel="security">
-          <div class="panel-header"><h3>Security & abuse controls</h3></div>
-          <div class="panel-body">
-            <div class="form-grid-3">
-              <div class="field"><label class="eyebrow">Messages / 5 min</label><input class="input" id="sec-msg-5m" type="number" min="1" value="20"></div>
-              <div class="field"><label class="eyebrow">Messages / hour</label><input class="input" id="sec-msg-hour" type="number" min="1" value="60"></div>
-              <div class="field"><label class="eyebrow">Max user chars / message</label><input class="input" id="sec-max-chars" type="number" min="100" value="4000"></div>
-            </div>
-            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Least-privilege tools</strong><div class="muted">Sales, Support, Retention and Risk receive different server-side tool allowlists.</div></div></div>
-            <div class="check-row"><input type="checkbox" checked disabled><div><strong>No secrets in prompt/browser</strong><div class="muted">System prompt is not a security boundary; API keys, margins and raw coupon inventory stay server-side.</div></div></div>
-            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Verified order access</strong><div class="muted">Knowing an order number alone is not sufficient to expose customer/order details.</div></div></div>
-            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Cost / loop limits</strong><div class="muted">Provider calls, tool loops and retries must have hard bounded budgets.</div></div></div>
-          </div>
-        </section>
-
-        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-          <button class="btn btn-primary" id="btn-bot-save">Save local draft</button>
-          <span class="muted" id="bot-save-status">Configuration is staging-only. Nothing is injected into the storefront.</span>
+            <div class="bot-callout">Principles only. No copied book text. Verified product facts and store policy always outrank persuasion playbooks.</div>
+          </div></div>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="hidden" data-panel="analytics">
-    <div class="panel">
-      <div class="panel-header"><h3>Bot Analytics</h3></div>
-      <div class="panel-body" id="bot-analytics">
-        <p class="muted">No production bot events yet. The expanded event contract and model A/B/n metrics are defined in <code>docs/TIGER_BOT_SALES_BRAIN_ARCHITECTURE.md</code>.</p>
-      </div>
-    </div>
-  </section>
-</main>
+      <section class="bot-section" data-panel="knowledge">
+        <div class="bot-section-head"><div><h2>Knowledge</h2><p>Versioned factual packs keep each funnel/product fast and grounded without stuffing the entire company into every prompt.</p></div><span class="bot-badge">Staging store</span></div>
+        <div class="bot-grid">
+          <div class="bot-card"><div class="bot-card-head"><h3>Add / update knowledge</h3><span>Server-side</span></div><div class="bot-card-body">
+            <div class="bot-grid"><div class="bot-field"><label class="bot-label">Key</label><input class="bot-input" id="knowledge-key" placeholder="novahair-core"></div><div class="bot-field"><label class="bot-label">Title</label><input class="bot-input" id="knowledge-title" placeholder="NovaHair core facts"></div></div>
+            <div class="bot-grid three"><div class="bot-field"><label class="bot-label">Scope</label><select class="bot-select" id="knowledge-scope"><option>GLOBAL</option><option>PRODUCT</option><option>FUNNEL</option><option>PAGE_TYPE</option></select></div><div class="bot-field"><label class="bot-label">Scope ID</label><input class="bot-input" id="knowledge-scope-id" placeholder="Optional"></div><div class="bot-field"><label class="bot-label">Priority</label><input class="bot-input" id="knowledge-priority" type="number" value="10" min="-100" max="100"></div></div>
+            <div class="bot-field"><label class="bot-label">Verified facts / FAQ / objections / prohibited claims</label><textarea class="bot-textarea" id="knowledge-text" style="min-height:220px" placeholder="Write compact, verified product and policy facts. Do not paste entire books or raw internal secrets."></textarea></div>
+            <div class="bot-row"><button class="bot-btn primary" id="knowledge-save">Save pack</button><span class="bot-save-state" id="knowledge-status"></span></div>
+          </div></div>
+          <div class="bot-card"><div class="bot-card-head"><h3>Active packs</h3><span id="knowledge-count">0</span></div><div class="bot-card-body"><div class="bot-knowledge-list" id="knowledge-list"><div class="bot-empty">No knowledge packs loaded yet.</div></div></div></div>
+        </div>
+      </section>
+
+      <section class="bot-section" data-panel="offers">
+        <div class="bot-section-head"><div><h2>Offers</h2><p>The model may recognize hesitation. Only the policy engine can authorize a discount.</p></div></div>
+        <div class="bot-card"><div class="bot-card-head"><h3>Discount ladder</h3><span>Fail closed</span></div><div class="bot-card-body">
+          <div class="bot-grid three">
+            <div class="bot-field"><label class="bot-label">First save offer %</label><input class="bot-input" id="discount-first" type="number" min="0" max="100" value="5"></div>
+            <div class="bot-field"><label class="bot-label">Second save offer %</label><input class="bot-input" id="discount-second" type="number" min="0" max="100" value="10"></div>
+            <div class="bot-field"><label class="bot-label">Absolute max %</label><input class="bot-input" id="discount-max" type="number" min="0" max="100" value="10"></div>
+            <div class="bot-field"><label class="bot-label">Messages before first</label><input class="bot-input" id="discount-first-msgs" type="number" min="0" value="3"></div>
+            <div class="bot-field"><label class="bot-label">Messages before second</label><input class="bot-input" id="discount-second-msgs" type="number" min="0" value="5"></div>
+            <div class="bot-field"><label class="bot-label">Minimum contribution margin ₪</label><input class="bot-input" id="margin-floor" type="number" min="0" placeholder="Pulled from Profit OS later"></div>
+          </div>
+          <div class="bot-callout warning"><strong>No economics = no automatic discount.</strong> The LLM never receives the raw coupon pool and cannot invent a code.</div>
+        </div></div>
+      </section>
+
+      <section class="bot-section" data-panel="models">
+        <div class="bot-section-head"><div><h2>Models & experiments</h2><p>Sticky A/B/n assignment. Same knowledge and offer policy for every model so the model is the variable.</p></div><span id="model-weight-status" class="bot-badge">100%</span></div>
+        <div class="bot-card"><div class="bot-card-head"><h3>Traffic allocation</h3><button class="bot-btn small" id="model-add">Add variant</button></div><div class="bot-card-body">
+          <div id="model-rows"></div>
+          <div class="bot-provider-state" id="provider-status"></div>
+          <div style="height:12px"></div><div class="bot-callout">Pricing is never guessed. Configure <code>BOT_MODEL_PRICING_JSON</code> server-side to calculate AI cost and profit-after-AI by model.</div>
+        </div></div>
+      </section>
+
+      <section class="bot-section" data-panel="crm">
+        <div class="bot-section-head"><div><h2>CRM & memory</h2><p>Progressive profiling with provenance. Value first, contact fields only when they unlock something useful.</p></div></div>
+        <div class="bot-grid">
+          <div class="bot-card"><div class="bot-card-head"><h3>Lead capture</h3></div><div class="bot-card-body">
+            <div class="bot-check"><input type="checkbox" id="crm-progressive" checked><div><strong>Progressive profiling</strong><span>Do not open with a form.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="crm-email" checked><div><strong>Email</strong><span>Ask for saved recommendation, coupon, cart or verified order need.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="crm-phone" checked><div><strong>Phone</strong><span>Only for an opted-in callback/follow-up use case.</span></div></div>
+          </div></div>
+          <div class="bot-card"><div class="bot-card-head"><h3>Memory contract</h3><span>Structured</span></div><div class="bot-card-body"><div class="bot-callout">Store stated goals, objections, preferences, recommendations, offers and verified order links with source-message IDs and confidence. Never turn a model guess into a permanent customer fact.</div></div></div>
+        </div>
+      </section>
+
+      <section class="bot-section" data-panel="security">
+        <div class="bot-section-head"><div><h2>Security</h2><p>The prompt is not the firewall. Access and cost boundaries live in code.</p></div></div>
+        <div class="bot-grid">
+          <div class="bot-card"><div class="bot-card-head"><h3>Usage limits</h3></div><div class="bot-card-body"><div class="bot-grid three"><div class="bot-field"><label class="bot-label">Messages / 5 min</label><input class="bot-input" id="sec-msg-5m" type="number" min="1" value="20"></div><div class="bot-field"><label class="bot-label">Messages / hour</label><input class="bot-input" id="sec-msg-hour" type="number" min="1" value="80"></div><div class="bot-field"><label class="bot-label">Max chars / message</label><input class="bot-input" id="sec-max-chars" type="number" min="100" value="2000"></div></div></div></div>
+          <div class="bot-card"><div class="bot-card-head"><h3>Enforced boundaries</h3></div><div class="bot-card-body"><div class="bot-check"><input type="checkbox" checked disabled><div><strong>Role tool allowlists</strong><span>Support can read scoped orders; Security gets no commerce tools.</span></div></div><div class="bot-check"><input type="checkbox" checked disabled><div><strong>No secrets in browser/prompt</strong><span>API keys, COGS, hidden policies and coupon inventory stay server-side.</span></div></div><div class="bot-check"><input type="checkbox" checked disabled><div><strong>No silent model fallback</strong><span>Experiment integrity is preserved when a provider fails.</span></div></div></div></div>
+        </div>
+      </section>
+
+      <section class="bot-section" data-panel="simulator">
+        <div class="bot-section-head"><div><h2>Internal simulator</h2><p>Run the real router, knowledge selector and assigned provider without publishing any storefront widget.</p></div><button class="bot-btn" id="sim-reset">New conversation</button></div>
+        <div class="bot-preview-wrap">
+          <div class="bot-card"><div class="bot-card-head"><h3>Signed context simulator</h3><span>Test only</span></div><div class="bot-card-body">
+            <div class="bot-grid"><div class="bot-field"><label class="bot-label">Page type</label><select class="bot-select" id="sim-page-type"><option>PRODUCT</option><option>FUNNEL</option><option>CART</option><option>ORDER_TRACKING</option><option>POLICY</option><option>OTHER</option></select></div><div class="bot-field"><label class="bot-label">Product ID</label><input class="bot-input" id="sim-product-id" placeholder="Optional Shopify product ID"></div><div class="bot-field"><label class="bot-label">Funnel ID</label><input class="bot-input" id="sim-funnel-id" placeholder="Optional funnel ID"></div><div class="bot-field"><label class="bot-label">Cart value ₪</label><input class="bot-input" id="sim-cart-value" type="number" min="0" placeholder="Optional"></div></div>
+            <div class="bot-check"><input type="checkbox" id="sim-returning"><div><strong>Returning customer</strong><span>Routes relevant product intent through Retention.</span></div></div>
+            <div class="bot-check"><input type="checkbox" id="sim-vip"><div><strong>VIP customer</strong><span>Retention context only; discounts still require policy authorization.</span></div></div>
+            <div class="bot-callout" id="sim-meta">Conversation not started.</div>
+          </div></div>
+          <div class="bot-phone"><div class="bot-chat"><div class="bot-chat-head"><div class="bot-avatar" id="sim-avatar">S</div><div><div class="bot-chat-name" id="sim-name">Sara</div><div class="bot-chat-sub"><i class="bot-online"></i><span>Internal simulator</span></div></div></div><div class="bot-chat-body" id="sim-messages" dir="rtl"><div class="bot-msg assistant">שלחי הודעת בדיקה. שום דבר כאן לא מופיע בחנות.</div></div><div class="bot-chat-foot"><div class="bot-compose"><textarea id="sim-input" placeholder="הודעת בדיקה…" dir="rtl"></textarea><button class="bot-send" id="sim-send">↑</button></div><div class="bot-trust">Private simulator · storefront disabled</div></div></div></div>
+        </div>
+      </section>
+
+      <section class="bot-section" data-panel="analytics">
+        <div class="bot-section-head"><div><h2>Bot analytics</h2><p>Staging conversation, latency and provider-cost telemetry. Purchase attribution is intentionally not fabricated yet.</p></div><select class="bot-select" id="analytics-range" style="width:110px;margin:0"><option>7d</option><option>30d</option><option>90d</option></select></div>
+        <div class="bot-kpi-grid"><div class="bot-kpi"><b id="kpi-conversations">—</b><span>Conversations</span></div><div class="bot-kpi"><b id="kpi-user-messages">—</b><span>User messages</span></div><div class="bot-kpi"><b id="kpi-assistant-messages">—</b><span>Assistant messages</span></div><div class="bot-kpi"><b id="kpi-errors">—</b><span>Errors / blocks</span></div></div>
+        <div style="height:14px"></div><div class="bot-card"><div class="bot-card-head"><h3>Model performance</h3><span>Simulator telemetry</span></div><div class="bot-card-body" id="analytics-models"><div class="bot-empty">No model telemetry yet.</div></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<script src="js/api.js"></script>
 <script src="js/bot.js"></script>
 </body>
 </html>
