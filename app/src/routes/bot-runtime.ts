@@ -1,0 +1,96 @@
+import { Router } from "express";
+import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-config-store.js";
+import { providerStatus } from "../lib/bot-provider.js";
+import {
+  botAnalytics,
+  deleteKnowledgePack,
+  listKnowledgePacks,
+  loadConversationMessages,
+  upsertKnowledgePack,
+} from "../lib/bot-runtime-store.js";
+import { runBotTurn } from "../lib/bot-runtime.js";
+
+const router = Router();
+
+router.get("/bot/providers/status", (_req, res) => {
+  res.json({ providers: providerStatus(), storefrontEnabled: false });
+});
+
+router.get("/bot/knowledge", async (_req, res) => {
+  try {
+    const packs = await listKnowledgePacks(currentBotShopDomain());
+    res.json({ packs, count: packs.length, storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to load bot knowledge." });
+  }
+});
+
+router.put("/bot/knowledge/:key", async (req, res) => {
+  try {
+    const pack = await upsertKnowledgePack(currentBotShopDomain(), {
+      key: String(req.params.key || ""),
+      title: String(req.body?.title || ""),
+      scope: String(req.body?.scope || "GLOBAL"),
+      scopeId: req.body?.scopeId == null ? null : String(req.body.scopeId),
+      text: String(req.body?.text || ""),
+      priority: Number(req.body?.priority || 0),
+    });
+    res.json({ ok: true, pack, storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || "Failed to save bot knowledge." });
+  }
+});
+
+router.delete("/bot/knowledge/:key", async (req, res) => {
+  try {
+    await deleteKnowledgePack(currentBotShopDomain(), String(req.params.key || ""));
+    res.json({ ok: true, storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to delete bot knowledge." });
+  }
+});
+
+router.post("/bot/simulator/message", async (req, res) => {
+  try {
+    const config = await loadCurrentBotConfiguration();
+    const result = await runBotTurn({
+      shopDomain: currentBotShopDomain(),
+      config,
+      visitorKey: String(req.body?.visitorKey || "admin-simulator"),
+      conversationId: req.body?.conversationId ? String(req.body.conversationId) : null,
+      message: String(req.body?.message || ""),
+      pageContext: req.body?.pageContext || {},
+      profile: req.body?.profile || {},
+      leadContext: req.body?.leadContext || undefined,
+      explicitSignals: req.body?.signals || undefined,
+    });
+    res.json({ ...result, storefrontEnabled: false });
+  } catch (error: any) {
+    const code = String(error?.code || "");
+    const status = code === "PROVIDER_NOT_CONFIGURED" ? 503 : code === "RATE_LIMITED" ? 429 : 400;
+    res.status(status).json({ error: error?.message || "Bot simulator failed.", code: code || undefined });
+  }
+});
+
+router.get("/bot/conversations/:conversationId", async (req, res) => {
+  try {
+    const messages = await loadConversationMessages(currentBotShopDomain(), String(req.params.conversationId || ""));
+    res.json({ conversationId: req.params.conversationId, messages, storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to load conversation." });
+  }
+});
+
+router.get("/bot/analytics", async (req, res) => {
+  try {
+    const range = String(req.query.range || "7d");
+    const days = range === "30d" ? 30 : range === "90d" ? 90 : 7;
+    const since = new Date(Date.now() - days * 86_400_000);
+    const analytics = await botAnalytics(currentBotShopDomain(), since);
+    res.json({ range, since: since.toISOString(), ...analytics, source: "BOT_SIMULATOR_STAGING", storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to load bot analytics." });
+  }
+});
+
+export default router;
