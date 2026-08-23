@@ -65,16 +65,19 @@ export async function listKnowledgePacks(shopDomain: string): Promise<BotStoredK
 export async function upsertKnowledgePack(shopDomain: string, input: Omit<BotStoredKnowledgePack, "updatedAt">): Promise<BotStoredKnowledgePack> {
   const shop = await ensureBotShop(shopDomain);
   const now = new Date();
+  const allowedScopes = new Set(["GLOBAL", "PRODUCT", "FUNNEL", "PAGE_TYPE", "ROLE"]);
+  const requestedScope = input.scope.trim().toUpperCase();
   const normalized: BotStoredKnowledgePack = {
     key: input.key.trim().slice(0, 120),
     title: input.title.trim().slice(0, 160),
-    scope: input.scope.trim().toUpperCase().slice(0, 40) || "GLOBAL",
+    scope: allowedScopes.has(requestedScope) ? requestedScope : "GLOBAL",
     scopeId: input.scopeId?.trim().slice(0, 160) || null,
     text: input.text.trim().slice(0, 20_000),
     priority: Math.max(-100, Math.min(100, Math.round(Number(input.priority) || 0))),
     updatedAt: now.toISOString(),
   };
   if (!normalized.key || !normalized.title || !normalized.text) throw new Error("Knowledge key, title and text are required.");
+  if (normalized.scope !== "GLOBAL" && !normalized.scopeId) throw new Error(`${normalized.scope} knowledge requires a scope ID.`);
   const eventKey = `bot:knowledge:${shop.id}:${normalized.key}`;
   await prisma.event.upsert({
     where: { eventKey },
@@ -98,7 +101,7 @@ export async function deleteKnowledgePack(shopDomain: string, key: string) {
   await prisma.event.deleteMany({ where: { eventKey, shopId: shop.id, name: "BOT_KNOWLEDGE_PACK" } });
 }
 
-export async function selectKnowledgePacks(shopDomain: string, context: { funnelId?: string | null; productId?: string | null; pageType?: string | null }) {
+export async function selectKnowledgePacks(shopDomain: string, context: { funnelId?: string | null; productId?: string | null; pageType?: string | null; role?: string | null }) {
   const packs = await listKnowledgePacks(shopDomain);
   return packs
     .filter(pack => {
@@ -106,6 +109,7 @@ export async function selectKnowledgePacks(shopDomain: string, context: { funnel
       if (pack.scope === "FUNNEL") return Boolean(pack.scopeId && context.funnelId === pack.scopeId);
       if (pack.scope === "PRODUCT") return Boolean(pack.scopeId && context.productId === pack.scopeId);
       if (pack.scope === "PAGE_TYPE") return Boolean(pack.scopeId && String(context.pageType || "").toUpperCase() === String(pack.scopeId).toUpperCase());
+      if (pack.scope === "ROLE") return Boolean(pack.scopeId && String(context.role || "").toUpperCase() === String(pack.scopeId).toUpperCase());
       return false;
     })
     .sort((a, b) => b.priority - a.priority)
@@ -152,10 +156,7 @@ export async function appendConversationMessage(shopDomain: string, message: Omi
 export async function loadConversationMessages(shopDomain: string, conversationId: string): Promise<BotStoredMessage[]> {
   const shop = await ensureBotShop(shopDomain);
   const rows = await prisma.event.findMany({
-    where: {
-      shopId: shop.id,
-      eventKey: { startsWith: `bot:conversation:${conversationId}:message:` },
-    },
+    where: { shopId: shop.id, eventKey: { startsWith: `bot:conversation:${conversationId}:message:` } },
     orderBy: { occurredAt: "asc" },
   });
   return rows.map(row => parsePayload<BotStoredMessage>(row.payload, {
@@ -190,16 +191,13 @@ export async function botAnalytics(shopDomain: string, since: Date) {
     where: {
       shopId: shop.id,
       occurredAt: { gte: since },
-      OR: [
-        { name: { startsWith: "BOT_" } },
-        { name: { startsWith: "bot_" } },
-      ],
+      OR: [{ name: { startsWith: "BOT_" } }, { name: { startsWith: "bot_" } }],
     },
     orderBy: { occurredAt: "asc" },
   });
 
   const counters: Record<string, number> = {};
-  const models: Record<string, { conversations: Set<string>; messages: number; latencyTotal: number; latencyCount: number; costUsd: number }> = {};
+  const models: Record<string, { conversations: Set<string>; responses: number; latencyTotal: number; latencyCount: number; costUsd: number; unknownCostCalls: number }> = {};
   const conversations = new Set<string>();
 
   for (const row of rows) {
@@ -207,19 +205,24 @@ export async function botAnalytics(shopDomain: string, since: Date) {
     const payload = parsePayload<Record<string, any>>(row.payload, {});
     const conversationId = String(payload.conversationId || "");
     if (conversationId) conversations.add(conversationId);
+
+    // Model performance is measured once per actual provider response. User and
+    // assistant message rows also carry model metadata for provenance but must not
+    // be double-counted as inference calls.
+    if (row.name !== "bot_model_response") continue;
     const provider = String(payload.provider || "");
     const model = String(payload.model || "");
-    if (provider && model) {
-      const key = `${provider}:${model}`;
-      models[key] ||= { conversations: new Set(), messages: 0, latencyTotal: 0, latencyCount: 0, costUsd: 0 };
-      if (conversationId) models[key].conversations.add(conversationId);
-      models[key].messages += 1;
-      if (Number.isFinite(Number(payload.latencyMs))) {
-        models[key].latencyTotal += Number(payload.latencyMs);
-        models[key].latencyCount += 1;
-      }
-      if (Number.isFinite(Number(payload.estimatedCostUsd))) models[key].costUsd += Number(payload.estimatedCostUsd);
+    if (!provider || !model) continue;
+    const key = `${provider}:${model}`;
+    models[key] ||= { conversations: new Set(), responses: 0, latencyTotal: 0, latencyCount: 0, costUsd: 0, unknownCostCalls: 0 };
+    if (conversationId) models[key].conversations.add(conversationId);
+    models[key].responses += 1;
+    if (payload.latencyMs != null && Number.isFinite(Number(payload.latencyMs))) {
+      models[key].latencyTotal += Number(payload.latencyMs);
+      models[key].latencyCount += 1;
     }
+    if (payload.estimatedCostUsd == null || !Number.isFinite(Number(payload.estimatedCostUsd))) models[key].unknownCostCalls += 1;
+    else models[key].costUsd += Number(payload.estimatedCostUsd);
   }
 
   return {
@@ -227,9 +230,10 @@ export async function botAnalytics(shopDomain: string, since: Date) {
     counters,
     models: Object.fromEntries(Object.entries(models).map(([key, value]) => [key, {
       conversations: value.conversations.size,
-      messages: value.messages,
+      responses: value.responses,
       avgLatencyMs: value.latencyCount ? Math.round(value.latencyTotal / value.latencyCount) : null,
       estimatedCostUsd: Number(value.costUsd.toFixed(6)),
+      unknownCostCalls: value.unknownCostCalls,
     }])),
   };
 }
