@@ -45,6 +45,7 @@ jobs:
           node --check admin/js/bot.js
           node --check admin/js/popups.js
           node --check admin/js/profit-analytics.js
+          node --check test/bot-ui-preview-server.mjs
 
       - name: TypeScript build
         run: npm run build
@@ -56,7 +57,7 @@ jobs:
         run: |
           BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
-          python3 -m http.server 4173 --directory admin >/tmp/tiger-bot-http.log 2>&1 &
+          node test/bot-ui-preview-server.mjs >/tmp/tiger-bot-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           sleep 1
