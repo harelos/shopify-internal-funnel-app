@@ -40,8 +40,10 @@ Required gate:
 ### P1.1 Partial refunds need canonical Shopify financial truth
 Current webhook normalization can collapse refunded/cancelled orders too aggressively. Profit OS must calculate contribution revenue from current Shopify financial fields and explicit refund state rather than assuming every refund means zero revenue.
 
-### P1.2 Embedded admin API client needs a fresh Shopify session token per request
-The backend verifies Shopify session tokens, but the current generic browser API helper performs plain `fetch()` calls. Hosted mode needs an App Bridge token on protected API requests and must handle 401/session refresh cleanly.
+### P1.2 Embedded admin fetch/auth behavior must be verified in the real hosted runtime
+The current app loads modern App Bridge from Shopify's CDN. Current Shopify App Bridge intercepts standard `fetch()` calls to the app domain and automatically adds an ID token, so the generic `API.get/post/...` helper is not automatically broken just because it calls plain `fetch()`.
+
+The backend already validates JWT signature/expiry/audience/shop and returns `X-Shopify-Retry-Invalid-Session-Request` on 401. The remaining QA requirement is therefore runtime verification inside the real embedded app: protected requests must receive the App Bridge ID token, a stale token must be retried correctly, and local preview behavior must remain isolated from hosted auth.
 
 ### P1.3 Payment fees must be nullable when unavailable
 Do not treat missing transaction fees as zero. Any dependent CM1/CM2 metric must remain incomplete when authoritative fees are unavailable.
