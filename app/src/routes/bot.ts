@@ -1,72 +1,20 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
-import { getShopifyConfig } from "../lib/shopify-config.js";
 import {
-  defaultBotConfigurationDraft,
   normalizeAndValidateBotConfiguration,
-  type BotConfigurationDraft,
 } from "../lib/bot-config-contract.js";
 import { buildBotDecisionPlan } from "../lib/bot-orchestrator.js";
 import type { BotConversationSignals } from "../lib/bot-sales-brain.js";
+import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-config-store.js";
 
 const router = Router();
 
-function currentShopDomain(): string {
-  return getShopifyConfig().shopDomain || process.env.SHOP_DOMAIN || "local-dev.myshopify.com";
-}
-
-function parseJsonObject<T>(value: string | null | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? parsed as T : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-async function loadBotConfiguration(): Promise<BotConfigurationDraft> {
-  const shopDomain = currentShopDomain();
-  const row = await prisma.botConfiguration.findUnique({
-    where: { shopDomain },
-    include: { modelVariants: { where: { enabled: true }, orderBy: { slot: "asc" } } },
-  });
-  if (!row) return defaultBotConfigurationDraft();
-
-  const defaults = defaultBotConfigurationDraft();
-  const raw = {
-    version: 1,
-    identity: {
-      name: row.name,
-      label: row.label,
-      welcome: row.welcome,
-      placement: row.placement,
-    },
-    routing: parseJsonObject(row.routingJson, defaults.routing),
-    playbook: parseJsonObject(row.playbookJson, defaults.playbook),
-    offers: parseJsonObject(row.offersJson, defaults.offers),
-    crm: parseJsonObject(row.crmJson, defaults.crm),
-    security: parseJsonObject(row.securityJson, defaults.security),
-    models: row.modelVariants.map(item => ({
-      provider: item.provider,
-      model: item.model,
-      trafficPct: item.trafficBasisPoints / 100,
-    })),
-  };
-
-  const validated = normalizeAndValidateBotConfiguration(raw);
-  if (!validated.ok || !validated.config) {
-    throw new Error(`Stored bot configuration is invalid: ${validated.errors.join(" ")}`);
-  }
-  return validated.config;
-}
-
 router.get("/bot/config", async (_req, res) => {
   try {
-    const config = await loadBotConfiguration();
+    const config = await loadCurrentBotConfiguration();
     res.json({
       config,
-      persisted: Boolean(await prisma.botConfiguration.findUnique({ where: { shopDomain: currentShopDomain() }, select: { id: true } })),
+      persisted: Boolean(await prisma.botConfiguration.findUnique({ where: { shopDomain: currentBotShopDomain() }, select: { id: true } })),
       storefrontEnabled: false,
     });
   } catch (error: any) {
@@ -81,10 +29,18 @@ router.put("/bot/config", async (req, res) => {
   }
 
   const config = validated.config;
-  const shopDomain = currentShopDomain();
+  const shopDomain = currentBotShopDomain();
 
   try {
     const saved = await prisma.$transaction(async tx => {
+      const playbookStored = {
+        ...config.playbook,
+        identityExtras: {
+          avatarUrl: config.identity.avatarUrl || "",
+          subtitle: config.identity.subtitle || "",
+          trustLine: config.identity.trustLine || "",
+        },
+      };
       const row = await tx.botConfiguration.upsert({
         where: { shopDomain },
         create: {
@@ -95,7 +51,7 @@ router.put("/bot/config", async (req, res) => {
           welcome: config.identity.welcome,
           placement: config.identity.placement,
           routingJson: JSON.stringify(config.routing),
-          playbookJson: JSON.stringify(config.playbook),
+          playbookJson: JSON.stringify(playbookStored),
           offersJson: JSON.stringify(config.offers),
           crmJson: JSON.stringify(config.crm),
           securityJson: JSON.stringify(config.security),
@@ -107,7 +63,7 @@ router.put("/bot/config", async (req, res) => {
           welcome: config.identity.welcome,
           placement: config.identity.placement,
           routingJson: JSON.stringify(config.routing),
-          playbookJson: JSON.stringify(config.playbook),
+          playbookJson: JSON.stringify(playbookStored),
           offersJson: JSON.stringify(config.offers),
           crmJson: JSON.stringify(config.crm),
           securityJson: JSON.stringify(config.security),
@@ -151,7 +107,7 @@ router.put("/bot/config", async (req, res) => {
 // create coupons, access customer orders, or touch the storefront.
 router.post("/bot/decision-preview", async (req, res) => {
   try {
-    const config = await loadBotConfiguration();
+    const config = await loadCurrentBotConfiguration();
     const visitorKey = String(req.body?.visitorKey || "preview-visitor");
     const signals = (req.body?.signals || {}) as BotConversationSignals;
     const models = config.models.map((item, index) => ({
