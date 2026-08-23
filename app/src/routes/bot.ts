@@ -6,7 +6,8 @@ import {
   normalizeAndValidateBotConfiguration,
   type BotConfigurationDraft,
 } from "../lib/bot-config-contract.js";
-import { decideDiscount, routeBotConversation, type BotConversationSignals } from "../lib/bot-sales-brain.js";
+import { buildBotDecisionPlan } from "../lib/bot-orchestrator.js";
+import type { BotConversationSignals } from "../lib/bot-sales-brain.js";
 
 const router = Router();
 
@@ -150,10 +151,25 @@ router.put("/bot/config", async (req, res) => {
 // create coupons, access customer orders, or touch the storefront.
 router.post("/bot/decision-preview", async (req, res) => {
   try {
+    const config = await loadBotConfiguration();
+    const visitorKey = String(req.body?.visitorKey || "preview-visitor");
     const signals = (req.body?.signals || {}) as BotConversationSignals;
-    const route = routeBotConversation(signals);
-    const discount = decideDiscount(signals);
-    res.json({ route, discount, storefrontEnabled: false });
+    const models = config.models.map((item, index) => ({
+      id: `configured-${index}`,
+      provider: item.provider || "custom",
+      model: item.model,
+      trafficBasisPoints: Math.round(item.trafficPct * 100),
+    }));
+
+    const plan = buildBotDecisionPlan({
+      visitorKey,
+      signals,
+      profile: req.body?.profile || {},
+      leadContext: req.body?.leadContext || { customerMessages: Number(signals.customerMessages || 0) },
+      models,
+    });
+
+    res.json({ plan, storefrontEnabled: false });
   } catch (error: any) {
     res.status(400).json({ error: error?.message || "Failed to evaluate bot policy" });
   }
