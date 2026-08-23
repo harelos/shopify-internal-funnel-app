@@ -8,6 +8,7 @@ import funnelRoutes from "./routes/funnels.js";
 import stepRoutes from "./routes/steps.js";
 import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
+import profitOsRoutes from "./routes/profit-os.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -32,12 +33,12 @@ app.use((req, res, next) => {
 const adminRoot = path.join(__dirname, "../admin");
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>'"]/g, character => ({
+  return value.replace(/[&<>'\"]/g, character => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     "'": "&#39;",
-    '"': "&quot;",
+    '\"': "&quot;",
   })[character] as string);
 }
 
@@ -82,6 +83,7 @@ app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
+app.use("/api", profitOsRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
