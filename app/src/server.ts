@@ -10,6 +10,7 @@ import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
 import profitOsRoutes from "./routes/profit-os.js";
 import botRoutes from "./routes/bot.js";
+import botRuntimeRoutes from "./routes/bot-runtime.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -67,7 +68,6 @@ app.use("/preview", express.static(path.join(__dirname, "../../preview")));
 // Mount OAuth routes
 app.use("/", authRoutes);
 
-// Mount API routes
 // Mount Proxy / Preview routes
 app.use("/", proxyRoutes);
 app.use("/", shopifyIngestRoutes);
@@ -86,6 +86,7 @@ app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", profitOsRoutes);
 app.use("/api", botRoutes);
+app.use("/api", botRuntimeRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
