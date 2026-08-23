@@ -83,3 +83,27 @@ jobs:
             /tmp/tiger-bot-mobile.png
             /tmp/tiger-bot-desktop.png
           if-no-files-found: error
+
+      - name: Build dependency remediation candidate
+        run: |
+          npm pkg set 'overrides.deepmerge-ts=8.0.2'
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+          node -e "const p=require('./node_modules/deepmerge-ts/package.json'); console.log('deepmerge-ts', p.version); if (!p.version.startsWith('8.')) process.exit(1)"
+
+      - name: Verify remediated dependency graph
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm audit --audit-level=high
+          npm run db:validate
+          npm run build
+          npm test
+
+      - name: Upload dependency remediation candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-remediation-manifests
+          path: |
+            app/package.json
+            app/package-lock.json
+          if-no-files-found: error
