@@ -33,12 +33,12 @@ app.use((req, res, next) => {
 const adminRoot = path.join(__dirname, "../admin");
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>'\"]/g, character => ({
+  return value.replace(/[&<>'"]/g, character => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     "'": "&#39;",
-    '\"': "&quot;",
+    '"': "&quot;",
   })[character] as string);
 }
 
