@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-config-store.js";
 import { providerStatus } from "../lib/bot-provider.js";
+import { BotGuardrailError } from "../lib/bot-guardrails.js";
+import { loadConversationCrmFacts } from "../lib/bot-crm.js";
 import {
   botAnalytics,
   deleteKnowledgePack,
@@ -67,15 +69,23 @@ router.post("/bot/simulator/message", async (req, res) => {
     res.json({ ...result, storefrontEnabled: false });
   } catch (error: any) {
     const code = String(error?.code || "");
-    const status = code === "PROVIDER_NOT_CONFIGURED" ? 503 : code === "RATE_LIMITED" ? 429 : 400;
+    if (error instanceof BotGuardrailError) {
+      if (error.retryAfterSeconds) res.setHeader("Retry-After", String(error.retryAfterSeconds));
+      return res.status(code.startsWith("RATE_LIMIT") ? 429 : 403).json({ error: error.message, code, retryAfterSeconds: error.retryAfterSeconds });
+    }
+    const status = code === "PROVIDER_NOT_CONFIGURED" ? 503 : code === "RATE_LIMITED" ? 429 : code === "PROVIDER_HTTP_ERROR" || code === "PROVIDER_NETWORK_ERROR" ? 502 : 400;
     res.status(status).json({ error: error?.message || "Bot simulator failed.", code: code || undefined });
   }
 });
 
 router.get("/bot/conversations/:conversationId", async (req, res) => {
   try {
-    const messages = await loadConversationMessages(currentBotShopDomain(), String(req.params.conversationId || ""));
-    res.json({ conversationId: req.params.conversationId, messages, storefrontEnabled: false });
+    const conversationId = String(req.params.conversationId || "");
+    const [messages, crmFacts] = await Promise.all([
+      loadConversationMessages(currentBotShopDomain(), conversationId),
+      loadConversationCrmFacts(currentBotShopDomain(), conversationId),
+    ]);
+    res.json({ conversationId, messages, crmFacts, storefrontEnabled: false });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed to load conversation." });
   }
