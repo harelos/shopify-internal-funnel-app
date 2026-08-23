@@ -33,15 +33,35 @@ test("output policy blocks internal economics", () => {
   assert.doesNotMatch(result.text, /34|52%|COGS/i);
 });
 
+test("customer-facing product price wording is not mistaken for internal economics", () => {
+  const result = enforceBotOutputPolicy("העלות של המוצר שמוצגת לך כרגע היא 199 ₪", { action: "NO_OFFER", reason: "none" });
+  assert.equal(result.redacted, false);
+  assert.match(result.text, /199/);
+});
+
 test("output policy blocks unauthorized discount", () => {
   const result = enforceBotOutputPolicy("אני יכולה לתת לך הנחה של 20% עכשיו", { action: "NO_OFFER", reason: "NO_QUALIFIED_PRICE_HESITATION" });
   assert.equal(result.blockedUnauthorizedOffer, true);
   assert.doesNotMatch(result.text, /20%/);
 });
 
-test("output policy allows server-authorized discount", () => {
+test("output policy allows exactly the server-authorized discount", () => {
   const result = enforceBotOutputPolicy("יש לי אישור להציע לך הנחה של 5%", { action: "OFFER_DISCOUNT", pct: 5, reason: "FIRST_STAGE_SAVE", projectedMarginAfterDiscountIls: 100 });
   assert.equal(result.blockedUnauthorizedOffer, false);
+  assert.match(result.text, /5%/);
+});
+
+test("output policy corrects a model that exceeds an authorized discount", () => {
+  const result = enforceBotOutputPolicy("אני יכולה לתת לך הנחה של 20%", { action: "OFFER_DISCOUNT", pct: 5, reason: "FIRST_STAGE_SAVE", projectedMarginAfterDiscountIls: 100 });
+  assert.equal(result.blockedUnauthorizedOffer, true);
+  assert.doesNotMatch(result.text, /20%/);
+  assert.match(result.text, /5%/);
+});
+
+test("output policy blocks invented coupon codes even when a percentage is authorized", () => {
+  const result = enforceBotOutputPolicy("יש לך 5% הנחה, קוד קופון SAVE5", { action: "OFFER_DISCOUNT", pct: 5, reason: "FIRST_STAGE_SAVE", projectedMarginAfterDiscountIls: 100 });
+  assert.equal(result.blockedCouponClaim, true);
+  assert.doesNotMatch(result.text, /SAVE5/);
   assert.match(result.text, /5%/);
 });
 
