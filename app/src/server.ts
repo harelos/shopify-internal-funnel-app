@@ -9,6 +9,7 @@ import stepRoutes from "./routes/steps.js";
 import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
 import profitOsRoutes from "./routes/profit-os.js";
+import botRoutes from "./routes/bot.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -84,6 +85,7 @@ app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", profitOsRoutes);
+app.use("/api", botRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
