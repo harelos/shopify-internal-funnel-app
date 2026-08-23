@@ -6,11 +6,13 @@ import {
   type BotAgentRole,
   type BotConversationSignals,
   type BotRouteDecision,
+  type BotSalesStage,
   type DiscountPolicy,
   type LeadCaptureContext,
   type LeadProfileState,
   type ModelVariant,
 } from "./bot-sales-brain.js";
+import { deriveSalesStage } from "./bot-sales-stage.js";
 
 export type BotToolName =
   | "product.read"
@@ -55,6 +57,7 @@ export interface BotDecisionPlanInput {
 
 export interface BotDecisionPlan {
   route: BotRouteDecision;
+  salesStage: BotSalesStage | null;
   discount: ReturnType<typeof decideDiscount>;
   nextLeadField: ReturnType<typeof nextLeadField>;
   modelVariant: ModelVariant;
@@ -83,17 +86,17 @@ function applyRoutingPolicy(route: BotRouteDecision, policy?: BotRoutingPolicy):
 
 export function buildBotDecisionPlan(input: BotDecisionPlanInput): BotDecisionPlan {
   const route = applyRoutingPolicy(routeBotConversation(input.signals), input.routingPolicy);
-  // Discount logic receives the same route-sensitive signals but is always blocked
-  // when the final route is not sales-enabled.
   const discount = route.salesAllowed
     ? decideDiscount(input.signals, input.discountPolicy)
     : { action: "NO_OFFER", reason: "SALES_NOT_ALLOWED_IN_CURRENT_ROUTE" } as const;
+  const salesStage = deriveSalesStage(route, input.signals, discount);
   const leadField = nextLeadField(input.profile || {}, input.leadContext || { customerMessages: input.signals.customerMessages });
   const modelVariant = assignModelVariant(input.visitorKey, input.models);
   const allowedTools = toolsForRole(route.role);
 
   return {
     route,
+    salesStage,
     discount,
     nextLeadField: leadField,
     modelVariant,
