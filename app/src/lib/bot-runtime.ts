@@ -5,6 +5,7 @@ import { buildBotSystemPrompt, type BotPageContext } from "./bot-prompt.js";
 import { enforceBotOutputPolicy } from "./bot-output-policy.js";
 import { assertConversationProviderBudget, checkAndRecordMessageRate } from "./bot-guardrails.js";
 import { extractExplicitCrmFacts, persistCrmFacts } from "./bot-crm.js";
+import { resolveConversationModelAssignment } from "./bot-experiment.js";
 import {
   appendConversationMessage,
   loadConversationMessages,
@@ -13,7 +14,7 @@ import {
   selectKnowledgePacks,
   startConversation,
 } from "./bot-runtime-store.js";
-import type { BotConversationSignals, LeadCaptureContext, LeadProfileState } from "./bot-sales-brain.js";
+import type { BotConversationSignals, LeadCaptureContext, LeadProfileState, PageType } from "./bot-sales-brain.js";
 
 export interface BotRuntimeInput {
   shopDomain: string;
@@ -32,7 +33,9 @@ export interface BotRuntimeOutput {
   reply: string;
   route: string;
   routeReason: string;
+  salesStage: string | null;
   model: { provider: string; model: string };
+  modelAssignmentChanged: boolean;
   latencyMs: number;
   estimatedCostUsd: number | null;
   discount: ReturnType<typeof buildBotDecisionPlan>["discount"];
@@ -52,8 +55,15 @@ const HEBREW = {
   exit: ["אחשוב", "אחשוב על זה", "אולי אחר כך", "לא בטוחה", "לא עכשיו"],
 };
 
+const PAGE_TYPES = new Set<PageType>(["FUNNEL", "PRODUCT", "CART", "ORDER_TRACKING", "POLICY", "OTHER"]);
+
 function includesAny(text: string, values: string[]): boolean {
   return values.some(value => text.includes(value.toLowerCase()));
+}
+
+function normalizedPageType(pageContext: BotPageContext): PageType {
+  const raw = String(pageContext.pageType || (pageContext.productId ? "PRODUCT" : "OTHER")).toUpperCase() as PageType;
+  return PAGE_TYPES.has(raw) ? raw : "OTHER";
 }
 
 export function detectSecuritySignal(message: string): { suspected: boolean; reason?: string } {
@@ -92,7 +102,7 @@ export function inferConversationSignals(message: string, pageContext: BotPageCo
   const highIntent = /\bbuy\b|\bcheckout\b|\border now\b|לקנות|להזמין|איפה קונים|איך מזמינים/.test(text);
 
   return {
-    pageType: String(pageContext.pageType || (pageContext.productId ? "PRODUCT" : "OTHER")).toUpperCase() as BotConversationSignals["pageType"],
+    pageType: normalizedPageType(pageContext),
     customerMessages: messageCount,
     productQuestion,
     orderIssue,
@@ -110,7 +120,7 @@ export function inferConversationSignals(message: string, pageContext: BotPageCo
 }
 
 function mergeSignals(base: BotConversationSignals, override?: Partial<BotConversationSignals>): BotConversationSignals {
-  return { ...base, ...(override || {}), customerMessages: Number(override?.customerMessages ?? base.customerMessages) };
+  return { ...base, ...(override || {}), pageType: override?.pageType && PAGE_TYPES.has(override.pageType) ? override.pageType : base.pageType, customerMessages: Number(override?.customerMessages ?? base.customerMessages) };
 }
 
 function discountPolicyFromConfig(config: BotConfigurationDraft) {
@@ -121,6 +131,11 @@ function discountPolicyFromConfig(config: BotConfigurationDraft) {
     minMessagesBeforeDiscount: config.offers.firstMinMessages,
     minMessagesBeforeSecondDiscount: config.offers.secondMinMessages,
   };
+}
+
+function deterministicHandoffReply(route: string): string {
+  if (route === "RISK") return "אני מעבירה את זה לבדיקה מסודרת כדי שלא אתן לך תשובה חלקית או לא מדויקת. שמרתי את ההקשר של השיחה לצוות המטפל.";
+  return "אני מעבירה את זה לטיפול מתאים כדי שתקבלי תשובה מדויקת. שמרתי את ההקשר של השיחה כדי שלא תצטרכי להתחיל מחדש.";
 }
 
 export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutput> {
@@ -151,12 +166,14 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     model: item.model,
     trafficBasisPoints: Math.round(item.trafficPct * 100),
   }));
+  const assignment = await resolveConversationModelAssignment(input.shopDomain, conversationId, input.visitorKey, models);
   const plan = buildBotDecisionPlan({
     visitorKey: input.visitorKey,
     signals,
     profile: input.profile || {},
     leadContext: input.leadContext || { customerMessages: userMessageCount },
     models,
+    modelVariantOverride: assignment.variant,
     routingPolicy: input.config.routing,
     discountPolicy: discountPolicyFromConfig(input.config),
   });
@@ -190,7 +207,40 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
       reply,
       route: plan.route.role,
       routeReason: plan.route.reason,
+      salesStage: plan.salesStage,
       model: { provider: plan.modelVariant.provider, model: plan.modelVariant.model },
+      modelAssignmentChanged: assignment.assignmentChanged,
+      latencyMs: 0,
+      estimatedCostUsd: 0,
+      discount: plan.discount,
+      nextLeadField: plan.nextLeadField,
+      allowedTools: plan.allowedTools,
+      outputRedacted: false,
+      crmFactsCaptured: crmFacts.map(fact => fact.type),
+    };
+  }
+
+  if (plan.safeguards.requiresHumanEscalation) {
+    const reply = deterministicHandoffReply(plan.route.role);
+    await appendConversationMessage(input.shopDomain, {
+      conversationId,
+      role: "assistant",
+      content: reply,
+      route: plan.route.role,
+      provider: plan.modelVariant.provider,
+      model: plan.modelVariant.model,
+      latencyMs: 0,
+      estimatedCostUsd: 0,
+    });
+    await recordBotEvent(input.shopDomain, "bot_human_escalation_required", { route: plan.route.role, reason: plan.route.reason }, conversationId);
+    return {
+      conversationId,
+      reply,
+      route: plan.route.role,
+      routeReason: plan.route.reason,
+      salesStage: plan.salesStage,
+      model: { provider: plan.modelVariant.provider, model: plan.modelVariant.model },
+      modelAssignmentChanged: assignment.assignmentChanged,
       latencyMs: 0,
       estimatedCostUsd: 0,
       discount: plan.discount,
@@ -206,7 +256,7 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
   const knowledge = await selectKnowledgePacks(input.shopDomain, {
     funnelId: input.pageContext?.funnelId,
     productId: input.pageContext?.productId,
-    pageType: input.pageContext?.pageType,
+    pageType: normalizedPageType(input.pageContext || {}),
   });
 
   const system = buildBotSystemPrompt({
@@ -252,6 +302,7 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
   });
   await recordBotEvent(input.shopDomain, "bot_model_response", {
     route: plan.route.role,
+    salesStage: plan.salesStage,
     provider: providerResult.provider,
     model: providerResult.model,
     latencyMs: providerResult.latencyMs,
@@ -261,6 +312,8 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     discountAction: plan.discount.action,
     outputRedacted: safe.redacted,
     blockedUnauthorizedOffer: safe.blockedUnauthorizedOffer,
+    blockedCouponClaim: safe.blockedCouponClaim,
+    modelAssignmentChanged: assignment.assignmentChanged,
   }, conversationId);
 
   return {
@@ -268,7 +321,9 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     reply: safe.text,
     route: plan.route.role,
     routeReason: plan.route.reason,
+    salesStage: plan.salesStage,
     model: { provider: providerResult.provider, model: providerResult.model },
+    modelAssignmentChanged: assignment.assignmentChanged,
     latencyMs: providerResult.latencyMs,
     estimatedCostUsd: providerResult.usage.estimatedCostUsd,
     discount: plan.discount,
