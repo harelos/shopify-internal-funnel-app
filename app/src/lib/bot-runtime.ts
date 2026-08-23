@@ -3,9 +3,12 @@ import type { BotConfigurationDraft } from "./bot-config-contract.js";
 import { callBotProvider, type BotChatTurn, type BotProviderResult } from "./bot-provider.js";
 import { buildBotSystemPrompt, type BotPageContext } from "./bot-prompt.js";
 import { enforceBotOutputPolicy } from "./bot-output-policy.js";
+import { assertConversationProviderBudget, checkAndRecordMessageRate } from "./bot-guardrails.js";
+import { extractExplicitCrmFacts, persistCrmFacts } from "./bot-crm.js";
 import {
   appendConversationMessage,
   loadConversationMessages,
+  pseudonymousVisitorKey,
   recordBotEvent,
   selectKnowledgePacks,
   startConversation,
@@ -36,6 +39,7 @@ export interface BotRuntimeOutput {
   nextLeadField: ReturnType<typeof buildBotDecisionPlan>["nextLeadField"];
   allowedTools: readonly string[];
   outputRedacted: boolean;
+  crmFactsCaptured: string[];
 }
 
 const HEBREW = {
@@ -124,8 +128,13 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
   if (!message) throw new Error("Message is required.");
   if (message.length > input.config.security.maxUserChars) throw new Error("Message exceeds configured bot input limit.");
 
+  await checkAndRecordMessageRate(input.shopDomain, input.visitorKey, {
+    messagesPer5m: input.config.security.messagesPer5m,
+    messagesPerHour: input.config.security.messagesPerHour,
+  });
+
   const conversationId = input.conversationId || await startConversation(input.shopDomain, {
-    visitorKeyHash: input.visitorKey,
+    visitorKeyHash: pseudonymousVisitorKey(input.visitorKey),
     pageContext: input.pageContext || {},
   });
   const history = await loadConversationMessages(input.shopDomain, conversationId);
@@ -152,7 +161,7 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     discountPolicy: discountPolicyFromConfig(input.config),
   });
 
-  await appendConversationMessage(input.shopDomain, {
+  const userStored = await appendConversationMessage(input.shopDomain, {
     conversationId,
     role: "user",
     content: message,
@@ -160,6 +169,8 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     provider: plan.modelVariant.provider,
     model: plan.modelVariant.model,
   });
+  const crmFacts = extractExplicitCrmFacts(message, conversationId, userStored.id);
+  await persistCrmFacts(input.shopDomain, crmFacts);
 
   if (plan.route.role === "SECURITY") {
     const reply = "אני יכולה לעזור רק בנושאים שקשורים למוצר, להזמנה או לחנות. אם יש לך שאלה כזאת, כתבי לי אותה ואעזור.";
@@ -186,8 +197,11 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
       nextLeadField: plan.nextLeadField,
       allowedTools: plan.allowedTools,
       outputRedacted: false,
+      crmFactsCaptured: crmFacts.map(fact => fact.type),
     };
   }
+
+  await assertConversationProviderBudget(input.shopDomain, conversationId);
 
   const knowledge = await selectKnowledgePacks(input.shopDomain, {
     funnelId: input.pageContext?.funnelId,
@@ -261,5 +275,6 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     nextLeadField: plan.nextLeadField,
     allowedTools: plan.allowedTools,
     outputRedacted: safe.redacted,
+    crmFactsCaptured: crmFacts.map(fact => fact.type),
   };
 }
