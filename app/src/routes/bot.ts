@@ -1,13 +1,21 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
-import {
-  normalizeAndValidateBotConfiguration,
-} from "../lib/bot-config-contract.js";
+import { normalizeAndValidateBotConfiguration } from "../lib/bot-config-contract.js";
 import { buildBotDecisionPlan } from "../lib/bot-orchestrator.js";
 import type { BotConversationSignals } from "../lib/bot-sales-brain.js";
 import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-config-store.js";
 
 const router = Router();
+
+function discountPolicy(config: Awaited<ReturnType<typeof loadCurrentBotConfiguration>>) {
+  return {
+    maxDiscountPct: config.offers.maxPct,
+    firstDiscountPct: config.offers.firstPct,
+    secondDiscountPct: config.offers.secondPct,
+    minMessagesBeforeDiscount: config.offers.firstMinMessages,
+    minMessagesBeforeSecondDiscount: config.offers.secondMinMessages,
+  };
+}
 
 router.get("/bot/config", async (_req, res) => {
   try {
@@ -103,13 +111,15 @@ router.put("/bot/config", async (req, res) => {
   }
 });
 
-// Private admin simulator for deterministic policy QA. It does not call any LLM,
-// create coupons, access customer orders, or touch the storefront.
+// Private policy simulator: no LLM, coupon, customer lookup or storefront action.
 router.post("/bot/decision-preview", async (req, res) => {
   try {
     const config = await loadCurrentBotConfiguration();
     const visitorKey = String(req.body?.visitorKey || "preview-visitor");
     const signals = (req.body?.signals || {}) as BotConversationSignals;
+    if (signals.minContributionMarginIls == null && config.offers.marginFloorIls != null) {
+      signals.minContributionMarginIls = config.offers.marginFloorIls;
+    }
     const models = config.models.map((item, index) => ({
       id: `configured-${index}`,
       provider: item.provider || "custom",
@@ -123,6 +133,8 @@ router.post("/bot/decision-preview", async (req, res) => {
       profile: req.body?.profile || {},
       leadContext: req.body?.leadContext || { customerMessages: Number(signals.customerMessages || 0) },
       models,
+      routingPolicy: config.routing,
+      discountPolicy: discountPolicy(config),
     });
 
     res.json({ plan, storefrontEnabled: false });
