@@ -3,8 +3,9 @@ import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-co
 import { providerStatus } from "../lib/bot-provider.js";
 import { BotGuardrailError } from "../lib/bot-guardrails.js";
 import { loadConversationCrmFacts } from "../lib/bot-crm.js";
+import { recordBotCommerceOutcome } from "../lib/bot-commerce.js";
+import { buildBotAnalytics } from "../lib/bot-analytics.js";
 import {
-  botAnalytics,
   deleteKnowledgePack,
   listKnowledgePacks,
   loadConversationMessages,
@@ -78,6 +79,24 @@ router.post("/bot/simulator/message", async (req, res) => {
   }
 });
 
+// Staging-only outcome recorder for validating model A/B/n analytics before any
+// storefront runtime exists. Real commerce attribution must arrive from signed,
+// server-side storefront/order events in a later release.
+router.post("/bot/simulator/outcome", async (req, res) => {
+  try {
+    const outcome = await recordBotCommerceOutcome(currentBotShopDomain(), {
+      conversationId: String(req.body?.conversationId || ""),
+      type: String(req.body?.type || "").toUpperCase() as any,
+      idempotencyKey: req.body?.idempotencyKey ? String(req.body.idempotencyKey) : undefined,
+      revenueIls: req.body?.revenueIls,
+      contributionProfitIls: req.body?.contributionProfitIls,
+    });
+    res.json({ ok: true, outcome, source: "BOT_SIMULATOR_STAGING", storefrontEnabled: false });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || "Failed to record bot simulator outcome." });
+  }
+});
+
 router.get("/bot/conversations/:conversationId", async (req, res) => {
   try {
     const conversationId = String(req.params.conversationId || "");
@@ -96,7 +115,7 @@ router.get("/bot/analytics", async (req, res) => {
     const range = String(req.query.range || "7d");
     const days = range === "30d" ? 30 : range === "90d" ? 90 : 7;
     const since = new Date(Date.now() - days * 86_400_000);
-    const analytics = await botAnalytics(currentBotShopDomain(), since);
+    const analytics = await buildBotAnalytics(currentBotShopDomain(), since);
     res.json({ range, since: since.toISOString(), ...analytics, source: "BOT_SIMULATOR_STAGING", storefrontEnabled: false });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed to load bot analytics." });
