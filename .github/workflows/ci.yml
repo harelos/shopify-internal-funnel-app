@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches:
+      - feat/tiger-profit-os-platform-v1
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    env:
+      SHOP_DOMAIN: local-dev.myshopify.com
+      SHOPIFY_CLIENT_ID: test-client-id
+      SHOPIFY_CLIENT_SECRET: test-client-secret
+      SHOPIFY_REQUIRE_AUTH: "false"
+      SHOPIFY_LIVE_CONNECT: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npm run db:validate
+
+      - name: TypeScript build
+        run: npm run build
+
+      - name: Test
+        run: npm test
