@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const modelWeights = [...document.querySelectorAll(".model-weight")];
   const modelWeightStatus = document.getElementById("model-weight-status");
   const saveStatus = document.getElementById("bot-save-status");
+  const LOCAL_BACKUP_KEY = "tiger-bot-config-draft-v1";
 
   function setTab(name) {
     tabs.forEach(tab => tab.classList.toggle("btn-primary", tab.dataset.tab === name));
@@ -53,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         marginFloorIls: value("margin-floor") === "" ? null : Number(value("margin-floor")),
       },
       models: [...document.querySelectorAll(".model-provider")].map((input, index) => ({
+        provider: input.dataset.provider || "custom",
         model: input.value.trim(),
         trafficPct: Math.max(0, Number(modelWeights[index]?.value || 0)),
       })),
@@ -66,62 +68,85 @@ document.addEventListener("DOMContentLoaded", () => {
         messagesPerHour: Number(value("sec-msg-hour") || 0),
         maxUserChars: Number(value("sec-max-chars") || 0),
       },
-      savedAt: new Date().toISOString(),
     };
   }
 
-  function restoreDraft() {
+  function applyDraft(draft) {
+    if (!draft) return;
+    const setValue = (id, value) => {
+      const node = document.getElementById(id);
+      if (node && value !== undefined && value !== null) node.value = String(value);
+    };
+    const setChecked = (id, value) => {
+      const node = document.getElementById(id);
+      if (node && typeof value === "boolean") node.checked = value;
+    };
+
+    setValue("bot-name", draft.identity?.name);
+    setValue("bot-label", draft.identity?.label);
+    setValue("bot-welcome", draft.identity?.welcome);
+    setValue("bot-placement", draft.identity?.placement);
+    setChecked("route-support", draft.routing?.support);
+    setChecked("route-retention", draft.routing?.retention);
+    setChecked("route-risk", draft.routing?.risk);
+    setValue("sales-stages", draft.playbook?.stages);
+    setValue("sales-methods", draft.playbook?.methods);
+    setValue("discount-first", draft.offers?.firstPct);
+    setValue("discount-second", draft.offers?.secondPct);
+    setValue("discount-max", draft.offers?.maxPct);
+    setValue("discount-first-msgs", draft.offers?.firstMinMessages);
+    setValue("discount-second-msgs", draft.offers?.secondMinMessages);
+    setValue("margin-floor", draft.offers?.marginFloorIls);
+    setChecked("crm-progressive", draft.crm?.progressive);
+    setChecked("crm-email", draft.crm?.email);
+    setChecked("crm-phone", draft.crm?.phone);
+    setValue("sec-msg-5m", draft.security?.messagesPer5m);
+    setValue("sec-msg-hour", draft.security?.messagesPerHour);
+    setValue("sec-max-chars", draft.security?.maxUserChars);
+
+    const providers = [...document.querySelectorAll(".model-provider")];
+    (draft.models || []).forEach((model, index) => {
+      if (providers[index]) {
+        providers[index].value = model.model || "";
+        if (model.provider) providers[index].dataset.provider = model.provider;
+      }
+      if (modelWeights[index] && model.trafficPct != null) modelWeights[index].value = String(model.trafficPct);
+    });
+    updateModelAllocation();
+  }
+
+  function localBackup(draft) {
     try {
-      const raw = localStorage.getItem("tiger-bot-config-draft-v1");
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      const setValue = (id, value) => {
-        const node = document.getElementById(id);
-        if (node && value !== undefined && value !== null) node.value = String(value);
-      };
-      const setChecked = (id, value) => {
-        const node = document.getElementById(id);
-        if (node && typeof value === "boolean") node.checked = value;
-      };
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify({ ...draft, localBackedUpAt: new Date().toISOString() }));
+    } catch (_) {}
+  }
 
-      setValue("bot-name", draft.identity?.name);
-      setValue("bot-label", draft.identity?.label);
-      setValue("bot-welcome", draft.identity?.welcome);
-      setValue("bot-placement", draft.identity?.placement);
-      setChecked("route-support", draft.routing?.support);
-      setChecked("route-retention", draft.routing?.retention);
-      setChecked("route-risk", draft.routing?.risk);
-      setValue("sales-stages", draft.playbook?.stages);
-      setValue("sales-methods", draft.playbook?.methods);
-      setValue("discount-first", draft.offers?.firstPct);
-      setValue("discount-second", draft.offers?.secondPct);
-      setValue("discount-max", draft.offers?.maxPct);
-      setValue("discount-first-msgs", draft.offers?.firstMinMessages);
-      setValue("discount-second-msgs", draft.offers?.secondMinMessages);
-      setValue("margin-floor", draft.offers?.marginFloorIls);
-      setChecked("crm-progressive", draft.crm?.progressive);
-      setChecked("crm-email", draft.crm?.email);
-      setChecked("crm-phone", draft.crm?.phone);
-      setValue("sec-msg-5m", draft.security?.messagesPer5m);
-      setValue("sec-msg-hour", draft.security?.messagesPerHour);
-      setValue("sec-max-chars", draft.security?.maxUserChars);
-
-      const providers = [...document.querySelectorAll(".model-provider")];
-      (draft.models || []).forEach((model, index) => {
-        if (providers[index]) providers[index].value = model.model || "";
-        if (modelWeights[index] && model.trafficPct != null) modelWeights[index].value = String(model.trafficPct);
-      });
-      if (saveStatus) saveStatus.textContent = `Restored local draft from ${new Date(draft.savedAt).toLocaleString()}. Nothing is deployed.`;
-    } catch {
-      localStorage.removeItem("tiger-bot-config-draft-v1");
+  async function restoreDraft() {
+    if (saveStatus) saveStatus.textContent = "Loading saved bot configuration…";
+    try {
+      const response = await API.get("/api/bot/config");
+      applyDraft(response.config);
+      if (saveStatus) {
+        saveStatus.textContent = response.persisted
+          ? "Saved server-side draft loaded. Storefront runtime is still disabled."
+          : "Default draft loaded. Save when ready; storefront runtime is still disabled.";
+      }
+      return;
+    } catch (error) {
+      try {
+        const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw);
+          applyDraft(draft);
+          if (saveStatus) saveStatus.textContent = `Server draft unavailable; restored browser backup. ${error.message || error}`;
+          return;
+        }
+      } catch (_) {}
+      if (saveStatus) saveStatus.textContent = `Could not load bot draft: ${error.message || error}`;
     }
   }
 
-  tabs.forEach(tab => tab.addEventListener("click", () => setTab(tab.dataset.tab)));
-  brainTabs.forEach(tab => tab.addEventListener("click", () => setBrainTab(tab.dataset.brainTab)));
-  modelWeights.forEach(input => input.addEventListener("input", updateModelAllocation));
-
-  document.getElementById("btn-bot-save")?.addEventListener("click", () => {
+  async function saveDraft() {
     const draft = collectDraft();
     const trafficTotal = draft.models.reduce((sum, item) => sum + item.trafficPct, 0);
     if (trafficTotal !== 100) {
@@ -132,9 +157,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (saveStatus) saveStatus.textContent = "Draft not saved: an offer tier cannot exceed the absolute discount cap.";
       return;
     }
-    localStorage.setItem("tiger-bot-config-draft-v1", JSON.stringify(draft));
-    if (saveStatus) saveStatus.textContent = "Local admin draft saved. Storefront runtime remains disabled and no customer can see this configuration.";
-  });
+    if (saveStatus) saveStatus.textContent = "Saving server-side draft…";
+    localBackup(draft);
+    try {
+      const response = await API.put("/api/bot/config", draft);
+      if (saveStatus) saveStatus.textContent = `Saved as ${response.status || "DRAFT"}. Storefront runtime remains disabled.`;
+    } catch (error) {
+      if (saveStatus) saveStatus.textContent = `Server save failed. Browser backup kept. ${error.message || error}`;
+    }
+  }
+
+  tabs.forEach(tab => tab.addEventListener("click", () => setTab(tab.dataset.tab)));
+  brainTabs.forEach(tab => tab.addEventListener("click", () => setBrainTab(tab.dataset.brainTab)));
+  modelWeights.forEach(input => input.addEventListener("input", updateModelAllocation));
+  document.getElementById("btn-bot-save")?.addEventListener("click", saveDraft);
 
   restoreDraft();
   updateModelAllocation();
