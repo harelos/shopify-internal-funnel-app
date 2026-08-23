@@ -4,6 +4,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const money = value => value == null ? "—" : `₪${Number(value).toLocaleString(undefined,{maximumFractionDigits:2})}`;
   const pct = value => value == null ? "—" : `${Number(value).toFixed(1)}%`;
   const ratio = value => value == null ? "—" : `${Number(value).toFixed(2)}x`;
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]);
 
   function setTab(name) {
     tabs.forEach(tab => tab.classList.toggle("active", tab.dataset.tab === name));
@@ -61,7 +68,11 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`Meta validation/refresh is not available on this branch yet: ${error.message || error}`);
     }
   });
-  document.getElementById("btn-refresh").addEventListener("click", async () => { await loadOverview(); if (!document.querySelector('[data-panel="health"]').classList.contains("hidden")) await loadHealth(); });
+  document.getElementById("btn-refresh").addEventListener("click", async () => {
+    await loadOverview();
+    const healthPanel = document.querySelector('[data-panel="health"]');
+    if (healthPanel && !healthPanel.classList.contains("hidden")) await loadHealth();
+  });
 
   loadOverview();
 });
