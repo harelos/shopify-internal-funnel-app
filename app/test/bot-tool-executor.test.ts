@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { executeBotTool, BotToolExecutionError } from "../src/lib/bot-tool-executor.js";
+import type { BotAgentRole, DiscountDecision } from "../src/lib/bot-sales-brain.js";
 
-const noOffer = { action: "NO_OFFER", reason: "NO_QUALIFIED_PRICE_HESITATION" } as const;
-const offer5 = { action: "OFFER_DISCOUNT", pct: 5, reason: "FIRST_STAGE_SAVE", projectedMarginAfterDiscountIls: 80 } as const;
+const noOffer: DiscountDecision = { action: "NO_OFFER", reason: "NO_QUALIFIED_PRICE_HESITATION" };
+const offer5: DiscountDecision = { action: "OFFER_DISCOUNT", pct: 5, reason: "FIRST_STAGE_SAVE", projectedMarginAfterDiscountIls: 80 };
 
-function context(role: "SALES" | "SUPPORT" | "RETENTION" | "RISK" | "SECURITY", discount = noOffer) {
+function context(role: BotAgentRole, discount: DiscountDecision = noOffer) {
   return { role, conversationId: "conv-1", discount };
 }
 
