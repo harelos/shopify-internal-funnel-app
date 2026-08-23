@@ -8,6 +8,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveStatus = document.getElementById("bot-save-status");
   const LOCAL_BACKUP_KEY = "tiger-bot-config-draft-v1";
 
+  const client = window.API || {
+    async get(path) {
+      const res = await fetch(path);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText || "Request failed");
+      return data;
+    },
+    async put(path, body) {
+      const res = await fetch(path, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error([data.error, ...(data.details || [])].filter(Boolean).join(" ") || res.statusText || "Request failed");
+      return data;
+    },
+  };
+
   function setTab(name) {
     tabs.forEach(tab => tab.classList.toggle("btn-primary", tab.dataset.tab === name));
     panels.forEach(panel => panel.classList.toggle("hidden", panel.dataset.panel !== name));
@@ -124,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function restoreDraft() {
     if (saveStatus) saveStatus.textContent = "Loading saved bot configuration…";
     try {
-      const response = await API.get("/api/bot/config");
+      const response = await client.get("/api/bot/config");
       applyDraft(response.config);
       if (saveStatus) {
         saveStatus.textContent = response.persisted
@@ -160,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saveStatus) saveStatus.textContent = "Saving server-side draft…";
     localBackup(draft);
     try {
-      const response = await API.put("/api/bot/config", draft);
+      const response = await client.put("/api/bot/config", draft);
       if (saveStatus) saveStatus.textContent = `Saved as ${response.status || "DRAFT"}. Storefront runtime remains disabled.`;
     } catch (error) {
       if (saveStatus) saveStatus.textContent = `Server save failed. Browser backup kept. ${error.message || error}`;
