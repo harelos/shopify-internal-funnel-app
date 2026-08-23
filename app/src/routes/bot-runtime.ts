@@ -5,6 +5,9 @@ import { BotGuardrailError } from "../lib/bot-guardrails.js";
 import { loadConversationCrmFacts } from "../lib/bot-crm.js";
 import { recordBotCommerceOutcome } from "../lib/bot-commerce.js";
 import { buildBotAnalytics } from "../lib/bot-analytics.js";
+import { BotToolExecutionError, executeBotTool } from "../lib/bot-tool-executor.js";
+import type { BotAgentRole, DiscountDecision } from "../lib/bot-sales-brain.js";
+import type { BotToolName } from "../lib/bot-orchestrator.js";
 import {
   deleteKnowledgePack,
   listKnowledgePacks,
@@ -76,6 +79,38 @@ router.post("/bot/simulator/message", async (req, res) => {
     }
     const status = code === "PROVIDER_NOT_CONFIGURED" ? 503 : code === "RATE_LIMITED" ? 429 : code === "PROVIDER_HTTP_ERROR" || code === "PROVIDER_NETWORK_ERROR" ? 502 : 400;
     res.status(status).json({ error: error?.message || "Bot simulator failed.", code: code || undefined });
+  }
+});
+
+// Admin-only staging probe for the actual server-side tool boundary. This endpoint
+// is mounted behind the embedded Shopify admin auth middleware and is not a
+// storefront bot API. It is useful for proving role/tool denial and verified
+// read-only order access before any customer-facing runtime exists.
+router.post("/bot/simulator/tool", async (req, res) => {
+  try {
+    const authorization = req.get("authorization") || "";
+    const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
+    const discount = (req.body?.discount && typeof req.body.discount === "object"
+      ? req.body.discount
+      : { action: "NO_OFFER", reason: "SIMULATOR_DEFAULT" }) as DiscountDecision;
+    const result = await executeBotTool(
+      String(req.body?.name || "") as BotToolName,
+      req.body?.args || {},
+      {
+        role: String(req.body?.role || "SECURITY").toUpperCase() as BotAgentRole,
+        conversationId: String(req.body?.conversationId || "admin-tool-simulator"),
+        discount,
+        sessionToken,
+        verifiedCustomer: req.body?.verifiedCustomer || null,
+      },
+    );
+    res.json({ ok: true, result, source: "BOT_TOOL_SIMULATOR_STAGING", storefrontEnabled: false });
+  } catch (error: any) {
+    if (error instanceof BotToolExecutionError) {
+      const status = error.code === "TOOL_NOT_ALLOWED" ? 403 : error.code === "TOOL_NOT_IMPLEMENTED" ? 501 : 400;
+      return res.status(status).json({ error: error.message, code: error.code, storefrontEnabled: false });
+    }
+    res.status(400).json({ error: error?.message || "Bot tool simulator failed.", storefrontEnabled: false });
   }
 });
 
