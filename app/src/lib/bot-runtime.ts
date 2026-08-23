@@ -109,6 +109,16 @@ function mergeSignals(base: BotConversationSignals, override?: Partial<BotConver
   return { ...base, ...(override || {}), customerMessages: Number(override?.customerMessages ?? base.customerMessages) };
 }
 
+function discountPolicyFromConfig(config: BotConfigurationDraft) {
+  return {
+    maxDiscountPct: config.offers.maxPct,
+    firstDiscountPct: config.offers.firstPct,
+    secondDiscountPct: config.offers.secondPct,
+    minMessagesBeforeDiscount: config.offers.firstMinMessages,
+    minMessagesBeforeSecondDiscount: config.offers.secondMinMessages,
+  };
+}
+
 export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutput> {
   const message = String(input.message || "").trim();
   if (!message) throw new Error("Message is required.");
@@ -122,6 +132,9 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
   const userMessageCount = history.filter(item => item.role === "user").length + 1;
   const inferred = inferConversationSignals(message, input.pageContext || {}, userMessageCount);
   const signals = mergeSignals(inferred, input.explicitSignals);
+  if (signals.minContributionMarginIls == null && input.config.offers.marginFloorIls != null) {
+    signals.minContributionMarginIls = input.config.offers.marginFloorIls;
+  }
 
   const models = input.config.models.map((item, index) => ({
     id: `configured-${index}`,
@@ -135,6 +148,8 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     profile: input.profile || {},
     leadContext: input.leadContext || { customerMessages: userMessageCount },
     models,
+    routingPolicy: input.config.routing,
+    discountPolicy: discountPolicyFromConfig(input.config),
   });
 
   await appendConversationMessage(input.shopDomain, {
@@ -180,9 +195,8 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     pageType: input.pageContext?.pageType,
   });
 
-  const identity = input.config.identity as BotConfigurationDraft["identity"] & { avatarUrl?: string; subtitle?: string; trustLine?: string };
   const system = buildBotSystemPrompt({
-    identity,
+    identity: input.config.identity,
     plan,
     pageContext: input.pageContext || {},
     knowledge: knowledge.map(item => ({ key: item.key, title: item.title, scope: item.scope, text: item.text, priority: item.priority })),
