@@ -124,6 +124,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setValue("sec-max-chars", draft.security?.maxUserChars);
 
     const providers = [...document.querySelectorAll(".model-provider")];
+    providers.forEach((input, index) => {
+      input.value = "";
+      input.dataset.provider = "custom";
+      if (modelWeights[index]) modelWeights[index].value = "0";
+    });
     (draft.models || []).forEach((model, index) => {
       if (providers[index]) {
         providers[index].value = model.model || "";
