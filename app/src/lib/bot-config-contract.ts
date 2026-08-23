@@ -11,6 +11,9 @@ export interface BotConfigurationDraft {
     label: string;
     welcome: string;
     placement: string;
+    avatarUrl?: string;
+    subtitle?: string;
+    trustLine?: string;
   };
   routing: {
     support: boolean;
@@ -78,6 +81,17 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
   return Math.min(max, Math.max(min, asFiniteNumber(value, fallback)));
 }
 
+function safeOptionalUrl(value: unknown): string {
+  const raw = asString(value).slice(0, 1000);
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 export function defaultBotConfigurationDraft(): BotConfigurationDraft {
   return {
     version: 1,
@@ -86,6 +100,9 @@ export function defaultBotConfigurationDraft(): BotConfigurationDraft {
       label: "Digital sales assistant",
       welcome: "מה תרצי לדעת לפני שאת מחליטה?",
       placement: "all-funnels",
+      avatarUrl: "",
+      subtitle: "כאן כדי לעזור לבחור נכון",
+      trustLine: "מידע על המוצר, משלוחים והזמנות במקום אחד",
     },
     routing: { support: true, retention: true, risk: true },
     playbook: { stages: DEFAULT_STAGES, methods: DEFAULT_METHODS },
@@ -98,7 +115,7 @@ export function defaultBotConfigurationDraft(): BotConfigurationDraft {
       marginFloorIls: null,
     },
     models: [
-      { provider: "openai", model: "gpt", trafficPct: 100 },
+      { provider: "mock", model: "mock-sales", trafficPct: 100 },
     ],
     crm: { progressive: true, email: true, phone: true },
     security: { messagesPer5m: 20, messagesPerHour: 80, maxUserChars: 2000 },
@@ -119,8 +136,8 @@ export function normalizeAndValidateBotConfiguration(input: unknown): BotConfigV
   const models = rawModels
     .slice(0, 12)
     .map((item: any) => ({
-      provider: asString(item?.provider || item?.model?.split?.(":")?.[0], "custom"),
-      model: asString(item?.model),
+      provider: asString(item?.provider || item?.model?.split?.(":")?.[0], "custom").toLowerCase().slice(0, 40),
+      model: asString(item?.model).slice(0, 160),
       trafficPct: clampNumber(item?.trafficPct, 0, 100, 0),
     }))
     .filter((item: BotModelConfigDraft) => item.model.length > 0);
@@ -132,6 +149,9 @@ export function normalizeAndValidateBotConfiguration(input: unknown): BotConfigV
       label: asString(identity.label, defaults.identity.label).slice(0, 120),
       welcome: asString(identity.welcome, defaults.identity.welcome).slice(0, 500),
       placement: asString(identity.placement, defaults.identity.placement).slice(0, 80),
+      avatarUrl: safeOptionalUrl(identity.avatarUrl),
+      subtitle: asString(identity.subtitle, defaults.identity.subtitle).slice(0, 120),
+      trustLine: asString(identity.trustLine, defaults.identity.trustLine).slice(0, 180),
     },
     routing: {
       support: asBoolean(routing.support, true),
@@ -166,6 +186,7 @@ export function normalizeAndValidateBotConfiguration(input: unknown): BotConfigV
   const errors: string[] = [];
   if (!config.identity.name) errors.push("Assistant name is required.");
   if (!config.identity.label) errors.push("Transparent assistant label is required.");
+  if (identity.avatarUrl && !config.identity.avatarUrl) errors.push("Avatar URL must be a valid HTTPS URL.");
   if (!models.length) errors.push("At least one model is required.");
   const trafficTotal = Number(models.reduce((sum, item) => sum + item.trafficPct, 0).toFixed(4));
   if (trafficTotal !== 100) errors.push("Model traffic allocation must total exactly 100%.");
