@@ -1,5 +1,194 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="shopify-api-key" content="%SHOPIFY_API_KEY%"><script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script><title>TIGER Bot</title><link rel="stylesheet" href="css/style.css"><style>.module-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.hidden{display:none!important}.builder-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}@media(max-width:800px){.builder-grid{grid-template-columns:1fr}}</style></head><body>
-<header class="top-bar"><div class="top-bar-inner"><div class="brand"><a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a><span class="brand-name">TIGER Bot</span><span class="eyebrow">Scaffold</span></div></div></header>
-<main class="main"><div class="module-tabs"><a class="btn" href="profit-analytics.html">Profit OS</a><a class="btn" href="analytics.html">Funnel Analytics</a><button class="btn btn-primary" data-tab="builder">Builder</button><button class="btn" data-tab="analytics">Analytics</button><a class="btn" href="popups.html">Popups</a></div>
-<section data-panel="builder"><div class="builder-grid"><div class="panel"><div class="panel-header"><h3>Bot configuration</h3></div><div class="panel-body"><label class="eyebrow">Name</label><input class="input" id="bot-name" placeholder="Sales assistant"><label class="eyebrow">Welcome message</label><textarea class="input" id="bot-welcome" rows="4" placeholder="How can I help?"></textarea><label class="eyebrow">Placement</label><select class="select" id="bot-placement"><option>All funnel pages</option><option>Selected funnel</option><option>Selected steps</option></select><div style="margin-top:14px"><button class="btn btn-primary" id="btn-bot-save">Save draft</button></div><p class="muted" id="bot-save-status">Draft scaffold only; storefront runtime is not published.</p></div></div><div class="panel"><div class="panel-header"><h3>Runtime boundary</h3></div><div class="panel-body"><p>Storefront delivery will use one authoritative loader and will not be deployed until explicit approval.</p><p class="muted">Planned analytics: impressions, opens, conversations, CTA clicks, leads, assisted conversions, assisted revenue, errors.</p></div></div></div></section>
-<section class="hidden" data-panel="analytics"><div class="panel"><div class="panel-header"><h3>Bot Analytics</h3></div><div class="panel-body" id="bot-analytics"><p class="muted">No bot events yet. Event contract is defined in docs/TIGER_PLATFORM_MODULE_ARCHITECTURE.md.</p></div></div></section></main><script src="js/bot.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Bot</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .module-tabs,.brain-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+    .hidden{display:none!important}
+    .builder-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px}
+    .brain-nav{display:flex;flex-direction:column;gap:7px;position:sticky;top:12px;align-self:start}
+    .brain-nav .btn{text-align:left;justify-content:flex-start}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .form-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .field label{display:block;margin-bottom:6px}
+    .check-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+    .check-row:last-child{border-bottom:0}
+    .policy-note{padding:12px;border:1px solid #d8dee8;border-radius:8px;background:#f8fafc;margin-top:12px}
+    .status-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .status-tile{padding:12px;border:1px solid #d8dee8;border-radius:8px;background:#fff}
+    .status-tile strong{display:block;font-size:13px}.status-tile span{font-size:12px;color:#667085}
+    @media(max-width:900px){.builder-grid{grid-template-columns:1fr}.brain-nav{position:static;flex-direction:row;flex-wrap:wrap}.form-grid,.form-grid-3,.status-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <div class="brand">
+      <a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <span class="brand-name">TIGER Bot</span>
+      <span class="eyebrow">Private Draft</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="module-tabs">
+    <a class="btn" href="profit-analytics.html">Profit OS</a>
+    <a class="btn" href="analytics.html">Funnel Analytics</a>
+    <button class="btn btn-primary" data-tab="builder">Builder</button>
+    <button class="btn" data-tab="analytics">Analytics</button>
+    <a class="btn" href="popups.html">Popups</a>
+  </div>
+
+  <section data-panel="builder">
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header"><h3>Sales brain status</h3><span class="eyebrow">NOT DEPLOYED</span></div>
+      <div class="panel-body">
+        <div class="status-grid">
+          <div class="status-tile"><strong>Default role</strong><span>Sales</span></div>
+          <div class="status-tile"><strong>Specialists</strong><span>Support · Retention · Risk · Security</span></div>
+          <div class="status-tile"><strong>Offers</strong><span>Deterministic policy only</span></div>
+          <div class="status-tile"><strong>Storefront runtime</strong><span>Disabled on this branch</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="builder-grid">
+      <aside class="panel brain-nav" aria-label="Bot configuration sections">
+        <button class="btn btn-primary" data-brain-tab="overview">Overview</button>
+        <button class="btn" data-brain-tab="routing">Brain / Routing</button>
+        <button class="btn" data-brain-tab="playbook">Sales Playbook</button>
+        <button class="btn" data-brain-tab="offers">Offers & Coupons</button>
+        <button class="btn" data-brain-tab="models">Models & Experiments</button>
+        <button class="btn" data-brain-tab="crm">CRM & Memory</button>
+        <button class="btn" data-brain-tab="security">Security</button>
+      </aside>
+
+      <div>
+        <section class="panel" data-brain-panel="overview">
+          <div class="panel-header"><h3>Identity & placement</h3></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field"><label class="eyebrow" for="bot-name">Assistant name</label><input class="input" id="bot-name" placeholder="TIGER Sales Assistant"></div>
+              <div class="field"><label class="eyebrow" for="bot-label">Transparent label</label><input class="input" id="bot-label" value="Digital sales assistant"></div>
+              <div class="field"><label class="eyebrow" for="bot-welcome">Welcome message</label><textarea class="input" id="bot-welcome" rows="4" placeholder="What can I help you choose today?"></textarea></div>
+              <div class="field"><label class="eyebrow" for="bot-placement">Placement</label><select class="select" id="bot-placement"><option value="all-funnels">All funnel pages</option><option value="selected-funnel">Selected funnel</option><option value="selected-steps">Selected steps</option><option value="product-pages">Selected product pages</option></select></div>
+            </div>
+            <div class="policy-note"><strong>Trust rule:</strong> natural/humanized language is allowed, but the assistant must not falsely claim to be a human or falsely deny being AI when asked.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="routing">
+          <div class="panel-header"><h3>Brain / routing</h3></div>
+          <div class="panel-body">
+            <div class="check-row"><input type="checkbox" id="route-sales" checked disabled><div><strong>Sales is the default route</strong><div class="muted">Product, funnel and cart questions stay with the sales agent unless a higher-priority route applies.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="route-support" checked><div><strong>Support specialist</strong><div class="muted">Order status, delivery, refund and active service issues. Selling is blocked while an unresolved complaint is active.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="route-retention" checked><div><strong>Retention specialist</strong><div class="muted">Returning/VIP customer with purchase intent or a relevant repeat-purchase opportunity.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="route-risk" checked><div><strong>Risk / dispute specialist</strong><div class="muted">Chargeback or legal-risk conversation. Legal threats can require human escalation.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="route-security" checked disabled><div><strong>Security gate</strong><div class="muted">Prompt injection, API extraction, off-topic abuse and scope violations run before all agents.</div></div></div>
+            <div class="policy-note">Routing precedence: <strong>Security → Risk → Support → Retention → Sales</strong>. The model can suggest intent but cannot override deterministic access/tool boundaries.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="playbook">
+          <div class="panel-header"><h3>Sales playbook</h3></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field"><label class="eyebrow">Sales stages</label><textarea class="input" id="sales-stages" rows="5">DISCOVER
+QUALIFY
+RECOMMEND
+OBJECTION
+OFFER
+CLOSE
+FOLLOW_UP</textarea></div>
+              <div class="field"><label class="eyebrow">Method library</label><textarea class="input" id="sales-methods" rows="5">SPIN Selling
+Cialdini / Influence
+Cashvertising
+Dan Kennedy direct response
+Gap Selling
+Never Split the Difference
+The Challenger Sale</textarea></div>
+            </div>
+            <div class="policy-note">The system stores compact principles and approved examples, not copied book text. Product truth and store policy outrank persuasion playbooks.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="offers">
+          <div class="panel-header"><h3>Offers & coupons</h3></div>
+          <div class="panel-body">
+            <div class="form-grid-3">
+              <div class="field"><label class="eyebrow" for="discount-first">First save offer %</label><input class="input" id="discount-first" type="number" min="0" max="100" value="5"></div>
+              <div class="field"><label class="eyebrow" for="discount-second">Second save offer %</label><input class="input" id="discount-second" type="number" min="0" max="100" value="10"></div>
+              <div class="field"><label class="eyebrow" for="discount-max">Absolute max %</label><input class="input" id="discount-max" type="number" min="0" max="100" value="10"></div>
+              <div class="field"><label class="eyebrow" for="discount-first-msgs">Min messages before first offer</label><input class="input" id="discount-first-msgs" type="number" min="0" value="3"></div>
+              <div class="field"><label class="eyebrow" for="discount-second-msgs">Min messages before second offer</label><input class="input" id="discount-second-msgs" type="number" min="0" value="5"></div>
+              <div class="field"><label class="eyebrow" for="margin-floor">Minimum contribution margin ₪</label><input class="input" id="margin-floor" type="number" min="0" placeholder="Configured from Profit OS"></div>
+            </div>
+            <div class="policy-note"><strong>Fail closed:</strong> no unit economics = no automatic discount. The LLM never sees the coupon pool and cannot invent a code. A server tool allocates a code only after an approved offer authorization.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="models">
+          <div class="panel-header"><h3>Models & experiments</h3></div>
+          <div class="panel-body">
+            <p class="muted">Traffic is sticky per eligible visitor/conversation. All variants must total 100% and share the same knowledge, tools and offer policy for a fair comparison.</p>
+            <div class="form-grid">
+              <div class="field"><label class="eyebrow">Variant A</label><input class="input model-provider" placeholder="provider / model"><input class="input model-weight" type="number" min="0" max="100" value="50" style="margin-top:6px"></div>
+              <div class="field"><label class="eyebrow">Variant B</label><input class="input model-provider" placeholder="provider / model"><input class="input model-weight" type="number" min="0" max="100" value="50" style="margin-top:6px"></div>
+            </div>
+            <p class="muted" id="model-weight-status">Traffic allocation: 100%</p>
+            <div class="policy-note">Core metrics: purchase conversion, assisted revenue, contribution profit, AI cost, profit after AI cost, latency p50/p95, handoff/error rate and sample size.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="crm">
+          <div class="panel-header"><h3>CRM & memory</h3></div>
+          <div class="panel-body">
+            <div class="check-row"><input type="checkbox" id="crm-progressive" checked><div><strong>Progressive profiling</strong><div class="muted">Deliver value before asking for contact fields.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="crm-email" checked><div><strong>Email capture</strong><div class="muted">Ask when it unlocks a real benefit such as saved recommendation, cart, coupon or order update.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="crm-phone"><div><strong>Phone capture</strong><div class="muted">Only for explicit callback/follow-up need or opted-in channel.</div></div></div>
+            <div class="check-row"><input type="checkbox" id="crm-attribution" checked disabled><div><strong>Automatic attribution</strong><div class="muted">UTM/referrer/funnel context should be captured automatically rather than asked when already known.</div></div></div>
+            <div class="policy-note">CRM facts need provenance/confidence. Do not save guesses as facts, and do not proactively ask age unless a legitimate product/compliance need requires it.</div>
+          </div>
+        </section>
+
+        <section class="panel hidden" data-brain-panel="security">
+          <div class="panel-header"><h3>Security & abuse controls</h3></div>
+          <div class="panel-body">
+            <div class="form-grid-3">
+              <div class="field"><label class="eyebrow">Messages / 5 min</label><input class="input" id="sec-msg-5m" type="number" min="1" value="20"></div>
+              <div class="field"><label class="eyebrow">Messages / hour</label><input class="input" id="sec-msg-hour" type="number" min="1" value="60"></div>
+              <div class="field"><label class="eyebrow">Max user chars / message</label><input class="input" id="sec-max-chars" type="number" min="100" value="4000"></div>
+            </div>
+            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Least-privilege tools</strong><div class="muted">Sales, Support, Retention and Risk receive different server-side tool allowlists.</div></div></div>
+            <div class="check-row"><input type="checkbox" checked disabled><div><strong>No secrets in prompt/browser</strong><div class="muted">System prompt is not a security boundary; API keys, margins and raw coupon inventory stay server-side.</div></div></div>
+            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Verified order access</strong><div class="muted">Knowing an order number alone is not sufficient to expose customer/order details.</div></div></div>
+            <div class="check-row"><input type="checkbox" checked disabled><div><strong>Cost / loop limits</strong><div class="muted">Provider calls, tool loops and retries must have hard bounded budgets.</div></div></div>
+          </div>
+        </section>
+
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="btn-bot-save">Save local draft</button>
+          <span class="muted" id="bot-save-status">Configuration is staging-only. Nothing is injected into the storefront.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hidden" data-panel="analytics">
+    <div class="panel">
+      <div class="panel-header"><h3>Bot Analytics</h3></div>
+      <div class="panel-body" id="bot-analytics">
+        <p class="muted">No production bot events yet. The expanded event contract and model A/B/n metrics are defined in <code>docs/TIGER_BOT_SALES_BRAIN_ARCHITECTURE.md</code>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="js/bot.js"></script>
+</body>
+</html>
