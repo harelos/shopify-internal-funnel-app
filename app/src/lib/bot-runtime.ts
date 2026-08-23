@@ -2,6 +2,7 @@ import { buildBotDecisionPlan } from "./bot-orchestrator.js";
 import type { BotConfigurationDraft } from "./bot-config-contract.js";
 import { callBotProvider, type BotChatTurn, type BotProviderResult } from "./bot-provider.js";
 import { buildBotSystemPrompt, type BotPageContext } from "./bot-prompt.js";
+import { enforceBotOutputPolicy } from "./bot-output-policy.js";
 import {
   appendConversationMessage,
   loadConversationMessages,
@@ -34,6 +35,7 @@ export interface BotRuntimeOutput {
   discount: ReturnType<typeof buildBotDecisionPlan>["discount"];
   nextLeadField: ReturnType<typeof buildBotDecisionPlan>["nextLeadField"];
   allowedTools: readonly string[];
+  outputRedacted: boolean;
 }
 
 const HEBREW = {
@@ -168,6 +170,7 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
       discount: plan.discount,
       nextLeadField: plan.nextLeadField,
       allowedTools: plan.allowedTools,
+      outputRedacted: false,
     };
   }
 
@@ -208,10 +211,11 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     throw error;
   }
 
+  const safe = enforceBotOutputPolicy(providerResult.text, plan.discount);
   await appendConversationMessage(input.shopDomain, {
     conversationId,
     role: "assistant",
-    content: providerResult.text,
+    content: safe.text,
     route: plan.route.role,
     provider: providerResult.provider,
     model: providerResult.model,
@@ -227,11 +231,13 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     inputTokens: providerResult.usage.inputTokens,
     outputTokens: providerResult.usage.outputTokens,
     discountAction: plan.discount.action,
+    outputRedacted: safe.redacted,
+    blockedUnauthorizedOffer: safe.blockedUnauthorizedOffer,
   }, conversationId);
 
   return {
     conversationId,
-    reply: providerResult.text,
+    reply: safe.text,
     route: plan.route.role,
     routeReason: plan.route.reason,
     model: { provider: providerResult.provider, model: providerResult.model },
@@ -240,5 +246,6 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     discount: plan.discount,
     nextLeadField: plan.nextLeadField,
     allowedTools: plan.allowedTools,
+    outputRedacted: safe.redacted,
   };
 }
