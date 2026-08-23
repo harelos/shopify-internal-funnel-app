@@ -39,6 +39,13 @@ jobs:
       - name: Validate Prisma schema
         run: npm run db:validate
 
+      - name: Admin JavaScript syntax
+        run: |
+          node --check admin/js/api.js
+          node --check admin/js/bot.js
+          node --check admin/js/popups.js
+          node --check admin/js/profit-analytics.js
+
       - name: TypeScript build
         run: npm run build
 
