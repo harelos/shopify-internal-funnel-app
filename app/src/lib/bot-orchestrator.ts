@@ -51,6 +51,7 @@ export interface BotDecisionPlanInput {
   profile?: LeadProfileState;
   leadContext?: LeadCaptureContext;
   models: ModelVariant[];
+  modelVariantOverride?: ModelVariant;
   discountPolicy?: DiscountPolicy;
   routingPolicy?: BotRoutingPolicy;
 }
@@ -91,7 +92,7 @@ export function buildBotDecisionPlan(input: BotDecisionPlanInput): BotDecisionPl
     : { action: "NO_OFFER", reason: "SALES_NOT_ALLOWED_IN_CURRENT_ROUTE" } as const;
   const salesStage = deriveSalesStage(route, input.signals, discount);
   const leadField = nextLeadField(input.profile || {}, input.leadContext || { customerMessages: input.signals.customerMessages });
-  const modelVariant = assignModelVariant(input.visitorKey, input.models);
+  const modelVariant = input.modelVariantOverride || assignModelVariant(input.visitorKey, input.models);
   const allowedTools = toolsForRole(route.role);
 
   return {
