@@ -4,6 +4,7 @@
   const VERSION = 1;
   const VISITOR_TOKEN_KEY = "_tiger_popup_visitor_token_v1";
   const SESSION_TOKEN_KEY = "_tiger_popup_session_token_v1";
+  const SESSION_COOKIE_KEY = "_tiger_popup_session_v1";
   const ACQUISITION_KEY = "_tiger_popup_acquisition_v1";
   const LANDING_KEY = "_tiger_popup_landing_v1";
   const RETURNING_KEY = "_tiger_popup_seen_v1";
@@ -62,6 +63,15 @@
     } catch (_) {
       return String(raw).split(/[?#]/, 1)[0].slice(0, max) || null;
     }
+  }
+
+  function writeSessionCookie(token) {
+    const clean = bounded(token, 3500);
+    if (!clean) return;
+    try {
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${SESSION_COOKIE_KEY}=${encodeURIComponent(clean)}; Path=/; SameSite=Lax${secure}`;
+    } catch (_) {}
   }
 
   function parseJson(value, fallback) {
@@ -182,8 +192,6 @@
       : "unknown";
 
     return {
-      // Deliberately omit arbitrary query strings. Known acquisition parameters
-      // are captured separately below, preventing accidental email/phone/PII capture.
       pageUrl: minimizedUrl(window.location.href, 1600),
       pagePath: bounded(window.location.pathname || "/", 800) || "/",
       landingPath: landingPath(),
@@ -285,6 +293,7 @@
     };
     local.set(VISITOR_TOKEN_KEY, response.visitorToken);
     session.set(SESSION_TOKEN_KEY, response.sessionToken);
+    writeSessionCookie(response.sessionToken);
     notify();
     return identity;
   }
@@ -299,6 +308,14 @@
     serverContextAt = Date.now();
     notify();
     return response;
+  }
+
+  async function assign(campaignKey) {
+    if (!identity || !identity.sessionToken) await bootstrap();
+    return post("/attribution/assign", {
+      sessionToken: identity.sessionToken,
+      campaignKey: bounded(campaignKey, 120),
+    });
   }
 
   function current() {
@@ -324,7 +341,6 @@
       await refresh();
       return true;
     } catch (error) {
-      // Context failure must never block the storefront or popup close paths.
       serverContext = { ok: false, error: String(error && error.message ? error.message : error), runtimeUnavailable: true };
       serverContextAt = Date.now();
       notify();
@@ -373,6 +389,7 @@
     current,
     refresh,
     bootstrap,
+    assign,
     subscribe,
   });
 })();
