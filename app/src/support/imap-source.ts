@@ -194,7 +194,7 @@ export class ImapSupportMailboxSource {
           if (item.size && item.size > this.config.maxSourceBytes) continue;
 
           const full = await client.fetchOne(uid, { source: true, envelope: true, internalDate: true }, { uid: true });
-          if (!full?.source) continue;
+          if (full === false || !full.source) continue;
 
           const raw = Buffer.isBuffer(full.source) ? full.source : Buffer.from(full.source);
           if (raw.byteLength > this.config.maxSourceBytes) continue;
