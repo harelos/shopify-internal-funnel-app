@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const adminRoot = path.resolve(here, "../admin");
+const storefrontRoot = path.resolve(here, "../storefront");
 const port = Number(process.env.POPUP_PREVIEW_PORT || 4174);
 
 const campaign = {
@@ -51,6 +52,13 @@ function consumeJson(req) {
   });
 }
 
+function serveFile(res, filePath, root) {
+  if (!filePath.startsWith(`${root}${path.sep}`) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) return false;
+  res.writeHead(200, { "Content-Type": contentType(filePath), "Cache-Control": "no-store" });
+  fs.createReadStream(filePath).pipe(res);
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
 
@@ -67,14 +75,18 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { result: { eligible: true, reason: "eligible", variant: selected, assignmentBucket: 2048 }, campaignKey: body?.campaign?.key || campaign.key, experimentVersion: 1, simulatorOnly: true, runtime });
   }
 
+  if (url.pathname.startsWith("/popup-runtime/assets/")) {
+    const relative = url.pathname.slice("/popup-runtime/assets/".length);
+    const asset = path.resolve(storefrontRoot, relative);
+    if (serveFile(res, asset, storefrontRoot)) return;
+  }
+
   const requested = url.pathname === "/" ? "/popups.html" : url.pathname;
   const filePath = path.resolve(adminRoot, `.${requested}`);
-  if (!filePath.startsWith(`${adminRoot}${path.sep}`) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-    return res.end("Not found");
-  }
-  res.writeHead(200, { "Content-Type": contentType(filePath), "Cache-Control": "no-store" });
-  fs.createReadStream(filePath).pipe(res);
+  if (serveFile(res, filePath, adminRoot)) return;
+
+  res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Not found");
 });
 
 server.listen(port, "127.0.0.1", () => {
