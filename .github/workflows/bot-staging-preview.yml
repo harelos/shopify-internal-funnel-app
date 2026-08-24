@@ -71,30 +71,65 @@ jobs:
           cat /tmp/tiger-bot-staging-app.log
           exit 1
 
-      - name: Install Cloudflare tunnel client
-        working-directory: /
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-          chmod +x /tmp/cloudflared
-
       - name: Open temporary public staging URL
         working-directory: /
         run: |
-          /tmp/cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate >/tmp/tiger-bot-tunnel.log 2>&1 &
-          echo $! >/tmp/tiger-bot-tunnel.pid
+          set -e
           URL=""
-          for i in $(seq 1 45); do
-            URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' /tmp/tiger-bot-tunnel.log | head -1 || true)
+
+          # Primary tunnel: localhost.run. This avoids the intermittent DNS issue
+          # observed with Quick Tunnels on some mobile networks/Safari resolvers.
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
+            -R 80:localhost:3000 nokey@localhost.run >/tmp/tiger-bot-localhost-run.log 2>&1 &
+          echo $! >/tmp/tiger-bot-tunnel.pid
+
+          for i in $(seq 1 35); do
+            URL=$(grep -Eo 'https://[-a-zA-Z0-9.]+\.(lhr\.life|localhost\.run)' /tmp/tiger-bot-localhost-run.log | head -1 || true)
             if [ -n "$URL" ]; then break; fi
             sleep 1
           done
+
+          # Fallback to Cloudflare Quick Tunnel if localhost.run did not return a URL.
           if [ -z "$URL" ]; then
-            cat /tmp/tiger-bot-tunnel.log
+            kill "$(cat /tmp/tiger-bot-tunnel.pid)" 2>/dev/null || true
+            curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+            chmod +x /tmp/cloudflared
+            /tmp/cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate >/tmp/tiger-bot-cloudflare.log 2>&1 &
+            echo $! >/tmp/tiger-bot-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' /tmp/tiger-bot-cloudflare.log | head -1 || true)
+              if [ -n "$URL" ]; then break; fi
+              sleep 1
+            done
+          fi
+
+          if [ -z "$URL" ]; then
+            echo "No public tunnel URL was created."
+            cat /tmp/tiger-bot-localhost-run.log || true
+            cat /tmp/tiger-bot-cloudflare.log || true
             exit 1
           fi
+
+          TEST_PAGE="$URL/admin/bot-live-test.html"
+
+          # External smoke test. Do not publish a URL unless the page actually resolves
+          # and returns successfully from the public internet.
+          OK=""
+          for i in $(seq 1 30); do
+            if curl -LfsS --max-time 10 "$TEST_PAGE" | grep -q 'TIGER Bot Staging'; then
+              OK=1
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$OK" ]; then
+            echo "Public staging URL failed external smoke test: $TEST_PAGE"
+            exit 1
+          fi
+
           echo "BOT_STAGING_BASE_URL=$URL" >> "$GITHUB_ENV"
-          echo "BOT_STAGING_TEST_PAGE=$URL/admin/bot-live-test.html" >> "$GITHUB_ENV"
-          echo "BOT_STAGING_TEST_PAGE=$URL/admin/bot-live-test.html"
+          echo "BOT_STAGING_TEST_PAGE=$TEST_PAGE" >> "$GITHUB_ENV"
+          echo "BOT_STAGING_TEST_PAGE=$TEST_PAGE"
 
       - name: Publish staging link to PR
         if: github.event_name == 'pull_request'
@@ -103,7 +138,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          BODY="Temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nThis preview uses the real TIGER bot routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
+          BODY="Verified temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nThe workflow performed an external HTTP smoke test before publishing this URL. This preview uses the real TIGER routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
           gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
           echo "$BODY"
 
