@@ -9,7 +9,7 @@ import {
 } from "../src/lib/popup-session-context.js";
 
 const INSTAGRAM_ANDROID_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36 Instagram 340.0.0.0";
-const FACEBOOK_IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS;FBAV/500.0.0.0]";
+const FACEBOOK_IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1 [FBAN/FBIOS;FBAV/500.0.0.0]";
 
 function base(overrides: Record<string, unknown> = {}) {
   return {
