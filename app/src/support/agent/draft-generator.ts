@@ -22,18 +22,21 @@ export function deterministicDraft(intent: SupportIntent, facts: SupportAgentFac
         return "היי, אשמח לבדוק. כדי לאתר את ההזמנה אני צריך/ה את מספר ההזמנה או את כתובת האימייל ששימשה ברכישה.";
       case "shipping_policy":
         return facts.knowledge?.shippingPolicyKnown
-          ? "היי, אפשר לענות על זמני/תנאי המשלוח רק לפי מדיניות המשלוחים המאושרת של החנות. המערכת מצאה מקור מדיניות זמין לטיוטה."
+          ? "היי, קיימת במערכת מדיניות משלוחים מאושרת. התשובה תיבנה רק מהעובדות המאושרות שבה, בלי להמציא זמני מסירה או תנאים."
           : "היי, אני רוצה לוודא שאני נותן/ת לך מידע מדויק. מדיניות המשלוחים המאושרת לא זמינה כרגע, ולכן אני מעביר/ה את השאלה לבדיקה במקום לנחש.";
       case "product_usage":
         return facts.knowledge?.productUsageKnown
           ? "היי, יש לי הוראות שימוש מאושרות למוצר ואני יכול/ה לנסח מהן תשובה מדויקת."
           : "היי, אני רוצה לתת לך הוראות שימוש מדויקות. כרגע אין למערכת מקור מוצר מאושר מספיק, ולכן אני מעביר/ה לבדיקה ולא מנחש/ת.";
       case "shade_recommendation":
+        return facts.knowledge?.shadeGuidanceKnown
+          ? "היי, יש למערכת הנחיות גוון מאושרות למוצר וניתן לבנות מהן המלצה בלי להמציא התאמה."
+          : "היי, כדי להמליץ על גוון נכון אני צריך/ה להסתמך על הנחיות גוון מאושרות. כרגע אין לי מקור כזה ולכן אני מעביר/ה לבדיקה.";
       case "product_recommendation":
       case "product_question":
         return facts.knowledge?.productFactsKnown
           ? "היי, יש למערכת נתוני מוצר מאושרים וניתן לבנות מהם המלצה/תשובה בלי להמציא פרטים."
-          : "היי, כדי להמליץ נכון אני צריך/ה להסתמך על נתוני המוצר המאושרים. כרגע חסר לי מקור כזה ולכן אני מעביר/ה לבדיקה.";
+          : "היי, כדי לענות נכון אני צריך/ה להסתמך על נתוני המוצר המאושרים. כרגע חסר לי מקור כזה ולכן אני מעביר/ה לבדיקה.";
       case "stock_request":
         return facts.knowledge?.stockKnown
           ? "היי, זמינות המוצר נבדקה מול מקור מלאי מאושר וניתן לנסח ממנה תשובה."
@@ -48,6 +51,16 @@ export function deterministicDraft(intent: SupportIntent, facts: SupportAgentFac
         return `היי, קיבלתי את בקשת השינוי להזמנה${orderLabel(facts)}. השינוי עדיין לא בוצע והוא ממתין לבדיקה ואישור.`;
       case "return_request":
         return `היי, קיבלתי את בקשת ההחזרה${orderLabel(facts)}. צריך לבדוק את ההזמנה מול מדיניות ההחזרות המאושרת לפני פתיחת החזרה.`;
+      case "exchange_request":
+        return `היי, קיבלתי את בקשת ההחלפה${orderLabel(facts)}. צריך לבדוק את ההזמנה ומדיניות ההחלפות לפני פתיחת החלפה; כרגע לא בוצע שינוי בהזמנה.`;
+      case "return_status":
+        return facts.knowledge?.returnStatusKnown
+          ? `היי, מצאתי מקור מאומת לסטטוס ההחזרה${orderLabel(facts)} וניתן לנסח ממנו עדכון.`
+          : `היי, כדי לעדכן על סטטוס ההחזרה${orderLabel(facts)} אני צריך/ה מקור החזרות מאומת. כרגע אין לי כזה ולכן אני לא מנחש/ת סטטוס.`;
+      case "exchange_status":
+        return facts.knowledge?.returnStatusKnown
+          ? `היי, מצאתי מקור מאומת לסטטוס ההחלפה${orderLabel(facts)} וניתן לנסח ממנו עדכון.`
+          : `היי, כדי לעדכן על סטטוס ההחלפה${orderLabel(facts)} אני צריך/ה מקור החלפות מאומת. כרגע אין לי כזה ולכן אני לא מנחש/ת סטטוס.`;
       case "refund_request":
         return `היי, קיבלתי את בקשת ההחזר${orderLabel(facts)}. לא בוצע החזר אוטומטי; הבקשה ממתינה לבדיקה ואישור לפי נתוני ההזמנה והמדיניות.`;
       case "refund_status":
@@ -58,6 +71,8 @@ export function deterministicDraft(intent: SupportIntent, facts: SupportAgentFac
       case "wrong_missing_item":
       case "delivery_issue":
         return `היי, קיבלתי את פרטי הבעיה${orderLabel(facts)}. המקרה דורש בדיקה לפני החלטה על החלפה, משלוח מחדש או החזר; כרגע לא בוצעה שום פעולה כספית או שינוי בהזמנה.`;
+      case "feedback":
+        return "תודה על הפידבק. הוא נשמר כמשוב לשיפור, בלי לבצע שינוי אוטומטי בהזמנה או בחשבון.";
       default:
         return null;
     }
@@ -70,6 +85,8 @@ export function deterministicDraft(intent: SupportIntent, facts: SupportAgentFac
       return "I can check this for you. Please send the order number or the email used for the purchase.";
     case "discount_request":
       return "Discounts are issued only through the store's authorized offer engine. I can't invent a coupon or discount percentage.";
+    case "feedback":
+      return "Thanks for the feedback. It can be recorded for review without making any automatic change to the order or customer account.";
     default:
       return "I can prepare a response from verified Shopify data, approved knowledge, and deterministic store rules. No customer-facing action has been taken.";
   }
