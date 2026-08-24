@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Popup Safety Harness</title>
+  <link rel="stylesheet" href="css/popups.css">
+</head>
+<body>
+  <main id="result">running</main>
+  <script src="js/popup-preview-runtime.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const result = window.TigerPopupPreview.safetySelfTest();
+      document.body.dataset.popupSafetySelfTest = result.pass ? "pass" : "fail";
+      document.getElementById("result").textContent = JSON.stringify(result);
+    });
+  </script>
+</body>
+</html>
