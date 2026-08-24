@@ -1,10 +1,12 @@
 import { supportFixtureMessages } from "./fixture-source.js";
+import { ImapSupportMailboxSource, type SupportMailboxProbe } from "./imap-source.js";
 import type { SupportConfig } from "./config.js";
 import type { SupportMessageInput } from "./types.js";
 
 export interface SupportMailboxSource {
   readonly name: string;
   readRecent(limit: number): Promise<SupportMessageInput[]>;
+  probe(): Promise<SupportMailboxProbe | { source: "FIXTURE"; mailbox: "fixture"; messageCount: number; readOnly: true }>;
 }
 
 class FixtureMailboxSource implements SupportMailboxSource {
@@ -17,19 +19,18 @@ class FixtureMailboxSource implements SupportMailboxSource {
       .sort((a, b) => b.sentAt.getTime() - a.sentAt.getTime())
       .slice(0, limit);
   }
-}
 
-class UnwiredImapMailboxSource implements SupportMailboxSource {
-  readonly name = "IMAP";
-
-  async readRecent(_limit: number): Promise<SupportMessageInput[]> {
-    throw new Error(
-      "Namecheap IMAP is intentionally unwired in this staging slice. Add the audited read-only IMAPS adapter before setting SUPPORT_SYNC_SOURCE=imap.",
-    );
+  async probe() {
+    return {
+      source: "FIXTURE" as const,
+      mailbox: "fixture" as const,
+      messageCount: supportFixtureMessages(this.mailboxAddress).length,
+      readOnly: true as const,
+    };
   }
 }
 
 export function supportMailboxSource(config: SupportConfig): SupportMailboxSource {
-  if (config.syncSource === "imap") return new UnwiredImapMailboxSource();
+  if (config.syncSource === "imap") return new ImapSupportMailboxSource(config);
   return new FixtureMailboxSource(config.mailboxAddress);
 }
