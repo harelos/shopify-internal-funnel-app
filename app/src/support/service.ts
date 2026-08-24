@@ -1,6 +1,6 @@
 import prisma from "../lib/db.js";
 import { assertSupportStagingEnabled, getSupportConfig } from "./config.js";
-import { supportFixtureMessages } from "./fixture-source.js";
+import { supportMailboxSource } from "./mailbox-source.js";
 import { buildSupportThreads } from "./threading.js";
 import type { SupportMessageInput, SupportThreadInput } from "./types.js";
 
@@ -10,6 +10,15 @@ function normalizeAddress(address: string): string {
 
 function directionFor(message: SupportMessageInput, mailboxAddress: string): "INBOUND" | "OUTBOUND" {
   return normalizeAddress(message.from) === normalizeAddress(mailboxAddress) ? "OUTBOUND" : "INBOUND";
+}
+
+function parseJsonArray(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
 }
 
 async function persistThread(thread: SupportThreadInput, mailboxAddress: string, source: string): Promise<void> {
@@ -79,18 +88,15 @@ export async function syncSupportStaging(): Promise<{ source: string; messages: 
   const config = getSupportConfig();
   assertSupportStagingEnabled(config);
 
-  if (config.syncSource !== "fixture") {
-    throw new Error("IMAP sync is not enabled in Phase 1 yet. Keep SUPPORT_SYNC_SOURCE=fixture until the read-only Namecheap adapter is wired.");
-  }
-
-  const messages = supportFixtureMessages(config.mailboxAddress).slice(0, config.syncLimit);
+  const source = supportMailboxSource(config);
+  const messages = await source.readRecent(config.syncLimit);
   const threads = buildSupportThreads(messages);
 
   for (const thread of threads) {
-    await persistThread(thread, config.mailboxAddress, "FIXTURE");
+    await persistThread(thread, config.mailboxAddress, source.name);
   }
 
-  return { source: "FIXTURE", messages: messages.length, threads: threads.length };
+  return { source: source.name, messages: messages.length, threads: threads.length };
 }
 
 export async function listSupportThreads(limit = 100) {
@@ -108,7 +114,7 @@ export async function listSupportThreads(limit = 100) {
     id: row.id,
     externalKey: row.externalKey,
     subject: row.subject,
-    participants: JSON.parse(row.participantsJson || "[]"),
+    participants: parseJsonArray(row.participantsJson),
     category: row.category,
     confidence: row.confidence,
     urgency: row.urgency,
@@ -140,7 +146,7 @@ export async function getSupportThread(id: string) {
     id: row.id,
     externalKey: row.externalKey,
     subject: row.subject,
-    participants: JSON.parse(row.participantsJson || "[]"),
+    participants: parseJsonArray(row.participantsJson),
     category: row.category,
     confidence: row.confidence,
     urgency: row.urgency,
@@ -153,9 +159,9 @@ export async function getSupportThread(id: string) {
       id: message.id,
       messageId: message.messageId,
       inReplyTo: message.inReplyTo,
-      references: JSON.parse(message.referencesJson || "[]"),
+      references: parseJsonArray(message.referencesJson),
       from: message.fromAddress,
-      to: JSON.parse(message.toAddressesJson || "[]"),
+      to: parseJsonArray(message.toAddressesJson),
       subject: message.subject,
       direction: message.direction,
       sentAt: message.sentAt,
