@@ -138,7 +138,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
           var utm_campaign = urlParams.get("utm_campaign") || "";
           var ua = navigator.userAgent || "";
           var metaEnvironment = /Instagram/i.test(ua) ? "INSTAGRAM_IN_APP" : /(FBAN|FBAV|FB_IAB)/i.test(ua) ? "FACEBOOK_IN_APP" : "OTHER";
-          var browserFamily = /CriOS/i.test(ua) ? "CHROME_IOS" : /Chrome\//i.test(ua) ? "CHROME" : /Safari\//i.test(ua) && !/Chrome|CriOS|Android/i.test(ua) ? "SAFARI" : /SamsungBrowser/i.test(ua) ? "SAMSUNG_INTERNET" : "OTHER";
+          var browserFamily = /SamsungBrowser/i.test(ua) ? "SAMSUNG_INTERNET" : /CriOS/i.test(ua) ? "CHROME_IOS" : /Chrome\//i.test(ua) ? "CHROME" : /Safari\//i.test(ua) && !/Chrome|CriOS|Android/i.test(ua) ? "SAFARI" : "OTHER";
           var telemetryPayload = {
             sessionId: commerceSession.id,
             sessionStartedAt: new Date(Number(commerceSession.startedAt)).toISOString(),
