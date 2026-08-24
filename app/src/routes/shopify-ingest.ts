@@ -329,7 +329,11 @@ router.post("/api/shopify/pixel", async (req, res) => {
     }
 
     let popupAttribution: { linked: number; reason: string } = { linked: 0, reason: "not_attempted" };
-    if (normalized.value.checkoutToken && popupSessionToken) {
+    if (
+      normalized.value.checkoutToken &&
+      popupSessionToken &&
+      (normalized.value.name === "CART_CHECKOUT_STARTED" || normalized.value.name === "CHECKOUT_COMPLETED_OBSERVED")
+    ) {
       try {
         popupAttribution = await linkPopupCheckoutFromPixel({
           shopDomain,
