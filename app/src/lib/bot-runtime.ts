@@ -6,6 +6,9 @@ import { enforceBotOutputPolicy } from "./bot-output-policy.js";
 import { assertConversationProviderBudget, checkAndRecordMessageRate } from "./bot-guardrails.js";
 import { extractExplicitCrmFacts, persistCrmFacts } from "./bot-crm.js";
 import { resolveConversationModelAssignment } from "./bot-experiment.js";
+import { executeBotTool } from "./bot-tool-executor.js";
+import { extractOrderVerification, formatVerifiedTrackingReply, missingOrderVerificationReply } from "./bot-support-runtime.js";
+import type { BotVerifiedOrderSummary } from "./bot-shopify-tools.js";
 import {
   appendConversationMessage,
   loadConversationMessages,
@@ -26,6 +29,13 @@ export interface BotRuntimeInput {
   profile?: LeadProfileState;
   leadContext?: LeadCaptureContext;
   explicitSignals?: Partial<BotConversationSignals>;
+  sessionToken?: string;
+}
+
+export interface BotRuntimeToolTrace {
+  name: string;
+  status: "AWAITING_VERIFICATION" | "SUCCEEDED" | "FAILED" | "UNAVAILABLE";
+  errorCode?: string | null;
 }
 
 export interface BotRuntimeOutput {
@@ -43,6 +53,7 @@ export interface BotRuntimeOutput {
   allowedTools: readonly string[];
   outputRedacted: boolean;
   crmFactsCaptured: string[];
+  toolTrace: BotRuntimeToolTrace[];
 }
 
 const HEBREW = {
@@ -189,8 +200,7 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
   const crmFacts = extractExplicitCrmFacts(message, conversationId, userStored.id);
   await persistCrmFacts(input.shopDomain, crmFacts);
 
-  if (plan.route.role === "SECURITY") {
-    const reply = "אני יכולה לעזור רק בנושאים שקשורים למוצר, להזמנה או לחנות. אם יש לך שאלה כזאת, כתבי לי אותה ואעזור.";
+  const deterministicResult = async (reply: string, eventType: string, toolTrace: BotRuntimeToolTrace[] = []): Promise<BotRuntimeOutput> => {
     await appendConversationMessage(input.shopDomain, {
       conversationId,
       role: "assistant",
@@ -201,7 +211,11 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
       latencyMs: 0,
       estimatedCostUsd: 0,
     });
-    await recordBotEvent(input.shopDomain, "bot_security_block", { route: plan.route.role, reason: plan.route.reason }, conversationId);
+    await recordBotEvent(input.shopDomain, eventType, {
+      route: plan.route.role,
+      reason: plan.route.reason,
+      tools: toolTrace.map(item => ({ name: item.name, status: item.status, errorCode: item.errorCode || null })),
+    }, conversationId);
     return {
       conversationId,
       reply,
@@ -217,38 +231,72 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
       allowedTools: plan.allowedTools,
       outputRedacted: false,
       crmFactsCaptured: crmFacts.map(fact => fact.type),
+      toolTrace,
     };
+  };
+
+  if (plan.route.role === "SECURITY") {
+    return deterministicResult(
+      "אני יכולה לעזור רק בנושאים שקשורים למוצר, להזמנה או לחנות. אם יש לך שאלה כזאת, כתבי לי אותה ואעזור.",
+      "bot_security_block",
+    );
   }
 
   if (plan.safeguards.requiresHumanEscalation) {
-    const reply = deterministicHandoffReply(plan.route.role);
-    await appendConversationMessage(input.shopDomain, {
-      conversationId,
-      role: "assistant",
-      content: reply,
-      route: plan.route.role,
-      provider: plan.modelVariant.provider,
-      model: plan.modelVariant.model,
-      latencyMs: 0,
-      estimatedCostUsd: 0,
-    });
-    await recordBotEvent(input.shopDomain, "bot_human_escalation_required", { route: plan.route.role, reason: plan.route.reason }, conversationId);
-    return {
-      conversationId,
-      reply,
-      route: plan.route.role,
-      routeReason: plan.route.reason,
-      salesStage: plan.salesStage,
-      model: { provider: plan.modelVariant.provider, model: plan.modelVariant.model },
-      modelAssignmentChanged: assignment.assignmentChanged,
-      latencyMs: 0,
-      estimatedCostUsd: 0,
-      discount: plan.discount,
-      nextLeadField: plan.nextLeadField,
-      allowedTools: plan.allowedTools,
-      outputRedacted: false,
-      crmFactsCaptured: crmFacts.map(fact => fact.type),
-    };
+    return deterministicResult(deterministicHandoffReply(plan.route.role), "bot_human_escalation_required");
+  }
+
+  // Order/tracking access is handled deterministically before model prose. The
+  // customer must provide an order number plus the email or phone used on the
+  // order. Only the server-side Shopify tool can confirm the relationship.
+  if (plan.route.role === "SUPPORT" && signals.orderIssue) {
+    const verification = extractOrderVerification([
+      ...history.filter(item => item.role === "user").map(item => item.content),
+      message,
+    ]);
+    const missingReply = missingOrderVerificationReply(verification);
+    if (missingReply) {
+      return deterministicResult(missingReply, "bot_order_verification_requested", [
+        { name: "tracking.read_scoped", status: "AWAITING_VERIFICATION" },
+      ]);
+    }
+
+    try {
+      const verified = await executeBotTool(
+        "tracking.read_scoped",
+        { orderName: verification.orderName, email: verification.email, phone: verification.phone },
+        {
+          role: "SUPPORT",
+          conversationId,
+          discount: plan.discount,
+          sessionToken: input.sessionToken,
+        },
+      ) as BotVerifiedOrderSummary;
+      return deterministicResult(formatVerifiedTrackingReply(verified), "bot_verified_tracking_read", [
+        { name: "tracking.read_scoped", status: "SUCCEEDED" },
+      ]);
+    } catch (error: any) {
+      const rawMessage = String(error?.message || "");
+      const verificationFailure = /order not found|verification failed|valid order number|required before order access/i.test(rawMessage);
+      const unavailable = /live shopify connection is disabled|access token|required for token exchange|network request failed|shopify admin api/i.test(rawMessage);
+      const trace: BotRuntimeToolTrace = {
+        name: "tracking.read_scoped",
+        status: unavailable ? "UNAVAILABLE" : "FAILED",
+        errorCode: unavailable ? "AUTHORITATIVE_SOURCE_UNAVAILABLE" : "ORDER_VERIFICATION_FAILED",
+      };
+      if (verificationFailure) {
+        return deterministicResult(
+          "לא הצלחתי לאמת את ההזמנה עם הפרטים האלה. בדקי שמספר ההזמנה והאימייל או הטלפון הם בדיוק אלה ששימשו בהזמנה, ונסי שוב.",
+          "bot_order_verification_failed",
+          [trace],
+        );
+      }
+      return deterministicResult(
+        "אני לא מצליחה כרגע לבצע אימות מול מערכת ההזמנות, ולכן אני לא רוצה לנחש סטטוס או זמן הגעה. אפשר לנסות שוב מעט מאוחר יותר או להעביר את הבקשה לטיפול אנושי.",
+        "bot_order_source_unavailable",
+        [trace],
+      );
+    }
   }
 
   await assertConversationProviderBudget(input.shopDomain, conversationId);
@@ -331,5 +379,6 @@ export async function runBotTurn(input: BotRuntimeInput): Promise<BotRuntimeOutp
     allowedTools: plan.allowedTools,
     outputRedacted: safe.redacted,
     crmFactsCaptured: crmFacts.map(fact => fact.type),
+    toolTrace: [],
   };
 }
