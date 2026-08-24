@@ -11,6 +11,7 @@ export type SupportSkill = {
 const readOrder = (reason: string): SupportToolPlanItem => ({ tool: "READ_SHOPIFY_ORDER", mode: "READ", reason });
 const readPolicy = (reason: string): SupportToolPlanItem => ({ tool: "READ_STORE_POLICY", mode: "READ", reason });
 const readProduct = (reason: string): SupportToolPlanItem => ({ tool: "READ_PRODUCT_FACTS", mode: "READ", reason });
+const readReturnStatus = (reason: string): SupportToolPlanItem => ({ tool: "READ_RETURN_STATUS", mode: "READ", reason });
 
 export const supportSkills: SupportSkill[] = [
   {
@@ -61,6 +62,27 @@ export const supportSkills: SupportSkill[] = [
     patterns: [/change.*order/i, /remove.*item/i, /change.*item/i, /לשנות.*הזמנה/i, /להחליף.*בהזמנה/i],
     baseConfidence: 0.84,
     defaultTools: [readOrder("Order edits depend on current fulfillment state."), { tool: "PROPOSE_ORDER_EDIT", mode: "PROPOSE_WRITE", reason: "Order edits are never executed by the draft engine." }],
+  },
+  {
+    intent: "return_status",
+    description: "Customer asks for the status of an existing return.",
+    patterns: [/return status/i, /where.*return/i, /status.*return/i, /סטטוס.*החזרה/i, /מה קורה.*החזרה/i],
+    baseConfidence: 0.88,
+    defaultTools: [readOrder("Confirm the associated order."), readReturnStatus("Return progress must come from an approved returns source.")],
+  },
+  {
+    intent: "exchange_status",
+    description: "Customer asks for the status of an existing exchange.",
+    patterns: [/exchange status/i, /where.*exchange/i, /status.*exchange/i, /סטטוס.*החלפה/i, /מה קורה.*החלפה/i],
+    baseConfidence: 0.88,
+    defaultTools: [readOrder("Confirm the associated order."), readReturnStatus("Exchange progress must come from an approved returns/exchange source.")],
+  },
+  {
+    intent: "exchange_request",
+    description: "Customer asks to exchange a received item or variant.",
+    patterns: [/exchange.*item/i, /exchange.*order/i, /swap.*item/i, /להחליף.*מוצר/i, /החלפה.*מוצר/i],
+    baseConfidence: 0.9,
+    defaultTools: [readOrder("Exchange eligibility needs the actual order."), readPolicy("Exchange terms must come from approved policy."), { tool: "PROPOSE_EXCHANGE", mode: "PROPOSE_WRITE", reason: "Exchange initiation remains approval-only." }],
   },
   {
     intent: "return_request",
@@ -131,6 +153,13 @@ export const supportSkills: SupportSkill[] = [
     patterns: [/discount/i, /coupon/i, /promo code/i, /הנחה/i, /קופון/i],
     baseConfidence: 0.9,
     defaultTools: [{ tool: "REQUEST_SERVER_OFFER", mode: "INTERNAL", reason: "The model must never invent or authorize a discount." }],
+  },
+  {
+    intent: "feedback",
+    description: "Customer provides product, brand or service feedback that is not a direct transaction request.",
+    patterns: [/feedback/i, /review/i, /wanted to say/i, /פידבק/i, /רציתי להגיד/i, /חוויה/i],
+    baseConfidence: 0.72,
+    defaultTools: [],
   },
   {
     intent: "thanks_no_reply",
