@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - feat/tiger-profit-os-platform-v1
+      - feat/tiger-popup-platform-phase1
 
 permissions:
   contents: read
@@ -22,6 +23,9 @@ jobs:
       SHOPIFY_CLIENT_SECRET: test-client-secret
       SHOPIFY_REQUIRE_AUTH: "false"
       SHOPIFY_LIVE_CONNECT: "false"
+      POPUP_STAGING_ENABLED: "false"
+      POPUP_STAGING_EVENT_INGEST: "false"
+      POPUP_KILL_SWITCH: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,8 +56,10 @@ jobs:
           node --check admin/js/api.js
           node --check admin/js/bot.js
           node --check admin/js/popups.js
+          node --check admin/js/popup-preview-runtime.js
           node --check admin/js/profit-analytics.js
           node --check test/bot-ui-preview-server.mjs
+          node --check test/popup-ui-preview-server.mjs
 
       - name: TypeScript build
         run: npm run build
@@ -82,6 +88,32 @@ jobs:
           path: |
             /tmp/tiger-bot-mobile.png
             /tmp/tiger-bot-desktop.png
+          if-no-files-found: error
+
+      - name: Popup Studio browser render and fail-safe QA
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$BROWSER"
+          node test/popup-ui-preview-server.mjs >/tmp/tiger-popup-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 1
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-popup-mobile.png http://127.0.0.1:4174/popups.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-desktop.png http://127.0.0.1:4174/popups.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom http://127.0.0.1:4174/popup-safety-test.html > /tmp/tiger-popup-safety.html
+          grep 'data-popup-safety-self-test="pass"' /tmp/tiger-popup-safety.html
+          test -s /tmp/tiger-popup-mobile.png
+          test -s /tmp/tiger-popup-desktop.png
+          file /tmp/tiger-popup-mobile.png /tmp/tiger-popup-desktop.png
+
+      - name: Upload Popup Studio render artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiger-popup-ui-renders
+          path: |
+            /tmp/tiger-popup-mobile.png
+            /tmp/tiger-popup-desktop.png
+            /tmp/tiger-popup-safety.html
           if-no-files-found: error
 
       - name: Build dependency remediation candidate
