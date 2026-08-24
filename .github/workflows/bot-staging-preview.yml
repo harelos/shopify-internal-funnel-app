@@ -1,12 +1,6 @@
 name: Bot Staging Preview
 
 on:
-  push:
-    branches:
-      - feat/tiger-profit-os-platform-v1
-    paths:
-      - app/admin/bot-live-test.html
-      - .github/workflows/bot-staging-preview.yml
   pull_request:
     branches:
       - master
@@ -21,7 +15,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: bot-staging-preview-${{ github.event_name }}
+  group: bot-staging-preview-pr-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -71,64 +65,46 @@ jobs:
           cat /tmp/tiger-bot-staging-app.log
           exit 1
 
-      - name: Open temporary public staging URL
+      - name: Install Cloudflare tunnel client
+        working-directory: /
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+
+      - name: Open and verify public staging URL
         working-directory: /
         run: |
           set -e
-          URL=""
-
-          # Primary tunnel. Only accept the assigned *.lhr.life hostname. The
-          # localhost.run banner also contains admin.localhost.run, which is not
-          # a tunnel and caused the previous broken preview link.
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
-            -R 80:localhost:3000 nokey@localhost.run >/tmp/tiger-bot-localhost-run.log 2>&1 &
+          /tmp/cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate >/tmp/tiger-bot-cloudflare.log 2>&1 &
           echo $! >/tmp/tiger-bot-tunnel.pid
 
-          for i in $(seq 1 40); do
-            URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.lhr\.life' /tmp/tiger-bot-localhost-run.log | head -1 || true)
+          URL=""
+          for i in $(seq 1 60); do
+            URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' /tmp/tiger-bot-cloudflare.log | head -1 || true)
             if [ -n "$URL" ]; then break; fi
             sleep 1
           done
 
-          # Fallback to Cloudflare Quick Tunnel.
           if [ -z "$URL" ]; then
-            echo "localhost.run did not produce an assigned lhr.life hostname. Falling back."
-            cat /tmp/tiger-bot-localhost-run.log || true
-            kill "$(cat /tmp/tiger-bot-tunnel.pid)" 2>/dev/null || true
-            curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-            chmod +x /tmp/cloudflared
-            /tmp/cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate >/tmp/tiger-bot-cloudflare.log 2>&1 &
-            echo $! >/tmp/tiger-bot-tunnel.pid
-            for i in $(seq 1 45); do
-              URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' /tmp/tiger-bot-cloudflare.log | head -1 || true)
-              if [ -n "$URL" ]; then break; fi
-              sleep 1
-            done
-          fi
-
-          if [ -z "$URL" ]; then
-            echo "No public tunnel URL was created."
-            cat /tmp/tiger-bot-localhost-run.log || true
-            cat /tmp/tiger-bot-cloudflare.log || true
+            cat /tmp/tiger-bot-cloudflare.log
             exit 1
           fi
 
           TEST_PAGE="$URL/admin/bot-live-test.html"
+          echo "Tunnel assigned: $TEST_PAGE"
 
-          # Never publish a URL until DNS + public HTTP both work from outside
-          # the local Express process.
           OK=""
-          for i in $(seq 1 30); do
+          for i in $(seq 1 45); do
             if curl -LfsS --max-time 10 "$TEST_PAGE" | grep -q 'TIGER Bot Staging'; then
               OK=1
               break
             fi
             sleep 2
           done
+
           if [ -z "$OK" ]; then
             echo "Public staging URL failed external smoke test: $TEST_PAGE"
-            cat /tmp/tiger-bot-localhost-run.log || true
-            cat /tmp/tiger-bot-cloudflare.log || true
+            cat /tmp/tiger-bot-cloudflare.log
             exit 1
           fi
 
@@ -143,7 +119,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          BODY="Verified temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nDNS and public HTTP were smoke-tested before this URL was published. This preview uses the real TIGER routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
+          BODY="Verified temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nThe page passed a public HTTP smoke test before this link was published. This preview uses the real TIGER routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
           gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
           echo "$BODY"
 
