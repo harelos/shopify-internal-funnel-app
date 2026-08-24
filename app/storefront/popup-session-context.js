@@ -20,6 +20,7 @@
   let identity = null;
   let serverContext = null;
   let serverContextAt = 0;
+  let anonymousState = null;
   let listeners = [];
   const subscribers = new Set();
   const behavior = {
@@ -112,10 +113,11 @@
   }
 
   function anonymousVisitorState() {
+    if (anonymousState) return anonymousState;
     const seen = local.get(RETURNING_KEY);
-    if (seen) return "returning";
-    local.set(RETURNING_KEY, String(Date.now()));
-    return "new";
+    anonymousState = seen ? "returning" : "new";
+    if (!seen) local.set(RETURNING_KEY, String(Date.now()));
+    return anonymousState;
   }
 
   function inferProductHandle() {
@@ -309,29 +311,37 @@
     return () => subscribers.delete(fn);
   }
 
-  async function start(options = {}) {
-    if (started) return current();
-    endpointBase = bounded(options.endpointBase, 500) || DEFAULT_ENDPOINT_BASE;
-    endpointBase = endpointBase.replace(/\/$/, "");
-    productHandleOverride = options.productHandle || null;
-    funnelIdOverride = options.funnelId || null;
-    serverRefreshMs = Math.max(0, Math.min(300000, Number(options.serverRefreshMs || 0) || 0));
-    started = true;
-    beginBehaviorCollection();
-
+  async function attemptServerVerification() {
     try {
-      await bootstrap();
+      if (!identity || !identity.sessionToken) await bootstrap();
       await refresh();
-      if (serverRefreshMs >= 5000) {
-        refreshTimer = window.setInterval(() => {
-          if (document.visibilityState === "visible") refresh().catch(() => {});
-        }, serverRefreshMs);
-      }
+      return true;
     } catch (error) {
       // Context failure must never block the storefront or popup close paths.
       serverContext = { ok: false, error: String(error && error.message ? error.message : error), runtimeUnavailable: true };
       serverContextAt = Date.now();
       notify();
+      return false;
+    }
+  }
+
+  async function start(options = {}) {
+    endpointBase = bounded(options.endpointBase, 500) || endpointBase || DEFAULT_ENDPOINT_BASE;
+    endpointBase = endpointBase.replace(/\/$/, "");
+    productHandleOverride = options.productHandle || productHandleOverride || null;
+    funnelIdOverride = options.funnelId || funnelIdOverride || null;
+    serverRefreshMs = Math.max(0, Math.min(300000, Number(options.serverRefreshMs ?? serverRefreshMs) || 0));
+
+    if (!started) {
+      started = true;
+      beginBehaviorCollection();
+    }
+
+    await attemptServerVerification();
+    if (serverRefreshMs >= 5000 && !refreshTimer) {
+      refreshTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") refresh().catch(() => {});
+      }, serverRefreshMs);
     }
     return current();
   }
