@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
+  engineType = "client"
+  previewFeatures = ["driverAdapters", "queryCompiler"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id        String   @id @default(uuid())
+  domain    String   @unique
+  createdAt DateTime @default(now())
+  funnels   Funnel[]
+  visitors  Visitor[]
+  events    Event[]
+  checkouts CheckoutAttribution[]
+  orders    OrderAttribution[]
+  webhookDeliveries ShopifyWebhookDelivery[]
+}
+
+model Funnel {
+  id         String   @id @default(uuid())
+  shopId     String
+  name       String
+  slug       String
+  status     String   @default("DRAFT")
+  archivedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  shop       Shop     @relation(fields: [shopId], references: [id])
+  steps      Step[]
+  events     Event[]
+
+  @@unique([shopId, slug])
+  @@index([shopId, status])
+}
+
+model Step {
+  id         String   @id @default(uuid())
+  funnelId   String
+  position   Int
+  name       String
+  kind       String   @default("LANDING")
+  createdAt  DateTime @default(now())
+  funnel     Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  variants   Variant[]
+  experiment Experiment?
+  events     Event[]
+
+  @@unique([funnelId, position])
+  @@index([funnelId])
+}
+
+model Variant {
+  id                 String   @id @default(uuid())
+  stepId             String
+  name               String
+  publishedVersionId String?  @unique
+  sourceType         String   @default("APP_HTML")
+  sourceUrl          String?
+  sourceTitle        String?
+  sourceImportedAt   DateTime?
+  createdAt          DateTime @default(now())
+  step               Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  versions           ContentVersion[]
+  allocations        ExperimentAllocation[]
+  assignments        Assignment[]
+  events             Event[]
+
+  @@unique([stepId, name])
+  @@index([stepId])
+}
+
+model ContentVersion {
+  id             String   @id @default(uuid())
+  variantId      String
+  revision       Int
+  state          String   @default("DRAFT")
+  rawHtml        String
+  normalizedHtml String
+  portReport     String   @default("{}")
+  createdAt      DateTime @default(now())
+  publishedAt    DateTime?
+  variant        Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, revision])
+  @@index([variantId, state])
+}
+
+model Experiment {
+  id                String   @id @default(uuid())
+  stepId            String   @unique
+  status            String   @default("DRAFT")
+  allocationVersion Int      @default(1)
+  createdAt         DateTime @default(now())
+  step              Step     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  allocations       ExperimentAllocation[]
+  assignments       Assignment[]
+}
+
+model ExperimentAllocation {
+  id                String   @id @default(uuid())
+  experimentId      String
+  variantId         String
+  weightBasisPoints Int
+  experiment        Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant           Variant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, variantId])
+  @@index([experimentId])
+}
+
+model Visitor {
+  id               String   @id @default(uuid())
+  shopId           String
+  anonymousKeyHash String
+  createdAt        DateTime @default(now())
+  shop             Shop     @relation(fields: [shopId], references: [id])
+  assignments      Assignment[]
+  events           Event[]
+  checkouts        CheckoutAttribution[]
+
+  @@unique([shopId, anonymousKeyHash])
+}
+
+model Assignment {
+  id           String   @id @default(uuid())
+  visitorId    String
+  experimentId String
+  variantId    String
+  assignedAt   DateTime @default(now())
+  visitor      Visitor  @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant      Variant  @relation(fields: [variantId], references: [id])
+
+  @@unique([visitorId, experimentId])
+  @@index([experimentId, variantId])
+}
+
+model Event {
+  id            String   @id @default(uuid())
+  shopId        String
+  eventKey      String   @unique
+  name          String
+  source        String   @default("SYNTHETIC")
+  occurredAt    DateTime
+  receivedAt    DateTime @default(now())
+  visitorId     String?
+  funnelId      String?
+  stepId        String?
+  variantId     String?
+  checkoutToken String?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  deviceClass   String?
+  payload       String   @default("{}")
+  isTest        Boolean  @default(true)
+  shop          Shop     @relation(fields: [shopId], references: [id])
+  visitor       Visitor? @relation(fields: [visitorId], references: [id])
+  funnel        Funnel?  @relation(fields: [funnelId], references: [id])
+  step          Step?    @relation(fields: [stepId], references: [id])
+  variant       Variant? @relation(fields: [variantId], references: [id])
+
+  @@index([funnelId, stepId, variantId, occurredAt])
+  @@index([checkoutToken])
+  @@index([name, occurredAt, isTest])
+}
+
+model CheckoutAttribution {
+  id            String   @id @default(uuid())
+  shopId        String
+  checkoutToken String   @unique
+  visitorId     String?
+  funnelId      String?
+  lastStepId    String?
+  lastVariantId String?
+  startedAt     DateTime
+  completedAt   DateTime?
+  confidence    String   @default("MEDIUM")
+  shop          Shop     @relation(fields: [shopId], references: [id])
+  visitor       Visitor? @relation(fields: [visitorId], references: [id])
+  orders        OrderAttribution[]
+
+  @@index([funnelId])
+}
+
+model OrderAttribution {
+  id               String   @id @default(uuid())
+  shopId           String
+  shopifyOrderGid  String   @unique
+  checkoutToken    String?
+  funnelId         String?
+  variantId        String?
+  currency         String
+  grossAmount      Float
+  netRevenueAmount Float
+  refundedAmount   Float    @default(0)
+  status           String   @default("PAID")
+  confidence       String
+  isTest           Boolean  @default(true)
+  discountCodes    String   @default("[]")
+  popupAttributed  Boolean  @default(false)
+  popupVisitorKey  String?
+  popupSessionKey  String?
+  popupVersion     String?
+  popupCouponCode  String?
+  popupPage        String?
+  popupDevice      String?
+  popupUtmSource   String?
+  popupUtmMedium   String?
+  popupUtmCampaign String?
+  popupAttributionMethod String?
+  paidAt           DateTime
+  cancelledAt      DateTime?
+  updatedAt        DateTime @updatedAt
+  shop             Shop     @relation(fields: [shopId], references: [id])
+  checkout         CheckoutAttribution? @relation(fields: [checkoutToken], references: [checkoutToken])
+
+  @@index([funnelId, variantId, paidAt])
+  @@index([popupAttributed, popupVersion, paidAt])
+  @@index([popupCouponCode, paidAt])
+}
+
+model ShopifyWebhookDelivery {
+  id         String   @id @default(uuid())
+  shopId     String
+  webhookId  String   @unique
+  topic      String
+  receivedAt DateTime @default(now())
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, topic, receivedAt])
+}

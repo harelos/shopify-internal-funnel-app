@@ -1,0 +1,33 @@
+{
+  "name": "shopify-funnel-control-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "prisma generate --schema prisma/schema.prisma && tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "generate": "prisma generate --schema prisma/schema.prisma",
+    "db:validate": "prisma validate --schema prisma/schema.prisma",
+    "db:diff": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script",
+    "dev": "prisma generate --schema prisma/schema.prisma && wrangler dev",
+    "deploy": "prisma generate --schema prisma/schema.prisma && wrangler deploy"
+  },
+  "dependencies": {
+    "@prisma/adapter-d1": "6.12.0",
+    "@prisma/client": "6.12.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "prisma": "6.12.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.34.0"
+  }
+}
