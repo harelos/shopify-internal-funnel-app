@@ -1,0 +1,44 @@
+name: Refresh support staging lockfile
+
+on:
+  push:
+    branches:
+      - staging/support-agent-phase1
+    paths:
+      - app/package.json
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging/support-agent-phase1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Refresh package-lock.json only
+        working-directory: app
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Commit refreshed lockfile when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- app/package-lock.json; then
+            echo "package-lock.json already matches package.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/package-lock.json
+          git commit -m "chore: refresh support staging lockfile"
+          git push origin HEAD:staging/support-agent-phase1
