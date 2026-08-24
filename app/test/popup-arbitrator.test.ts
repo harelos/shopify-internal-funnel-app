@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { defaultPopupCampaign } from "../src/lib/popup-config-contract.js";
-import { arbitratePopupCampaigns } from "../src/lib/popup-arbitrator.js";
+import { arbitratePopupCampaigns, type PopupArbitrationContext } from "../src/lib/popup-arbitrator.js";
 
-function context(overrides: Record<string, unknown> = {}) {
+function context(overrides: Partial<PopupArbitrationContext> = {}): PopupArbitrationContext {
   return {
     visitorId: "visitor-arb-1",
     sessionId: "session-arb-1",
@@ -11,14 +11,14 @@ function context(overrides: Record<string, unknown> = {}) {
     scrollDepthPct: 70,
     inactiveMs: 40_000,
     pagePath: "/products/novahair",
-    pageRole: "product" as const,
+    pageRole: "product",
     countryCode: "IL",
     humanLike: true,
     suspectedBot: false,
     trafficSource: "facebook",
     utmMedium: "paid_social",
-    explicitIntent: "commerce" as const,
-    visitorState: "new" as const,
+    explicitIntent: "commerce",
+    visitorState: "new",
     cartItemCount: 0,
     sessionImpressions: 0,
     visitorDayImpressions: 0,
