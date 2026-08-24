@@ -26,6 +26,7 @@ jobs:
       QUALIFIED_COMMERCE_TARGET_COUNTRIES: "IL"
       POPUP_STAGING_ENABLED: "false"
       POPUP_STAGING_EVENT_INGEST: "false"
+      POPUP_CONTEXT_COLLECTOR_ENABLED: "false"
       POPUP_KILL_SWITCH: "true"
     steps:
       - name: Checkout
@@ -52,7 +53,7 @@ jobs:
       - name: Validate Prisma schema
         run: npm run db:validate
 
-      - name: Admin JavaScript syntax
+      - name: Admin and storefront JavaScript syntax
         run: |
           node --check admin/js/api.js
           node --check admin/js/bot.js
@@ -61,6 +62,7 @@ jobs:
           node --check admin/js/popups.js
           node --check admin/js/popup-preview-runtime.js
           node --check admin/js/profit-analytics.js
+          node --check storefront/popup-session-context.js
           node --check test/bot-ui-preview-server.mjs
           node --check test/popup-ui-preview-server.mjs
 
