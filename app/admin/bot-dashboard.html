@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Bot Control</title>
+  <link rel="stylesheet" href="css/bot-dashboard.css">
+</head>
+<body>
+  <div class="control-shell">
+    <header class="control-topbar">
+      <div class="control-brand">
+        <a class="control-mark" href="index.html" aria-label="Back to main dashboard">T</a>
+        <div>
+          <h1>TIGER Bot Control</h1>
+          <p>Operational dashboard · private staging control plane</p>
+        </div>
+      </div>
+      <div class="control-actions">
+        <span class="status-chip safe"><i></i>Storefront OFF</span>
+        <button class="control-btn ghost" id="refresh-dashboard">Refresh</button>
+        <a class="control-btn" href="bot.html">Open Bot Studio</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-grid">
+        <div>
+          <span class="eyebrow">BOT PLATFORM</span>
+          <h2>See what the bot knows, who is in control, and where it is allowed to act.</h2>
+          <p class="hero-copy">This page is an operator view. It does not publish the customer widget and it does not grant new storefront permissions.</p>
+        </div>
+        <div class="release-card">
+          <span class="release-label">Release state</span>
+          <strong>Private staging only</strong>
+          <p>Customer-facing runtime remains disabled until explicit approval and release QA.</p>
+        </div>
+      </section>
+
+      <section class="kpi-grid" aria-label="Bot health summary">
+        <article class="kpi-card"><span>Conversations</span><strong id="kpi-conversations">...</strong><small>Selected analytics window</small></article>
+        <article class="kpi-card"><span>Knowledge packs</span><strong id="kpi-knowledge">...</strong><small>Versioned factual sources</small></article>
+        <article class="kpi-card"><span>Model allocation</span><strong id="kpi-allocation">...</strong><small id="kpi-model-count">Loading variants</small></article>
+        <article class="kpi-card"><span>Provider health</span><strong id="kpi-providers">...</strong><small id="kpi-pricing">Pricing status unknown</small></article>
+      </section>
+
+      <section class="dashboard-grid two">
+        <article class="panel truth-panel">
+          <div class="panel-head">
+            <div><span class="eyebrow">TRUTH CONTRACT</span><h3>Bot truth hierarchy</h3></div>
+            <span class="status-chip safe">Fail closed</span>
+          </div>
+          <div class="truth-stack">
+            <div class="truth-level level-1"><b>1</b><div><strong>Structured Shopify / store facts</strong><span>Price, variants, cart, verified order and other structured facts when authorized.</span></div></div>
+            <div class="truth-arrow">↓</div>
+            <div class="truth-level level-2"><b>2</b><div><strong>Versioned internal knowledge packs</strong><span>Verified product, policy, FAQ and funnel facts with source and version.</span></div></div>
+            <div class="truth-arrow">↓</div>
+            <div class="truth-level level-3"><b>3</b><div><strong>Deterministic business rules</strong><span>Routing, discount authorization, permissions, rate limits and escalation policy.</span></div></div>
+            <div class="truth-arrow">↓</div>
+            <div class="truth-level level-4"><b>4</b><div><strong>Model-generated prose</strong><span>Language and explanation only. Never allowed to manufacture restricted facts.</span></div></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">RESTRICTED FACTS</span><h3>Claims the model cannot invent</h3></div></div>
+          <div class="restricted-grid">
+            <span>Product prices</span><span>Shipping terms</span><span>Discounts</span><span>Coupon codes</span>
+            <span>Guarantees</span><span>Inventory</span><span>Delivery promises</span><span>Refund policy</span>
+          </div>
+          <div class="secret-box">
+            <strong>Never expose</strong>
+            <p>COGS, contribution margin, supplier cost, coupon inventory, provider secrets, private customer information.</p>
+          </div>
+          <div class="uncertain-box"><strong>When uncertain</strong><p>Say it is uncertain, use an approved lookup, or escalate. Do not fill the gap with plausible prose.</p></div>
+        </article>
+      </section>
+
+      <section class="panel brain-panel">
+        <div class="panel-head">
+          <div><span class="eyebrow">SYSTEM MAP</span><h3>Bot brain map</h3><p>An operator should be able to understand the request path without reading the codebase.</p></div>
+          <span class="status-chip">Deterministic control around model prose</span>
+        </div>
+
+        <div class="brain-flow" aria-label="Bot request pipeline">
+          <div class="brain-node primary"><span>01</span><strong>ENTRY</strong><small>Signed session + page context</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node danger"><span>02</span><strong>SECURITY CHECK</strong><small>Injection · abuse · secret extraction</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node"><span>03</span><strong>INTENT ROUTING</strong><small>Service intent takes priority</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node"><span>04</span><strong>ROLE</strong><small>Sales · Support · Retention · Risk · Security</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node"><span>05</span><strong>STATE</strong><small>Discover · qualify · recommend · objection · offer · close</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node accent"><span>06</span><strong>TOOLS / KNOWLEDGE</strong><small>Strict allowlist + truth hierarchy</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node"><span>07</span><strong>ACTION</strong><small>Reply · lookup · cart · offer request · escalation</small></div>
+          <div class="flow-link">→</div>
+          <div class="brain-node primary"><span>08</span><strong>ANALYTICS / MEMORY</strong><small>Events + factual provenance</small></div>
+        </div>
+
+        <div class="branch-grid">
+          <div class="branch-card"><strong>Security</strong><span>Prompt injection</span><span>Secret extraction</span><span>Cost abuse</span></div>
+          <div class="branch-card"><strong>Sales</strong><span>Product recommendation</span><span>Objections</span><span>Cross-sell</span></div>
+          <div class="branch-card"><strong>Offers</strong><span>Discount eligibility</span><span>Margin guard</span><span>Server coupon issuance</span></div>
+          <div class="branch-card"><strong>Support</strong><span>Verified order lookup</span><span>Tracking</span><span>Human handoff</span></div>
+          <div class="branch-card"><strong>Retention</strong><span>Reorder</span><span>VIP treatment</span><span>Relevant complementary product</span></div>
+          <div class="branch-card"><strong>Risk</strong><span>Evidence summary</span><span>Chargeback facts</span><span>Legal escalation</span></div>
+          <div class="branch-card"><strong>CRM</strong><span>Explicit facts only</span><span>Consent state</span><span>Source provenance</span></div>
+          <div class="branch-card"><strong>Experiments</strong><span>Sticky model assignment</span><span>Versioned tests</span><span>No uncontrolled fallback</span></div>
+        </div>
+      </section>
+
+      <section class="dashboard-grid two">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">OFFER ENGINE</span><h3>Server-controlled discounts</h3></div><span id="offer-state" class="status-chip">Loading</span></div>
+          <div class="offer-ladder">
+            <div><span>Step 0</span><strong>No discount</strong></div>
+            <div><span>Step 1</span><strong id="offer-first">...</strong></div>
+            <div><span>Step 2</span><strong id="offer-second">...</strong></div>
+          </div>
+          <div class="rule-list" id="offer-rules"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">PROVIDERS</span><h3>Model experiment health</h3></div><span class="status-chip">Sticky assignment</span></div>
+          <div id="provider-list" class="provider-list"><div class="loading-row">Loading provider state...</div></div>
+          <div class="model-table-wrap">
+            <table class="model-table">
+              <thead><tr><th>Variant</th><th>Traffic</th><th>Conv.</th><th>Latency</th><th>Purchases</th><th>Revenue</th></tr></thead>
+              <tbody id="model-table-body"><tr><td colspan="6">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid two">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">TOOL FIREWALL</span><h3>Role permissions</h3></div></div>
+          <div class="matrix-wrap">
+            <table class="permission-table">
+              <thead><tr><th>Capability</th><th>Sales</th><th>Support</th><th>Retention</th><th>Risk</th><th>Security</th></tr></thead>
+              <tbody>
+                <tr><td>Product facts</td><td>✓</td><td>✓</td><td>✓</td><td>Read</td><td>—</td></tr>
+                <tr><td>Recommendation</td><td>✓</td><td>Limited</td><td>✓</td><td>—</td><td>—</td></tr>
+                <tr><td>Discount request</td><td>✓</td><td>—</td><td>✓</td><td>—</td><td>—</td></tr>
+                <tr><td>Verified order lookup</td><td>—</td><td>✓</td><td>Limited</td><td>Read</td><td>—</td></tr>
+                <tr><td>Tracking</td><td>—</td><td>✓</td><td>—</td><td>Read</td><td>—</td></tr>
+                <tr><td>Human escalation</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note">This table documents intended boundaries. The server-side executor remains the enforcement point.</p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">CRM / MEMORY</span><h3>Fact provenance rules</h3></div></div>
+          <div class="memory-example good">
+            <span>FACT</span>
+            <strong>Customer explicitly said: “My hair is dark brown.”</strong>
+            <p>Store with source message, timestamp and context.</p>
+          </div>
+          <div class="memory-example bad">
+            <span>INFERENCE</span>
+            <strong>“She probably prefers black.”</strong>
+            <p>Do not persist as a factual customer attribute.</p>
+          </div>
+          <div class="memory-rules">
+            <span>Value before lead capture</span><span>Email only with a genuine benefit</span><span>Phone only for explicit follow-up</span><span>Marketing consent separate</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel footer-panel">
+        <div>
+          <span class="eyebrow">OPERATING RULE</span>
+          <h3>Implemented is not verified.</h3>
+          <p>Keep three states separate: code implemented, staging verified, production verified.</p>
+        </div>
+        <div class="footer-actions">
+          <a class="control-btn ghost" href="profit-analytics.html">Profit OS</a>
+          <a class="control-btn ghost" href="popups.html">Popup Studio</a>
+          <a class="control-btn" href="bot.html">Configure Bot</a>
+        </div>
+      </section>
+
+      <div id="dashboard-error" class="dashboard-error" hidden></div>
+    </main>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/bot-dashboard.js"></script>
+</body>
+</html>
