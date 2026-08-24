@@ -153,15 +153,15 @@ A special `x-tiger-test-country` header exists only when `POPUP_ALLOW_TEST_CONTE
 
 The server converts the normalized session into popup eligibility context and runs the QCT classifier.
 
-Important nuance: current QCT V1 can return a qualified commerce class with `verification=PARTIAL` when some non-exclusion evidence, such as edge country or interaction evidence, is still missing. That is intentional for migration safety.
+The current classifier is intentionally strict about declaring a session qualified: commercial context must be present, target-market country must be verified when the policy has target countries, `humanLike=true` must be observed, and no hard exclusion can apply. Missing country or human evidence returns `UNKNOWN` with `verification=PARTIAL`; it does **not** get promoted to a qualified commerce class.
 
-Campaign policy decides what happens next:
+Campaign policy then decides what happens next:
 
-- `exclude_known_bad` blocks explicit exclusions and allows partial/unknown sessions;
-- `qualified_only` permits only sessions whose classifier decision is `QUALIFIED`;
+- `exclude_known_bad` blocks explicit exclusions but temporarily allows `UNKNOWN` sessions while the collector rollout is being validated;
+- `qualified_only` permits only classifier decisions of `QUALIFIED` (which are `verification=COMPLETE` under the current classifier);
 - `off` bypasses QCT for diagnostics.
 
-Before revenue experiments use a strict denominator, staging QA should decide whether `qualified_only` must additionally require `verification=COMPLETE`. Do not silently reinterpret PARTIAL as fully verified business truth.
+This keeps the migration-safe mode available without contaminating the strict Qualified Commerce denominator.
 
 ## Public staging runtime
 
@@ -186,7 +186,7 @@ Defaults remain safe/off.
 
 ## Origin boundary
 
-The runtime accepts exact origins from `POPUP_ALLOWED_STOREFONT_ORIGINS` and also includes the configured `SHOP_DOMAIN` myshopify origin.
+The runtime accepts exact origins from `POPUP_ALLOWED_STOREFRONT_ORIGINS` and also includes the configured `SHOP_DOMAIN` myshopify origin.
 
 The initial storefront collector is designed for same-origin / Shopify app-proxy use. Cross-origin CORS is not enabled in this slice.
 
@@ -234,6 +234,7 @@ Coverage includes:
 - browser inability to forge purchase-history truth;
 - server-only promotion to verified customer state;
 - collector-to-QCT integration;
+- missing-geo traffic remaining `UNKNOWN`;
 - internal/test exclusion;
 - signed visitor token verification;
 - signed session identity tied to visitor;
