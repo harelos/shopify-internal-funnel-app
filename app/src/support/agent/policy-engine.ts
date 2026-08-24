@@ -23,6 +23,7 @@ const approvalIntents = new Set<SupportIntent>([
   "order_change",
   "address_change",
   "return_request",
+  "exchange_request",
   "refund_request",
   "damaged_item",
   "wrong_missing_item",
@@ -42,6 +43,9 @@ function missingFactsFor(intent: SupportIntent, facts: SupportAgentFacts = {}): 
     "order_change",
     "address_change",
     "return_request",
+    "return_status",
+    "exchange_request",
+    "exchange_status",
     "refund_request",
     "refund_status",
     "damaged_item",
@@ -51,8 +55,9 @@ function missingFactsFor(intent: SupportIntent, facts: SupportAgentFacts = {}): 
   }
 
   if (intent === "shipping_policy" && !knowledge?.shippingPolicyKnown) missing.push("shipping_policy");
-  if (intent === "return_request" && !knowledge?.returnPolicyKnown) missing.push("return_policy");
+  if (["return_request", "exchange_request"].includes(intent) && !knowledge?.returnPolicyKnown) missing.push("return_policy");
   if (intent === "refund_request" && !knowledge?.returnPolicyKnown) missing.push("refund_policy");
+  if (["return_status", "exchange_status"].includes(intent) && !knowledge?.returnStatusKnown) missing.push("return_status");
   if (intent === "product_usage" && !knowledge?.productUsageKnown) missing.push("product_usage_facts");
   if (["product_question", "product_recommendation", "shade_recommendation"].includes(intent) && !knowledge?.productFactsKnown) {
     missing.push("product_facts");
@@ -89,8 +94,5 @@ export function decideSupportPolicy(intent: SupportIntent, facts: SupportAgentFa
     return { decision: "HUMAN_APPROVAL", risk: "MEDIUM", requiresHuman: true, missingFacts, toolPlan };
   }
 
-  // Low-risk informational requests can be drafted automatically, but never sent
-  // by the Phase 1 engine. Missing facts remain explicit so the drafter can ask
-  // for information rather than inventing an answer.
   return { decision: "AUTO_DRAFT", risk: "LOW", requiresHuman: false, missingFacts, toolPlan };
 }
