@@ -84,6 +84,13 @@ async function persistThread(thread: SupportThreadInput, mailboxAddress: string,
   }
 }
 
+export async function probeSupportMailbox() {
+  const config = getSupportConfig();
+  assertSupportStagingEnabled(config);
+  const source = supportMailboxSource(config);
+  return source.probe();
+}
+
 export async function syncSupportStaging(): Promise<{ source: string; messages: number; threads: number }> {
   const config = getSupportConfig();
   assertSupportStagingEnabled(config);
