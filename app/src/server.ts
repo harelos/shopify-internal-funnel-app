@@ -11,6 +11,7 @@ import analyticsRoutes from "./routes/analytics.js";
 import profitOsRoutes from "./routes/profit-os.js";
 import botRoutes from "./routes/bot.js";
 import botRuntimeRoutes from "./routes/bot-runtime.js";
+import popupRoutes from "./routes/popups.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -87,6 +88,7 @@ app.use("/api", analyticsRoutes);
 app.use("/api", profitOsRoutes);
 app.use("/api", botRoutes);
 app.use("/api", botRuntimeRoutes);
+app.use("/api", popupRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
