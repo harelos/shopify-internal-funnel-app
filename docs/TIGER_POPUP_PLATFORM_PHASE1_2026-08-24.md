@@ -63,7 +63,7 @@ Gate modes:
 - `qualified_only` — only classifier decisions of `QUALIFIED` pass;
 - `off` — diagnostics only.
 
-Important nuance: QCT V1 separates `decision` from `verification`. A commercial session can currently receive a qualified class with `verification=PARTIAL` if country or human evidence is not complete but no hard exclusion is present. That is deliberate migration behavior. Do not describe PARTIAL traffic as fully verified business truth.
+The current classifier only returns `QUALIFIED` with `verification=COMPLETE`: commercial context must be present, target-market country must be verified when the policy has target countries, `humanLike=true` must be observed, and no exclusion may apply. Missing country or human evidence returns `UNKNOWN` with `verification=PARTIAL`. `exclude_known_bad` can temporarily allow those unknown sessions during rollout, while `qualified_only` keeps the strict business denominator clean.
 
 ### P0.2 storefront session context collector
 
@@ -179,6 +179,7 @@ Committed suites cover:
 - Meta in-app environment detection;
 - acquisition/ad/creative context;
 - human/bot evidence;
+- missing country remaining unqualified/unknown;
 - browser inability to forge purchase history;
 - signed visitor/session identity;
 - cross-shop / token-kind / expiry / signature rejection;
