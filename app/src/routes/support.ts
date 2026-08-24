@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { getSupportConfig } from "../support/config.js";
+import { runSupportAgentSimulation } from "../support/agent/engine.js";
+import type { SupportAgentFacts } from "../support/agent/contracts.js";
+import { assertSupportStagingEnabled, getSupportConfig } from "../support/config.js";
 import { getSupportShopifyContext } from "../support/shopify-context.js";
 import {
   getSupportThread,
@@ -28,6 +30,7 @@ router.get("/support/status", async (_req, res) => {
     imapMailbox: config.imapMailbox,
     shopifyLookupEnabled: config.shopifyLookupEnabled,
     shopifyOrderLimit: config.shopifyOrderLimit,
+    agentSimulationEnabled: config.stagingEnabled,
     sendEnabled: false,
     shopifyMutationEnabled: false,
     boundary: "READ_ONLY_STAGING",
@@ -73,6 +76,23 @@ router.get("/support/threads/:id/shopify-context", async (req, res) => {
       return res.status(409).json({ error: message });
     }
     res.status(500).json({ error: message });
+  }
+});
+
+router.post("/support/agent/simulate", async (req, res) => {
+  try {
+    assertSupportStagingEnabled();
+    const subject = typeof req.body?.subject === "string" ? req.body.subject.slice(0, 500) : undefined;
+    const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 20_000) : "";
+    const locale = typeof req.body?.locale === "string" ? req.body.locale.slice(0, 20) : "he";
+    const facts = (req.body?.facts && typeof req.body.facts === "object") ? req.body.facts as SupportAgentFacts : undefined;
+
+    if (!message) return res.status(400).json({ error: "message is required" });
+    res.json(runSupportAgentSimulation({ subject, message, locale, facts }));
+  } catch (error: any) {
+    const message = error?.message || "Support agent simulation failed";
+    const status = /staging is disabled/i.test(message) ? 409 : 500;
+    res.status(status).json({ error: message });
   }
 });
 
