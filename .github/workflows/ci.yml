@@ -123,6 +123,7 @@ jobs:
           "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom "$CONTEXT_LAB_URL" > /tmp/tiger-popup-context-lab.html
           grep 'data-popup-safety-self-test="pass"' /tmp/tiger-popup-safety.html
           grep 'data-context-lab-ready="true"' /tmp/tiger-popup-context-lab.html
+          grep 'data-context-visitor-state-stable="true"' /tmp/tiger-popup-context-lab.html
           grep '120248307353480135' /tmp/tiger-popup-context-lab.html
           grep 'facebook' /tmp/tiger-popup-context-lab.html
           if grep -q 'should-not-leak' /tmp/tiger-popup-context-lab.html; then echo 'Unexpected arbitrary query value leaked into collector DOM'; exit 1; fi
