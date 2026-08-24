@@ -106,15 +106,19 @@ test("automation UA overrides fake interaction evidence", () => {
   assert.equal(result.humanEvidence, "AUTOMATION_UA");
 });
 
-test("collector output feeds popup QCT without inventing missing geo", () => {
+test("collector output feeds popup QCT and missing geo stays unknown", () => {
   const qualified = normalizePopupSessionContext(base(), { headers: { "cf-ipcountry": "IL" } });
   const qct = classifyCommerceTraffic(toPopupEligibilityContext(qualified), { version: 1, targetCountries: ["IL"] });
   assert.equal(qct.decision, "QUALIFIED");
   assert.equal(qct.class, "QUALIFIED_PAID_COMMERCE");
+  assert.equal(qct.verification, "COMPLETE");
 
   const missingGeo = normalizePopupSessionContext(base(), { headers: {} });
   const partial = classifyCommerceTraffic(toPopupEligibilityContext(missingGeo), { version: 1, targetCountries: ["IL"] });
   assert.equal(partial.countryCode, null);
+  assert.equal(partial.decision, "UNKNOWN");
+  assert.equal(partial.class, "UNKNOWN");
+  assert.equal(partial.isQualified, false);
   assert.equal(partial.verification, "PARTIAL");
 });
 
