@@ -1,13 +1,16 @@
 (() => {
   const els = {
     error: document.getElementById("support-error"),
+    success: document.getElementById("support-success"),
     sync: document.getElementById("btn-sync"),
+    probe: document.getElementById("btn-probe"),
     threads: document.getElementById("thread-list"),
     detail: document.getElementById("thread-detail"),
     count: document.getElementById("thread-count"),
     statThreads: document.getElementById("stat-threads"),
     statHuman: document.getElementById("stat-human"),
     statSource: document.getElementById("stat-source"),
+    statMailbox: document.getElementById("stat-mailbox"),
     categories: document.getElementById("category-summary"),
     boundary: document.getElementById("boundary-badge"),
   };
@@ -26,13 +29,22 @@
   let selectedThreadId = null;
 
   function showError(message) {
+    els.success.style.display = "none";
     els.error.textContent = message || "Something went wrong";
     els.error.style.display = "block";
   }
 
-  function clearError() {
+  function showSuccess(message) {
+    els.error.style.display = "none";
+    els.success.textContent = message || "Done";
+    els.success.style.display = "block";
+  }
+
+  function clearNotices() {
     els.error.textContent = "";
     els.error.style.display = "none";
+    els.success.textContent = "";
+    els.success.style.display = "none";
   }
 
   function formatDate(value) {
@@ -50,11 +62,41 @@
 
   async function loadStatus() {
     const status = await API.get("/api/support/status");
-    els.statSource.textContent = String(status.syncSource || "—").toUpperCase();
-    els.sync.disabled = !status.stagingEnabled;
-    els.sync.title = status.stagingEnabled ? "" : "Set SUPPORT_STAGING_ENABLED=true first";
+    const source = String(status.syncSource || "—").toUpperCase();
+    els.statSource.textContent = source;
     els.boundary.textContent = status.boundary || "READ ONLY";
     els.boundary.className = "support-badge safe";
+
+    if (!status.stagingEnabled) {
+      els.statMailbox.textContent = "STAGING OFF";
+      els.sync.disabled = true;
+      els.probe.disabled = true;
+      els.sync.title = "Set SUPPORT_STAGING_ENABLED=true first";
+      els.probe.title = "Set SUPPORT_STAGING_ENABLED=true first";
+      return status;
+    }
+
+    if (status.syncSource === "imap") {
+      const ready = Boolean(status.imapReadEnabled && status.imapConfigured);
+      els.statMailbox.textContent = ready ? `${status.imapMailbox || "INBOX"} · READY` : "IMAP GATED";
+      els.sync.disabled = !ready;
+      els.probe.disabled = !ready;
+      const reason = !status.imapReadEnabled
+        ? "Set SUPPORT_IMAP_READ_ENABLED=true in staging"
+        : !status.imapConfigured
+          ? "Configure IMAP username/password in the staging secret manager"
+          : "";
+      els.sync.title = reason;
+      els.probe.title = reason;
+    } else {
+      els.statMailbox.textContent = "FIXTURE READY";
+      els.sync.disabled = false;
+      els.probe.disabled = false;
+      els.sync.title = "";
+      els.probe.title = "";
+    }
+
+    return status;
   }
 
   async function loadOverview() {
@@ -107,7 +149,7 @@
     if (threads.length === 0) {
       const empty = document.createElement("div");
       empty.className = "support-empty";
-      empty.textContent = "No support data yet. Enable staging and sync fixtures.";
+      empty.textContent = "No support data yet. Enable staging and sync the configured inbox.";
       els.threads.appendChild(empty);
       return;
     }
@@ -141,7 +183,7 @@
   }
 
   async function selectThread(id, reloadList = true) {
-    clearError();
+    clearNotices();
     selectedThreadId = id;
     try {
       const thread = await API.get(`/api/support/threads/${encodeURIComponent(id)}`);
@@ -176,23 +218,40 @@
     }
   }
 
+  async function probe() {
+    clearNotices();
+    els.probe.disabled = true;
+    const oldText = els.probe.textContent;
+    els.probe.textContent = "Testing…";
+    try {
+      const result = await API.post("/api/support/probe", {});
+      showSuccess(`${result.source} connection OK · ${result.mailbox} · ${result.messageCount} messages · read only`);
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      els.probe.textContent = oldText;
+      await loadStatus().catch(() => {});
+    }
+  }
+
   async function sync() {
-    clearError();
+    clearNotices();
     els.sync.disabled = true;
     const oldText = els.sync.textContent;
     els.sync.textContent = "Syncing…";
     try {
       const result = await API.post("/api/support/sync", {});
-      els.sync.textContent = `Synced ${result.threads} threads`;
+      showSuccess(`Synced ${result.messages} messages into ${result.threads} reconstructed threads from ${result.source}.`);
       await Promise.all([loadOverview(), loadThreads()]);
-      window.setTimeout(() => { els.sync.textContent = oldText; els.sync.disabled = false; }, 1200);
     } catch (error) {
       showError(error.message);
+    } finally {
       els.sync.textContent = oldText;
-      els.sync.disabled = false;
+      await loadStatus().catch(() => {});
     }
   }
 
+  els.probe.addEventListener("click", probe);
   els.sync.addEventListener("click", sync);
 
   Promise.all([loadStatus(), loadOverview(), loadThreads()]).catch((error) => showError(error.message));
