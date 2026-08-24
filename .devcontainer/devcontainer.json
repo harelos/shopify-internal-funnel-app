@@ -1,0 +1,33 @@
+{
+  "name": "Support Agent Staging",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Support Agent Staging",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "containerEnv": {
+    "APP_PORT": "3000",
+    "DATABASE_URL": "file:./dev.db",
+    "ENABLE_DEMO_SEED": "false",
+    "SHOPIFY_LIVE_CONNECT": "false",
+    "SHOPIFY_REQUIRE_AUTH": "false",
+    "SUPPORT_STAGING_ENABLED": "true",
+    "SUPPORT_SYNC_SOURCE": "fixture",
+    "SUPPORT_IMAP_READ_ENABLED": "false",
+    "SUPPORT_SHOPIFY_LOOKUP_ENABLED": "false",
+    "SUPPORT_SHOPIFY_CUSTOMER_LOOKUP_ENABLED": "false",
+    "SUPPORT_KNOWLEDGE_ENABLED": "false"
+  },
+  "postCreateCommand": "cd app && npm install && npm run db:validate && npm run db:generate",
+  "postStartCommand": "cd app && (nohup npm run dev > /tmp/support-agent-staging.log 2>&1 &)",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma"
+      ]
+    }
+  }
+}
