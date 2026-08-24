@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import type { PopupCampaignConfig, PopupVariantConfig } from "./popup-config-contract.js";
+import {
+  classifyCommerceTraffic,
+  commerceTrafficGateAllows,
+  type CommerceTrafficClassification,
+  type CommerceTrafficSignals,
+} from "./popup-commerce-traffic.js";
 
-export interface PopupSessionContext {
+export interface PopupSessionContext extends CommerceTrafficSignals {
   visitorId: string;
   sessionId: string;
   nowMs?: number;
@@ -11,13 +17,8 @@ export interface PopupSessionContext {
   exitIntent?: boolean;
   manualTrigger?: boolean;
   isMobile?: boolean;
-  pagePath?: string;
   productHandle?: string | null;
-  funnelId?: string | null;
-  trafficSource?: string | null;
-  referrer?: string | null;
   utmSource?: string | null;
-  visitorState?: "new" | "returning" | "known" | "unknown";
   cartSubtotal?: number | null;
   cartItemCount?: number;
   previousCloseAtMs?: number | null;
@@ -31,6 +32,7 @@ export interface PopupEligibilityResult {
   reason: string;
   variant: PopupVariantConfig | null;
   assignmentBucket: number | null;
+  commerceTraffic: CommerceTrafficClassification;
 }
 
 function normalizePath(path: string | undefined): string {
@@ -59,6 +61,10 @@ function includesAny(value: string | null | undefined, needles: string[]): boole
 function stableBucket(seed: string): number {
   const digest = createHash("sha256").update(seed).digest();
   return digest.readUInt32BE(0) % 10000;
+}
+
+function blocked(reason: string, commerceTraffic: CommerceTrafficClassification): PopupEligibilityResult {
+  return { eligible: false, reason, variant: null, assignmentBucket: null, commerceTraffic };
 }
 
 export function assignPopupVariant(campaign: PopupCampaignConfig, visitorId: string): { variant: PopupVariantConfig; bucket: number } {
@@ -95,64 +101,79 @@ function triggerSatisfied(campaign: PopupCampaignConfig, context: PopupSessionCo
 
 export function evaluatePopupEligibility(campaign: PopupCampaignConfig, context: PopupSessionContext): PopupEligibilityResult {
   const now = context.nowMs || Date.now();
-  if (campaign.status !== "DRAFT") return { eligible: false, reason: "campaign_paused", variant: null, assignmentBucket: null };
-  if (!context.visitorId || !context.sessionId) return { eligible: false, reason: "identity_missing", variant: null, assignmentBucket: null };
+  const commerceTraffic = classifyCommerceTraffic(context, {
+    version: 1,
+    targetCountries: campaign.targeting.qualifiedCountries,
+  });
+
+  if (campaign.status !== "DRAFT") return blocked("campaign_paused", commerceTraffic);
+  if (!context.visitorId || !context.sessionId) return blocked("identity_missing", commerceTraffic);
+
+  if (!commerceTrafficGateAllows(campaign.targeting.commerceTrafficMode, commerceTraffic)) {
+    return blocked(commerceTraffic.decision === "EXCLUDED" ? "commerce_traffic_excluded" : "commerce_traffic_not_qualified", commerceTraffic);
+  }
 
   const path = normalizePath(context.pagePath);
   if (campaign.targeting.excludePaths.some(rule => pathMatches(path, rule))) {
-    return { eligible: false, reason: "excluded_path", variant: null, assignmentBucket: null };
+    return blocked("excluded_path", commerceTraffic);
   }
   if (campaign.targeting.includePaths.length > 0 && !campaign.targeting.includePaths.some(rule => pathMatches(path, rule))) {
-    return { eligible: false, reason: "path_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("path_not_targeted", commerceTraffic);
   }
   if (!listAllows(context.productHandle, campaign.targeting.productHandles)) {
-    return { eligible: false, reason: "product_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("product_not_targeted", commerceTraffic);
   }
   if (!listAllows(context.funnelId, campaign.targeting.funnelIds)) {
-    return { eligible: false, reason: "funnel_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("funnel_not_targeted", commerceTraffic);
   }
   if (!listAllows(context.trafficSource, campaign.targeting.trafficSources)) {
-    return { eligible: false, reason: "traffic_source_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("traffic_source_not_targeted", commerceTraffic);
   }
   if (!listAllows(context.utmSource, campaign.targeting.utmSources)) {
-    return { eligible: false, reason: "utm_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("utm_not_targeted", commerceTraffic);
   }
   if (!includesAny(context.referrer, campaign.targeting.referrerContains)) {
-    return { eligible: false, reason: "referrer_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("referrer_not_targeted", commerceTraffic);
   }
 
   if (campaign.targeting.visitorState !== "any" && campaign.targeting.visitorState !== context.visitorState) {
-    return { eligible: false, reason: "visitor_state_not_targeted", variant: null, assignmentBucket: null };
+    return blocked("visitor_state_not_targeted", commerceTraffic);
   }
 
   const cartCount = context.cartItemCount || 0;
   if ((campaign.targeting.requireCartItems || campaign.trigger.requireCartItems) && cartCount < 1) {
-    return { eligible: false, reason: "cart_required", variant: null, assignmentBucket: null };
+    return blocked("cart_required", commerceTraffic);
   }
   if (campaign.targeting.cartMinSubtotal !== null && (context.cartSubtotal == null || context.cartSubtotal < campaign.targeting.cartMinSubtotal)) {
-    return { eligible: false, reason: "cart_below_minimum", variant: null, assignmentBucket: null };
+    return blocked("cart_below_minimum", commerceTraffic);
   }
   if (campaign.targeting.cartMaxSubtotal !== null && (context.cartSubtotal == null || context.cartSubtotal > campaign.targeting.cartMaxSubtotal)) {
-    return { eligible: false, reason: "cart_above_maximum", variant: null, assignmentBucket: null };
+    return blocked("cart_above_maximum", commerceTraffic);
   }
 
   if ((context.sessionImpressions || 0) >= campaign.frequency.maxImpressionsPerSession) {
-    return { eligible: false, reason: "session_frequency_cap", variant: null, assignmentBucket: null };
+    return blocked("session_frequency_cap", commerceTraffic);
   }
   if ((context.visitorDayImpressions || 0) >= campaign.frequency.maxImpressionsPerVisitorDay) {
-    return { eligible: false, reason: "daily_frequency_cap", variant: null, assignmentBucket: null };
+    return blocked("daily_frequency_cap", commerceTraffic);
   }
   if (context.previousCloseAtMs && now - context.previousCloseAtMs < campaign.frequency.suppressAfterCloseMinutes * 60_000) {
-    return { eligible: false, reason: "close_suppression", variant: null, assignmentBucket: null };
+    return blocked("close_suppression", commerceTraffic);
   }
   if (context.previousSubmitAtMs && now - context.previousSubmitAtMs < campaign.frequency.suppressAfterSubmitDays * 86_400_000) {
-    return { eligible: false, reason: "submit_suppression", variant: null, assignmentBucket: null };
+    return blocked("submit_suppression", commerceTraffic);
   }
 
   if (!triggerSatisfied(campaign, context)) {
-    return { eligible: false, reason: "trigger_not_satisfied", variant: null, assignmentBucket: null };
+    return blocked("trigger_not_satisfied", commerceTraffic);
   }
 
   const assignment = assignPopupVariant(campaign, context.visitorId);
-  return { eligible: true, reason: "eligible", variant: assignment.variant, assignmentBucket: assignment.bucket };
+  return {
+    eligible: true,
+    reason: "eligible",
+    variant: assignment.variant,
+    assignmentBucket: assignment.bucket,
+    commerceTraffic,
+  };
 }
