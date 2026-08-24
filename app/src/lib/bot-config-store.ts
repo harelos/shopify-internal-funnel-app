@@ -20,13 +20,23 @@ function parseJsonObject<T>(value: string | null | undefined, fallback: T): T {
   }
 }
 
+function withStagingModelOverride(config: BotConfigurationDraft): BotConfigurationDraft {
+  const provider = String(process.env.BOT_STAGING_PROVIDER || "").trim().toLowerCase();
+  const model = String(process.env.BOT_STAGING_MODEL || "").trim();
+  if (!provider || !model) return config;
+  return {
+    ...config,
+    models: [{ provider, model, trafficPct: 100 }],
+  };
+}
+
 export async function loadCurrentBotConfiguration(): Promise<BotConfigurationDraft> {
   const shopDomain = currentBotShopDomain();
   const row = await prisma.botConfiguration.findUnique({
     where: { shopDomain },
     include: { modelVariants: { where: { enabled: true }, orderBy: { slot: "asc" } } },
   });
-  if (!row) return defaultBotConfigurationDraft();
+  if (!row) return withStagingModelOverride(defaultBotConfigurationDraft());
 
   const defaults = defaultBotConfigurationDraft();
   const playbookStored = parseJsonObject<Record<string, any>>(row.playbookJson, defaults.playbook as any);
@@ -61,5 +71,5 @@ export async function loadCurrentBotConfiguration(): Promise<BotConfigurationDra
   if (!validated.ok || !validated.config) {
     throw new Error(`Stored bot configuration is invalid: ${validated.errors.join(" ")}`);
   }
-  return validated.config;
+  return withStagingModelOverride(validated.config);
 }
