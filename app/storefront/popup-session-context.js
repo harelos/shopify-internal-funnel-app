@@ -51,6 +51,17 @@
     return text ? text.slice(0, max) : null;
   }
 
+  function minimizedUrl(value, max = 1200) {
+    const raw = bounded(value, max);
+    if (!raw) return null;
+    try {
+      const url = new URL(raw, window.location.origin);
+      return `${url.origin}${url.pathname}`.slice(0, max);
+    } catch (_) {
+      return String(raw).split(/[?#]/, 1)[0].slice(0, max) || null;
+    }
+  }
+
   function parseJson(value, fallback) {
     try {
       const parsed = JSON.parse(value || "null");
@@ -162,10 +173,12 @@
       : "unknown";
 
     return {
-      pageUrl: bounded(window.location.href, 1600),
+      // Deliberately omit arbitrary query strings. Known acquisition parameters
+      // are captured separately below, preventing accidental email/phone/PII capture.
+      pageUrl: minimizedUrl(window.location.href, 1600),
       pagePath: bounded(window.location.pathname || "/", 800) || "/",
       landingPath: landingPath(),
-      referrer: bounded(document.referrer, 1200),
+      referrer: minimizedUrl(document.referrer, 1200),
       userAgent: bounded(navigator.userAgent, 1200),
       language: bounded(navigator.language, 80),
       viewportWidth: vp.width,
@@ -224,8 +237,8 @@
 
   function beginBehaviorCollection() {
     addListener(window, "scroll", updateScrollDepth, { passive: true });
-    addListener(window, "pointerdown", observeInteraction, { passive: true });
-    addListener(window, "touchstart", observeInteraction, { passive: true });
+    if ("PointerEvent" in window) addListener(window, "pointerdown", observeInteraction, { passive: true });
+    else addListener(window, "touchstart", observeInteraction, { passive: true });
     addListener(window, "keydown", observeInteraction, { passive: true });
     addListener(document, "visibilitychange", observeVisibility, false);
     updateScrollDepth();
