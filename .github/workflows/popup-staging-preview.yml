@@ -34,6 +34,7 @@ jobs:
       POPUP_STAGING_ENABLED: "true"
       POPUP_CONTEXT_COLLECTOR_ENABLED: "true"
       POPUP_ATTRIBUTION_ENABLED: "true"
+      POPUP_STAGING_RENDERER_ENABLED: "true"
       POPUP_STAGING_EVENT_INGEST: "false"
       POPUP_KILL_SWITCH: "false"
       POPUP_ALLOW_TEST_CONTEXT: "true"
@@ -62,6 +63,8 @@ jobs:
           npx prisma db push
           npm run build
           npm test
+          node --check storefront/popup-session-context.js
+          node --check storefront/popup-renderer.js
 
       - name: Start staging app
         run: |
@@ -81,7 +84,9 @@ jobs:
           curl -fsS http://127.0.0.1:3000/admin/popups.html | grep -q 'Popup Studio'
           curl -fsS http://127.0.0.1:3000/admin/popup-attribution-lab.html | grep -q 'Popup Attribution Lab'
           curl -fsS http://127.0.0.1:3000/admin/popup-context-lab.html | grep -q 'Popup Session Context Lab'
-          curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q 'STAGING_CONTEXT_ATTRIBUTION_ONLY'
+          curl -fsS http://127.0.0.1:3000/popup-runtime/assets/popup-renderer.js | grep -q 'TigerPopupRenderer'
+          curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q 'STAGING_CONTEXT_ATTRIBUTION_ARBITRATION_RENDERER'
+          curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q '"stagingRendererEnabled":true'
 
       - name: Install Cloudflare tunnel client
         working-directory: /
@@ -132,8 +137,6 @@ jobs:
           echo "POPUP_STAGING_STUDIO=$STUDIO" >> "$GITHUB_ENV"
           echo "POPUP_STAGING_ATTRIBUTION=$ATTRIBUTION" >> "$GITHUB_ENV"
           echo "POPUP_STAGING_CONTEXT=$CONTEXT" >> "$GITHUB_ENV"
-          echo "POPUP_STAGING_STUDIO=$STUDIO"
-          echo "POPUP_STAGING_ATTRIBUTION=$ATTRIBUTION"
 
       - name: Publish live popup links to PR
         working-directory: /
@@ -141,11 +144,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
-          BODY="Verified temporary Popup Platform staging is live for about 20 minutes:\n\nPopup Studio: ${POPUP_STAGING_STUDIO}\n\nP0.3 Attribution Lab: ${POPUP_STAGING_ATTRIBUTION}\n\nSession Context Lab: ${POPUP_STAGING_CONTEXT}\n\nThe Studio and Attribution pages passed public HTTP smoke tests before these links were published. This runner uses an ephemeral SQLite database and preview-only secrets. Production Shopify credentials are not loaded and customer-facing popup rendering remains off."
+          BODY=$(cat <<EOF
+          Verified temporary Popup Platform staging is live for about 20 minutes.
+
+          Popup Studio: ${POPUP_STAGING_STUDIO}
+
+          P0.3 Attribution Lab: ${POPUP_STAGING_ATTRIBUTION}
+
+          Session Context Lab: ${POPUP_STAGING_CONTEXT}
+
+          P0.4 validation includes arbitration tests, renderer safety tests, TypeScript build, Prisma validation, and a public renderer-asset smoke test. This runner uses an ephemeral SQLite database and preview-only secrets. Production Shopify credentials are not loaded and production storefront popup delivery remains off.
+          EOF
+          )
           if [ -n "$PR_NUMBER" ]; then
             gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
           fi
-          echo "$BODY"
+          printf '%s\n' "$BODY"
 
       - name: Keep staging alive
         working-directory: /
