@@ -77,20 +77,23 @@ jobs:
           set -e
           URL=""
 
-          # Primary tunnel: localhost.run. This avoids the intermittent DNS issue
-          # observed with Quick Tunnels on some mobile networks/Safari resolvers.
+          # Primary tunnel. Only accept the assigned *.lhr.life hostname. The
+          # localhost.run banner also contains admin.localhost.run, which is not
+          # a tunnel and caused the previous broken preview link.
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
             -R 80:localhost:3000 nokey@localhost.run >/tmp/tiger-bot-localhost-run.log 2>&1 &
           echo $! >/tmp/tiger-bot-tunnel.pid
 
-          for i in $(seq 1 35); do
-            URL=$(grep -Eo 'https://[-a-zA-Z0-9.]+\.(lhr\.life|localhost\.run)' /tmp/tiger-bot-localhost-run.log | head -1 || true)
+          for i in $(seq 1 40); do
+            URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.lhr\.life' /tmp/tiger-bot-localhost-run.log | head -1 || true)
             if [ -n "$URL" ]; then break; fi
             sleep 1
           done
 
-          # Fallback to Cloudflare Quick Tunnel if localhost.run did not return a URL.
+          # Fallback to Cloudflare Quick Tunnel.
           if [ -z "$URL" ]; then
+            echo "localhost.run did not produce an assigned lhr.life hostname. Falling back."
+            cat /tmp/tiger-bot-localhost-run.log || true
             kill "$(cat /tmp/tiger-bot-tunnel.pid)" 2>/dev/null || true
             curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
             chmod +x /tmp/cloudflared
@@ -112,8 +115,8 @@ jobs:
 
           TEST_PAGE="$URL/admin/bot-live-test.html"
 
-          # External smoke test. Do not publish a URL unless the page actually resolves
-          # and returns successfully from the public internet.
+          # Never publish a URL until DNS + public HTTP both work from outside
+          # the local Express process.
           OK=""
           for i in $(seq 1 30); do
             if curl -LfsS --max-time 10 "$TEST_PAGE" | grep -q 'TIGER Bot Staging'; then
@@ -124,6 +127,8 @@ jobs:
           done
           if [ -z "$OK" ]; then
             echo "Public staging URL failed external smoke test: $TEST_PAGE"
+            cat /tmp/tiger-bot-localhost-run.log || true
+            cat /tmp/tiger-bot-cloudflare.log || true
             exit 1
           fi
 
@@ -138,7 +143,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          BODY="Verified temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nThe workflow performed an external HTTP smoke test before publishing this URL. This preview uses the real TIGER routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
+          BODY="Verified temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nDNS and public HTTP were smoke-tested before this URL was published. This preview uses the real TIGER routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
           gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
           echo "$BODY"
 
