@@ -25,6 +25,11 @@ function parsePayload(value: string): Record<string, unknown> {
   }
 }
 
+function payloadText(payload: Record<string, unknown>, key: string): string | null {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function dateWindow(query: Record<string, unknown>) {
   const now = new Date();
   const range = String(query.range || "7d").toLowerCase();
@@ -93,23 +98,28 @@ router.get("/commerce-intelligence/qualified-traffic", async (req, res) => {
       sessionTimeoutMinutes: numberEnv("QUALIFIED_COMMERCE_SESSION_TIMEOUT_MINUTES", 30),
     };
 
-    const eventInputs: CommerceEventInput[] = events.map(event => ({
-      id: event.id,
-      name: event.name,
-      source: event.source,
-      occurredAt: event.occurredAt,
-      visitorId: event.visitorId,
-      funnelId: event.funnelId,
-      stepId: event.stepId,
-      variantId: event.variantId,
-      checkoutToken: event.checkoutToken,
-      utmSource: event.utmSource,
-      utmMedium: event.utmMedium,
-      utmCampaign: event.utmCampaign,
-      deviceClass: event.deviceClass,
-      isTest: event.isTest,
-      payload: parsePayload(event.payload),
-    }));
+    const eventInputs: CommerceEventInput[] = events.map(event => {
+      const payload = parsePayload(event.payload);
+      const environment = payloadText(payload, "metaEnvironment");
+      const browser = payloadText(payload, "browserFamily");
+      return {
+        id: event.id,
+        name: event.name,
+        source: event.source,
+        occurredAt: event.occurredAt,
+        visitorId: event.visitorId,
+        funnelId: event.funnelId,
+        stepId: event.stepId,
+        variantId: event.variantId,
+        checkoutToken: event.checkoutToken,
+        utmSource: event.utmSource,
+        utmMedium: event.utmMedium,
+        utmCampaign: event.utmCampaign,
+        deviceClass: event.deviceClass || (environment && environment !== "OTHER" ? environment : browser),
+        isTest: event.isTest,
+        payload,
+      };
+    });
 
     const summary = buildQualifiedCommerceSummary(
       eventInputs,
