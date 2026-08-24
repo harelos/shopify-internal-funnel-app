@@ -28,6 +28,15 @@ test("Israeli Meta product traffic is qualified paid commerce", () => {
   assert.equal(result.countryCode, "IL");
 });
 
+test("commercial traffic with missing market or human evidence stays unknown", () => {
+  const noCountry = classifyCommerceTraffic(base({ countryCode: null }));
+  const noHumanEvidence = classifyCommerceTraffic(base({ humanLike: null }));
+  assert.equal(noCountry.decision, "UNKNOWN");
+  assert.equal(noHumanEvidence.decision, "UNKNOWN");
+  assert.equal(noCountry.isQualified, false);
+  assert.equal(noHumanEvidence.isQualified, false);
+});
+
 test("internal and test sessions are excluded before commercial signals", () => {
   const internal = classifyCommerceTraffic(base({ isInternalSession: true }));
   const testSession = classifyCommerceTraffic(base({ isTestSession: true }));
