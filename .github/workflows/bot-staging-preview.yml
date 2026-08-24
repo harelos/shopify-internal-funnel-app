@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: bot-staging-preview-${{ github.event_name }}
@@ -90,9 +92,23 @@ jobs:
             cat /tmp/tiger-bot-tunnel.log
             exit 1
           fi
-          echo "BOT_STAGING_BASE_URL=$URL"
+          echo "BOT_STAGING_BASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "BOT_STAGING_TEST_PAGE=$URL/admin/bot-live-test.html" >> "$GITHUB_ENV"
           echo "BOT_STAGING_TEST_PAGE=$URL/admin/bot-live-test.html"
-          echo ""
-          echo "Temporary staging is live for about 20 minutes."
-          echo "No production Shopify credentials or model API keys are present in this job."
+
+      - name: Publish staging link to PR
+        if: github.event_name == 'pull_request'
+        working-directory: /
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          BODY="Temporary bot staging is live for about 20 minutes:\n\n${BOT_STAGING_TEST_PAGE}\n\nThis preview uses the real TIGER bot routing / guardrails / conversation runtime with the mock model only. No production Shopify credentials or model API keys are loaded."
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
+          echo "$BODY"
+
+      - name: Keep staging alive
+        working-directory: /
+        run: |
+          echo "Keeping ${BOT_STAGING_TEST_PAGE} alive for about 20 minutes."
           sleep 1200
