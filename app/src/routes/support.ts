@@ -1,7 +1,15 @@
 import { Router } from "express";
+import { resolveKnowledgeContext } from "../support/agent/context-broker.js";
 import { runSupportAgentSimulation } from "../support/agent/engine.js";
+import { runDefaultSupportReplaySuite } from "../support/agent/evaluation.js";
+import { detectSupportIntent } from "../support/agent/skills.js";
 import type { SupportAgentFacts } from "../support/agent/contracts.js";
-import { assertSupportStagingEnabled, getSupportConfig } from "../support/config.js";
+import {
+  assertSupportKnowledgeEnabled,
+  assertSupportStagingEnabled,
+  getSupportConfig,
+} from "../support/config.js";
+import { loadKnowledgePack } from "../support/knowledge/store.js";
 import { getSupportShopifyContext } from "../support/shopify-context.js";
 import {
   getSupportThread,
@@ -30,11 +38,35 @@ router.get("/support/status", async (_req, res) => {
     imapMailbox: config.imapMailbox,
     shopifyLookupEnabled: config.shopifyLookupEnabled,
     shopifyOrderLimit: config.shopifyOrderLimit,
+    knowledgeEnabled: config.knowledgeEnabled,
+    knowledgePackConfigured: Boolean(config.knowledgePackPath),
     agentSimulationEnabled: config.stagingEnabled,
     sendEnabled: false,
     shopifyMutationEnabled: false,
     boundary: "READ_ONLY_STAGING",
   });
+});
+
+router.get("/support/knowledge/status", async (_req, res) => {
+  try {
+    const config = getSupportConfig();
+    if (!config.knowledgeEnabled) {
+      return res.json({ enabled: false, configured: Boolean(config.knowledgePackPath), approved: false });
+    }
+    assertSupportKnowledgeEnabled(config);
+    const pack = await loadKnowledgePack(config.knowledgePackPath);
+    res.json({
+      enabled: true,
+      configured: true,
+      packId: pack.packId,
+      version: pack.version,
+      status: pack.status,
+      approved: pack.status === "APPROVED",
+      productCount: pack.products.length,
+    });
+  } catch (error: any) {
+    res.status(409).json({ error: error?.message || "Support knowledge status failed" });
+  }
 });
 
 router.get("/support/overview", async (_req, res) => {
@@ -79,19 +111,47 @@ router.get("/support/threads/:id/shopify-context", async (req, res) => {
   }
 });
 
+router.get("/support/agent/replay", async (_req, res) => {
+  try {
+    assertSupportStagingEnabled();
+    res.json(runDefaultSupportReplaySuite());
+  } catch (error: any) {
+    const message = error?.message || "Support replay failed";
+    const status = /staging is disabled/i.test(message) ? 409 : 500;
+    res.status(status).json({ error: message });
+  }
+});
+
 router.post("/support/agent/simulate", async (req, res) => {
   try {
     assertSupportStagingEnabled();
+    const config = getSupportConfig();
     const subject = typeof req.body?.subject === "string" ? req.body.subject.slice(0, 500) : undefined;
     const message = typeof req.body?.message === "string" ? req.body.message.trim().slice(0, 20_000) : "";
     const locale = typeof req.body?.locale === "string" ? req.body.locale.slice(0, 20) : "he";
+    const productKey = typeof req.body?.productKey === "string" ? req.body.productKey.trim().slice(0, 200) : undefined;
     const facts = (req.body?.facts && typeof req.body.facts === "object") ? req.body.facts as SupportAgentFacts : undefined;
 
     if (!message) return res.status(400).json({ error: "message is required" });
-    res.json(runSupportAgentSimulation({ subject, message, locale, facts }));
+
+    const baseInput = { subject, message, locale, productKey, facts };
+    if (!config.knowledgeEnabled) {
+      return res.json({ ...runSupportAgentSimulation(baseInput), knowledgeEvidence: [], knowledgePack: null });
+    }
+
+    assertSupportKnowledgeEnabled(config);
+    const pack = await loadKnowledgePack(config.knowledgePackPath);
+    const intent = detectSupportIntent(subject, message).intent;
+    const resolved = resolveKnowledgeContext(pack, baseInput, intent);
+    const result = runSupportAgentSimulation({ ...baseInput, facts: resolved.facts });
+    res.json({
+      ...result,
+      knowledgeEvidence: resolved.evidence,
+      knowledgePack: { packId: pack.packId, version: pack.version, status: pack.status },
+    });
   } catch (error: any) {
     const message = error?.message || "Support agent simulation failed";
-    const status = /staging is disabled/i.test(message) ? 409 : 500;
+    const status = /staging is disabled|knowledge is disabled|PACK_PATH/i.test(message) ? 409 : 500;
     res.status(status).json({ error: message });
   }
 });
