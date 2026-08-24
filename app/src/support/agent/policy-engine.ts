@@ -59,9 +59,10 @@ function missingFactsFor(intent: SupportIntent, facts: SupportAgentFacts = {}): 
   if (intent === "refund_request" && !knowledge?.returnPolicyKnown) missing.push("refund_policy");
   if (["return_status", "exchange_status"].includes(intent) && !knowledge?.returnStatusKnown) missing.push("return_status");
   if (intent === "product_usage" && !knowledge?.productUsageKnown) missing.push("product_usage_facts");
-  if (["product_question", "product_recommendation", "shade_recommendation"].includes(intent) && !knowledge?.productFactsKnown) {
+  if (["product_question", "product_recommendation"].includes(intent) && !knowledge?.productFactsKnown) {
     missing.push("product_facts");
   }
+  if (intent === "shade_recommendation" && !knowledge?.shadeGuidanceKnown) missing.push("shade_guidance");
   if (intent === "stock_request" && !knowledge?.stockKnown) missing.push("inventory_fact");
 
   return missing;
