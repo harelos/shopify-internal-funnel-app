@@ -8,7 +8,7 @@ Release state: **PRIVATE STAGING / ADMIN ONLY**
 
 Raw Shopify sessions are not a reliable denominator for TIGER popup optimization when the store contains support visits, order tracking, unsubscribe traffic, internal testing, scanners/bots, non-target markets, and other non-commercial sessions.
 
-The popup platform therefore now has a deterministic **Qualified Commerce Traffic (QCT)** contract. Its job is to classify session context before normal popup targeting and to keep known-bad traffic out of popup decisions and future commerce KPI baselines.
+The popup platform therefore has a deterministic **Qualified Commerce Traffic (QCT)** contract. Its job is to classify session context before normal popup targeting and to keep known-bad traffic out of popup decisions and future commerce KPI baselines.
 
 This is not an AI classifier. Missing evidence remains `UNKNOWN`; the system does not invent intent.
 
@@ -76,11 +76,11 @@ For `decision = QUALIFIED`, the classifier needs:
 
 If commercial context exists but country or human verification has not yet been collected, the result is `UNKNOWN`, not a guessed qualified session.
 
-This distinction matters because the storefront session collector has not been built yet.
+P0.2 now implements the session-context contract that can supply these signals, but it has not yet been installed or verified on an unpublished Shopify theme. Therefore the classification logic is implemented while real storefront measurement remains unverified.
 
 ## Enforcement modes
 
-Popup campaign targeting now supports:
+Popup campaign targeting supports:
 
 ### `exclude_known_bad` — current default
 
@@ -88,14 +88,14 @@ Popup campaign targeting now supports:
 - allows `QUALIFIED`
 - temporarily allows `UNKNOWN`
 
-This is the migration-safe Phase 1 mode. It immediately prevents known support/tracking/unsubscribe/internal/bot/non-target traffic from qualifying without pretending the unfinished collector already provides every required signal.
+This is the migration-safe mode while the P0.2 collector is being validated in staging. It immediately prevents known support/tracking/unsubscribe/internal/bot/non-target traffic from qualifying without pretending unverified storefront evidence is complete.
 
 ### `qualified_only`
 
 - allows only `QUALIFIED`
 - blocks both `EXCLUDED` and `UNKNOWN`
 
-This is the intended stricter mode once the storefront session-context collector reliably supplies country and human/bot evidence.
+Because the current classifier only returns `QUALIFIED` after country and human evidence are complete, this is the strict Qualified Commerce denominator intended for real revenue experiments after staging validation.
 
 ### `off`
 
@@ -138,7 +138,7 @@ Returning-customer status requires factual purchase history; it is not inferred 
 
 ## Popup integration
 
-`evaluatePopupEligibility()` now attaches the QCT classification to every result and applies the campaign's QCT gate before normal popup path/product/UTM/cart/frequency/trigger evaluation.
+`evaluatePopupEligibility()` attaches the QCT classification to every result and applies the campaign's QCT gate before normal popup path/product/UTM/cart/frequency/trigger evaluation.
 
 Stable rejection reasons:
 
@@ -159,18 +159,23 @@ It accepts context signals and optional target countries and returns the server-
 
 Browser popup-event metadata is not allowed to self-declare QCT class/decision as a factual analytics dimension. Keys such as `commerceTrafficClass` and `qualifiedCommerceTraffic` are stripped from untrusted event metadata.
 
-Future production analytics must derive QCT server-side from the normalized session context.
+Production analytics must derive QCT server-side from normalized session context.
+
+## P0.2 collector connection
+
+Implemented context layer:
+
+- `app/storefront/popup-session-context.js`
+- `app/src/lib/popup-session-context.ts`
+- `app/src/lib/popup-session-token.ts`
+- `app/src/routes/popup-runtime.ts`
+- `docs/TIGER_POPUP_SESSION_CONTEXT_P0_2_2026-08-24.md`
+
+It supplies server-derived country where edge headers exist, page/funnel context, approved acquisition dimensions, Meta in-app/browser context, behavior/human evidence, bot markers, internal/test flags and signed visitor/session identity.
+
+Customer purchase history is deliberately not trusted from the browser and remains unresolved until the read-only Shopify customer adapter exists.
 
 ## Tests
-
-Added:
-
-- `app/test/popup-commerce-traffic.test.ts`
-
-Expanded:
-
-- `app/test/popup-engine.test.ts`
-- `app/test/popup-config-contract.test.ts`
 
 Coverage includes:
 
@@ -185,28 +190,22 @@ Coverage includes:
 - returning-buyer class
 - email/organic/direct source classes
 - unknown commerciality
+- missing country/human evidence remaining unknown
 - enforcement-mode behavior
 - popup-engine suppression before normal trigger logic
+- collector-to-QCT normalization
+- signed visitor/session identity boundaries
 
 ## Verification state
 
 - **CODE IMPLEMENTED:** YES
+- **P0.2 COLLECTOR CONTRACT IMPLEMENTED:** YES
 - **AUTOMATED CI VERIFIED:** NOT YET CLAIMED in this document
-- **REAL STOREFRONT CONTEXT VERIFIED:** NO — collector not implemented yet
+- **REAL STOREFRONT CONTEXT VERIFIED:** NO
+- **UNPUBLISHED SHOPIFY THEME VERIFIED:** NO
 - **PRODUCTION VERIFIED:** NO
 - **PRODUCTION CHANGED:** NO
 
 ## Next task
 
-Build the lightweight storefront session-context collector that can reliably populate:
-
-- country
-- page role / funnel
-- traffic source / UTM
-- Meta ad/creative context where legitimately available
-- browser / Meta in-app webview
-- human/bot evidence
-- internal/test flags
-- visitor/customer state where server-verified
-
-Once those signals are proven reliable in staging, move eligible revenue experiments from `exclude_known_bad` toward `qualified_only`.
+P0.3 should connect signed eligible sessions to verified downstream Shopify checkout/order/revenue facts. After hosted staging and real Meta in-app validation, revenue experiments can move from `exclude_known_bad` to the strict `qualified_only` denominator.
