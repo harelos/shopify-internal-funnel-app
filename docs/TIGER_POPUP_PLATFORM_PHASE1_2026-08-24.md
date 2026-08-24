@@ -59,6 +59,8 @@ Implemented:
 - exact A/B/C/D/n basis-point allocation validation
 - duplicate variant-key prevention
 - cart min/max validation
+- qualified-commerce-traffic gate mode
+- campaign target-country list for commerce qualification
 
 Mandatory safety settings such as visible close, ESC close, immediate local close, focus restoration and body-scroll cleanup are normalized to `true` and cannot be disabled by campaign input.
 
@@ -89,10 +91,70 @@ Implemented inputs:
 - previous submit
 - session impression cap
 - visitor/day impression cap
+- qualified-commerce-traffic classification before normal popup targeting
 
 Experiment assignment is deterministic using campaign key + experiment version + visitor ID. The model is not allowed to randomly switch popup variants mid-conversation/session.
 
-### 3. Staging persistence and event model
+### 3. Qualified Commerce Traffic V1
+
+Files:
+
+- `app/src/lib/popup-commerce-traffic.ts`
+- `app/test/popup-commerce-traffic.test.ts`
+- `docs/TIGER_QUALIFIED_COMMERCE_TRAFFIC_V1_2026-08-24.md`
+
+Purpose:
+
+Raw Shopify sessions are not treated as the future popup KPI denominator. The platform now has a deterministic commerce-traffic classifier that separates verified commerce traffic from known support/tracking/unsubscribe/internal/bot/non-target/non-commercial traffic.
+
+Current classes include:
+
+Qualified:
+
+- `QUALIFIED_PAID_COMMERCE`
+- `QUALIFIED_EMAIL_COMMERCE`
+- `QUALIFIED_ORGANIC_COMMERCE`
+- `QUALIFIED_DIRECT_COMMERCE`
+- `QUALIFIED_RETURNING_CUSTOMER_COMMERCE`
+- `QUALIFIED_UNKNOWN_SOURCE_COMMERCE`
+
+Excluded:
+
+- `EXCLUDED_SUPPORT`
+- `EXCLUDED_ORDER_TRACKING`
+- `EXCLUDED_UNSUBSCRIBE`
+- `EXCLUDED_INTERNAL_TEST`
+- `EXCLUDED_BOT_OR_SCANNER`
+- `EXCLUDED_NON_TARGET_MARKET`
+- `NON_COMMERCIAL`
+
+Unresolved:
+
+- `UNKNOWN`
+
+Current policy version is `1` and the default target country is `IL`.
+
+A session is only marked `QUALIFIED` when commercial context, target-market evidence and `humanLike=true` are all present and no exclusion applies. Missing evidence becomes `UNKNOWN`; it is not guessed.
+
+Gate modes:
+
+- `exclude_known_bad` — current migration-safe default. Blocks known exclusions while allowing unresolved sessions until the storefront collector exists.
+- `qualified_only` — strict mode. Allows only fully qualified commerce traffic.
+- `off` — diagnostic bypass.
+
+The popup eligibility engine attaches QCT classification to every decision and applies the gate before normal path/product/UTM/cart/frequency/trigger evaluation.
+
+A private deterministic simulator endpoint was also added:
+
+- `POST /api/popups/commerce-traffic/evaluate`
+
+Browser event metadata is not trusted to self-declare QCT. Browser-supplied derived QCT keys are stripped from event metadata so future analytics cannot accidentally treat a client claim as server truth.
+
+Important boundary:
+
+The real storefront session-context collector is **not implemented yet**, so QCT is structurally implemented but not claimed as production-measured traffic.
+
+### 4. Staging persistence and event model
 
 Files:
 
@@ -111,8 +173,9 @@ Important data rules:
 - raw visitor/session IDs are not persisted by the popup event route
 - visitor/session IDs are server-hashed before persistence
 - common PII metadata keys are stripped from event metadata
+- client-supplied QCT classifications are stripped rather than trusted as business truth
 
-### 4. Protected admin API
+### 5. Protected admin API
 
 Files:
 
@@ -125,6 +188,7 @@ Routes:
 - `GET /api/popups/config`
 - `PUT /api/popups/campaigns/:key`
 - `POST /api/popups/evaluate`
+- `POST /api/popups/commerce-traffic/evaluate`
 - `POST /api/popups/events`
 - `GET /api/popups/analytics`
 
@@ -137,7 +201,7 @@ Safety gates:
 - event ingestion returns a disabled response unless the staging gates are intentionally opened
 - no public storefront endpoint was added
 
-### 5. Popup Studio admin UI
+### 6. Popup Studio admin UI
 
 Files:
 
@@ -170,7 +234,7 @@ The UI supports:
 
 There is intentionally **no Publish to Storefront button**.
 
-### 6. Fail-safe local preview runtime
+### 7. Fail-safe local preview runtime
 
 Files:
 
@@ -203,11 +267,12 @@ Failure behavior:
 
 Creative strings are rendered with DOM `textContent`; the preview does not inject supplied creative as arbitrary HTML.
 
-### 7. Automated test coverage added
+### 8. Automated test coverage added
 
 Files:
 
 - `app/test/popup-config-contract.test.ts`
+- `app/test/popup-commerce-traffic.test.ts`
 - `app/test/popup-engine.test.ts`
 - `app/test/popup-ui-preview-server.mjs`
 
@@ -222,6 +287,13 @@ Covered/tested by the committed suites:
 - close suppression
 - session frequency cap
 - compound page + UTM + cart targeting
+- Israeli Meta paid-commerce classification
+- support/tracking/unsubscribe/internal/test/bot/non-target exclusions
+- non-commercial page exclusion
+- returning/email/organic/direct commerce classes
+- unknown evidence remains unknown
+- `exclude_known_bad` vs `qualified_only` gate behavior
+- known-bad QCT is blocked before normal popup trigger logic
 
 CI is configured to:
 
@@ -237,7 +309,7 @@ CI is configured to:
 
 A CI configuration is not itself proof of a passing run; the final workflow result must be inspected separately.
 
-### 8. Popup research playbook
+### 9. Popup research playbook
 
 File:
 
@@ -269,6 +341,7 @@ POPUP_EVENT_HASH_PEPPER=
 Do not interpret these as bugs; they are release boundaries:
 
 - no live storefront popup loader
+- no storefront session-context collector yet
 - no Theme App Extension popup injection
 - no production campaign publishing
 - no real discount issuance
@@ -303,7 +376,7 @@ Do not add a storefront runtime until those boundaries are understood.
 Recommended order:
 
 1. Confirm CI green and inspect mobile/desktop render artifacts.
-2. Build the lightweight storefront session-context collector.
+2. Build the lightweight storefront session-context collector, including country, page/funnel context, UTM/source, browser/webview, and human/bot evidence required by QCT.
 3. Add campaign arbitration when multiple campaigns are eligible.
 4. Add a provider-independent product/cart/customer context adapter with strict read-only capability first.
 5. Build a Theme App Extension loader that is restricted to the unpublished staging theme and still has the local kill switch.
