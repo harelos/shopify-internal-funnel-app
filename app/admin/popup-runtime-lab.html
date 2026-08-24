@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Popup Runtime Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/popups.css">
+  <style>
+    .lab{max-width:1180px;margin:0 auto;padding:28px 18px 80px}.lab-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}.lab-head h1{margin:0 0 6px;font-size:30px}.lab-head p{margin:0;color:#71717a;max-width:760px;line-height:1.55}.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.lab-card{background:#fff;border:1px solid #e4e4e7;border-radius:18px;padding:18px}.lab-card h2{font-size:18px;margin:0 0 8px}.lab-card p{margin:0 0 14px;color:#71717a;line-height:1.5}.lab-actions{display:flex;gap:8px;flex-wrap:wrap}.lab-btn{border:1px solid #d4d4d8;background:#fff;border-radius:10px;padding:10px 13px;font:inherit;font-weight:700;cursor:pointer}.lab-btn.primary{background:#18181b;color:#fff;border-color:#18181b}.lab-btn.danger{color:#991b1b}.lab-code{margin-top:12px;background:#18181b;color:#f4f4f5;border-radius:12px;padding:13px;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;min-height:88px}.lab-status{display:inline-flex;align-items:center;gap:7px;border:1px solid #d4d4d8;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800}.lab-status.good{background:#f0fdf4;color:#166534;border-color:#bbf7d0}.lab-status.warn{background:#fffbeb;color:#92400e;border-color:#fde68a}.lab-status.bad{background:#fef2f2;color:#991b1b;border-color:#fecaca}.lab-flow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}.lab-step{border:1px solid #e4e4e7;border-radius:12px;padding:12px;text-align:center;font-size:12px;font-weight:750;background:#fafafa}.lab-note{margin-top:16px;padding:14px;border-radius:12px;background:#fffbeb;color:#713f12;border:1px solid #fde68a;line-height:1.55}.lab-links{display:flex;gap:8px;flex-wrap:wrap}.lab-links a{text-decoration:none}.lab-log{max-height:300px;overflow:auto}.lab-event{padding:8px 0;border-bottom:1px solid #27272a}.lab-event:last-child{border-bottom:0}@media(max-width:760px){.lab-grid{grid-template-columns:1fr}.lab-flow{grid-template-columns:1fr}.lab{padding:20px 12px 60px}.lab-head h1{font-size:25px}}
+  </style>
+</head>
+<body class="popup-studio">
+  <main class="lab">
+    <div class="lab-head">
+      <div>
+        <div class="eyebrow">P0.4 · STAGING ONLY</div>
+        <h1>Popup Arbitration + Renderer Lab</h1>
+        <p>This surface exercises the real P0.4 decision path: signed session → eligibility → campaign arbitration → no-popup holdout → selected variant → fail-safe renderer. It does not inject anything into the production storefront.</p>
+      </div>
+      <div class="lab-links">
+        <a class="lab-btn" href="popups.html">Popup Studio</a>
+        <a class="lab-btn" href="popup-attribution-lab.html">Attribution Lab</a>
+        <a class="lab-btn" href="popup-context-lab.html">Context Lab</a>
+      </div>
+    </div>
+
+    <div class="lab-flow" aria-label="Runtime pipeline">
+      <div class="lab-step">1. Signed identity</div>
+      <div class="lab-step">2. Eligibility</div>
+      <div class="lab-step">3. Arbitration</div>
+      <div class="lab-step">4. Holdout / variant</div>
+      <div class="lab-step">5. Local-safe render</div>
+    </div>
+
+    <div class="lab-note"><strong>Safety boundary:</strong> the renderer is enabled only when <code>POPUP_STAGING_RENDERER_ENABLED=true</code>. X, ESC, backdrop and timeout close locally. This lab creates only synthetic draft campaigns and never creates coupons, discounts or customer writes.</div>
+
+    <div class="lab-grid" style="margin-top:16px">
+      <section class="lab-card">
+        <h2>Runtime status</h2>
+        <p>Confirms the staging gates before any renderer test is allowed.</p>
+        <span class="lab-status warn" id="runtime-pill">Checking…</span>
+        <div class="lab-code" id="runtime-json">Loading /popup-runtime/status…</div>
+      </section>
+
+      <section class="lab-card">
+        <h2>Demo campaign set</h2>
+        <p>Creates two synthetic drafts. The 90-priority product finder should beat the 30-priority lead capture when both are eligible.</p>
+        <div class="lab-actions">
+          <button class="lab-btn primary" id="seed">Create demo campaigns</button>
+          <button class="lab-btn" id="arbitrate">Run arbitration only</button>
+        </div>
+        <div class="lab-code" id="seed-result">Not created yet.</div>
+      </section>
+
+      <section class="lab-card">
+        <h2>Renderer test</h2>
+        <p>Starts the inert collector and renderer, then requests a real server decision. A no-popup holdout is a valid result.</p>
+        <div class="lab-actions">
+          <button class="lab-btn primary" id="start-renderer">Start staging renderer</button>
+          <button class="lab-btn" id="manual-trigger">Manual decision</button>
+          <button class="lab-btn danger" id="stop-renderer">Stop renderer</button>
+        </div>
+        <div class="lab-code" id="renderer-state">Renderer not started.</div>
+      </section>
+
+      <section class="lab-card">
+        <h2>Decision/event log</h2>
+        <p>Shows SHOW / SUPPRESS / DEFER and renderer lifecycle events without pretending synthetic data is production data.</p>
+        <div class="lab-code lab-log" id="event-log">Waiting for events…</div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="/popup-runtime/assets/popup-session-context.js"></script>
+  <script src="/popup-runtime/assets/popup-renderer.js"></script>
+  <script>
+    (() => {
+      const api = window.API;
+      const $ = id => document.getElementById(id);
+      const log = [];
+
+      function append(name, detail) {
+        log.unshift(`${new Date().toLocaleTimeString()} · ${name}\n${JSON.stringify(detail ?? null, null, 2)}`);
+        $("event-log").textContent = log.slice(0, 20).join("\n\n");
+      }
+
+      function demoCampaign(key, name, type, priority, title) {
+        return {
+          key,
+          name,
+          type,
+          status: "DRAFT",
+          experimentVersion: 1,
+          trigger: { mode: "time", seconds: 1, scrollPct: 0, inactivitySeconds: 1, requireCartItems: false, desktopExitOnly: true },
+          targeting: { includePaths: [], excludePaths: [], productHandles: [], funnelIds: [], trafficSources: [], referrerContains: [], utmSources: [], visitorState: "any", cartMinSubtotal: null, cartMaxSubtotal: null, requireCartItems: false, commerceTrafficMode: "off", qualifiedCountries: ["IL"] },
+          frequency: { suppressAfterCloseMinutes: 1, suppressAfterSubmitDays: 1, maxImpressionsPerSession: 2, maxImpressionsPerVisitorDay: 4 },
+          delivery: { priority, conflictGroup: "demo-global", globalCooldownSeconds: 2, deferWhenOverlayOpen: true, reserveCartForCartCampaigns: true, suppressOnCheckout: true },
+          safety: { visibleCloseButton: true, escClose: true, localImmediateClose: true, backdropClose: true, restoreFocus: true, cleanupBodyScroll: true, maxOpenMs: 45000 },
+          variants: [
+            { key: "control", name: "Control", weightBasisPoints: 5000, creative: { eyebrow: "TIGER P0.4 DEMO", title, body: "Synthetic staging creative. Server arbitration selected this campaign and the renderer can always close locally.", ctaLabel: "Continue", secondaryLabel: "Not now", imageUrl: "", direction: "ltr", formMode: "none" } },
+            { key: "b", name: "B", weightBasisPoints: 5000, creative: { eyebrow: "TIGER P0.4 DEMO", title: `${title} · Variant B`, body: "Synthetic staging creative. Sticky assignment is deterministic for this visitor and experiment version.", ctaLabel: "Continue", secondaryLabel: "Not now", imageUrl: "", direction: "ltr", formMode: "none" } }
+          ]
+        };
+      }
+
+      const campaigns = [
+        demoCampaign("p04-demo-product-finder", "P0.4 Product Finder", "product_finder", 90, "Higher-priority product finder won"),
+        demoCampaign("p04-demo-lead", "P0.4 Lead Capture", "lead_capture", 30, "Lower-priority lead campaign")
+      ];
+
+      async function status() {
+        try {
+          const response = await fetch("/popup-runtime/status", { credentials: "same-origin" });
+          const data = await response.json();
+          $("runtime-json").textContent = JSON.stringify(data, null, 2);
+          const ready = Boolean(data.runtime?.stagingEnabled && data.runtime?.collectorEnabled && data.runtime?.attributionEnabled && data.runtime?.stagingRendererEnabled && !data.runtime?.killSwitch);
+          $("runtime-pill").textContent = ready ? "P0.4 renderer gates ready" : "Renderer gate not ready";
+          $("runtime-pill").className = `lab-status ${ready ? "good" : "bad"}`;
+          return data;
+        } catch (error) {
+          $("runtime-pill").textContent = "Runtime unavailable";
+          $("runtime-pill").className = "lab-status bad";
+          $("runtime-json").textContent = error.message;
+          return null;
+        }
+      }
+
+      async function seed() {
+        if (!api?.put) throw new Error("Admin API helper unavailable");
+        const saved = [];
+        for (const campaign of campaigns) {
+          const response = await api.put(`/api/popups/campaigns/${encodeURIComponent(campaign.key)}`, campaign);
+          saved.push({ key: response.campaign?.key, priority: response.campaign?.delivery?.priority });
+        }
+        $("seed-result").textContent = JSON.stringify(saved, null, 2);
+        append("demo_campaigns_saved", saved);
+        return saved;
+      }
+
+      function arbitrationContext() {
+        return {
+          visitorId: "p04-lab-visitor",
+          sessionId: "p04-lab-session",
+          sessionElapsedMs: 3000,
+          scrollDepthPct: 50,
+          inactiveMs: 0,
+          exitIntent: false,
+          manualTrigger: true,
+          isMobile: false,
+          pagePath: "/admin/popup-runtime-lab.html",
+          pageRole: "content",
+          countryCode: "IL",
+          humanLike: true,
+          suspectedBot: false,
+          explicitIntent: "commerce",
+          trafficSource: "direct",
+          referrer: null,
+          utmSource: null,
+          utmMedium: null,
+          visitorState: "new",
+          cartSubtotal: null,
+          cartItemCount: 0,
+          previousCloseAtMs: null,
+          previousSubmitAtMs: null,
+          sessionImpressions: 0,
+          visitorDayImpressions: 0,
+          blockingOverlayOpen: false,
+          supportIntentActive: false,
+          checkoutInProgress: false,
+          lastAnyPopupAtMs: null,
+          campaignStates: {}
+        };
+      }
+
+      async function arbitrate() {
+        if (!api?.post) throw new Error("Admin API helper unavailable");
+        const response = await api.post("/api/popups/arbitrate", { campaigns, context: arbitrationContext() });
+        $("seed-result").textContent = JSON.stringify(response.result, null, 2);
+        append("arbitration", response.result);
+      }
+
+      async function startRenderer() {
+        await seed();
+        const renderer = window.TigerPopupRenderer;
+        if (!renderer?.start) throw new Error("TigerPopupRenderer asset unavailable");
+        const result = await renderer.start({ decisionIntervalMs: 3000, minimumDecisionGapMs: 1000 });
+        $("renderer-state").textContent = JSON.stringify({ start: result, current: renderer.current() }, null, 2);
+        append("renderer_started", renderer.current());
+      }
+
+      $("seed").addEventListener("click", () => seed().catch(error => { $("seed-result").textContent = error.message; append("seed_error", { message: error.message }); }));
+      $("arbitrate").addEventListener("click", () => arbitrate().catch(error => append("arbitration_error", { message: error.message })));
+      $("start-renderer").addEventListener("click", () => startRenderer().catch(error => { $("renderer-state").textContent = error.message; append("renderer_error", { message: error.message }); }));
+      $("manual-trigger").addEventListener("click", () => { window.TigerPopupRenderer?.trigger(); append("manual_trigger", window.TigerPopupRenderer?.current()); });
+      $("stop-renderer").addEventListener("click", () => { window.TigerPopupRenderer?.stop(); $("renderer-state").textContent = JSON.stringify(window.TigerPopupRenderer?.current(), null, 2); append("renderer_stopped", window.TigerPopupRenderer?.current()); });
+
+      ["tiger:popup:decision", "tiger:popup:shown", "tiger:popup:closed", "tiger:popup:cta", "tiger:popup:error"].forEach(name => {
+        window.addEventListener(name, event => {
+          append(name, event.detail);
+          $("renderer-state").textContent = JSON.stringify(window.TigerPopupRenderer?.current(), null, 2);
+        });
+      });
+
+      status().then(() => { document.body.dataset.popupRuntimeLabReady = "true"; });
+    })();
+  </script>
+</body>
+</html>
