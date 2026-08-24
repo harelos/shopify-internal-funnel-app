@@ -13,6 +13,8 @@ export type SupportConfig = {
   imapPassword: string;
   imapMailbox: string;
   maxSourceBytes: number;
+  shopifyLookupEnabled: boolean;
+  shopifyOrderLimit: number;
   sendEnabled: false;
   shopifyMutationEnabled: false;
 };
@@ -45,6 +47,8 @@ export function getSupportConfig(env: NodeJS.ProcessEnv = process.env): SupportC
     imapPassword: env.SUPPORT_IMAP_PASSWORD || "",
     imapMailbox: (env.SUPPORT_IMAP_MAILBOX || "INBOX").trim() || "INBOX",
     maxSourceBytes: Math.max(64 * 1024, Math.min(asInt(env.SUPPORT_IMAP_MAX_SOURCE_BYTES, 2 * 1024 * 1024), 10 * 1024 * 1024)),
+    shopifyLookupEnabled: asBool(env.SUPPORT_SHOPIFY_LOOKUP_ENABLED, false),
+    shopifyOrderLimit: Math.max(1, Math.min(asInt(env.SUPPORT_SHOPIFY_ORDER_LIMIT, 5), 10)),
     sendEnabled: false,
     shopifyMutationEnabled: false,
   };
@@ -69,5 +73,12 @@ export function assertSupportImapReadEnabled(config = getSupportConfig()): void 
   }
   if (config.imapHost === "mail.privateemail.com" && !config.imapSecure) {
     throw new Error("Namecheap Private Email must use secure IMAPS in this app.");
+  }
+}
+
+export function assertSupportShopifyLookupEnabled(config = getSupportConfig()): void {
+  assertSupportStagingEnabled(config);
+  if (!config.shopifyLookupEnabled) {
+    throw new Error("Support Shopify lookup is disabled. Set SUPPORT_SHOPIFY_LOOKUP_ENABLED=true explicitly in staging.");
   }
 }
