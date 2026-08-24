@@ -13,7 +13,7 @@
     status: "DRAFT",
     experimentVersion: 1,
     trigger: { mode: "time", seconds: 20, scrollPct: 50, inactivitySeconds: 30, requireCartItems: false, desktopExitOnly: true },
-    targeting: { includePaths: [], excludePaths: [], productHandles: [], funnelIds: [], trafficSources: [], referrerContains: [], utmSources: [], visitorState: "any", cartMinSubtotal: null, cartMaxSubtotal: null, requireCartItems: false },
+    targeting: { includePaths: [], excludePaths: [], productHandles: [], funnelIds: [], trafficSources: [], referrerContains: [], utmSources: [], visitorState: "any", cartMinSubtotal: null, cartMaxSubtotal: null, requireCartItems: false, commerceTrafficMode: "exclude_known_bad", qualifiedCountries: ["IL"] },
     frequency: { suppressAfterCloseMinutes: 1440, suppressAfterSubmitDays: 30, maxImpressionsPerSession: 1, maxImpressionsPerVisitorDay: 1 },
     safety: { visibleCloseButton: true, escClose: true, localImmediateClose: true, backdropClose: true, restoreFocus: true, cleanupBodyScroll: true, maxOpenMs: 300000 },
     variants: [
@@ -233,11 +233,15 @@
       `POPUP_STAGING_EVENT_INGEST=${runtime.eventIngestEnabled}`,
       `POPUP_KILL_SWITCH=${runtime.killSwitch}`,
       `storefrontEnabled=${runtime.storefrontEnabled}`,
+      `QCT_POLICY_VERSION=${runtime.commerceTrafficPolicyVersion || 1}`,
     ].join("\n");
   }
 
   function populate(configInput) {
     config = structuredClone(configInput || FALLBACK);
+    config.targeting ||= {};
+    config.targeting.commerceTrafficMode ||= "exclude_known_bad";
+    if (!Array.isArray(config.targeting.qualifiedCountries) || !config.targeting.qualifiedCountries.length) config.targeting.qualifiedCountries = ["IL"];
     activeVariantIndex = 0;
     setValue("popup-key", config.key);
     setValue("popup-name", config.name);
@@ -303,6 +307,8 @@
       cartMinSubtotal: nullableNumber($("target-cart-min")?.value),
       cartMaxSubtotal: nullableNumber($("target-cart-max")?.value),
       requireCartItems: Boolean($("target-require-cart")?.checked),
+      commerceTrafficMode: config.targeting?.commerceTrafficMode || "exclude_known_bad",
+      qualifiedCountries: Array.isArray(config.targeting?.qualifiedCountries) && config.targeting.qualifiedCountries.length ? config.targeting.qualifiedCountries : ["IL"],
     };
     config.frequency = {
       suppressAfterCloseMinutes: numberValue("freq-close-minutes", 1440),
@@ -380,6 +386,7 @@
   }
 
   function simulatorContext() {
+    const source = $("sim-utm")?.value || null;
     return {
       visitorId: "preview-visitor-sticky",
       sessionId: "preview-session",
@@ -392,9 +399,14 @@
       pagePath: $("sim-path")?.value || "/",
       productHandle: "novahair",
       funnelId: null,
-      trafficSource: $("sim-utm")?.value || null,
+      countryCode: "IL",
+      humanLike: true,
+      suspectedBot: false,
+      explicitIntent: "commerce",
+      trafficSource: source,
       referrer: "https://www.facebook.com/",
-      utmSource: $("sim-utm")?.value || null,
+      utmSource: source,
+      utmMedium: source ? "paid_social" : null,
       visitorState: "new",
       cartSubtotal: 250,
       cartItemCount: Math.max(0, numberValue("sim-cart-items", 0)),
@@ -421,10 +433,12 @@
     try {
       const response = await api.post("/api/popups/evaluate", { campaign: candidate, context: simulatorContext() });
       const result = response.result || {};
+      const qct = result.commerceTraffic || {};
+      const qctLabel = qct.class ? ` · QCT: ${qct.class}${qct.verification ? ` (${qct.verification})` : ""}` : "";
       resultBox.className = `pp-callout ${result.eligible ? "safe" : "warn"}`;
       resultBox.textContent = result.eligible
-        ? `Eligible · sticky variant: ${result.variant?.name || result.variant?.key || "—"} · bucket ${result.assignmentBucket}`
-        : `Not eligible · reason: ${result.reason || "unknown"}`;
+        ? `Eligible · sticky variant: ${result.variant?.name || result.variant?.key || "—"} · bucket ${result.assignmentBucket}${qctLabel}`
+        : `Not eligible · reason: ${result.reason || "unknown"}${qctLabel}`;
     } catch (error) {
       resultBox.className = "pp-callout danger";
       resultBox.textContent = `Simulator failed: ${error.message}`;
@@ -519,18 +533,12 @@
     if (tab.dataset.tab === "analytics") loadAnalytics();
   }));
 
-  ["creative-eyebrow", "creative-title", "creative-body", "creative-cta", "creative-secondary", "creative-form", "creative-direction", "creative-image"].forEach(id => {
-    $(id)?.addEventListener("input", updateInlinePreview);
-    $(id)?.addEventListener("change", updateInlinePreview);
-  });
-
+  document.querySelectorAll("[data-preview-input]").forEach(input => input.addEventListener("input", updateInlinePreview));
   $("btn-popup-save")?.addEventListener("click", saveDraft);
   $("btn-popup-preview")?.addEventListener("click", openPreview);
-  $("btn-popup-evaluate")?.addEventListener("click", runSimulator);
-  $("btn-popup-evaluate-secondary")?.addEventListener("click", runSimulator);
-  $("btn-add-variant")?.addEventListener("click", addVariant);
-  $("btn-safety-test")?.addEventListener("click", runSafetyTest);
-  $("btn-refresh-analytics")?.addEventListener("click", loadAnalytics);
+  $("btn-popup-add-variant")?.addEventListener("click", addVariant);
+  $("btn-popup-simulate")?.addEventListener("click", runSimulator);
+  $("btn-popup-safety-test")?.addEventListener("click", runSafetyTest);
 
   load();
 })();
