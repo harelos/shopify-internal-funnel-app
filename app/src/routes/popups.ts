@@ -3,6 +3,7 @@ import { Router } from "express";
 import prisma from "../lib/db.js";
 import { defaultPopupCampaign, normalizeAndValidatePopupCampaign, type PopupCampaignConfig } from "../lib/popup-config-contract.js";
 import { evaluatePopupEligibility, type PopupSessionContext } from "../lib/popup-engine.js";
+import { arbitratePopupCampaigns, type PopupArbitrationContext } from "../lib/popup-arbitrator.js";
 import {
   classifyCommerceTraffic,
   DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY,
@@ -38,8 +39,6 @@ const PRIVATE_METADATA_KEYS = new Set([
   "order_number",
 ]);
 
-// These values are server-derived business classifications. A browser event is
-// not allowed to self-declare them as factual analytics dimensions.
 const UNTRUSTED_DERIVED_METADATA_KEYS = new Set([
   "commerceTrafficClass",
   "commerce_traffic_class",
@@ -57,6 +56,7 @@ function popupRuntimeState() {
   return {
     stagingEnabled: process.env.POPUP_STAGING_ENABLED === "true",
     eventIngestEnabled: process.env.POPUP_STAGING_EVENT_INGEST === "true",
+    stagingRendererEnabled: process.env.POPUP_STAGING_RENDERER_ENABLED === "true",
     storefrontEnabled: false,
     killSwitch: process.env.POPUP_KILL_SWITCH !== "false",
     boundary: "STAGING_ONLY",
@@ -82,6 +82,7 @@ function rowToConfig(row: any): PopupCampaignConfig {
     trigger: safeJson(row.triggerJson, {}),
     targeting: safeJson(row.targetingJson, {}),
     frequency: safeJson(row.frequencyJson, {}),
+    delivery: safeJson(row.deliveryJson || "{}", {}),
     safety: safeJson(row.safetyJson, {}),
     variants: (row.variants || []).map((variant: any) => ({
       key: variant.key,
@@ -100,6 +101,15 @@ async function loadCampaign(key: string) {
     where: { shopDomain_key: { shopDomain: currentShopDomain(), key } },
     include: { variants: { orderBy: { createdAt: "asc" } } },
   });
+}
+
+async function loadAllCampaigns(): Promise<PopupCampaignConfig[]> {
+  const rows = await prisma.popupCampaign.findMany({
+    where: { shopDomain: currentShopDomain() },
+    include: { variants: { orderBy: { createdAt: "asc" } } },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+  });
+  return rows.map(rowToConfig);
 }
 
 function stripPrivateMetadata(value: unknown, depth = 0): unknown {
@@ -139,8 +149,6 @@ router.get("/popups/status", (_req, res) => {
   res.json(popupRuntimeState());
 });
 
-// Private deterministic classifier for operator QA. This does not use an LLM,
-// trust a browser-supplied classification, or publish anything to the storefront.
 router.post("/popups/commerce-traffic/evaluate", (req, res) => {
   const signals = (req.body?.signals || req.body?.context || {}) as CommerceTrafficSignals;
   const policy = {
@@ -157,13 +165,9 @@ router.post("/popups/commerce-traffic/evaluate", (req, res) => {
 
 router.get("/popups/config", async (_req, res) => {
   try {
-    const rows = await prisma.popupCampaign.findMany({
-      where: { shopDomain: currentShopDomain() },
-      include: { variants: { orderBy: { createdAt: "asc" } } },
-      orderBy: { updatedAt: "desc" },
-    });
+    const campaigns = await loadAllCampaigns();
     res.json({
-      campaigns: rows.map(rowToConfig),
+      campaigns,
       defaultCampaign: defaultPopupCampaign(),
       runtime: popupRuntimeState(),
     });
@@ -195,6 +199,7 @@ router.put("/popups/campaigns/:key", async (req, res) => {
           triggerJson: JSON.stringify(config.trigger),
           targetingJson: JSON.stringify(config.targeting),
           frequencyJson: JSON.stringify(config.frequency),
+          deliveryJson: JSON.stringify(config.delivery),
           safetyJson: JSON.stringify(config.safety),
         },
         update: {
@@ -205,6 +210,7 @@ router.put("/popups/campaigns/:key", async (req, res) => {
           triggerJson: JSON.stringify(config.trigger),
           targetingJson: JSON.stringify(config.targeting),
           frequencyJson: JSON.stringify(config.frequency),
+          deliveryJson: JSON.stringify(config.delivery),
           safetyJson: JSON.stringify(config.safety),
         },
       });
@@ -250,6 +256,26 @@ router.post("/popups/evaluate", async (req, res) => {
     });
   } catch (error: any) {
     res.status(400).json({ error: error?.message || "Popup evaluation failed" });
+  }
+});
+
+router.post("/popups/arbitrate", async (req, res) => {
+  try {
+    const savedCampaigns = await loadAllCampaigns();
+    const supplied = Array.isArray(req.body?.campaigns)
+      ? req.body.campaigns.map((campaign: unknown) => normalizeAndValidatePopupCampaign(campaign)).filter((result: any) => result.ok && result.config).map((result: any) => result.config as PopupCampaignConfig)
+      : [];
+    const campaigns = supplied.length ? supplied : savedCampaigns;
+    const context = (req.body?.context || {}) as PopupArbitrationContext;
+    const result = arbitratePopupCampaigns(campaigns, context);
+    res.json({
+      result,
+      campaignCount: campaigns.length,
+      simulatorOnly: true,
+      runtime: popupRuntimeState(),
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || "Popup arbitration failed" });
   }
 });
 
