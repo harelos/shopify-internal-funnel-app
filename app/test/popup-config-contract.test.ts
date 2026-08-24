@@ -23,6 +23,24 @@ test("default popup campaign is valid and fail-safe close controls cannot be dis
   assert.equal(result.config?.safety.cleanupBodyScroll, true);
 });
 
+test("default campaign excludes known-bad commerce traffic and targets Israel", () => {
+  const input = defaultPopupCampaign();
+  assert.equal(input.targeting.commerceTrafficMode, "exclude_known_bad");
+  assert.deepEqual(input.targeting.qualifiedCountries, ["IL"]);
+
+  const result = normalizeAndValidatePopupCampaign({
+    ...input,
+    targeting: {
+      ...input.targeting,
+      commerceTrafficMode: "invalid-mode",
+      qualifiedCountries: ["il", "US", "not-a-country", "IL"],
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.config?.targeting.commerceTrafficMode, "exclude_known_bad");
+  assert.deepEqual(result.config?.targeting.qualifiedCountries, ["IL", "US"]);
+});
+
 test("variant allocation must total 10000 basis points", () => {
   const input = defaultPopupCampaign();
   input.variants[0].weightBasisPoints = 2000;
