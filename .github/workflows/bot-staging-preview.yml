@@ -7,13 +7,19 @@ on:
     paths:
       - app/admin/bot-live-test.html
       - .github/workflows/bot-staging-preview.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - app/admin/bot-live-test.html
+      - .github/workflows/bot-staging-preview.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: bot-staging-preview
+  group: bot-staging-preview-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
