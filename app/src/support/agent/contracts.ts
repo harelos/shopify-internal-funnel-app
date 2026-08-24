@@ -80,6 +80,7 @@ export type SupportCustomerFacts = {
 export type SupportKnowledgeFacts = {
   productUsageKnown?: boolean;
   productFactsKnown?: boolean;
+  shadeGuidanceKnown?: boolean;
   shippingPolicyKnown?: boolean;
   returnPolicyKnown?: boolean;
   stockKnown?: boolean;
