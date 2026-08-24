@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSupportConfig } from "../support/config.js";
+import { getSupportShopifyContext } from "../support/shopify-context.js";
 import {
   getSupportThread,
   listSupportThreads,
@@ -10,6 +11,12 @@ import {
 
 const router = Router();
 
+function bearerSessionToken(authorization: string | undefined): string | undefined {
+  if (!authorization?.startsWith("Bearer ")) return undefined;
+  const token = authorization.slice(7).trim();
+  return token || undefined;
+}
+
 router.get("/support/status", async (_req, res) => {
   const config = getSupportConfig();
   res.json({
@@ -19,6 +26,8 @@ router.get("/support/status", async (_req, res) => {
     imapReadEnabled: config.imapReadEnabled,
     imapConfigured: Boolean(config.imapHost && config.imapUsername && config.imapPassword),
     imapMailbox: config.imapMailbox,
+    shopifyLookupEnabled: config.shopifyLookupEnabled,
+    shopifyOrderLimit: config.shopifyOrderLimit,
     sendEnabled: false,
     shopifyMutationEnabled: false,
     boundary: "READ_ONLY_STAGING",
@@ -49,6 +58,21 @@ router.get("/support/threads/:id", async (req, res) => {
     res.json(thread);
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed to load support thread" });
+  }
+});
+
+router.get("/support/threads/:id/shopify-context", async (req, res) => {
+  try {
+    const sessionToken = bearerSessionToken(req.get("authorization"));
+    const context = await getSupportShopifyContext(req.params.id, sessionToken);
+    res.json(context);
+  } catch (error: any) {
+    const message = error?.message || "Failed to load Shopify support context";
+    if (/thread not found/i.test(message)) return res.status(404).json({ error: message });
+    if (/disabled|not configured|required|live Shopify connection/i.test(message)) {
+      return res.status(409).json({ error: message });
+    }
+    res.status(500).json({ error: message });
   }
 });
 
