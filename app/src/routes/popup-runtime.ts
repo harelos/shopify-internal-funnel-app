@@ -87,11 +87,10 @@ router.get("/popup-runtime/status", (req, res) => {
 
 router.post("/popup-runtime/session/bootstrap", requireContextGate, (req, res) => {
   try {
-    const visitorClaims = tryVisitorToken(req.body?.visitorToken);
-    const visitor = visitorClaims || issuePopupVisitorToken({ shopDomain: currentShopDomain() }).claims;
-    const visitorToken = visitorClaims
-      ? String(req.body.visitorToken)
-      : issuePopupVisitorToken({ shopDomain: currentShopDomain(), visitorId: visitor.visitorId }).token;
+    const existingVisitor = tryVisitorToken(req.body?.visitorToken);
+    const issuedVisitor = existingVisitor ? null : issuePopupVisitorToken({ shopDomain: currentShopDomain() });
+    const visitor = existingVisitor || issuedVisitor!.claims;
+    const visitorToken = existingVisitor ? String(req.body.visitorToken) : issuedVisitor!.token;
 
     const existingSession = trySessionToken(req.body?.sessionToken, visitor.visitorId);
     const issuedSession = existingSession
