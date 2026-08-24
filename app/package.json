@@ -13,7 +13,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "build": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/shopify-admin-retry.test.ts test/analytics-contract.test.ts test/profit-os-contract.test.ts test/bot-sales-brain.test.ts test/bot-config-contract.test.ts test/bot-orchestrator.test.ts test/bot-runtime-policy.test.ts test/bot-experiment.test.ts test/bot-shopify-tools.test.ts test/bot-session-token.test.ts test/bot-tool-executor.test.ts test/bot-admin-ui.test.ts test/bot-truth.test.ts test/bot-dashboard-ui.test.ts test/popup-config-contract.test.ts test/popup-engine.test.ts"
+    "test": "prisma generate && node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/shopify-admin-retry.test.ts test/analytics-contract.test.ts test/profit-os-contract.test.ts test/bot-sales-brain.test.ts test/bot-config-contract.test.ts test/bot-orchestrator.test.ts test/bot-runtime-policy.test.ts test/bot-experiment.test.ts test/bot-shopify-tools.test.ts test/bot-session-token.test.ts test/bot-tool-executor.test.ts test/bot-admin-ui.test.ts test/bot-truth.test.ts test/bot-dashboard-ui.test.ts test/popup-config-contract.test.ts test/popup-commerce-traffic.test.ts test/popup-engine.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
