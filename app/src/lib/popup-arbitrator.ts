@@ -5,12 +5,20 @@ import { evaluatePopupEligibility, type PopupEligibilityResult, type PopupSessio
 
 export type PopupDecisionAction = "SHOW" | "SUPPRESS" | "DEFER";
 
+export interface PopupCampaignRuntimeState {
+  previousCloseAtMs?: number | null;
+  previousSubmitAtMs?: number | null;
+  sessionImpressions?: number;
+  visitorDayImpressions?: number;
+}
+
 export interface PopupArbitrationContext extends PopupSessionContext {
   pageRole?: CommercePageRole;
   supportIntentActive?: boolean;
   blockingOverlayOpen?: boolean;
   checkoutInProgress?: boolean;
   lastAnyPopupAtMs?: number | null;
+  campaignStates?: Record<string, PopupCampaignRuntimeState>;
 }
 
 export interface PopupCandidateDecision {
@@ -75,10 +83,21 @@ function globalConflictDecision(campaign: PopupCampaignConfig, context: PopupArb
   return null;
 }
 
+function campaignEligibilityContext(campaign: PopupCampaignConfig, context: PopupArbitrationContext): PopupSessionContext {
+  const campaignState = context.campaignStates?.[campaign.key] || {};
+  return {
+    ...context,
+    previousCloseAtMs: campaignState.previousCloseAtMs ?? context.previousCloseAtMs,
+    previousSubmitAtMs: campaignState.previousSubmitAtMs ?? context.previousSubmitAtMs,
+    sessionImpressions: campaignState.sessionImpressions ?? context.sessionImpressions,
+    visitorDayImpressions: campaignState.visitorDayImpressions ?? context.visitorDayImpressions,
+  };
+}
+
 export function arbitratePopupCampaigns(campaigns: PopupCampaignConfig[], context: PopupArbitrationContext): PopupArbitrationResult {
   const evaluated = campaigns.map(campaign => ({
     campaign,
-    eligibility: evaluatePopupEligibility(campaign, context),
+    eligibility: evaluatePopupEligibility(campaign, campaignEligibilityContext(campaign, context)),
   }));
 
   const candidateRows: Array<{ campaign: PopupCampaignConfig; eligibility: PopupEligibilityResult; forced?: { action: PopupDecisionAction; reason: string } }> = [];
