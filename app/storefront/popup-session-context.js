@@ -7,6 +7,7 @@
   const ACQUISITION_KEY = "_tiger_popup_acquisition_v1";
   const LANDING_KEY = "_tiger_popup_landing_v1";
   const RETURNING_KEY = "_tiger_popup_seen_v1";
+  const ANONYMOUS_STATE_KEY = "_tiger_popup_anon_state_v1";
   const DEFAULT_ENDPOINT_BASE = "/popup-runtime";
 
   let started = false;
@@ -114,9 +115,15 @@
 
   function anonymousVisitorState() {
     if (anonymousState) return anonymousState;
-    const seen = local.get(RETURNING_KEY);
-    anonymousState = seen ? "returning" : "new";
-    if (!seen) local.set(RETURNING_KEY, String(Date.now()));
+    const sessionState = session.get(ANONYMOUS_STATE_KEY);
+    if (sessionState === "new" || sessionState === "returning") {
+      anonymousState = sessionState;
+      return anonymousState;
+    }
+    const seenBeforeSession = Boolean(local.get(RETURNING_KEY));
+    anonymousState = seenBeforeSession ? "returning" : "new";
+    session.set(ANONYMOUS_STATE_KEY, anonymousState);
+    if (!seenBeforeSession) local.set(RETURNING_KEY, String(Date.now()));
     return anonymousState;
   }
 
