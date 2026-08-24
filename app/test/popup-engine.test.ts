@@ -11,6 +11,12 @@ function context(overrides: Record<string, unknown> = {}) {
     scrollDepthPct: 75,
     inactiveMs: 40_000,
     pagePath: "/products/novahair",
+    countryCode: "IL",
+    humanLike: true,
+    suspectedBot: false,
+    trafficSource: "facebook",
+    utmMedium: "paid_social",
+    explicitIntent: "commerce" as const,
     visitorState: "new" as const,
     cartItemCount: 0,
     sessionImpressions: 0,
@@ -44,6 +50,32 @@ test("desktop exit intent never fires on mobile when desktopExitOnly is enabled"
   assert.equal(mobile.eligible, false);
   assert.equal(mobile.reason, "trigger_not_satisfied");
   assert.equal(desktop.eligible, true);
+});
+
+test("known-bad commerce traffic is suppressed before normal popup targeting", () => {
+  const campaign = defaultPopupCampaign();
+  const support = evaluatePopupEligibility(campaign, context({ pagePath: "/pages/contact", explicitIntent: "support" }));
+  const bot = evaluatePopupEligibility(campaign, context({ suspectedBot: true }));
+  const foreign = evaluatePopupEligibility(campaign, context({ countryCode: "US" }));
+
+  assert.equal(support.eligible, false);
+  assert.equal(support.reason, "commerce_traffic_excluded");
+  assert.equal(support.commerceTraffic.class, "EXCLUDED_SUPPORT");
+  assert.equal(bot.commerceTraffic.class, "EXCLUDED_BOT_OR_SCANNER");
+  assert.equal(foreign.commerceTraffic.class, "EXCLUDED_NON_TARGET_MARKET");
+});
+
+test("strict qualified-only mode blocks unknown commerce intent without guessing", () => {
+  const campaign = defaultPopupCampaign();
+  campaign.targeting.commerceTrafficMode = "qualified_only";
+  const result = evaluatePopupEligibility(campaign, context({
+    pagePath: "/mystery",
+    explicitIntent: "unknown",
+    commercialIntent: null,
+  }));
+  assert.equal(result.eligible, false);
+  assert.equal(result.reason, "commerce_traffic_not_qualified");
+  assert.equal(result.commerceTraffic.class, "UNKNOWN");
 });
 
 test("close suppression and impression caps block repetitive popups", () => {
