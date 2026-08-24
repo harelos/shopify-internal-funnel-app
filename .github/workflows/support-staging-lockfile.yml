@@ -6,6 +6,7 @@ on:
       - staging/support-agent-phase1
     paths:
       - app/package.json
+      - .github/workflows/support-staging-lockfile.yml
 
 permissions:
   contents: write
