@@ -23,7 +23,7 @@ function contextRuntimeState() {
 }
 
 function allowedOrigins(): Set<string> {
-  const origins = String(process.env.POPUP_ALLOWED_STOREFRONT_ORIGINS || "")
+  const origins = String(process.env.POPUP_ALLOWED_STOREFONT_ORIGINS || "")
     .split(",")
     .map(value => value.trim().replace(/\/$/, ""))
     .filter(Boolean);
@@ -123,8 +123,14 @@ router.post("/popup-runtime/session/context", requireContextGate, (req, res) => 
     if (claims.kind !== "session") return res.status(401).json({ error: "Valid popup session token required" });
 
     const snapshot = (req.body?.snapshot || {}) as PopupClientSessionSnapshot;
+    const requestUserAgent = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : null;
     const allowTestCountryHeader = process.env.POPUP_ALLOW_TEST_CONTEXT === "true" && process.env.NODE_ENV !== "production";
-    const normalized = normalizePopupSessionContext(snapshot, {
+    const normalized = normalizePopupSessionContext({
+      ...snapshot,
+      // Bot/browser evidence prefers what the HTTP request actually sent rather
+      // than a separately supplied JSON field that can trivially disagree.
+      userAgent: requestUserAgent || snapshot.userAgent,
+    }, {
       headers: req.headers as Record<string, unknown>,
       allowTestCountryHeader,
       // Deliberately no browser-provided customer ID or purchase-history trust.
