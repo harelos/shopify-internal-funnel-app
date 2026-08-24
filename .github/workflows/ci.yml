@@ -117,11 +117,15 @@ jobs:
           sleep 1
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-popup-mobile.png http://127.0.0.1:4174/popups.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-desktop.png http://127.0.0.1:4174/popups.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-context-lab.png http://127.0.0.1:4174/popup-context-lab.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom http://127.0.0.1:4174/popup-safety-test.html > /tmp/tiger-popup-safety.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom http://127.0.0.1:4174/popup-context-lab.html > /tmp/tiger-popup-context-lab.html
           grep 'data-popup-safety-self-test="pass"' /tmp/tiger-popup-safety.html
+          grep 'data-context-lab-ready="true"' /tmp/tiger-popup-context-lab.html
           test -s /tmp/tiger-popup-mobile.png
           test -s /tmp/tiger-popup-desktop.png
-          file /tmp/tiger-popup-mobile.png /tmp/tiger-popup-desktop.png
+          test -s /tmp/tiger-popup-context-lab.png
+          file /tmp/tiger-popup-mobile.png /tmp/tiger-popup-desktop.png /tmp/tiger-popup-context-lab.png
 
       - name: Upload Popup Studio render artifacts
         uses: actions/upload-artifact@v4
@@ -130,7 +134,9 @@ jobs:
           path: |
             /tmp/tiger-popup-mobile.png
             /tmp/tiger-popup-desktop.png
+            /tmp/tiger-popup-context-lab.png
             /tmp/tiger-popup-safety.html
+            /tmp/tiger-popup-context-lab.html
           if-no-files-found: error
 
       - name: Build dependency remediation candidate
