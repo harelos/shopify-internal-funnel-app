@@ -1,0 +1,56 @@
+name: Support staging CI
+
+on:
+  push:
+    branches:
+      - staging/support-agent-phase1
+    paths:
+      - app/**
+      - .github/workflows/support-staging-ci.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - app/**
+      - .github/workflows/support-staging-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    env:
+      SUPPORT_STAGING_ENABLED: "false"
+      SUPPORT_SYNC_SOURCE: fixture
+      SUPPORT_IMAP_READ_ENABLED: "false"
+      SHOPIFY_LIVE_CONNECT: "false"
+      SHOPIFY_REQUIRE_AUTH: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate Prisma schema
+        run: npm run db:validate
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: TypeScript build check
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
