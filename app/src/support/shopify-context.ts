@@ -115,15 +115,19 @@ const ORDER_LOOKUP_QUERY = `
 
 function normalizeEmail(value: string): string | null {
   const email = value.trim().toLowerCase();
-  if (!email || !email.includes("@") || /[\s"\\]/.test(email)) return null;
+  // Deliberately stricter than RFC 5322. We only need normal ecommerce
+  // addresses here, and the narrow grammar prevents Shopify search operators
+  // such as parentheses/colons/quotes from entering the order query string.
+  if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+$/.test(email)) return null;
+  if (email.includes("..") || email.startsWith(".") || email.endsWith(".")) return null;
+  const [local, domain] = email.split("@");
+  if (!local || !domain || domain.startsWith(".") || domain.endsWith(".") || !domain.includes(".")) return null;
   return email;
 }
 
 export function buildShopifyOrderEmailQuery(email: string): string {
   const normalized = normalizeEmail(email);
   if (!normalized) throw new Error("A valid customer email is required for Shopify order lookup.");
-  // Shopify's orders query supports the email: filter. The input is restricted
-  // above so no extra search operators can be injected into the query string.
   return `email:${normalized}`;
 }
 
