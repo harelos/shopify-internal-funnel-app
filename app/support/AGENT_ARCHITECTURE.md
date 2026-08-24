@@ -4,9 +4,9 @@ Status: staging architecture, no customer-facing send capability.
 
 ## Goal
 
-Build a provider-independent customer-support agent inside the existing Shopify internal control room. The agent should understand the customer's intent, retrieve only the facts it needs, plan a safe resolution, draft a reply, and either resolve a low-risk informational case or escalate/propose a controlled action.
+Build a provider-independent customer-support agent inside the existing Shopify internal control room. The agent should understand the customer's intent, retrieve only the facts it needs, plan a safe resolution, draft a reply, and either prepare a low-risk informational response or escalate/propose a controlled action.
 
-The architecture must work before an LLM API key exists. A deterministic provider and replay/simulation harness are therefore first-class components, not temporary hacks.
+The architecture must work before an LLM API key exists. A deterministic provider, versioned knowledge layer and replay/simulation harness are first-class components.
 
 ## Core design
 
@@ -20,8 +20,8 @@ CONVERSATION KERNEL
         |
         v
 INTENT + SKILL ROUTER
-  WISMO, returns, cancellation, address change, damaged item,
-  product usage, shade help, discount request, etc.
+  WISMO, returns, exchanges, cancellation, address change,
+  damaged item, product usage, shade help, discount request, etc.
         |
         v
 CONTEXT BROKER
@@ -33,7 +33,7 @@ CONTEXT BROKER
         v
 TRUTH LEDGER
   1. structured Shopify/store facts
-  2. versioned internal knowledge
+  2. approved versioned internal knowledge
   3. deterministic business rules
   4. model prose
         |
@@ -68,7 +68,7 @@ The system must never invent:
 - discounts or coupon codes
 - guarantees
 - inventory claims
-- refund rules
+- refund/return/exchange rules
 - refund amounts
 - order state
 - tracking state
@@ -83,7 +83,7 @@ If a required fact is missing, the engine must do one of three things:
 
 ## Common skill catalog
 
-Initial skills are based on common ecommerce support patterns and the needs of a beauty store:
+The staging catalog covers common ecommerce and beauty support patterns:
 
 - Shipping / tracking (WISMO)
 - Shipping policy
@@ -92,6 +92,9 @@ Initial skills are based on common ecommerce support patterns and the needs of a
 - Change order
 - Change shipping address
 - Return request
+- Return status
+- Exchange request
+- Exchange status
 - Refund request
 - Refund status
 - Damaged item
@@ -102,11 +105,12 @@ Initial skills are based on common ecommerce support patterns and the needs of a
 - Shade/color recommendation
 - Stock request
 - Discount request
+- Feedback
 - Thank-you / no reply required
 - Legal / chargeback escalation
 - Unknown / other
 
-Every skill contains:
+Every skill owns:
 
 - intent triggers
 - required facts
@@ -116,9 +120,11 @@ Every skill contains:
 - escalation conditions
 - draft strategy
 
+A lightweight deterministic sentiment signal is also recorded for future routing/analytics. Sentiment never authorizes a refund, discount, order change or any other business action.
+
 ## Customer and Shopify context
 
-The support agent should not load a broad copy of the Shopify customer database into its prompt.
+The support agent must not load a broad copy of the Shopify customer database into model context.
 
 Use progressive retrieval instead:
 
@@ -129,39 +135,72 @@ Use progressive retrieval instead:
 5. Read minimal customer context only when it materially changes the resolution.
 6. Do not persist broad Shopify customer profiles in the support database.
 
-Current implementation already has a reduced, read-only order lookup. `READ_SHOPIFY_CUSTOMER` is intentionally a separate planned capability because it can expose additional customer data and should use the minimum fields necessary.
+Current implementation has a reduced, read-only order lookup. `READ_SHOPIFY_CUSTOMER` remains deliberately separate and planned because it needs `read_customers` authorization and can expose additional protected customer data. If added, it must have its own disabled-by-default gate and minimum-field response shape.
+
+## Versioned knowledge packs
+
+Product instructions and store policies cannot live as unversioned prompt text.
+
+The knowledge layer uses a typed pack with:
+
+- `DRAFT`, `APPROVED`, `RETIRED` pack status
+- explicit semantic/version identifier
+- effective date
+- source metadata for every fact
+- individual fact state: `KNOWN` or `UNKNOWN`
+
+Rules:
+
+1. A `DRAFT` or `RETIRED` pack cannot answer customer facts.
+2. A fact marked `KNOWN` must contain an explicit value and source.
+3. An `UNKNOWN` fact stays unknown; neither rules nor a model may fill it from memory.
+4. Product lookup uses approved exact keys/titles/aliases instead of fuzzy guessing.
+5. The server chooses the pack path. The client/model cannot choose or self-approve a pack.
+6. The safe repository template intentionally contains no real commercial claims.
+
+Implemented read helpers:
+
+- approved shipping/returns policy facts
+- approved product facts
+- approved usage instructions
+- approved shade guidance
+
+The context broker returns an evidence trail with pack id, version and source, or an explicit reason the fact was unavailable.
 
 ## Tool authorization classes
 
 ### Automatically callable read/internal tools
 
-- READ_SHOPIFY_ORDER
-- READ_TRACKING
-- READ_PRODUCT_FACTS (once implemented)
-- READ_STORE_POLICY (once implemented)
-- REQUEST_CUSTOMER_INFO
-- ESCALATE_HUMAN
+- `READ_SHOPIFY_ORDER`
+- `READ_TRACKING`
+- `READ_PRODUCT_FACTS`
+- `READ_STORE_POLICY`
+- `REQUEST_CUSTOMER_INFO`
+- `ESCALATE_HUMAN`
+
+`READ_RETURN_STATUS` is defined but remains planned until an authoritative returns/exchange status source is connected.
 
 ### Sensitive reads
 
-- READ_SHOPIFY_CUSTOMER
+- `READ_SHOPIFY_CUSTOMER`
 
-Use only when needed and retrieve minimum fields.
+Use only when needed and retrieve minimum fields. It remains planned and disabled until the Shopify scope/data requirements are intentionally approved.
 
 ### Proposal-only write tools
 
-- PROPOSE_CANCEL_ORDER
-- PROPOSE_ADDRESS_CHANGE
-- PROPOSE_ORDER_EDIT
-- PROPOSE_RETURN
-- PROPOSE_REFUND
-- PROPOSE_RESHIP
+- `PROPOSE_CANCEL_ORDER`
+- `PROPOSE_ADDRESS_CHANGE`
+- `PROPOSE_ORDER_EDIT`
+- `PROPOSE_RETURN`
+- `PROPOSE_EXCHANGE`
+- `PROPOSE_REFUND`
+- `PROPOSE_RESHIP`
 
-These names are deliberate: the agent can plan the action, but the Phase 1/2 system cannot execute it.
+These names are deliberate: the agent can plan the action, but the current system cannot execute it.
 
 ### Discounts
 
-The model never creates an offer. It may call `REQUEST_SERVER_OFFER`. A later server-side offer engine will own:
+The model never creates an offer. It may request `REQUEST_SERVER_OFFER`. A later server-side offer engine will own:
 
 - customer eligibility
 - margin/authorization guard
@@ -188,8 +227,10 @@ Safe informational cases when facts are available:
 - stock questions
 - shade/product guidance
 - refund status
+- return/exchange status when an authoritative status source exists
+- ordinary feedback acknowledgement
 
-AUTO_DRAFT does **not** mean auto-send. Sending is a separate capability gate.
+`AUTO_DRAFT` does **not** mean auto-send. Sending is a separate capability gate.
 
 ### HUMAN_APPROVAL
 
@@ -198,7 +239,9 @@ Cases that might change money, inventory or an order:
 - cancellation
 - address change
 - order edit
-- return/refund request
+- return request
+- exchange request
+- refund request
 - damaged/wrong item resolution
 - reship/replacement
 - delivery exception
@@ -227,40 +270,17 @@ Current staging provider:
 
 `DeterministicSupportProvider`
 
-It needs no API key and only produces constrained drafts from explicit facts. This lets us test:
+It needs no API key and only produces constrained drafts from explicit facts. This lets us test intent routing, fact requirements, Shopify lookup planning, escalation, authorization, missing-fact behavior and Hebrew reply structure before trusting or paying for a model.
 
-- intent routing
-- fact requirements
-- Shopify lookup planning
-- escalation
-- action authorization
-- missing-fact behavior
-- Hebrew reply structure
+## No-key simulation
 
-before paying for or trusting a model.
+`POST /api/support/agent/simulate` is staging-only. It can test the decision pipeline without a mailbox or model key.
 
-## Shopify-native AI
+Important: any `facts` submitted directly to this endpoint are **synthetic staging test input only**. A production support flow must obtain truth from server-side approved tools and knowledge packs, never from client-submitted facts.
 
-Shopify Inbox currently has an optional Inbox agent for some merchants, and Shopify also offers AI-assisted suggested replies. That can be useful as an independent storefront-chat channel if the store has access.
+When the knowledge gate is enabled, the simulation endpoint loads the server-selected knowledge pack, resolves only the facts required by the detected skill and returns the knowledge evidence trail.
 
-Do not make our architecture depend on it. Shopify Sidekick is an admin assistant and is not a customer-support message API. The internal app should keep its own orchestration layer so email, future channels, Shopify reads, approval rules, testing, and analytics behave consistently.
-
-If a supported Shopify Inbox integration/API becomes available for our use case later, implement it as another **channel adapter**, not as the core brain.
-
-## No-key test strategy
-
-We can test most of the support architecture without a model API key and without the mailbox:
-
-1. Feed synthetic customer messages into `/api/support/agent/simulate`.
-2. Provide fake Shopify/order facts as fixture input.
-3. Assert detected intent.
-4. Assert required tools.
-5. Assert risk/approval decision.
-6. Assert no send/write capability exists.
-7. Assert missing facts are explicit.
-8. Assert the fallback draft does not invent commercial facts.
-
-Example simulation payload:
+Example synthetic request:
 
 ```json
 {
@@ -269,38 +289,41 @@ Example simulation payload:
   "facts": {
     "order": {
       "found": true,
-      "orderName": "#1234",
+      "orderName": "#TEST",
       "trackingAvailable": true,
-      "trackingUrl": "https://example.invalid/tracking/1234"
+      "trackingUrl": "https://example.invalid/tracking/test"
     }
   }
 }
 ```
 
-Expected behavior:
+Expected invariants:
 
 - intent = `shipping_status`
 - decision = `AUTO_DRAFT`
 - tool plan includes order/tracking reads
 - truth source includes Shopify
-- sendAllowed = false
-- shopifyMutationAllowed = false
+- `sendAllowed = false`
+- `shopifyMutationAllowed = false`
 
-## Evaluation/replay architecture
+## Replay/evaluation architecture
 
-Before auto-send is ever considered, capture a test corpus of real historical support cases with private details minimized.
+`GET /api/support/agent/replay` runs a synthetic regression corpus with no mailbox and no LLM key.
 
-For each case store/evaluate:
+The current suite has more than 20 cases covering low-risk informational requests, approval-required actions, high-risk escalation and no-reply behavior. Each case can assert:
 
 - expected intent
-- expected facts/tools
-- expected escalation level
-- forbidden actions
-- approved final answer or resolution class
+- expected decision
+- required tools
+- forbidden draft patterns
+- no-send invariant
+- no-Shopify-mutation invariant
 
-Then replay each new engine/model version against the same corpus.
+This is intentionally useful during development: the first expanded replay suite caught a real classification miss for a common delivered-but-not-received phrase. That was fixed before continuing.
 
-Minimum release metrics should include:
+When historical support data is available later, add anonymized/minimized cases to the same replay system rather than replacing the synthetic baseline.
+
+Release metrics should eventually include:
 
 - intent accuracy
 - hallucinated-fact rate (target: zero)
@@ -311,15 +334,41 @@ Minimum release metrics should include:
 - resolution rate by skill
 - repeat-contact rate
 
-## Recommended build order from here
+## Shopify-native AI
 
-1. Keep mailbox work paused.
-2. Finish the agent kernel and simulation/replay harness.
-3. Add versioned `knowledge/` packs for product, usage, shipping and returns.
-4. Add read-only product/policy tools.
-5. Add minimal Shopify customer-context tool if required.
-6. Add a real LLM provider behind `SupportModelProvider` when credentials are available.
-7. Run historical replay/evaluation.
-8. Add human approval workflow for sensitive action proposals.
-9. Only after measured reliability, add a separately gated send capability for low-risk skills.
-10. Write actions remain separately authorized and server-controlled.
+Shopify's own support/AI features may be useful as an independent channel where available, but the internal architecture must not depend on them. The orchestration layer should stay provider- and channel-independent so email, future channels, Shopify reads, approval rules, testing and analytics behave consistently.
+
+If a supported Shopify Inbox integration becomes appropriate later, implement it as another **channel adapter**, not as the core brain.
+
+## Current build order
+
+Completed in this staging branch:
+
+1. Agent kernel and deterministic provider.
+2. Intent/skill catalog and policy engine.
+3. Read/proposal tool registry.
+4. Read-only Shopify order context.
+5. Versioned knowledge-pack contracts and fail-closed loader.
+6. Product/policy knowledge read tools and context broker.
+7. Synthetic no-key replay/evaluation harness.
+
+Next:
+
+1. Populate the first real store knowledge pack from authoritative store/Shopify sources, leaving uncertain facts `UNKNOWN`.
+2. Add minimal Shopify customer context only if it improves support decisions enough to justify `read_customers` access.
+3. Add anonymized historical replay cases when available.
+4. Add a real model behind `SupportModelProvider`, still draft-only.
+5. Build human approval UI/workflow for sensitive proposals.
+6. Only after measured reliability, add a separately gated send capability for an explicit allowlist of low-risk informational skills.
+7. Keep write actions separately authorized and server-controlled.
+
+## Hard release invariant
+
+For the current phase:
+
+```text
+sendAllowed = false
+shopifyMutationAllowed = false
+```
+
+No model, prompt, channel or customer input can override these values.
