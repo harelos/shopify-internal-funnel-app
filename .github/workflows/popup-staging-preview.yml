@@ -84,6 +84,7 @@ jobs:
           curl -fsS http://127.0.0.1:3000/admin/popups.html | grep -q 'Popup Studio'
           curl -fsS http://127.0.0.1:3000/admin/popup-attribution-lab.html | grep -q 'Popup Attribution Lab'
           curl -fsS http://127.0.0.1:3000/admin/popup-context-lab.html | grep -q 'Popup Session Context Lab'
+          curl -fsS http://127.0.0.1:3000/admin/popup-runtime-lab.html | grep -q 'Popup Arbitration + Renderer Lab'
           curl -fsS http://127.0.0.1:3000/popup-runtime/assets/popup-renderer.js | grep -q 'TigerPopupRenderer'
           curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q 'STAGING_CONTEXT_ATTRIBUTION_ARBITRATION_RENDERER'
           curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q '"stagingRendererEnabled":true'
@@ -115,9 +116,10 @@ jobs:
 
           STUDIO="$URL/admin/popups.html"
           ATTRIBUTION="$URL/admin/popup-attribution-lab.html"
-          CONTEXT="$URL/admin/popup-context-lab.html?utm_source=facebook&utm_medium=paid_social&utm_campaign=popup-preview&ad_id=preview-ad-1&__tiger_test=1"
+          CONTEXT="$URL/admin/popup-context-lab.html?utm_source=facebook&utm_medium=paid_social&utm_campaign=popup-preview&ad_id=preview-ad-1"
+          RUNTIME_LAB="$URL/admin/popup-runtime-lab.html"
 
-          for PAGE in "$STUDIO" "$ATTRIBUTION"; do
+          for PAGE in "$STUDIO" "$ATTRIBUTION" "$RUNTIME_LAB"; do
             OK=""
             for i in $(seq 1 45); do
               if curl -LfsS --max-time 10 "$PAGE" | grep -q 'Popup'; then
@@ -137,6 +139,7 @@ jobs:
           echo "POPUP_STAGING_STUDIO=$STUDIO" >> "$GITHUB_ENV"
           echo "POPUP_STAGING_ATTRIBUTION=$ATTRIBUTION" >> "$GITHUB_ENV"
           echo "POPUP_STAGING_CONTEXT=$CONTEXT" >> "$GITHUB_ENV"
+          echo "POPUP_STAGING_RUNTIME_LAB=$RUNTIME_LAB" >> "$GITHUB_ENV"
 
       - name: Publish live popup links to PR
         working-directory: /
@@ -147,13 +150,15 @@ jobs:
           BODY=$(cat <<EOF
           Verified temporary Popup Platform staging is live for about 20 minutes.
 
+          P0.4 Arbitration + Renderer Lab: ${POPUP_STAGING_RUNTIME_LAB}
+
           Popup Studio: ${POPUP_STAGING_STUDIO}
 
           P0.3 Attribution Lab: ${POPUP_STAGING_ATTRIBUTION}
 
           Session Context Lab: ${POPUP_STAGING_CONTEXT}
 
-          P0.4 validation includes arbitration tests, renderer safety tests, TypeScript build, Prisma validation, and a public renderer-asset smoke test. This runner uses an ephemeral SQLite database and preview-only secrets. Production Shopify credentials are not loaded and production storefront popup delivery remains off.
+          P0.4 validation includes arbitration tests, renderer safety tests, TypeScript build, Prisma validation, and public HTTP smoke tests. This runner uses an ephemeral SQLite database and preview-only secrets. Production Shopify credentials are not loaded and production storefront popup delivery remains off.
           EOF
           )
           if [ -n "$PR_NUMBER" ]; then
@@ -164,5 +169,5 @@ jobs:
       - name: Keep staging alive
         working-directory: /
         run: |
-          echo "Keeping ${POPUP_STAGING_STUDIO} alive for about 20 minutes."
+          echo "Keeping ${POPUP_STAGING_RUNTIME_LAB} alive for about 20 minutes."
           sleep 1200
