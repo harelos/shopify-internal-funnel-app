@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-config-store.js";
 import { providerStatus } from "../lib/bot-provider.js";
+import { publicShopifyStatus } from "../lib/shopify-config.js";
 import { BotGuardrailError } from "../lib/bot-guardrails.js";
 import { loadConversationCrmFacts } from "../lib/bot-crm.js";
 import { recordBotCommerceOutcome } from "../lib/bot-commerce.js";
@@ -18,8 +19,46 @@ import { runBotTurn } from "../lib/bot-runtime.js";
 
 const router = Router();
 
+function bearerToken(req: any): string | undefined {
+  const authorization = String(req.get?.("authorization") || "");
+  return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() || undefined : undefined;
+}
+
 router.get("/bot/providers/status", (_req, res) => {
   res.json({ providers: providerStatus(), storefrontEnabled: false });
+});
+
+router.get("/bot/staging/status", async (_req, res) => {
+  try {
+    const config = await loadCurrentBotConfiguration();
+    const providers = providerStatus();
+    const selectedModels = config.models.map(item => ({
+      provider: String(item.provider || "").toLowerCase(),
+      model: item.model,
+      trafficPct: item.trafficPct,
+      configured: item.provider === "mock" ? true : Boolean((providers as any)[String(item.provider || "").toLowerCase()]),
+    }));
+    const hasRealModel = selectedModels.some(item => item.provider !== "mock" && item.configured);
+    const shopify = publicShopifyStatus();
+    res.json({
+      ok: true,
+      storefrontEnabled: false,
+      mode: hasRealModel ? "REAL_MODEL_STAGING" : "MOCK_MODEL_STAGING",
+      selectedModels,
+      providers,
+      shopify: {
+        liveConnect: shopify.mode === "live",
+        adminReadReady: Boolean(shopify.mode === "live" && shopify.shopDomain && (shopify.hasAccessToken || shopify.tokenExchangeReady)),
+        shopDomainConfigured: Boolean(shopify.shopDomain),
+        apiVersion: shopify.apiVersion,
+        hasAccessToken: shopify.hasAccessToken,
+        tokenExchangeReady: shopify.tokenExchangeReady,
+        missing: shopify.missing,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to load bot staging status." });
+  }
 });
 
 router.get("/bot/knowledge", async (_req, res) => {
@@ -69,6 +108,7 @@ router.post("/bot/simulator/message", async (req, res) => {
       profile: req.body?.profile || {},
       leadContext: req.body?.leadContext || undefined,
       explicitSignals: req.body?.signals || undefined,
+      sessionToken: bearerToken(req),
     });
     res.json({ ...result, storefrontEnabled: false });
   } catch (error: any) {
@@ -82,14 +122,9 @@ router.post("/bot/simulator/message", async (req, res) => {
   }
 });
 
-// Admin-only staging probe for the actual server-side tool boundary. This endpoint
-// is mounted behind the embedded Shopify admin auth middleware and is not a
-// storefront bot API. It is useful for proving role/tool denial and verified
-// read-only order access before any customer-facing runtime exists.
 router.post("/bot/simulator/tool", async (req, res) => {
   try {
-    const authorization = req.get("authorization") || "";
-    const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
+    const sessionToken = bearerToken(req);
     const discount = (req.body?.discount && typeof req.body.discount === "object"
       ? req.body.discount
       : { action: "NO_OFFER", reason: "SIMULATOR_DEFAULT" }) as DiscountDecision;
@@ -114,9 +149,6 @@ router.post("/bot/simulator/tool", async (req, res) => {
   }
 });
 
-// Staging-only outcome recorder for validating model A/B/n analytics before any
-// storefront runtime exists. Real commerce attribution must arrive from signed,
-// server-side storefront/order events in a later release.
 router.post("/bot/simulator/outcome", async (req, res) => {
   try {
     const outcome = await recordBotCommerceOutcome(currentBotShopDomain(), {
