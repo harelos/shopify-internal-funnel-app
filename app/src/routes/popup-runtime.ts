@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import prisma from "../lib/db.js";
 import { assignPopupTreatment, hashPopupIdentity } from "../lib/popup-attribution.js";
-import { arbitratePopupCampaigns, type PopupArbitrationContext } from "../lib/popup-arbitrator.js";
+import { arbitratePopupCampaigns, type PopupArbitrationContext, type PopupCampaignRuntimeState } from "../lib/popup-arbitrator.js";
 import { normalizeAndValidatePopupCampaign, type PopupCampaignConfig } from "../lib/popup-config-contract.js";
 import { classifyCommerceTraffic, type QualifiedCommerceTrafficPolicy } from "../lib/popup-commerce-traffic.js";
 import { normalizePopupSessionContext, toPopupEligibilityContext, type PopupClientSessionSnapshot } from "../lib/popup-session-context.js";
@@ -156,6 +156,23 @@ function boundedTimestamp(value: unknown): number | null {
   return Math.min(parsed, Date.now() + 60_000);
 }
 
+function normalizeCampaignStates(value: unknown): Record<string, PopupCampaignRuntimeState> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const output: Record<string, PopupCampaignRuntimeState> = {};
+  for (const [rawKey, rawState] of Object.entries(value as Record<string, unknown>).slice(0, 100)) {
+    const key = rawKey.trim().slice(0, 120).toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+    if (!key || !rawState || typeof rawState !== "object" || Array.isArray(rawState)) continue;
+    const row = rawState as Record<string, unknown>;
+    output[key] = {
+      previousCloseAtMs: boundedTimestamp(row.previousCloseAtMs),
+      previousSubmitAtMs: boundedTimestamp(row.previousSubmitAtMs),
+      sessionImpressions: Math.round(boundedNumber(row.sessionImpressions, 0, 1000)),
+      visitorDayImpressions: Math.round(boundedNumber(row.visitorDayImpressions, 0, 1000)),
+    };
+  }
+  return output;
+}
+
 function buildArbitrationContext(
   claims: PopupSessionClaims,
   normalized: ReturnType<typeof normalizePopupSessionContext>,
@@ -184,6 +201,7 @@ function buildArbitrationContext(
     blockingOverlayOpen: clientState.blockingOverlayOpen === true,
     checkoutInProgress: clientState.checkoutInProgress === true || normalized.pageRole === "checkout",
     lastAnyPopupAtMs: boundedTimestamp(clientState.lastAnyPopupAtMs),
+    campaignStates: normalizeCampaignStates(clientState.campaignStates),
     pageRole: normalized.pageRole,
   };
 }
