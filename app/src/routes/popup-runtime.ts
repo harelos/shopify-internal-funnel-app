@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
+import prisma from "../lib/db.js";
+import { assignPopupTreatment, hashPopupIdentity } from "../lib/popup-attribution.js";
 import { classifyCommerceTraffic, type QualifiedCommerceTrafficPolicy } from "../lib/popup-commerce-traffic.js";
 import { normalizePopupSessionContext, toPopupEligibilityContext, type PopupClientSessionSnapshot } from "../lib/popup-session-context.js";
 import { issuePopupSessionToken, issuePopupVisitorToken, verifyPopupIdentityToken, type PopupSessionClaims, type PopupVisitorClaims } from "../lib/popup-session-token.js";
@@ -10,20 +12,28 @@ function currentShopDomain(): string {
   return String(process.env.SHOP_DOMAIN || "local-dev.myshopify.com").trim().toLowerCase();
 }
 
+function holdoutBasisPoints(): number {
+  const value = Number(process.env.POPUP_HOLDOUT_BASIS_POINTS ?? 1000);
+  return Number.isFinite(value) ? Math.max(0, Math.min(5000, Math.round(value))) : 1000;
+}
+
 function contextRuntimeState() {
   return {
     stagingEnabled: process.env.POPUP_STAGING_ENABLED === "true",
     collectorEnabled: process.env.POPUP_CONTEXT_COLLECTOR_ENABLED === "true",
+    attributionEnabled: process.env.POPUP_ATTRIBUTION_ENABLED === "true",
     killSwitch: process.env.POPUP_KILL_SWITCH !== "false",
     storefrontPopupEnabled: false,
     persistsContext: false,
+    persistsAttributionAssignments: process.env.POPUP_ATTRIBUTION_ENABLED === "true",
     customerStateLookupEnabled: false,
-    boundary: "STAGING_CONTEXT_ONLY",
+    holdoutBasisPoints: holdoutBasisPoints(),
+    boundary: "STAGING_CONTEXT_ATTRIBUTION_ONLY",
   } as const;
 }
 
 function allowedOrigins(): Set<string> {
-  const origins = String(process.env.POPUP_ALLOWED_STOREFONT_ORIGINS || "")
+  const origins = String(process.env.POPUP_ALLOWED_STOREFRONT_ORIGINS || "")
     .split(",")
     .map(value => value.trim().replace(/\/$/, ""))
     .filter(Boolean);
@@ -32,10 +42,22 @@ function allowedOrigins(): Set<string> {
   return new Set(origins);
 }
 
-function originAllowed(origin: string | undefined): boolean {
+function requestOwnOrigin(req: any): string | null {
+  const forwardedHost = typeof req.headers["x-forwarded-host"] === "string" ? req.headers["x-forwarded-host"] : null;
+  const host = forwardedHost || (typeof req.headers.host === "string" ? req.headers.host : null);
+  if (!host) return null;
+  const forwardedProto = typeof req.headers["x-forwarded-proto"] === "string" ? req.headers["x-forwarded-proto"].split(",")[0].trim() : null;
+  const protocol = forwardedProto || req.protocol || "https";
+  return `${protocol}://${host}`.replace(/\/$/, "");
+}
+
+function originAllowed(req: any, origin: string | undefined): boolean {
   if (!origin) return true;
   const clean = origin.trim().replace(/\/$/, "");
-  return allowedOrigins().has(clean);
+  if (allowedOrigins().has(clean)) return true;
+  // Same-origin requests from an ephemeral staging tunnel are allowed without
+  // teaching production to trust arbitrary cross-origin storefronts.
+  return requestOwnOrigin(req) === clean;
 }
 
 function requireContextGate(req: any, res: any, next: any) {
@@ -46,8 +68,15 @@ function requireContextGate(req: any, res: any, next: any) {
   if (!runtime.stagingEnabled || !runtime.collectorEnabled || runtime.killSwitch) {
     return res.status(503).json({ error: "Popup session context collector is disabled by staging safety gates", runtime });
   }
-  if (!originAllowed(typeof req.headers.origin === "string" ? req.headers.origin : undefined)) {
+  if (!originAllowed(req, typeof req.headers.origin === "string" ? req.headers.origin : undefined)) {
     return res.status(403).json({ error: "Storefront origin is not allowed for popup context collection" });
+  }
+  next();
+}
+
+function requireAttributionGate(req: any, res: any, next: any) {
+  if (!contextRuntimeState().attributionEnabled) {
+    return res.status(503).json({ error: "Popup attribution is disabled by staging safety gates", runtime: contextRuntimeState() });
   }
   next();
 }
@@ -80,9 +109,15 @@ function trySessionToken(token: unknown, visitorId: string): PopupSessionClaims 
   }
 }
 
+function requiredSessionClaims(token: unknown): PopupSessionClaims {
+  const claims = verifyPopupIdentityToken(String(token || ""), { expectedShopDomain: currentShopDomain(), expectedKind: "session" });
+  if (claims.kind !== "session") throw new Error("Valid popup session token required.");
+  return claims;
+}
+
 router.get("/popup-runtime/status", (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
-  res.json({ runtime: contextRuntimeState(), originAllowed: originAllowed(typeof req.headers.origin === "string" ? req.headers.origin : undefined) });
+  res.json({ runtime: contextRuntimeState(), originAllowed: originAllowed(req, typeof req.headers.origin === "string" ? req.headers.origin : undefined) });
 });
 
 router.post("/popup-runtime/session/bootstrap", requireContextGate, (req, res) => {
@@ -118,23 +153,16 @@ router.post("/popup-runtime/session/bootstrap", requireContextGate, (req, res) =
 
 router.post("/popup-runtime/session/context", requireContextGate, (req, res) => {
   try {
-    const token = String(req.body?.sessionToken || "");
-    const claims = verifyPopupIdentityToken(token, { expectedShopDomain: currentShopDomain(), expectedKind: "session" });
-    if (claims.kind !== "session") return res.status(401).json({ error: "Valid popup session token required" });
-
+    const claims = requiredSessionClaims(req.body?.sessionToken);
     const snapshot = (req.body?.snapshot || {}) as PopupClientSessionSnapshot;
     const requestUserAgent = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"] : null;
     const allowTestCountryHeader = process.env.POPUP_ALLOW_TEST_CONTEXT === "true" && process.env.NODE_ENV !== "production";
     const normalized = normalizePopupSessionContext({
       ...snapshot,
-      // Bot/browser evidence prefers what the HTTP request actually sent rather
-      // than a separately supplied JSON field that can trivially disagree.
       userAgent: requestUserAgent || snapshot.userAgent,
     }, {
       headers: req.headers as Record<string, unknown>,
       allowTestCountryHeader,
-      // Deliberately no browser-provided customer ID or purchase-history trust.
-      // The read-only Shopify customer adapter will supply serverCustomer later.
       serverCustomer: null,
     });
     const eligibilityContext = toPopupEligibilityContext(normalized);
@@ -155,6 +183,82 @@ router.post("/popup-runtime/session/context", requireContextGate, (req, res) => 
     });
   } catch (error: any) {
     res.status(401).json({ error: error?.message || "Popup session context verification failed", runtime: contextRuntimeState() });
+  }
+});
+
+router.post("/popup-runtime/attribution/assign", requireContextGate, requireAttributionGate, async (req, res) => {
+  try {
+    const claims = requiredSessionClaims(req.body?.sessionToken);
+    const campaignKey = String(req.body?.campaignKey || "").trim().slice(0, 120);
+    if (!campaignKey) return res.status(400).json({ error: "campaignKey is required" });
+
+    const campaign = await prisma.popupCampaign.findUnique({
+      where: { shopDomain_key: { shopDomain: currentShopDomain(), key: campaignKey } },
+      include: { variants: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!campaign) return res.status(404).json({ error: "Popup campaign not found" });
+
+    const treatment = assignPopupTreatment({
+      campaignKey: campaign.key,
+      experimentVersion: campaign.experimentVersion,
+      visitorId: claims.visitorId,
+      holdoutBasisPoints: holdoutBasisPoints(),
+      variants: campaign.variants.map(variant => ({ key: variant.key, weightBasisPoints: variant.weightBasisPoints })),
+    });
+    const visitorHash = hashPopupIdentity(claims.visitorId);
+    const sessionHash = hashPopupIdentity(claims.sessionId);
+    const now = new Date();
+
+    const assignment = await prisma.popupExperimentAssignment.upsert({
+      where: {
+        shopDomain_campaignKey_experimentVersion_visitorHash: {
+          shopDomain: currentShopDomain(),
+          campaignKey: campaign.key,
+          experimentVersion: campaign.experimentVersion,
+          visitorHash,
+        },
+      },
+      update: {
+        sessionHash,
+        lastSeenAt: now,
+        group: treatment.group,
+        variantKey: treatment.variantKey,
+        holdoutBucket: treatment.holdoutBucket,
+        variantBucket: treatment.variantBucket,
+      },
+      create: {
+        shopDomain: currentShopDomain(),
+        campaignKey: campaign.key,
+        experimentVersion: campaign.experimentVersion,
+        visitorHash,
+        sessionHash,
+        group: treatment.group,
+        variantKey: treatment.variantKey,
+        holdoutBucket: treatment.holdoutBucket,
+        variantBucket: treatment.variantBucket,
+        assignedAt: now,
+        lastSeenAt: now,
+        isTest: true,
+      },
+    });
+
+    return res.json({
+      ok: true,
+      assignment: {
+        id: assignment.id,
+        campaignKey: assignment.campaignKey,
+        experimentVersion: assignment.experimentVersion,
+        group: assignment.group,
+        variantKey: assignment.variantKey,
+        holdoutBucket: assignment.holdoutBucket,
+        variantBucket: assignment.variantBucket,
+        isTest: assignment.isTest,
+      },
+      rendererEnabled: false,
+      runtime: contextRuntimeState(),
+    });
+  } catch (error: any) {
+    return res.status(401).json({ error: error?.message || "Popup attribution assignment failed", runtime: contextRuntimeState() });
   }
 });
 
