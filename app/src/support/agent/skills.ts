@@ -38,7 +38,7 @@ export const supportSkills: SupportSkill[] = [
   {
     intent: "delivery_issue",
     description: "Package marked delivered but missing, stalled, lost or carrier problem.",
-    patterns: [/delivered.*not.*received/i, /lost package/i, /stuck.*tracking/i, /לא קיבלתי/i, /מסומן.*נמסר/i, /אבד/i],
+    patterns: [/delivered.*not.*received/i, /delivered.*did.*not.*receiv/i, /lost package/i, /stuck.*tracking/i, /לא קיבלתי/i, /מסומן.*נמסר/i, /אבד/i],
     baseConfidence: 0.88,
     defaultTools: [readOrder("Verify the order and fulfillment."), { tool: "READ_TRACKING", mode: "READ", reason: "Carrier/tracking state determines next steps." }, { tool: "ESCALATE_HUMAN", mode: "INTERNAL", reason: "Delivery exceptions can require carrier or replacement decisions." }],
   },
