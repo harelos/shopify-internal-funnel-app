@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Commerce Intelligence</title>
+  <link rel="stylesheet" href="css/commerce-intelligence.css">
+</head>
+<body>
+  <div class="ci-shell">
+    <header class="ci-topbar">
+      <div class="ci-brand">
+        <a href="index.html" class="ci-mark" aria-label="Back to dashboard">T</a>
+        <div><h1>TIGER Commerce Intelligence</h1><p>Qualified commerce traffic · clean acquisition KPIs</p></div>
+      </div>
+      <div class="ci-actions">
+        <span class="ci-chip" id="data-mode">Loading</span>
+        <select id="range" class="ci-select" aria-label="Date range"><option value="7d">7 days</option><option value="30d">30 days</option><option value="90d">90 days</option></select>
+        <button id="refresh" class="ci-btn ghost">Refresh</button>
+        <a href="bot-dashboard.html" class="ci-btn">Bot Control</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="ci-hero">
+        <div>
+          <span class="eyebrow">CLEAN DENOMINATOR</span>
+          <h2>Measure buyers against qualified commercial sessions, not every Shopify visit.</h2>
+          <p>Support, tracking, unsubscribe, policy, direct checkout, known non-target geo, tests and obvious automation are removed from the acquisition denominator. Missing context stays UNKNOWN instead of being guessed.</p>
+        </div>
+        <div class="coverage-card">
+          <span>Classification coverage</span>
+          <strong id="coverage">...</strong>
+          <small id="coverage-note">Qualified + excluded sessions with enough evidence</small>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi primary"><span>Qualified Sessions</span><strong id="qualified-sessions">...</strong><small id="qualified-share">of all reconstructed sessions</small></article>
+        <article class="kpi"><span>Landing → Checkout</span><strong id="landing-checkout">...</strong><small>Qualified sessions only</small></article>
+        <article class="kpi"><span>Checkout → Purchase</span><strong id="checkout-purchase">...</strong><small>Purchase sessions / checkout sessions</small></article>
+        <article class="kpi"><span>Landing → Purchase</span><strong id="landing-purchase">...</strong><small>Primary clean CVR</small></article>
+        <article class="kpi"><span>Revenue / Qualified Session</span><strong id="revenue-session">...</strong><small>Attributed revenue only</small></article>
+        <article class="kpi"><span>Qualified Revenue</span><strong id="qualified-revenue">...</strong><small id="qualified-orders">...</small></article>
+      </section>
+
+      <section class="grid-two">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">TRAFFIC CLASSIFICATION</span><h3>What entered the denominator?</h3></div></div>
+          <div class="status-bars">
+            <div><span>Qualified</span><b id="status-qualified">...</b></div>
+            <div><span>Excluded</span><b id="status-excluded">...</b></div>
+            <div><span>Unknown</span><b id="status-unknown">...</b></div>
+          </div>
+          <div class="reason-list" id="reason-list"><div class="empty">Loading classification reasons...</div></div>
+        </article>
+
+        <article class="panel warning-panel">
+          <div class="panel-head"><div><span class="eyebrow">DATA QUALITY</span><h3>Unknown is not zero and not qualified.</h3></div></div>
+          <div class="quality-grid">
+            <div><span>Unknown sessions</span><strong id="unknown-count">...</strong></div>
+            <div><span>Unattributed orders</span><strong id="unattributed-orders">...</strong></div>
+            <div><span>Unattributed revenue</span><strong id="unattributed-revenue">...</strong></div>
+            <div><span>Target geo</span><strong id="target-geo">...</strong></div>
+          </div>
+          <p class="quality-note" id="quality-note">The classifier intentionally refuses to infer missing geo or purchase attribution.</p>
+        </article>
+      </section>
+
+      <section class="grid-two">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">QUALIFIED TRAFFIC</span><h3>Landing pages</h3></div></div>
+          <div class="mini-table" id="landing-breakdown"><div class="empty">Loading...</div></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">QUALIFIED TRAFFIC</span><h3>Sources</h3></div></div>
+          <div class="mini-table" id="source-breakdown"><div class="empty">Loading...</div></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><span class="eyebrow">RECENT SESSIONS</span><h3>Classification evidence</h3><p>This is for QA. A session is never included just because it “looks human”.</p></div></div>
+        <div class="table-wrap">
+          <table class="session-table">
+            <thead><tr><th>Time</th><th>Landing</th><th>Geo</th><th>Source</th><th>Checkout</th><th>Purchase</th><th>Revenue</th><th>Status</th><th>Reason</th></tr></thead>
+            <tbody id="session-body"><tr><td colspan="9">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel contract-panel">
+        <div><span class="eyebrow">KPI CONTRACT</span><h3>Primary business metrics</h3></div>
+        <div class="contract-flow">
+          <span>Qualified Commercial Landing</span><i>→</i><span>Checkout</span><i>→</i><span>Purchase</span><i>→</i><span>Revenue / Profit</span>
+        </div>
+        <p>ATC remains secondary across architectures where Buy Now, direct checkout, Funnelish or other flows can bypass the cart.</p>
+      </section>
+
+      <div id="error" class="ci-error" hidden></div>
+    </main>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/commerce-intelligence.js"></script>
+</body>
+</html>

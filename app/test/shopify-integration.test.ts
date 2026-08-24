@@ -36,7 +36,7 @@ test("paid order normalization reduces a webhook without retaining raw customer 
   }
 });
 
-test("pixel adapter accepts only checkout events and keeps a stable event key", () => {
+test("pixel adapter accepts checkout events, keeps a stable event key and preserves commerce session id", () => {
   const result = normalizeShopifyPixelEvent({
     id: "pixel-event-1",
     name: "checkout_started",
@@ -48,10 +48,12 @@ test("pixel adapter accepts only checkout events and keeps a stable event key", 
     funnelId: "funnel-1",
     stepId: "step-1",
     variantId: "variant-a",
+    sessionId: "commerce-session-1",
   });
   assert.equal(result.accepted, true);
   if (result.accepted) {
     assert.equal(result.value.eventKey, "shopify:pixel:pixel-event-1");
     assert.equal(result.value.checkoutToken, "checkout-123");
+    assert.equal(result.value.payload.sessionId, "commerce-session-1");
   }
 });

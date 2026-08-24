@@ -49,9 +49,17 @@ export function verifyBotSessionToken(token: string, input: { expectedShopDomain
   const secret = secretValue(input.secret);
   const [body, signature, extra] = String(token || "").split(".");
   if (!body || !signature || extra) throw new Error("Invalid bot session token format.");
+  if (!/^[A-Za-z0-9_-]+$/.test(body) || !/^[A-Za-z0-9_-]+$/.test(signature)) throw new Error("Invalid bot session token signature.");
+
   const expected = createHmac("sha256", secret).update(body).digest();
   let supplied: Buffer;
   try { supplied = Buffer.from(signature, "base64url"); } catch { throw new Error("Invalid bot session token signature."); }
+
+  // Node's base64url decoder accepts multiple non-canonical final characters
+  // that can decode to the same bytes because of unused padding bits. Require
+  // the exact canonical encoding before the constant-time byte comparison so a
+  // textual signature mutation can never be accepted as an equivalent token.
+  if (b64url(supplied) !== signature) throw new Error("Invalid bot session token signature.");
   if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) throw new Error("Invalid bot session token signature.");
 
   let claims: BotSessionClaims;
