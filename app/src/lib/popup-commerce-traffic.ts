@@ -84,7 +84,7 @@ export const DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY: QualifiedCommerceTrafficPoli
   targetCountries: ["IL"],
 });
 
-const PAID_SOURCE_MARKERS = ["facebook", "instagram", "meta", "fb", "ig", "tiktok", "google_ads", "google-ads", "adwords"];
+const PAID_SOURCE_MARKERS = ["facebook", "instagram", "meta", "tiktok", "google_ads", "google-ads", "adwords"];
 const PAID_MEDIUM_MARKERS = ["paid", "cpc", "ppc", "paid_social", "paid-social", "display"];
 const EMAIL_MARKERS = ["email", "newsletter", "shopify_email", "shopify-email", "seguno"];
 const ORGANIC_MARKERS = ["organic", "seo"];
@@ -102,17 +102,6 @@ function normalizeCountry(value: string | null | undefined): string | null {
 
 function text(value: string | null | undefined): string {
   return String(value || "").trim().toLowerCase();
-}
-
-function includesMarker(value: string | null | undefined, markers: string[]): boolean {
-  const normalized = text(value);
-  return Boolean(normalized) && markers.some(marker => normalized.includes(marker));
-}
-
-function isPath(path: string, exactOrPrefix: string): boolean {
-  const rule = exactOrPrefix.toLowerCase();
-  if (rule.endsWith("*")) return path.startsWith(rule.slice(0, -1));
-  return path === rule;
 }
 
 export function inferCommercePageRole(signals: CommerceTrafficSignals): CommercePageRole {
@@ -192,6 +181,26 @@ function excluded(
   };
 }
 
+function unknown(
+  policy: QualifiedCommerceTrafficPolicy,
+  sourceKind: CommerceSourceKind,
+  pageRole: CommercePageRole,
+  countryCode: string | null,
+  reasonCodes: string[],
+): CommerceTrafficClassification {
+  return {
+    policyVersion: policy.version,
+    decision: "UNKNOWN",
+    class: "UNKNOWN",
+    isQualified: false,
+    verification: "PARTIAL",
+    sourceKind,
+    pageRole,
+    countryCode,
+    reasonCodes,
+  };
+}
+
 export function classifyCommerceTraffic(
   signals: CommerceTrafficSignals,
   policy: QualifiedCommerceTrafficPolicy = DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY,
@@ -231,35 +240,26 @@ export function classifyCommerceTraffic(
 
   const commercialPage = ["product", "collection", "homepage", "funnel", "cart", "checkout"].includes(pageRole) || signals.commercialIntent === true || signals.explicitIntent === "commerce";
   if (!commercialPage) {
-    return {
-      policyVersion: policy.version,
-      decision: "UNKNOWN",
-      class: "UNKNOWN",
-      isQualified: false,
-      verification: "PARTIAL",
-      sourceKind,
-      pageRole,
-      countryCode,
-      reasonCodes: ["commercial_intent_unverified"],
-    };
+    return unknown(policy, sourceKind, pageRole, countryCode, ["commercial_intent_unverified"]);
   }
 
-  const reasonCodes = ["commercial_context"];
-  if (!countryCode && targetCountries.length > 0) reasonCodes.push("country_unverified");
-  else if (countryCode) reasonCodes.push("country_targeted");
-  if (signals.humanLike === true) reasonCodes.push("human_like_observed");
-  else if (signals.suspectedBot !== true) reasonCodes.push("bot_status_not_flagged");
+  const missingVerification: string[] = [];
+  if (targetCountries.length > 0 && !countryCode) missingVerification.push("country_unverified");
+  if (signals.humanLike !== true) missingVerification.push("human_like_unverified");
+  if (missingVerification.length > 0) {
+    return unknown(policy, sourceKind, pageRole, countryCode, ["commercial_context", ...missingVerification]);
+  }
 
   return {
     policyVersion: policy.version,
     decision: "QUALIFIED",
     class: qualifiedClass(sourceKind),
     isQualified: true,
-    verification: countryCode && signals.humanLike === true ? "COMPLETE" : "PARTIAL",
+    verification: "COMPLETE",
     sourceKind,
     pageRole,
     countryCode,
-    reasonCodes,
+    reasonCodes: ["commercial_context", "country_targeted", "human_like_observed"],
   };
 }
 
