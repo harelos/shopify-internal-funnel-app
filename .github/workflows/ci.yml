@@ -22,6 +22,7 @@ jobs:
       SHOPIFY_CLIENT_SECRET: test-client-secret
       SHOPIFY_REQUIRE_AUTH: "false"
       SHOPIFY_LIVE_CONNECT: "false"
+      QUALIFIED_COMMERCE_TARGET_COUNTRIES: "IL"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +53,7 @@ jobs:
           node --check admin/js/api.js
           node --check admin/js/bot.js
           node --check admin/js/bot-dashboard.js
+          node --check admin/js/commerce-intelligence.js
           node --check admin/js/popups.js
           node --check admin/js/profit-analytics.js
           node --check test/bot-ui-preview-server.mjs
@@ -62,11 +64,11 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Bot admin browser render QA
+      - name: Admin browser render QA
         run: |
           BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
-          node test/bot-ui-preview-server.mjs >/tmp/tiger-bot-http.log 2>&1 &
+          node test/bot-ui-preview-server.mjs >/tmp/tiger-admin-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           sleep 1
@@ -74,21 +76,27 @@ jobs:
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-bot-desktop.png http://127.0.0.1:4173/bot.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-bot-control-mobile.png http://127.0.0.1:4173/bot-dashboard.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1200 --screenshot=/tmp/tiger-bot-control-desktop.png http://127.0.0.1:4173/bot-dashboard.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-commerce-mobile.png http://127.0.0.1:4173/commerce-intelligence.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1200 --screenshot=/tmp/tiger-commerce-desktop.png http://127.0.0.1:4173/commerce-intelligence.html
           test -s /tmp/tiger-bot-mobile.png
           test -s /tmp/tiger-bot-desktop.png
           test -s /tmp/tiger-bot-control-mobile.png
           test -s /tmp/tiger-bot-control-desktop.png
-          file /tmp/tiger-bot-mobile.png /tmp/tiger-bot-desktop.png /tmp/tiger-bot-control-mobile.png /tmp/tiger-bot-control-desktop.png
+          test -s /tmp/tiger-commerce-mobile.png
+          test -s /tmp/tiger-commerce-desktop.png
+          file /tmp/tiger-bot-mobile.png /tmp/tiger-bot-desktop.png /tmp/tiger-bot-control-mobile.png /tmp/tiger-bot-control-desktop.png /tmp/tiger-commerce-mobile.png /tmp/tiger-commerce-desktop.png
 
-      - name: Upload Bot admin render artifacts
+      - name: Upload admin render artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tiger-bot-ui-renders
+          name: tiger-admin-ui-renders
           path: |
             /tmp/tiger-bot-mobile.png
             /tmp/tiger-bot-desktop.png
             /tmp/tiger-bot-control-mobile.png
             /tmp/tiger-bot-control-desktop.png
+            /tmp/tiger-commerce-mobile.png
+            /tmp/tiger-commerce-desktop.png
           if-no-files-found: error
 
       - name: Build dependency remediation candidate
