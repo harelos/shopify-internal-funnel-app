@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { getSupportConfig } from "../support/config.js";
-import { getSupportThread, listSupportThreads, supportOverview, syncSupportStaging } from "../support/service.js";
+import {
+  getSupportThread,
+  listSupportThreads,
+  probeSupportMailbox,
+  supportOverview,
+  syncSupportStaging,
+} from "../support/service.js";
 
 const router = Router();
 
@@ -10,6 +16,9 @@ router.get("/support/status", async (_req, res) => {
     stagingEnabled: config.stagingEnabled,
     syncSource: config.syncSource,
     mailboxAddressConfigured: Boolean(config.mailboxAddress && !config.mailboxAddress.endsWith("@example.test")),
+    imapReadEnabled: config.imapReadEnabled,
+    imapConfigured: Boolean(config.imapHost && config.imapUsername && config.imapPassword),
+    imapMailbox: config.imapMailbox,
     sendEnabled: false,
     shopifyMutationEnabled: false,
     boundary: "READ_ONLY_STAGING",
@@ -43,13 +52,24 @@ router.get("/support/threads/:id", async (req, res) => {
   }
 });
 
+router.post("/support/probe", async (_req, res) => {
+  try {
+    const result = await probeSupportMailbox();
+    res.json({ ok: true, ...result });
+  } catch (error: any) {
+    const message = error?.message || "Support mailbox probe failed";
+    const status = /disabled|not set|incomplete|not set to imap/i.test(message) ? 409 : 500;
+    res.status(status).json({ error: message });
+  }
+});
+
 router.post("/support/sync", async (_req, res) => {
   try {
     const result = await syncSupportStaging();
     res.json({ ok: true, ...result });
   } catch (error: any) {
     const message = error?.message || "Support sync failed";
-    const status = /disabled|not enabled/i.test(message) ? 409 : 500;
+    const status = /disabled|not enabled|incomplete|not set to imap/i.test(message) ? 409 : 500;
     res.status(status).json({ error: message });
   }
 });
