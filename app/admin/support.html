@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Customer Support — Staging</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .support-shell{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:16px;align-items:start}.support-panel{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden}.support-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.support-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#eef2ff;color:#3730a3}.support-badge.danger{background:#fff1f2;color:#be123c}.support-badge.safe{background:#ecfdf5;color:#047857}.support-badge.warn{background:#fff7ed;color:#9a3412}.support-thread{width:100%;text-align:left;border:0;background:#fff;padding:14px 16px;border-bottom:1px solid #f0f1f3;cursor:pointer}.support-thread:hover,.support-thread.active{background:#f8fafc}.support-thread-title{font-weight:700;margin-bottom:5px}.support-thread-meta,.support-thread-summary{font-size:12px;color:#667085}.support-thread-summary{margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.support-detail{padding:20px;min-height:520px}.support-message{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin:12px 0;background:#fff}.support-message.outbound{background:#f8fafc}.support-message-head{display:flex;justify-content:space-between;gap:16px;font-size:12px;color:#667085;margin-bottom:8px}.support-message-body{white-space:pre-wrap;line-height:1.55}.support-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.support-stat{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px}.support-stat strong{display:block;font-size:26px;margin-top:4px}.support-empty{padding:40px;text-align:center;color:#667085}.support-category-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.support-topline{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.support-warning{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px}.support-error{border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:10px;padding:10px 12px;margin:12px 0;display:none}.support-success{border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:10px;padding:10px 12px;margin:12px 0;display:none}@media(max-width:1000px){.support-stats{grid-template-columns:1fr 1fr}}@media(max-width:900px){.support-shell{grid-template-columns:1fr}.support-detail{min-height:0}}@media(max-width:560px){.support-stats{grid-template-columns:1fr}.support-topline{display:block}.support-toolbar{margin-top:12px}}
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <span class="brand-name">Customer Support AI</span>
+        <span class="eyebrow">STAGING · READ ONLY</span>
+      </div>
+      <div class="top-actions">
+        <a href="index.html" class="btn">Funnels</a>
+        <a href="analytics.html" class="btn">Analytics</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="support-topline">
+      <div>
+        <h1>Support Control Room</h1>
+        <p class="muted">Phase 1: ingest, reconstruct, classify and inspect conversations. No customer replies or Shopify mutations.</p>
+      </div>
+      <div class="support-toolbar">
+        <span id="boundary-badge" class="support-badge safe">READ ONLY</span>
+        <button id="btn-probe" class="btn">Test mailbox connection</button>
+        <button id="btn-sync" class="btn btn-primary">Sync staging inbox</button>
+      </div>
+    </div>
+
+    <div id="support-warning" class="support-warning">This page is deliberately customer-safe: sending email, refunds, cancellations, reships, discounts and Shopify write actions are disabled in Phase 1.</div>
+    <div id="support-error" class="support-error"></div>
+    <div id="support-success" class="support-success"></div>
+
+    <section class="support-stats">
+      <div class="support-stat"><span class="muted">Threads</span><strong id="stat-threads">—</strong></div>
+      <div class="support-stat"><span class="muted">Needs human</span><strong id="stat-human">—</strong></div>
+      <div class="support-stat"><span class="muted">Sync source</span><strong id="stat-source" style="font-size:18px">—</strong></div>
+      <div class="support-stat"><span class="muted">Mailbox gate</span><strong id="stat-mailbox" style="font-size:16px">—</strong></div>
+    </section>
+
+    <div id="category-summary" class="support-category-row"></div>
+
+    <section class="support-shell" style="margin-top:16px">
+      <div class="support-panel">
+        <div style="padding:14px 16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+          <strong>Conversations</strong>
+          <span id="thread-count" class="muted" style="font-size:12px"></span>
+        </div>
+        <div id="thread-list"><div class="support-empty">No support data yet. Enable staging and sync fixtures.</div></div>
+      </div>
+      <div class="support-panel">
+        <div id="thread-detail" class="support-detail">
+          <div class="support-empty">Select a conversation to inspect its reconstructed thread.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/support.js"></script>
+</body>
+</html>

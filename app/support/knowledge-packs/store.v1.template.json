@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "packId": "store-support",
+  "version": "1.0.0-draft",
+  "status": "DRAFT",
+  "effectiveFrom": "2026-08-24T00:00:00.000Z",
+  "policies": {
+    "shipping": {
+      "deliveryWindow": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "processingWindow": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "freeShippingRule": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "regions": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "customsAndDuties": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" }
+    },
+    "returns": {
+      "eligibilityWindow": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "exclusions": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "returnMethod": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+      "refundTiming": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" }
+    },
+    "guarantee": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" },
+    "supportContact": { "state": "UNKNOWN", "source": "REPLACE_WITH_APPROVED_SOURCE" }
+  },
+  "products": []
+}

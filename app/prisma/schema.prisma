@@ -214,3 +214,45 @@ model ShopifyWebhookDelivery {
 
   @@index([shopId, topic, receivedAt])
 }
+
+model SupportThread {
+  id               String           @id @default(uuid())
+  externalKey      String           @unique
+  subject          String
+  participantsJson String           @default("[]")
+  category         String           @default("other")
+  confidence       Float            @default(0)
+  urgency          String           @default("normal")
+  summary          String           @default("")
+  requiresHuman    Boolean          @default(false)
+  status           String           @default("NEW")
+  source           String           @default("FIXTURE")
+  lastMessageAt    DateTime
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  messages         SupportMessage[]
+
+  @@index([lastMessageAt])
+  @@index([category, urgency])
+  @@index([requiresHuman, status])
+}
+
+model SupportMessage {
+  id              String        @id @default(uuid())
+  threadId        String
+  messageId       String        @unique
+  inReplyTo       String?
+  referencesJson  String        @default("[]")
+  fromAddress     String
+  toAddressesJson String        @default("[]")
+  subject         String
+  direction       String        @default("INBOUND")
+  sentAt          DateTime
+  textBody        String        @default("")
+  htmlBody        String?
+  createdAt       DateTime      @default(now())
+  thread          SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, sentAt])
+  @@index([fromAddress])
+}

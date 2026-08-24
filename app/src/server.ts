@@ -12,6 +12,7 @@ import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
+import supportRoutes from "./routes/support.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
@@ -65,7 +66,6 @@ app.use("/preview", express.static(path.join(__dirname, "../../preview")));
 // Mount OAuth routes
 app.use("/", authRoutes);
 
-// Mount API routes
 // Mount Proxy / Preview routes
 app.use("/", proxyRoutes);
 app.use("/", shopifyIngestRoutes);
@@ -82,6 +82,7 @@ app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
+app.use("/api", supportRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
