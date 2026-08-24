@@ -62,10 +62,12 @@
           return;
         }
         const local = api.snapshot();
+        const repeated = api.snapshot();
         $("local-json").textContent = JSON.stringify(local, null, 2);
         $("m-page").textContent = local.pageRole || "unknown";
         $("m-source").textContent = local.acquisition?.utmSource || (local.referrer ? "referrer-derived later" : "direct/unknown");
         document.documentElement.dataset.contextLabReady = "true";
+        document.documentElement.dataset.contextVisitorStateStable = String(local.anonymousVisitorState === repeated.anonymousVisitorState);
       }
       function showCurrent(value) {
         const server = value?.server;
