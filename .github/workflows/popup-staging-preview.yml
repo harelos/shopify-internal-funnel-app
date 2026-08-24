@@ -1,0 +1,154 @@
+name: Popup Staging Preview
+
+on:
+  push:
+    branches:
+      - feat/tiger-popup-platform-phase1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: popup-staging-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    env:
+      APP_PORT: "3000"
+      SHOP_DOMAIN: local-dev.myshopify.com
+      SHOPIFY_REQUIRE_AUTH: "false"
+      SHOPIFY_LIVE_CONNECT: "false"
+      SHOPIFY_PIXEL_INGEST_ENABLED: "false"
+      ENABLE_DEMO_SEED: "false"
+      ANALYTICS_MODE: TEST
+      QUALIFIED_COMMERCE_TARGET_COUNTRIES: "IL"
+      POPUP_STAGING_ENABLED: "true"
+      POPUP_CONTEXT_COLLECTOR_ENABLED: "true"
+      POPUP_ATTRIBUTION_ENABLED: "true"
+      POPUP_STAGING_EVENT_INGEST: "false"
+      POPUP_KILL_SWITCH: "false"
+      POPUP_ALLOW_TEST_CONTEXT: "true"
+      POPUP_HOLDOUT_BASIS_POINTS: "1000"
+      POPUP_ATTRIBUTION_WINDOW_DAYS: "14"
+      POPUP_SESSION_SECRET: "popup-preview-session-secret-2026-only-not-production"
+      POPUP_EVENT_HASH_PEPPER: "popup-preview-hash-pepper-2026-only-not-production"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate and prepare ephemeral database
+        run: |
+          npm run db:validate
+          npx prisma generate
+          npx prisma db push
+          npm run build
+          npm test
+
+      - name: Start staging app
+        run: |
+          node --import tsx src/server.ts >/tmp/tiger-popup-staging-app.log 2>&1 &
+          echo $! >/tmp/tiger-popup-staging-app.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/tiger-popup-staging-app.log
+          exit 1
+
+      - name: Verify local popup surfaces
+        run: |
+          curl -fsS http://127.0.0.1:3000/admin/popups.html | grep -q 'Popup Studio'
+          curl -fsS http://127.0.0.1:3000/admin/popup-attribution-lab.html | grep -q 'Popup Attribution Lab'
+          curl -fsS http://127.0.0.1:3000/admin/popup-context-lab.html | grep -q 'Popup Session Context Lab'
+          curl -fsS http://127.0.0.1:3000/popup-runtime/status | grep -q 'STAGING_CONTEXT_ATTRIBUTION_ONLY'
+
+      - name: Install Cloudflare tunnel client
+        working-directory: /
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+
+      - name: Open and verify public popup staging URL
+        working-directory: /
+        run: |
+          set -e
+          /tmp/cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate >/tmp/tiger-popup-cloudflare.log 2>&1 &
+          echo $! >/tmp/tiger-popup-tunnel.pid
+
+          URL=""
+          for i in $(seq 1 60); do
+            URL=$(grep -Eo 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' /tmp/tiger-popup-cloudflare.log | head -1 || true)
+            if [ -n "$URL" ]; then break; fi
+            sleep 1
+          done
+
+          if [ -z "$URL" ]; then
+            cat /tmp/tiger-popup-cloudflare.log
+            exit 1
+          fi
+
+          STUDIO="$URL/admin/popups.html"
+          ATTRIBUTION="$URL/admin/popup-attribution-lab.html"
+          CONTEXT="$URL/admin/popup-context-lab.html?utm_source=facebook&utm_medium=paid_social&utm_campaign=popup-preview&ad_id=preview-ad-1&__tiger_test=1"
+
+          for PAGE in "$STUDIO" "$ATTRIBUTION"; do
+            OK=""
+            for i in $(seq 1 45); do
+              if curl -LfsS --max-time 10 "$PAGE" | grep -q 'Popup'; then
+                OK=1
+                break
+              fi
+              sleep 2
+            done
+            if [ -z "$OK" ]; then
+              echo "Public popup staging URL failed external smoke test: $PAGE"
+              cat /tmp/tiger-popup-cloudflare.log
+              exit 1
+            fi
+          done
+
+          echo "POPUP_STAGING_BASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "POPUP_STAGING_STUDIO=$STUDIO" >> "$GITHUB_ENV"
+          echo "POPUP_STAGING_ATTRIBUTION=$ATTRIBUTION" >> "$GITHUB_ENV"
+          echo "POPUP_STAGING_CONTEXT=$CONTEXT" >> "$GITHUB_ENV"
+          echo "POPUP_STAGING_STUDIO=$STUDIO"
+          echo "POPUP_STAGING_ATTRIBUTION=$ATTRIBUTION"
+
+      - name: Publish live popup links to PR
+        working-directory: /
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')
+          BODY="Verified temporary Popup Platform staging is live for about 20 minutes:\n\nPopup Studio: ${POPUP_STAGING_STUDIO}\n\nP0.3 Attribution Lab: ${POPUP_STAGING_ATTRIBUTION}\n\nSession Context Lab: ${POPUP_STAGING_CONTEXT}\n\nThe Studio and Attribution pages passed public HTTP smoke tests before these links were published. This runner uses an ephemeral SQLite database and preview-only secrets. Production Shopify credentials are not loaded and customer-facing popup rendering remains off."
+          if [ -n "$PR_NUMBER" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$BODY" >/dev/null
+          fi
+          echo "$BODY"
+
+      - name: Keep staging alive
+        working-directory: /
+        run: |
+          echo "Keeping ${POPUP_STAGING_STUDIO} alive for about 20 minutes."
+          sleep 1200
