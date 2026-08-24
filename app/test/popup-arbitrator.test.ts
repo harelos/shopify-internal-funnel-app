@@ -110,6 +110,20 @@ test("blocking modal and global cooldown defer delivery without losing eligibili
   assert.equal(cooldown.candidates[0].reason, "global_popup_cooldown");
 });
 
+test("per-campaign frequency state suppresses only the capped campaign", () => {
+  const high = campaign("high-capped", 100);
+  const low = campaign("low-free", 20);
+  const result = arbitratePopupCampaigns([high, low], context({
+    campaignStates: {
+      "high-capped": { sessionImpressions: 1, visitorDayImpressions: 1 },
+      "low-free": { sessionImpressions: 0, visitorDayImpressions: 0 },
+    },
+  }));
+
+  assert.equal(result.selectedCampaignKey, "low-free");
+  assert.equal(result.candidates.find(row => row.campaignKey === "high-capped")?.reason, "session_frequency_cap");
+});
+
 test("same-priority tie is deterministic for the same visitor", () => {
   const a = campaign("a", 50);
   const b = campaign("b", 50);
