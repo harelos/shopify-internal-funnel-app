@@ -8,7 +8,7 @@ import {
   type BotTruthCandidate,
 } from "../src/lib/bot-truth.js";
 
-function fact(authority: BotTruthCandidate["authority"], key: string, value: unknown, sourceId = authority): BotTruthCandidate {
+function fact(authority: BotTruthCandidate["authority"], key: string, value: unknown, sourceId: string = authority): BotTruthCandidate {
   return { authority, key, value, sourceId };
 }
 
