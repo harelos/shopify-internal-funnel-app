@@ -3,6 +3,11 @@ import { Router } from "express";
 import prisma from "../lib/db.js";
 import { defaultPopupCampaign, normalizeAndValidatePopupCampaign, type PopupCampaignConfig } from "../lib/popup-config-contract.js";
 import { evaluatePopupEligibility, type PopupSessionContext } from "../lib/popup-engine.js";
+import {
+  classifyCommerceTraffic,
+  DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY,
+  type CommerceTrafficSignals,
+} from "../lib/popup-commerce-traffic.js";
 
 const router = Router();
 
@@ -33,6 +38,17 @@ const PRIVATE_METADATA_KEYS = new Set([
   "order_number",
 ]);
 
+// These values are server-derived business classifications. A browser event is
+// not allowed to self-declare them as factual analytics dimensions.
+const UNTRUSTED_DERIVED_METADATA_KEYS = new Set([
+  "commerceTrafficClass",
+  "commerce_traffic_class",
+  "commerceTrafficDecision",
+  "commerce_traffic_decision",
+  "qualifiedCommerceTraffic",
+  "qualified_commerce_traffic",
+]);
+
 function currentShopDomain(): string {
   return String(process.env.SHOP_DOMAIN || "local-dev.myshopify.com").trim().toLowerCase();
 }
@@ -44,6 +60,7 @@ function popupRuntimeState() {
     storefrontEnabled: false,
     killSwitch: process.env.POPUP_KILL_SWITCH !== "false",
     boundary: "STAGING_ONLY",
+    commerceTrafficPolicyVersion: DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY.version,
   } as const;
 }
 
@@ -95,7 +112,7 @@ function stripPrivateMetadata(value: unknown, depth = 0): unknown {
   }
   const output: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value as Record<string, unknown>).slice(0, 50)) {
-    if (PRIVATE_METADATA_KEYS.has(key)) continue;
+    if (PRIVATE_METADATA_KEYS.has(key) || UNTRUSTED_DERIVED_METADATA_KEYS.has(key)) continue;
     output[key.slice(0, 80)] = stripPrivateMetadata(item, depth + 1);
   }
   return output;
@@ -109,8 +126,33 @@ function hashIdentifier(value: unknown): string | null {
   return createHash("sha256").update(`${pepper}:${text}`).digest("hex");
 }
 
+function normalizeCountries(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY.targetCountries];
+  const countries = [...new Set(value
+    .filter(item => typeof item === "string")
+    .map(item => item.trim().toUpperCase())
+    .filter(item => /^[A-Z]{2}$/.test(item)))].slice(0, 50);
+  return countries.length ? countries : [...DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY.targetCountries];
+}
+
 router.get("/popups/status", (_req, res) => {
   res.json(popupRuntimeState());
+});
+
+// Private deterministic classifier for operator QA. This does not use an LLM,
+// trust a browser-supplied classification, or publish anything to the storefront.
+router.post("/popups/commerce-traffic/evaluate", (req, res) => {
+  const signals = (req.body?.signals || req.body?.context || {}) as CommerceTrafficSignals;
+  const policy = {
+    version: DEFAULT_TIGER_COMMERCE_TRAFFIC_POLICY.version,
+    targetCountries: normalizeCountries(req.body?.targetCountries),
+  };
+  res.json({
+    classification: classifyCommerceTraffic(signals, policy),
+    policy,
+    simulatorOnly: true,
+    runtime: popupRuntimeState(),
+  });
 });
 
 router.get("/popups/config", async (_req, res) => {
