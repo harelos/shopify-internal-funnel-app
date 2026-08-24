@@ -55,6 +55,7 @@ jobs:
         run: |
           node --check admin/js/api.js
           node --check admin/js/bot.js
+          node --check admin/js/bot-dashboard.js
           node --check admin/js/popups.js
           node --check admin/js/popup-preview-runtime.js
           node --check admin/js/profit-analytics.js
@@ -67,7 +68,7 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Bot Studio browser render QA
+      - name: Bot admin browser render QA
         run: |
           BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$BROWSER"
@@ -77,17 +78,23 @@ jobs:
           sleep 1
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-bot-mobile.png http://127.0.0.1:4173/bot.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-bot-desktop.png http://127.0.0.1:4173/bot.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-bot-control-mobile.png http://127.0.0.1:4173/bot-dashboard.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1200 --screenshot=/tmp/tiger-bot-control-desktop.png http://127.0.0.1:4173/bot-dashboard.html
           test -s /tmp/tiger-bot-mobile.png
           test -s /tmp/tiger-bot-desktop.png
-          file /tmp/tiger-bot-mobile.png /tmp/tiger-bot-desktop.png
+          test -s /tmp/tiger-bot-control-mobile.png
+          test -s /tmp/tiger-bot-control-desktop.png
+          file /tmp/tiger-bot-mobile.png /tmp/tiger-bot-desktop.png /tmp/tiger-bot-control-mobile.png /tmp/tiger-bot-control-desktop.png
 
-      - name: Upload Bot Studio render artifacts
+      - name: Upload Bot admin render artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tiger-bot-ui-renders
           path: |
             /tmp/tiger-bot-mobile.png
             /tmp/tiger-bot-desktop.png
+            /tmp/tiger-bot-control-mobile.png
+            /tmp/tiger-bot-control-desktop.png
           if-no-files-found: error
 
       - name: Popup Studio browser render and fail-safe QA
