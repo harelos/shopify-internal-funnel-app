@@ -23,11 +23,11 @@ function fallbackSignature(message: SupportMessageInput): string {
 }
 
 function stableThreadKey(messages: SupportMessageInput[]): string {
-  const knownIds = messages.map((message) => message.messageId).filter(Boolean).sort();
-  const seed = knownIds.length > 0
-    ? knownIds.join("|")
-    : messages.map(fallbackSignature).sort().join("|");
-  return `support:${crypto.createHash("sha256").update(seed).digest("hex").slice(0, 32)}`;
+  const sorted = [...messages].sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
+  const first = sorted[0];
+  const firstReference = first?.references?.find(Boolean);
+  const anchor = firstReference || first?.inReplyTo || first?.messageId || (first ? fallbackSignature(first) : "empty-thread");
+  return `support:${crypto.createHash("sha256").update(anchor).digest("hex").slice(0, 32)}`;
 }
 
 export function buildSupportThreads(messages: SupportMessageInput[]): SupportThreadInput[] {
