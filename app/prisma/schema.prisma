@@ -250,3 +250,104 @@ model BotModelVariant {
   @@unique([botConfigurationId, slot])
   @@index([botConfigurationId, enabled])
 }
+
+model PopupCampaign {
+  id                String         @id @default(uuid())
+  shopDomain        String
+  key               String
+  name              String
+  type              String
+  status            String         @default("DRAFT")
+  experimentVersion Int            @default(1)
+  triggerJson       String         @default("{}")
+  targetingJson     String         @default("{}")
+  frequencyJson     String         @default("{}")
+  deliveryJson      String         @default("{}")
+  safetyJson        String         @default("{}")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  variants          PopupVariant[]
+  events            PopupEvent[]
+
+  @@unique([shopDomain, key])
+  @@index([shopDomain, status, updatedAt])
+}
+
+model PopupVariant {
+  id                String        @id @default(uuid())
+  popupCampaignId   String
+  key               String
+  name              String
+  weightBasisPoints Int
+  creativeJson      String        @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  popupCampaign     PopupCampaign @relation(fields: [popupCampaignId], references: [id], onDelete: Cascade)
+
+  @@unique([popupCampaignId, key])
+  @@index([popupCampaignId])
+}
+
+model PopupEvent {
+  id             String        @id @default(uuid())
+  eventKey       String        @unique
+  shopDomain     String
+  popupCampaignId String
+  campaignKey    String
+  variantKey     String?
+  visitorHash    String?
+  sessionHash    String?
+  name           String
+  occurredAt     DateTime
+  receivedAt     DateTime      @default(now())
+  metadataJson   String        @default("{}")
+  isTest         Boolean       @default(true)
+  popupCampaign  PopupCampaign @relation(fields: [popupCampaignId], references: [id], onDelete: Cascade)
+
+  @@index([shopDomain, campaignKey, name, occurredAt])
+  @@index([popupCampaignId, variantKey, occurredAt])
+}
+
+model PopupExperimentAssignment {
+  id                String                    @id @default(uuid())
+  shopDomain        String
+  campaignKey       String
+  experimentVersion Int
+  visitorHash       String
+  sessionHash       String
+  group             String
+  variantKey        String?
+  holdoutBucket     Int
+  variantBucket     Int?
+  assignedAt        DateTime                  @default(now())
+  lastSeenAt        DateTime                  @default(now())
+  isTest            Boolean                   @default(true)
+  conversions       PopupCheckoutConversion[]
+
+  @@unique([shopDomain, campaignKey, experimentVersion, visitorHash])
+  @@index([shopDomain, campaignKey, experimentVersion, group, assignedAt])
+  @@index([sessionHash, assignedAt])
+}
+
+model PopupCheckoutConversion {
+  id                  String                    @id @default(uuid())
+  popupAssignmentId   String
+  checkoutToken       String
+  checkoutStartedAt   DateTime
+  checkoutCompletedAt DateTime?
+  shopifyOrderGid     String?
+  currency            String?
+  grossAmount         Float?
+  netRevenueAmount    Float?
+  refundedAmount      Float?
+  orderStatus         String?
+  orderPaidAt         DateTime?
+  verifiedAt          DateTime?
+  source              String                    @default("SHOPIFY_PIXEL")
+  isTest              Boolean                   @default(true)
+  popupAssignment     PopupExperimentAssignment @relation(fields: [popupAssignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([popupAssignmentId, checkoutToken])
+  @@index([checkoutToken])
+  @@index([shopifyOrderGid])
+}

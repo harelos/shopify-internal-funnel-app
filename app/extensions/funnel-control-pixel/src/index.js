@@ -6,9 +6,19 @@ register(({analytics, browser, settings}) => {
 
   async function context() {
     let raw = '';
+    let popupSessionToken = '';
     try { raw = await browser.cookie.get('_funnel_context'); } catch (_) {}
-    if (!raw) return {};
-    try { return JSON.parse(decodeURIComponent(raw)); } catch (_) { return {}; }
+    try { popupSessionToken = await browser.cookie.get('_tiger_popup_session_v1'); } catch (_) {}
+
+    let base = {};
+    if (raw) {
+      try { base = JSON.parse(decodeURIComponent(raw)); } catch (_) { base = {}; }
+    }
+    if (popupSessionToken) {
+      try { base.popupSessionToken = decodeURIComponent(popupSessionToken); }
+      catch (_) { base.popupSessionToken = popupSessionToken; }
+    }
+    return base;
   }
 
   async function forward(event) {

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-tiger-test="true">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TIGER Popup Context Lab</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#18181b;background:#f5f5f3}*{box-sizing:border-box}body{margin:0;padding:24px}.wrap{max-width:1180px;margin:0 auto}.head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px}.head h1{margin:0;font-size:28px}.head p{margin:7px 0 0;color:#71717a;max-width:720px;line-height:1.5}.pill{display:inline-flex;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card{background:#fff;border:1px solid #e4e4e7;border-radius:16px;overflow:hidden}.card h2{font-size:15px;margin:0}.card-head{padding:16px 18px;border-bottom:1px solid #e4e4e7;display:flex;justify-content:space-between;gap:12px;align-items:center}.card-body{padding:18px}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.metric{border:1px solid #e4e4e7;border-radius:12px;padding:12px}.metric small{display:block;color:#71717a;font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.04em}.metric strong{display:block;font-size:15px;margin-top:5px;word-break:break-word}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.btn{border:1px solid #d4d4d8;border-radius:10px;background:#fff;padding:9px 13px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.btn.primary{background:#18181b;color:#fff;border-color:#18181b}.note{font-size:12px;line-height:1.5;color:#52525b;background:#fafafa;border:1px solid #e4e4e7;border-radius:11px;padding:11px 12px}.status{font-size:12px;font-weight:800}.status.safe{color:#166534}.status.warn{color:#92400e}.status.bad{color:#991b1b}pre{margin:0;background:#18181b;color:#f4f4f5;border-radius:12px;padding:14px;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow:auto;min-height:300px;max-height:560px}.wide{grid-column:1/-1}@media(max-width:760px){body{padding:14px}.grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}.head{display:block}.pill{margin-top:12px}.wide{grid-column:auto}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <div>
+        <h1>Popup Session Context Lab</h1>
+        <p>Private inspection surface for the P0.2 context collector. It shows what the browser can observe locally and, when staging gates are enabled, what the server verifies before QCT uses it.</p>
+      </div>
+      <span class="pill">No popup rendering · staging only</span>
+    </header>
+
+    <section class="grid">
+      <article class="card wide">
+        <div class="card-head"><h2>Live context summary</h2><span id="lab-status" class="status warn">Local only</span></div>
+        <div class="card-body">
+          <div class="metrics">
+            <div class="metric"><small>Page role</small><strong id="m-page">—</strong></div>
+            <div class="metric"><small>Traffic source</small><strong id="m-source">—</strong></div>
+            <div class="metric"><small>Server QCT</small><strong id="m-qct">Not verified</strong></div>
+            <div class="metric"><small>Meta environment</small><strong id="m-meta">Server needed</strong></div>
+            <div class="metric"><small>Human evidence</small><strong id="m-human">Pending</strong></div>
+            <div class="metric"><small>Identity</small><strong id="m-identity">Unsigned local</strong></div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="refresh-local" type="button">Refresh local snapshot</button>
+            <button class="btn primary" id="start-server" type="button">Start staging verification</button>
+          </div>
+          <div class="note">Arbitrary query strings are deliberately not copied into the context payload. Only approved acquisition parameters such as UTM and ad/campaign IDs are captured. Browser-provided customer IDs or purchase-history claims are ignored.</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Browser-observed snapshot</h2></div>
+        <div class="card-body"><pre id="local-json">Loading collector…</pre></div>
+      </article>
+      <article class="card">
+        <div class="card-head"><h2>Server-verified context</h2></div>
+        <div class="card-body"><pre id="server-json">Not requested. Staging gates remain authoritative.</pre></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="/popup-runtime/assets/popup-session-context.js"></script>
+  <script>
+    (() => {
+      const api = window.TigerPopupSessionContext;
+      const $ = id => document.getElementById(id);
+      function showLocal() {
+        if (!api) {
+          $("local-json").textContent = "Collector asset unavailable.";
+          $("lab-status").className = "status bad";
+          $("lab-status").textContent = "Collector unavailable";
+          return;
+        }
+        const local = api.snapshot();
+        const repeated = api.snapshot();
+        $("local-json").textContent = JSON.stringify(local, null, 2);
+        $("m-page").textContent = local.pageRole || "unknown";
+        $("m-source").textContent = local.acquisition?.utmSource || (local.referrer ? "referrer-derived later" : "direct/unknown");
+        document.documentElement.dataset.contextLabReady = "true";
+        document.documentElement.dataset.contextVisitorStateStable = String(local.anonymousVisitorState === repeated.anonymousVisitorState);
+      }
+      function showCurrent(value) {
+        const server = value?.server;
+        $("server-json").textContent = server ? JSON.stringify(server, null, 2) : "No server context yet.";
+        if (value?.identity?.verified) $("m-identity").textContent = `Verified · ${value.identity.sessionId.slice(0, 8)}…`;
+        const context = server?.context;
+        if (context) {
+          $("m-meta").textContent = context.metaEnvironment || "unknown";
+          $("m-human").textContent = context.humanEvidence || "unknown";
+        }
+        const qct = server?.commerceTraffic;
+        if (qct) {
+          $("m-qct").textContent = `${qct.class} · ${qct.verification}`;
+          $("lab-status").className = qct.decision === "QUALIFIED" ? "status safe" : "status warn";
+          $("lab-status").textContent = `Server ${qct.decision}`;
+        } else if (server?.runtimeUnavailable) {
+          $("lab-status").className = "status warn";
+          $("lab-status").textContent = "Staging gate closed";
+        }
+      }
+      $("refresh-local").addEventListener("click", showLocal);
+      $("start-server").addEventListener("click", async () => {
+        $("lab-status").className = "status warn";
+        $("lab-status").textContent = "Verifying…";
+        const value = await api.start({ serverRefreshMs: 15000 });
+        showCurrent(value);
+      });
+      api?.subscribe(showCurrent);
+      showLocal();
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,258 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="shopify-api-key" content="%SHOPIFY_API_KEY%"><script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script><title>TIGER Popups</title><link rel="stylesheet" href="css/style.css"><style>.module-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.hidden{display:none!important}.builder-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}@media(max-width:800px){.builder-grid{grid-template-columns:1fr}}</style></head><body>
-<header class="top-bar"><div class="top-bar-inner"><div class="brand"><a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a><span class="brand-name">TIGER Popups</span><span class="eyebrow">Scaffold</span></div></div></header>
-<main class="main"><div class="module-tabs"><a class="btn" href="profit-analytics.html">Profit OS</a><a class="btn" href="analytics.html">Funnel Analytics</a><a class="btn" href="bot.html">Bot</a><button class="btn btn-primary" data-tab="builder">Builder</button><button class="btn" data-tab="analytics">Analytics</button></div>
-<section data-panel="builder"><div class="builder-grid"><div class="panel"><div class="panel-header"><h3>Popup draft</h3></div><div class="panel-body"><label class="eyebrow">Name</label><input class="input" id="popup-name" placeholder="Exit intent offer"><label class="eyebrow">Trigger</label><select class="select" id="popup-trigger"><option>Exit intent</option><option>Time on page</option><option>Scroll depth</option><option>Manual / CTA</option></select><label class="eyebrow">Targeting</label><select class="select" id="popup-targeting"><option>All funnel pages</option><option>Selected funnel</option><option>Selected steps</option></select><div style="margin-top:14px"><button class="btn btn-primary" id="btn-popup-save">Save draft</button></div><p class="muted" id="popup-save-status">Scaffold only; no popup is deployed to the storefront.</p></div></div><div class="panel"><div class="panel-header"><h3>Planned experimentation</h3></div><div class="panel-body"><p>Popup versions will use deterministic allocation and event idempotency before A/B reporting is enabled.</p><p class="muted">Planned analytics: eligible, impression, close, CTA, submit, conversion, attributed revenue, revenue per 1,000 impressions.</p></div></div></div></section>
-<section class="hidden" data-panel="analytics"><div class="panel"><div class="panel-header"><h3>Popup Analytics</h3></div><div class="panel-body"><p class="muted">No popup events yet. Event contract is defined in docs/TIGER_PLATFORM_MODULE_ARCHITECTURE.md.</p></div></div></section></main><script src="js/popups.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Popup Studio</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/popups.css">
+</head>
+<body class="popup-studio">
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <div class="brand">
+      <a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <span class="brand-name">TIGER Popup Studio</span>
+      <span class="eyebrow">Phase 1</span>
+    </div>
+    <div class="pp-top-status" aria-label="Popup runtime status">
+      <span class="pp-status off" id="pp-storefront-status">Storefront off</span>
+      <span class="pp-status safe" id="pp-kill-status">Kill switch on</span>
+      <span class="pp-status warn" id="pp-boundary-status">Staging only</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="pp-tabs" role="tablist" aria-label="Popup Studio sections">
+    <button class="pp-tab active" data-tab="builder" role="tab" aria-selected="true">Builder</button>
+    <button class="pp-tab" data-tab="targeting" role="tab" aria-selected="false">Targeting & triggers</button>
+    <button class="pp-tab" data-tab="experiments" role="tab" aria-selected="false">Experiments</button>
+    <button class="pp-tab" data-tab="safety" role="tab" aria-selected="false">Safety</button>
+    <button class="pp-tab" data-tab="analytics" role="tab" aria-selected="false">Analytics</button>
+  </div>
+
+  <div class="pp-callout safe" style="margin-bottom:16px">
+    <strong>Hard boundary:</strong> this module is staging-only. No popup loader is injected into the live storefront, no coupon is generated, and the preview can always close locally without waiting for an API or AI request.
+  </div>
+  <div class="pp-callout danger hidden" id="pp-error" role="alert" style="margin-bottom:16px"></div>
+
+  <section class="pp-panel active" data-panel="builder">
+    <div class="pp-grid">
+      <div>
+        <div class="pp-card">
+          <div class="pp-card-head">
+            <div><h2>Campaign</h2><p>Draft configuration only. Publishing is intentionally unavailable.</p></div>
+            <span class="pp-status off" id="pp-campaign-state">Draft</span>
+          </div>
+          <div class="pp-card-body">
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="popup-key">Campaign key</label><input class="pp-input" id="popup-key" value="popup-draft-1" autocomplete="off"></div>
+              <div class="pp-field"><label class="pp-label" for="popup-name">Campaign name</label><input class="pp-input" id="popup-name" placeholder="NovaHair recommendation"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="popup-type">Popup type</label><select class="pp-select" id="popup-type">
+                <option value="lead_capture">Lead capture</option><option value="discount_reveal">Discount reveal</option><option value="quiz">Quiz</option><option value="product_finder">Product finder</option><option value="bundle_suggestion">Bundle suggestion</option><option value="browse_abandonment">Browse abandonment</option><option value="cart_rescue">Cart rescue</option><option value="reorder">Reorder</option><option value="support_rescue">Support rescue</option><option value="returning_customer">Returning customer</option><option value="content_guide">Content / guide</option><option value="shipping_threshold">Shipping threshold</option>
+              </select></div>
+              <div class="pp-field"><label class="pp-label" for="popup-status">Draft state</label><select class="pp-select" id="popup-status"><option value="DRAFT">Draft / simulator eligible</option><option value="PAUSED">Paused</option></select></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h3>Creative</h3><p>Edit the currently selected experiment variant.</p></div><span class="pp-weight-total" id="pp-active-variant-label">Control</span></div>
+          <div class="pp-card-body">
+            <div class="pp-field"><label class="pp-label" for="creative-eyebrow">Eyebrow</label><input class="pp-input" id="creative-eyebrow" maxlength="80"></div>
+            <div class="pp-field"><label class="pp-label" for="creative-title">Headline</label><input class="pp-input" id="creative-title" maxlength="160" dir="auto"></div>
+            <div class="pp-field"><label class="pp-label" for="creative-body">Body</label><textarea class="pp-textarea" id="creative-body" maxlength="800" dir="auto"></textarea></div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="creative-cta">Primary CTA</label><input class="pp-input" id="creative-cta" maxlength="80" dir="auto"></div>
+              <div class="pp-field"><label class="pp-label" for="creative-secondary">Secondary CTA</label><input class="pp-input" id="creative-secondary" maxlength="80" dir="auto"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="creative-form">Form mode</label><select class="pp-select" id="creative-form"><option value="none">No form</option><option value="email">Email</option><option value="email_name">Name + email</option><option value="quiz">Quiz placeholder</option></select></div>
+              <div class="pp-field"><label class="pp-label" for="creative-direction">Direction</label><select class="pp-select" id="creative-direction"><option value="rtl">RTL / Hebrew</option><option value="ltr">LTR</option><option value="auto">Auto</option></select></div>
+            </div>
+            <div class="pp-field"><label class="pp-label" for="creative-image">Image URL <span class="pp-help">HTTPS only; optional</span></label><input class="pp-input" id="creative-image" inputmode="url" placeholder="https://…"></div>
+            <div class="pp-actions">
+              <button class="pp-btn primary" id="btn-popup-save">Save draft</button>
+              <button class="pp-btn" id="btn-popup-preview">Open safety preview</button>
+              <button class="pp-btn" id="btn-popup-evaluate">Run eligibility simulator</button>
+              <span class="pp-save-state" id="popup-save-status">Loading configuration…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="pp-preview-shell">
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h3>Live creative preview</h3><p>Visual preview only — not storefront code.</p></div></div>
+          <div class="pp-card-body" style="padding:0">
+            <div class="pp-browser">
+              <div class="pp-browser-bar"><span class="pp-browser-dot"></span><span class="pp-browser-dot"></span><span class="pp-browser-dot"></span><span class="pp-browser-url"></span></div>
+              <div class="pp-browser-page">
+                <div class="pp-inline-preview" id="pp-inline-preview" dir="rtl">
+                  <div class="eyebrow" id="pp-preview-eyebrow">TIGER BRANDS</div>
+                  <h3 id="pp-preview-title">רוצה עזרה לבחור נכון?</h3>
+                  <p id="pp-preview-body">הצעה או המלצה רלוונטית תופיע כאן רק כאשר תנאי הקמפיין מתקיימים.</p>
+                  <button type="button" id="pp-preview-cta">המשך</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pp-card">
+          <div class="pp-card-body">
+            <div class="pp-callout" id="pp-simulator-result"><strong>Simulator:</strong> configure targeting and trigger conditions, then run an eligibility check.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="pp-panel" data-panel="targeting">
+    <div class="pp-grid">
+      <div>
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h2>Trigger engine</h2><p>Eligibility is evaluated before the UI opens; trigger firing itself must remain instant.</p></div></div>
+          <div class="pp-card-body">
+            <div class="pp-field"><label class="pp-label" for="trigger-mode">Trigger mode</label><select class="pp-select" id="trigger-mode"><option value="time">Time on page</option><option value="scroll">Scroll depth</option><option value="inactivity">Inactivity</option><option value="exit">Exit intent</option><option value="cart">Cart has items</option><option value="manual">Manual / CTA</option></select></div>
+            <div class="pp-fields-3">
+              <div class="pp-field"><label class="pp-label" for="trigger-seconds">Time, seconds</label><input class="pp-input" id="trigger-seconds" type="number" min="0" max="3600"></div>
+              <div class="pp-field"><label class="pp-label" for="trigger-scroll">Scroll depth %</label><input class="pp-input" id="trigger-scroll" type="number" min="0" max="100"></div>
+              <div class="pp-field"><label class="pp-label" for="trigger-inactivity">Inactivity, seconds</label><input class="pp-input" id="trigger-inactivity" type="number" min="1" max="3600"></div>
+            </div>
+            <div class="pp-fields-2">
+              <label class="pp-check"><input type="checkbox" id="trigger-require-cart"><span><strong>Require cart items</strong><small>Useful for cart rescue/shipping threshold prompts.</small></span></label>
+              <label class="pp-check"><input type="checkbox" id="trigger-desktop-exit"><span><strong>Desktop-only exit intent</strong><small>Avoid pretending mobile exit intent is reliable.</small></span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h3>Page & audience targeting</h3><p>Comma-separated values. Empty means no restriction.</p></div></div>
+          <div class="pp-card-body">
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="target-include-paths">Include paths</label><input class="pp-input" id="target-include-paths" placeholder="/products/*, /pages/funnel"></div>
+              <div class="pp-field"><label class="pp-label" for="target-exclude-paths">Exclude paths</label><input class="pp-input" id="target-exclude-paths" placeholder="/cart, /account/*"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="target-products">Product handles</label><input class="pp-input" id="target-products" placeholder="novahair"></div>
+              <div class="pp-field"><label class="pp-label" for="target-funnels">Funnel IDs</label><input class="pp-input" id="target-funnels"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="target-sources">Traffic sources</label><input class="pp-input" id="target-sources" placeholder="facebook, email"></div>
+              <div class="pp-field"><label class="pp-label" for="target-utm">UTM sources</label><input class="pp-input" id="target-utm" placeholder="facebook, klaviyo"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="target-referrer">Referrer contains</label><input class="pp-input" id="target-referrer" placeholder="facebook.com"></div>
+              <div class="pp-field"><label class="pp-label" for="target-visitor-state">Visitor state</label><select class="pp-select" id="target-visitor-state"><option value="any">Any</option><option value="new">New</option><option value="returning">Returning</option><option value="known">Known</option><option value="unknown">Unknown</option></select></div>
+            </div>
+            <div class="pp-fields-3">
+              <div class="pp-field"><label class="pp-label" for="target-cart-min">Cart min subtotal</label><input class="pp-input" id="target-cart-min" type="number" min="0" step="0.01" placeholder="None"></div>
+              <div class="pp-field"><label class="pp-label" for="target-cart-max">Cart max subtotal</label><input class="pp-input" id="target-cart-max" type="number" min="0" step="0.01" placeholder="None"></div>
+              <label class="pp-check" style="align-self:end;margin-bottom:14px"><input type="checkbox" id="target-require-cart"><span><strong>Cart required</strong><small>Targeting-level requirement.</small></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h3>Frequency controls</h3><p>Protect experience quality and prevent popup loops.</p></div></div>
+          <div class="pp-card-body">
+            <div class="pp-field"><label class="pp-label" for="freq-close-minutes">Suppress after close, minutes</label><input class="pp-input" id="freq-close-minutes" type="number" min="0"></div>
+            <div class="pp-field"><label class="pp-label" for="freq-submit-days">Suppress after submit, days</label><input class="pp-input" id="freq-submit-days" type="number" min="0"></div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="freq-session-max">Max / session</label><input class="pp-input" id="freq-session-max" type="number" min="1"></div>
+              <div class="pp-field"><label class="pp-label" for="freq-day-max">Max / visitor / day</label><input class="pp-input" id="freq-day-max" type="number" min="1"></div>
+            </div>
+            <div class="pp-callout">Previous close/submit state is part of eligibility. A popup that already annoyed or converted someone should not immediately reappear.</div>
+          </div>
+        </div>
+        <div class="pp-card">
+          <div class="pp-card-head"><div><h3>Simulator context</h3><p>Test deterministic eligibility without touching storefront traffic.</p></div></div>
+          <div class="pp-card-body">
+            <div class="pp-field"><label class="pp-label" for="sim-path">Page path</label><input class="pp-input" id="sim-path" value="/products/novahair"></div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="sim-elapsed">Elapsed seconds</label><input class="pp-input" id="sim-elapsed" type="number" value="25"></div>
+              <div class="pp-field"><label class="pp-label" for="sim-scroll">Scroll %</label><input class="pp-input" id="sim-scroll" type="number" value="70"></div>
+            </div>
+            <div class="pp-fields-2">
+              <div class="pp-field"><label class="pp-label" for="sim-utm">UTM source</label><input class="pp-input" id="sim-utm" value="facebook"></div>
+              <div class="pp-field"><label class="pp-label" for="sim-cart-items">Cart items</label><input class="pp-input" id="sim-cart-items" type="number" value="1"></div>
+            </div>
+            <button class="pp-btn primary" id="btn-popup-evaluate-secondary">Run simulator</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="pp-panel" data-panel="experiments">
+    <div class="pp-grid">
+      <div class="pp-card">
+        <div class="pp-card-head"><div><h2>A/B/C/D/n variants</h2><p>Assignments are sticky by visitor + campaign + experiment version.</p></div><span class="pp-weight-total" id="pp-weight-total">100%</span></div>
+        <div class="pp-card-body">
+          <div class="pp-fields-2">
+            <div class="pp-field"><label class="pp-label" for="experiment-version">Experiment version</label><input class="pp-input" id="experiment-version" type="number" min="1" step="1"></div>
+            <div class="pp-field"><label class="pp-label">Assignment rule</label><input class="pp-input" value="SHA-256 sticky allocation" disabled></div>
+          </div>
+          <div class="pp-variant-list" id="pp-variant-list"></div>
+          <div class="pp-actions"><button class="pp-btn" id="btn-add-variant">+ Add variant</button><span class="pp-save-state">Maximum 12. Weights must total exactly 100%.</span></div>
+        </div>
+      </div>
+      <aside>
+        <div class="pp-card"><div class="pp-card-head"><div><h3>Experiment rules</h3></div></div><div class="pp-card-body"><div class="pp-callout safe"><strong>No mid-session roulette.</strong> The same visitor remains on the same variant until the experiment version changes.</div><div style="height:10px"></div><div class="pp-callout"><strong>Control is explicit.</strong> Do not compare a new popup against nothing unless “no popup” is intentionally modeled as the control treatment.</div></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="pp-panel" data-panel="safety">
+    <div class="pp-grid">
+      <div class="pp-card">
+        <div class="pp-card-head"><div><h2>Fail-safe shell</h2><p>These controls are mandatory and cannot be disabled by campaign configuration.</p></div></div>
+        <div class="pp-card-body">
+          <div class="pp-safety-list">
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Visible close button</strong><small>Always rendered before the overlay is attached to the DOM.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>ESC closes locally</strong><small>No network request or personalization result is required.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Backdrop close</strong><small>Enabled by default and configurable only where inappropriate.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Focus restoration</strong><small>Returns focus to the element active before open.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Body scroll cleanup</strong><small>Original overflow/padding state is restored even when cleanup partially fails.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Timeout fallback</strong><small>A hard maximum-open timer can remove the overlay.</small></div></div>
+            <div class="pp-safety-item"><span class="pp-safety-icon">✓</span><div><strong>Global kill switch</strong><small>Defaults ON in this branch; storefront delivery is not implemented.</small></div></div>
+          </div>
+          <div class="pp-fields-2" style="margin-top:16px">
+            <label class="pp-check"><input type="checkbox" id="safety-backdrop"><span><strong>Backdrop click closes</strong><small>Recommended for standard modal popups.</small></span></label>
+            <div class="pp-field"><label class="pp-label" for="safety-timeout">Maximum open time, ms</label><input class="pp-input" id="safety-timeout" type="number" min="5000" max="900000" step="1000"></div>
+          </div>
+          <div class="pp-actions"><button class="pp-btn primary" id="btn-safety-test">Run local safety self-test</button><span class="pp-save-state" id="pp-safety-result">Not run yet.</span></div>
+        </div>
+      </div>
+      <aside>
+        <div class="pp-card"><div class="pp-card-head"><div><h3>Runtime boundary</h3></div></div><div class="pp-card-body"><div class="pp-code" id="pp-runtime-code">POPUP_STAGING_ENABLED=false\nPOPUP_STAGING_EVENT_INGEST=false\nPOPUP_KILL_SWITCH=true\nstorefrontEnabled=false</div><div style="height:12px"></div><div class="pp-callout warn">A working admin preview is not evidence that production is safe. Storefront integration requires isolated staging-theme QA and the production-source-parity gate first.</div></div></div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="pp-panel" data-panel="analytics">
+    <div class="pp-metrics">
+      <div class="pp-metric"><span>Eligible</span><strong id="metric-eligible">—</strong></div>
+      <div class="pp-metric"><span>Impressions</span><strong id="metric-impression">—</strong></div>
+      <div class="pp-metric"><span>CTA clicks</span><strong id="metric-cta">—</strong></div>
+      <div class="pp-metric"><span>Submits</span><strong id="metric-submit">—</strong></div>
+    </div>
+    <div class="pp-card" style="margin-top:16px">
+      <div class="pp-card-head"><div><h2>Variant event counts</h2><p>Phase 1 is test-event analytics only. Revenue truth will join verified Shopify orders later.</p></div><button class="pp-btn" id="btn-refresh-analytics">Refresh</button></div>
+      <div class="pp-table-wrap"><table class="pp-table"><thead><tr><th>Variant</th><th>Eligible</th><th>Impression</th><th>Close</th><th>CTA</th><th>Submit</th><th>Add to cart</th><th>Checkout</th><th>Purchase</th></tr></thead><tbody id="pp-analytics-body"><tr><td colspan="9" class="pp-empty">No staging events loaded.</td></tr></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/popup-preview-runtime.js"></script>
+<script src="js/popups.js"></script>
+</body>
+</html>

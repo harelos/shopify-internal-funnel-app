@@ -12,6 +12,9 @@ import commerceIntelligenceRoutes from "./routes/commerce-intelligence.js";
 import profitOsRoutes from "./routes/profit-os.js";
 import botRoutes from "./routes/bot.js";
 import botRuntimeRoutes from "./routes/bot-runtime.js";
+import popupRoutes from "./routes/popups.js";
+import popupAttributionAdminRoutes from "./routes/popup-attribution-admin.js";
+import popupRuntimeRoutes from "./routes/popup-runtime.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -34,14 +37,15 @@ app.use((req, res, next) => {
 });
 
 const adminRoot = path.join(__dirname, "../admin");
+const storefrontRoot = path.join(__dirname, "../storefront");
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>'"]/g, character => ({
+  return value.replace(/[&<>'\"]/g, character => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     "'": "&#39;",
-    '"': "&quot;",
+    '\"': "&quot;",
   })[character] as string);
 }
 
@@ -66,12 +70,18 @@ app.use("/admin", serveAdminHtml, express.static(adminRoot));
 // Serve standalone preview static files
 app.use("/preview", express.static(path.join(__dirname, "../../preview")));
 
+// The collector asset is inert until TigerPopupSessionContext.start() is called.
+// No storefront injection or popup rendering is performed by this route.
+app.use("/popup-runtime/assets", express.static(storefrontRoot, { fallthrough: true }));
+
 // Mount OAuth routes
 app.use("/", authRoutes);
 
-// Mount Proxy / Preview routes
+// Mount public/app-proxy-safe routes. Popup runtime remains disabled unless
+// staging + collector gates are explicitly enabled and the kill switch is off.
 app.use("/", proxyRoutes);
 app.use("/", shopifyIngestRoutes);
+app.use("/", popupRuntimeRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -89,6 +99,8 @@ app.use("/api", commerceIntelligenceRoutes);
 app.use("/api", profitOsRoutes);
 app.use("/api", botRoutes);
 app.use("/api", botRuntimeRoutes);
+app.use("/api", popupRoutes);
+app.use("/api", popupAttributionAdminRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
