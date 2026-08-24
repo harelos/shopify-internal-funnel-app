@@ -115,13 +115,17 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           sleep 1
+          CONTEXT_LAB_URL='http://127.0.0.1:4174/popup-context-lab.html?utm_source=facebook&ad_id=120248307353480135&email=should-not-leak@example.com'
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=/tmp/tiger-popup-mobile.png http://127.0.0.1:4174/popups.html
           "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-desktop.png http://127.0.0.1:4174/popups.html
-          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-context-lab.png http://127.0.0.1:4174/popup-context-lab.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1440,1000 --screenshot=/tmp/tiger-popup-context-lab.png "$CONTEXT_LAB_URL"
           "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom http://127.0.0.1:4174/popup-safety-test.html > /tmp/tiger-popup-safety.html
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom http://127.0.0.1:4174/popup-context-lab.html > /tmp/tiger-popup-context-lab.html
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=1500 --dump-dom "$CONTEXT_LAB_URL" > /tmp/tiger-popup-context-lab.html
           grep 'data-popup-safety-self-test="pass"' /tmp/tiger-popup-safety.html
           grep 'data-context-lab-ready="true"' /tmp/tiger-popup-context-lab.html
+          grep '120248307353480135' /tmp/tiger-popup-context-lab.html
+          grep 'facebook' /tmp/tiger-popup-context-lab.html
+          if grep -q 'should-not-leak' /tmp/tiger-popup-context-lab.html; then echo 'Unexpected arbitrary query value leaked into collector DOM'; exit 1; fi
           test -s /tmp/tiger-popup-mobile.png
           test -s /tmp/tiger-popup-desktop.png
           test -s /tmp/tiger-popup-context-lab.png
