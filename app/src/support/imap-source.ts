@@ -46,13 +46,17 @@ function normalizeReferences(value: unknown): string[] {
   return [...new Set(value.split(/\s+/).map((item) => item.trim()).filter(Boolean))];
 }
 
-function safeDate(value: unknown, fallback?: Date): Date {
+function parsedDate(value: unknown): Date | null {
   if (value instanceof Date && Number.isFinite(value.getTime())) return value;
   if (typeof value === "string" || typeof value === "number") {
     const parsed = new Date(value);
     if (Number.isFinite(parsed.getTime())) return parsed;
   }
-  return fallback && Number.isFinite(fallback.getTime()) ? fallback : new Date(0);
+  return null;
+}
+
+function safeDate(value: unknown, fallback?: unknown): Date {
+  return parsedDate(value) || parsedDate(fallback) || new Date(0);
 }
 
 function stripHtml(html: string): string {
@@ -84,7 +88,7 @@ export async function parseSupportRawMessage(
     uid: number;
     uidValidity: string;
     mailbox: string;
-    fallbackDate?: Date;
+    fallbackDate?: Date | string;
     fallbackSubject?: string;
     fallbackFrom?: string;
     fallbackTo?: string[];
@@ -201,7 +205,7 @@ export class ImapSupportMailboxSource {
 
           const envelope = (full.envelope || item.envelope || {}) as {
             subject?: string;
-            date?: Date;
+            date?: Date | string;
             from?: Array<{ address?: string }>;
             to?: Array<{ address?: string }>;
           };
