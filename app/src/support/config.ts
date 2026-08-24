@@ -15,6 +15,7 @@ export type SupportConfig = {
   maxSourceBytes: number;
   shopifyLookupEnabled: boolean;
   shopifyOrderLimit: number;
+  shopifyCustomerLookupEnabled: boolean;
   knowledgeEnabled: boolean;
   knowledgePackPath: string;
   sendEnabled: false;
@@ -51,6 +52,7 @@ export function getSupportConfig(env: NodeJS.ProcessEnv = process.env): SupportC
     maxSourceBytes: Math.max(64 * 1024, Math.min(asInt(env.SUPPORT_IMAP_MAX_SOURCE_BYTES, 2 * 1024 * 1024), 10 * 1024 * 1024)),
     shopifyLookupEnabled: asBool(env.SUPPORT_SHOPIFY_LOOKUP_ENABLED, false),
     shopifyOrderLimit: Math.max(1, Math.min(asInt(env.SUPPORT_SHOPIFY_ORDER_LIMIT, 5), 10)),
+    shopifyCustomerLookupEnabled: asBool(env.SUPPORT_SHOPIFY_CUSTOMER_LOOKUP_ENABLED, false),
     knowledgeEnabled: asBool(env.SUPPORT_KNOWLEDGE_ENABLED, false),
     knowledgePackPath: (env.SUPPORT_KNOWLEDGE_PACK_PATH || "").trim(),
     sendEnabled: false,
@@ -84,6 +86,13 @@ export function assertSupportShopifyLookupEnabled(config = getSupportConfig()): 
   assertSupportStagingEnabled(config);
   if (!config.shopifyLookupEnabled) {
     throw new Error("Support Shopify lookup is disabled. Set SUPPORT_SHOPIFY_LOOKUP_ENABLED=true explicitly in staging.");
+  }
+}
+
+export function assertSupportShopifyCustomerLookupEnabled(config = getSupportConfig()): void {
+  assertSupportShopifyLookupEnabled(config);
+  if (!config.shopifyCustomerLookupEnabled) {
+    throw new Error("Support Shopify customer lookup is disabled. Set SUPPORT_SHOPIFY_CUSTOMER_LOOKUP_ENABLED=true explicitly in staging.");
   }
 }
 
