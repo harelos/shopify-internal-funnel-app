@@ -27,6 +27,7 @@
   };
 
   let selectedThreadId = null;
+  let supportStatus = null;
 
   function showError(message) {
     els.success.style.display = "none";
@@ -62,6 +63,7 @@
 
   async function loadStatus() {
     const status = await API.get("/api/support/status");
+    supportStatus = status;
     const source = String(status.syncSource || "—").toUpperCase();
     els.statSource.textContent = source;
     els.boundary.textContent = status.boundary || "READ ONLY";
@@ -182,10 +184,145 @@
     return card;
   }
 
+  function renderShopifyOrder(order) {
+    const card = document.createElement("div");
+    card.className = "support-message";
+
+    const head = document.createElement("div");
+    head.className = "support-message-head";
+    const title = document.createElement("strong");
+    title.textContent = order.name || "Shopify order";
+    const date = document.createElement("span");
+    date.textContent = formatDate(order.processedAt || order.createdAt);
+    head.append(title, date);
+
+    const states = document.createElement("div");
+    states.className = "support-category-row";
+    if (order.financialStatus) states.appendChild(badge(`Payment: ${order.financialStatus}`));
+    if (order.fulfillmentStatus) states.appendChild(badge(`Fulfillment: ${order.fulfillmentStatus}`));
+    if (order.cancelledAt) states.appendChild(badge("Cancelled", "danger"));
+    if (order.total) states.appendChild(badge(`${order.total.amount} ${order.total.currencyCode}`));
+
+    const items = document.createElement("div");
+    items.className = "support-message-body";
+    items.style.marginTop = "10px";
+    items.textContent = (order.lineItems || []).length
+      ? (order.lineItems || []).map((item) => `${item.quantity}× ${item.name}${item.sku ? ` · SKU ${item.sku}` : ""}`).join("\n")
+      : "No line items returned.";
+
+    const tracking = document.createElement("div");
+    tracking.style.marginTop = "10px";
+    const trackingRows = (order.fulfillments || []).flatMap((fulfillment) => fulfillment.tracking || []);
+    if (trackingRows.length === 0) {
+      tracking.className = "muted";
+      tracking.textContent = "No tracking information returned.";
+    } else {
+      const label = document.createElement("div");
+      label.className = "muted";
+      label.textContent = "Tracking";
+      tracking.appendChild(label);
+      for (const item of trackingRows) {
+        const row = document.createElement("div");
+        row.style.marginTop = "4px";
+        const text = [item.company, item.number].filter(Boolean).join(" · ") || "Tracking link";
+        if (item.url) {
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = text;
+          row.appendChild(link);
+        } else {
+          row.textContent = text;
+        }
+        tracking.appendChild(row);
+      }
+    }
+
+    card.append(head, states, items, tracking);
+    return card;
+  }
+
+  async function loadShopifyContext(threadId, container, button) {
+    clearNotices();
+    button.disabled = true;
+    const oldText = button.textContent;
+    button.textContent = "Loading Shopify…";
+    container.textContent = "";
+    try {
+      const context = await API.get(`/api/support/threads/${encodeURIComponent(threadId)}/shopify-context`);
+      const meta = document.createElement("div");
+      meta.className = "support-category-row";
+      meta.appendChild(badge("SHOPIFY · READ ONLY", "safe"));
+      meta.appendChild(badge(context.matchedEmail || "customer email"));
+      container.appendChild(meta);
+
+      if (!(context.orders || []).length) {
+        const empty = document.createElement("div");
+        empty.className = "support-warning";
+        empty.textContent = "No recent Shopify orders were returned for this email.";
+        container.appendChild(empty);
+      } else {
+        for (const order of context.orders) container.appendChild(renderShopifyOrder(order));
+      }
+
+      const note = document.createElement("p");
+      note.className = "muted";
+      note.style.fontSize = "12px";
+      note.textContent = context.note || "Read-only Shopify context.";
+      container.appendChild(note);
+    } catch (error) {
+      const errorBox = document.createElement("div");
+      errorBox.className = "support-error";
+      errorBox.style.display = "block";
+      errorBox.textContent = error.message;
+      container.appendChild(errorBox);
+    } finally {
+      button.textContent = oldText;
+      button.disabled = !supportStatus?.shopifyLookupEnabled;
+    }
+  }
+
+  function renderShopifyContextPanel(threadId) {
+    const section = document.createElement("section");
+    section.style.marginTop = "18px";
+
+    const top = document.createElement("div");
+    top.style.display = "flex";
+    top.style.justifyContent = "space-between";
+    top.style.alignItems = "center";
+    top.style.gap = "12px";
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Shopify order context";
+    heading.style.margin = "0";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn";
+    button.textContent = "Load order context";
+    button.disabled = !supportStatus?.shopifyLookupEnabled;
+    button.title = supportStatus?.shopifyLookupEnabled
+      ? "Read-only order lookup"
+      : "Set SUPPORT_SHOPIFY_LOOKUP_ENABLED=true in staging";
+
+    const content = document.createElement("div");
+    content.style.marginTop = "10px";
+    if (!supportStatus?.shopifyLookupEnabled) {
+      content.appendChild(badge("SHOPIFY LOOKUP GATED", "warn"));
+    }
+
+    button.addEventListener("click", () => loadShopifyContext(threadId, content, button));
+    top.append(heading, button);
+    section.append(top, content);
+    return section;
+  }
+
   async function selectThread(id, reloadList = true) {
     clearNotices();
     selectedThreadId = id;
     try {
+      if (!supportStatus) await loadStatus();
       const thread = await API.get(`/api/support/threads/${encodeURIComponent(id)}`);
       els.detail.textContent = "";
 
@@ -209,7 +346,7 @@
       boundary.className = "support-warning";
       boundary.textContent = "Draft/analysis only. There is intentionally no Send, Refund, Cancel, Reship or Shopify write action on this screen.";
 
-      els.detail.append(heading, meta, summary, boundary);
+      els.detail.append(heading, meta, summary, boundary, renderShopifyContextPanel(id));
       for (const message of thread.messages || []) els.detail.appendChild(renderMessage(message));
 
       if (reloadList) await loadThreads();
