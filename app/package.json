@@ -13,7 +13,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "build": "tsc --noEmit",
-    "test": "node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/analytics-contract.test.ts test/support-threading.test.ts test/support-imap.test.ts test/support-shopify-context.test.ts"
+    "test": "node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/analytics-contract.test.ts test/support-threading.test.ts test/support-imap.test.ts test/support-shopify-context.test.ts test/support-agent-architecture.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
