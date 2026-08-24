@@ -9,6 +9,7 @@ import {
   assertSupportStagingEnabled,
   getSupportConfig,
 } from "../support/config.js";
+import { getSupportCustomerContext } from "../support/customer-context.js";
 import { loadKnowledgePack } from "../support/knowledge/store.js";
 import { getSupportShopifyContext } from "../support/shopify-context.js";
 import {
@@ -38,6 +39,7 @@ router.get("/support/status", async (_req, res) => {
     imapMailbox: config.imapMailbox,
     shopifyLookupEnabled: config.shopifyLookupEnabled,
     shopifyOrderLimit: config.shopifyOrderLimit,
+    shopifyCustomerLookupEnabled: config.shopifyCustomerLookupEnabled,
     knowledgeEnabled: config.knowledgeEnabled,
     knowledgePackConfigured: Boolean(config.knowledgePackPath),
     agentSimulationEnabled: config.stagingEnabled,
@@ -105,6 +107,21 @@ router.get("/support/threads/:id/shopify-context", async (req, res) => {
     const message = error?.message || "Failed to load Shopify support context";
     if (/thread not found/i.test(message)) return res.status(404).json({ error: message });
     if (/disabled|not configured|required|live Shopify connection/i.test(message)) {
+      return res.status(409).json({ error: message });
+    }
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/support/threads/:id/shopify-customer-context", async (req, res) => {
+  try {
+    const sessionToken = bearerSessionToken(req.get("authorization"));
+    const context = await getSupportCustomerContext(req.params.id, sessionToken);
+    res.json(context);
+  } catch (error: any) {
+    const message = error?.message || "Failed to load Shopify customer support context";
+    if (/thread not found/i.test(message)) return res.status(404).json({ error: message });
+    if (/disabled|not configured|required|live Shopify connection|read_customers/i.test(message)) {
       return res.status(409).json({ error: message });
     }
     res.status(500).json({ error: message });
