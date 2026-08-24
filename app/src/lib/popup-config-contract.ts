@@ -72,6 +72,15 @@ export interface PopupFrequencyConfig {
   maxImpressionsPerVisitorDay: number;
 }
 
+export interface PopupDeliveryConfig {
+  priority: number;
+  conflictGroup: string;
+  globalCooldownSeconds: number;
+  deferWhenOverlayOpen: boolean;
+  reserveCartForCartCampaigns: boolean;
+  suppressOnCheckout: boolean;
+}
+
 export interface PopupSafetyConfig {
   visibleCloseButton: true;
   escClose: true;
@@ -91,6 +100,7 @@ export interface PopupCampaignConfig {
   trigger: PopupTriggerConfig;
   targeting: PopupTargetingConfig;
   frequency: PopupFrequencyConfig;
+  delivery: PopupDeliveryConfig;
   safety: PopupSafetyConfig;
   variants: PopupVariantConfig[];
 }
@@ -141,6 +151,14 @@ export function defaultPopupCampaign(): PopupCampaignConfig {
       suppressAfterSubmitDays: 30,
       maxImpressionsPerSession: 1,
       maxImpressionsPerVisitorDay: 1,
+    },
+    delivery: {
+      priority: 50,
+      conflictGroup: "global",
+      globalCooldownSeconds: 30,
+      deferWhenOverlayOpen: true,
+      reserveCartForCartCampaigns: true,
+      suppressOnCheckout: true,
     },
     safety: {
       visibleCloseButton: true,
@@ -216,6 +234,7 @@ export function normalizeAndValidatePopupCampaign(input: unknown): { ok: boolean
   const trigger = object(row.trigger);
   const targeting = object(row.targeting);
   const frequency = object(row.frequency);
+  const delivery = object(row.delivery);
   const safety = object(row.safety);
   const errors: string[] = [];
 
@@ -244,6 +263,11 @@ export function normalizeAndValidatePopupCampaign(input: unknown): { ok: boolean
   if (cartMinSubtotal !== null && cartMaxSubtotal !== null && cartMaxSubtotal < cartMinSubtotal) {
     errors.push("cartMaxSubtotal must be greater than or equal to cartMinSubtotal.");
   }
+
+  const conflictGroup = stringValue(delivery.conflictGroup, defaults.delivery.conflictGroup, 80)
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, "-")
+    .replace(/-+/g, "-") || "global";
 
   const config: PopupCampaignConfig = {
     key,
@@ -279,6 +303,14 @@ export function normalizeAndValidatePopupCampaign(input: unknown): { ok: boolean
       suppressAfterSubmitDays: numberValue(frequency.suppressAfterSubmitDays, defaults.frequency.suppressAfterSubmitDays, 0, 3650),
       maxImpressionsPerSession: Math.round(numberValue(frequency.maxImpressionsPerSession, defaults.frequency.maxImpressionsPerSession, 1, 100)),
       maxImpressionsPerVisitorDay: Math.round(numberValue(frequency.maxImpressionsPerVisitorDay, defaults.frequency.maxImpressionsPerVisitorDay, 1, 100)),
+    },
+    delivery: {
+      priority: Math.round(numberValue(delivery.priority, defaults.delivery.priority, 0, 1000)),
+      conflictGroup,
+      globalCooldownSeconds: Math.round(numberValue(delivery.globalCooldownSeconds, defaults.delivery.globalCooldownSeconds, 0, 3600)),
+      deferWhenOverlayOpen: delivery.deferWhenOverlayOpen !== false,
+      reserveCartForCartCampaigns: delivery.reserveCartForCartCampaigns !== false,
+      suppressOnCheckout: delivery.suppressOnCheckout !== false,
     },
     safety: {
       visibleCloseButton: true,
