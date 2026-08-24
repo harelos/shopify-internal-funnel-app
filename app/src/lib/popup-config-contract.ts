@@ -1,3 +1,5 @@
+import { COMMERCE_TRAFFIC_GATE_MODES, type CommerceTrafficGateMode } from "./popup-commerce-traffic.js";
+
 export const POPUP_TYPES = [
   "lead_capture",
   "discount_reveal",
@@ -59,6 +61,8 @@ export interface PopupTargetingConfig {
   cartMinSubtotal: number | null;
   cartMaxSubtotal: number | null;
   requireCartItems: boolean;
+  commerceTrafficMode: CommerceTrafficGateMode;
+  qualifiedCountries: string[];
 }
 
 export interface PopupFrequencyConfig {
@@ -129,6 +133,8 @@ export function defaultPopupCampaign(): PopupCampaignConfig {
       cartMinSubtotal: null,
       cartMaxSubtotal: null,
       requireCartItems: false,
+      commerceTrafficMode: "exclude_known_bad",
+      qualifiedCountries: ["IL"],
     },
     frequency: {
       suppressAfterCloseMinutes: 1440,
@@ -175,6 +181,15 @@ function nullableMoney(value: unknown): number | null {
 function stringArray(value: unknown, maxItems = 50): string[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter(item => typeof item === "string").map(item => item.trim()).filter(Boolean))].slice(0, maxItems);
+}
+
+function countryArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return [...fallback];
+  const normalized = [...new Set(value
+    .filter(item => typeof item === "string")
+    .map(item => item.trim().toUpperCase())
+    .filter(item => /^[A-Z]{2}$/.test(item)))].slice(0, 50);
+  return normalized.length ? normalized : [...fallback];
 }
 
 function enumValue<T extends readonly string[]>(value: unknown, allowed: T, fallback: T[number]): T[number] {
@@ -256,6 +271,8 @@ export function normalizeAndValidatePopupCampaign(input: unknown): { ok: boolean
       cartMinSubtotal,
       cartMaxSubtotal,
       requireCartItems: Boolean(targeting.requireCartItems),
+      commerceTrafficMode: enumValue(targeting.commerceTrafficMode, COMMERCE_TRAFFIC_GATE_MODES, defaults.targeting.commerceTrafficMode),
+      qualifiedCountries: countryArray(targeting.qualifiedCountries, defaults.targeting.qualifiedCountries),
     },
     frequency: {
       suppressAfterCloseMinutes: numberValue(frequency.suppressAfterCloseMinutes, defaults.frequency.suppressAfterCloseMinutes, 0, 525600),
