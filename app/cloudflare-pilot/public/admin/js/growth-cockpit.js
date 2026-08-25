@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('reconcile-cj').addEventListener('click', async () => {
     const button = byId('reconcile-cj');
     button.disabled = true;
-    byId('cj-reconcile-status').textContent = 'Reading CJ paid orders and saving their actual payment totals by CJ UTC payment date...';
+    byId('cj-reconcile-status').textContent = 'Reading CJ paid orders and saving their paid-order amounts by CJ UTC payment date...';
     try {
       const params = new URLSearchParams(query());
       const result = await apiRequest('/api/growth-cockpit/cj-paid-costs', {
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(Object.fromEntries(params.entries()))
       });
       const summary = result.result || {};
-      byId('cj-reconcile-status').textContent = `CJ paid-cost sync completed: ${Number(summary.entriesPersisted || 0)} actual payment row(s) saved from ${Number(summary.paidOrders || 0)} paid order(s).`;
+      byId('cj-reconcile-status').textContent = `CJ paid-cost sync: ${Number(summary.rowsScanned || 0)} list row(s) scanned; ${Number(summary.paidOrderRows || 0)} paid-order row(s); ${Number(summary.actualPaymentRows || 0)} actual-payment row(s) and ${Number(summary.orderAmountFallbackRows || 0)} paid-order amount fallback row(s) saved; ${Number(summary.detailFailures || 0)} detail field/read failure(s).`;
       await load();
     } catch (error) {
       byId('cj-reconcile-status').textContent = `CJ paid-cost sync unavailable: ${error.message || 'Request failed.'}`;

@@ -16,7 +16,9 @@ export async function reconcileCjPaidCosts(input: {
   toExclusive: string;
 }): Promise<{
   rowsScanned: number;
-  paidOrders: number;
+  paidOrderRows: number;
+  actualPaymentRows: number;
+  orderAmountFallbackRows: number;
   entriesPersisted: number;
   detailFailures: number;
   truncated: boolean;
@@ -42,17 +44,26 @@ export async function reconcileCjPaidCosts(input: {
   }
 
   const entries = [];
+  const paidOrderRows = rows.filter(row => row?.orderId && row?.isSandbox !== 1).length;
+  let actualPaymentRows = 0;
+  let orderAmountFallbackRows = 0;
   let detailFailures = 0;
   for (const row of rows) {
     if (!row?.orderId || row?.isSandbox === 1) continue;
     try {
       const detail = await getCjOrderDetail(String(row.orderId));
-      const amount = Number(detail?.actualPayment);
+      const actualPayment = Number(detail?.actualPayment);
+      const fallbackOrderAmount = Number(row?.orderAmount);
+      const hasActualPayment = Number.isFinite(actualPayment) && actualPayment >= 0;
+      const hasFallbackOrderAmount = Number.isFinite(fallbackOrderAmount) && fallbackOrderAmount >= 0;
       const paymentDate = String(detail?.paymentDate || row?.paymentDate || "");
-      if (!Number.isFinite(amount) || amount < 0 || !paymentDate) {
+      if ((!hasActualPayment && !hasFallbackOrderAmount) || !paymentDate) {
         detailFailures += 1;
         continue;
       }
+      const amount = hasActualPayment ? actualPayment : fallbackOrderAmount;
+      if (hasActualPayment) actualPaymentRows += 1;
+      else orderAmountFallbackRows += 1;
       entries.push({
         source: "CJ_PAID_ORDERS",
         category: "ACCOUNT_PAID_ORDER_COST",
@@ -60,9 +71,9 @@ export async function reconcileCjPaidCosts(input: {
         occurredDate: cjUtcDate(paymentDate),
         amount,
         currency: "USD",
-        quality: "ACTUAL" as const,
+        quality: hasActualPayment ? "ACTUAL" as const : "ESTIMATE" as const,
         metadata: {
-          costBasis: "CJ actualPayment",
+          costBasis: hasActualPayment ? "CJ actualPayment" : "CJ orderAmount on API-confirmed paid order",
           scope: "CJ account paid orders; not Shopify-order reconciled",
           paymentDateUtc: paymentDate,
         },
@@ -73,5 +84,13 @@ export async function reconcileCjPaidCosts(input: {
     }
   }
   const entriesPersisted = await persistFinancialLedgerEntries(entries);
-  return { rowsScanned: rows.length, paidOrders: entries.length, entriesPersisted, detailFailures, truncated };
+  return {
+    rowsScanned: rows.length,
+    paidOrderRows,
+    actualPaymentRows,
+    orderAmountFallbackRows,
+    entriesPersisted,
+    detailFailures,
+    truncated,
+  };
 }
