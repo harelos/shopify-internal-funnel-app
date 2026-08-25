@@ -85,9 +85,9 @@ router.post("/track", async (req, res, next) => {
 });
 
 router.post("/popup/confirm-lead", async (req, res) => {
-  const email = text(req.body?.email, 254)?.toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ confirmed: false, failureCategory: "invalid_email" });
+  const verificationTag = text(req.body?.verificationTag, 80)?.toLowerCase();
+  if (!verificationTag || !/^nhp_[a-f0-9]{32}$/.test(verificationTag)) {
+    return res.status(400).json({ confirmed: false, failureCategory: "invalid_verification_tag" });
   }
 
   const successBody = { ...req.body, event: "popup_submit_success" };
@@ -95,16 +95,16 @@ router.post("/popup/confirm-lead", async (req, res) => {
   if ("error" in normalized) return res.status(400).json({ confirmed: false, failureCategory: "invalid_context", error: normalized.error });
 
   try {
-    let customer: { id: string; email?: string | null; tags: string[]; emailMarketingConsent: { marketingState: string } | null } | undefined;
+    let customer: { id: string; tags: string[]; emailMarketingConsent: { marketingState: string } | null } | undefined;
     for (const delay of [0, 300, 700, 1400]) {
       if (delay) await new Promise(resolve => setTimeout(resolve, delay));
-      const result = await shopify.findPopupLead(email);
-      customer = result.customers.nodes.find(node => node.email?.toLowerCase() === email);
+      const result = await shopify.findPopupLeadByTag(verificationTag);
+      customer = result.customers.nodes.find(node => node.tags.includes(verificationTag));
       if (customer
         && REQUIRED_TAGS.every(tag => customer!.tags.includes(tag))
         && customer.emailMarketingConsent?.marketingState === "SUBSCRIBED") break;
     }
-    if (!customer) return res.status(409).json({ confirmed: false, failureCategory: "customer_not_confirmed" });
+    if (!customer) return res.status(409).json({ confirmed: false, failureCategory: "customer_tag_not_confirmed" });
     if (!REQUIRED_TAGS.every(tag => customer!.tags.includes(tag))) {
       return res.status(409).json({ confirmed: false, failureCategory: "tags_not_confirmed" });
     }
@@ -121,7 +121,7 @@ router.post("/popup/confirm-lead", async (req, res) => {
       payload: {
         ...normalized.payload,
         consent: true,
-        confirmationSource: "shopify_admin_customer",
+        confirmationSource: "shopify_admin_customer_tag",
         customerKey,
       },
     };

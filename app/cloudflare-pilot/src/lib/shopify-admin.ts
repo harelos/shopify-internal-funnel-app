@@ -96,22 +96,20 @@ export class ShopifyAdminClient {
     }>(`query StoreSummary { shop { name myshopifyDomain primaryDomain { url } } }`, {}, sessionToken);
   }
 
-  async findPopupLead(email: string, sessionToken?: string) {
-    const escapedEmail = email.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  async findPopupLeadByTag(verificationTag: string, sessionToken?: string) {
     return this.graphql<{
       customers: {
         nodes: Array<{
           id: string;
-          email: string | null;
           tags: string[];
           emailMarketingConsent: { marketingState: string } | null;
         }>;
       };
     }>(`query PopupLead($query: String!) {
       customers(first: 5, query: $query) {
-        nodes { id email tags emailMarketingConsent { marketingState } }
+        nodes { id tags emailMarketingConsent { marketingState } }
       }
-    }`, { query: `email:\"${escapedEmail}\"` }, sessionToken);
+    }`, { query: `tag:\"${verificationTag}\"` }, sessionToken);
   }
 
   async shopifyqlQuery(queryText: string, sessionToken?: string) {
