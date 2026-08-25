@@ -149,6 +149,14 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('financial-status').textContent = `Shopify: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
   }
 
+  function renderCjStatus(status) {
+    const connected = Boolean(status?.ok && status?.connected && status?.orderRead);
+    byId('source-grid').insertAdjacentHTML('beforeend', `<div class="source-item"><strong>CJ API connection</strong><span>${connected ? 'CONNECTED · READ VERIFIED' : 'UNAVAILABLE'}</span></div>`);
+    byId('financial-status').textContent += connected
+      ? ' CJ API authentication and read-only order access verified.'
+      : ` CJ API unavailable: ${String(status?.error || 'connection check failed').slice(0, 160)}`;
+  }
+
   async function load() {
     byId('contract-status').textContent = 'Loading the authenticated reporting contract...';
     try {
@@ -157,13 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const popupParams = new URLSearchParams();
       if (config.range.from) popupParams.set('from', config.range.from);
       if (config.range.toExclusive) popupParams.set('to', new Date(new Date(config.range.toExclusive).getTime() - 1).toISOString());
-      const [finance, popup] = await Promise.all([
+      const [finance, popup, cjStatus] = await Promise.all([
         apiGet(`/api/growth-cockpit/finance?${queryString}`),
-        apiGet(`/api/analytics/popup?${popupParams.toString()}`)
+        apiGet(`/api/analytics/popup?${popupParams.toString()}`),
+        apiGet('/api/growth-cockpit/cj-status').catch(error => ({ ok: false, connected: false, error: error.message }))
       ]);
       render(config);
       renderFinance(finance);
       renderPopup(popup, config);
+      renderCjStatus(cjStatus);
     } catch (error) {
       byId('contract-status').textContent = 'Authenticated contract unavailable.';
       byId('source-grid').innerHTML = `<div class="error-banner">${escapeHtml(error.message || 'Open this page from the authorized Shopify Admin app.')}</div>`;

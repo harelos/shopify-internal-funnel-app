@@ -19,6 +19,7 @@ import prisma from "../lib/db.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { fetchMetaSpend } from "../lib/meta-ads.js";
+import { testCjReadConnection } from "../services/novahair-monitor.js";
 import {
   aggregateFinancialLedger,
   persistFinancialLedgerCoverage,
@@ -225,6 +226,21 @@ router.get("/growth-cockpit/config", (req, res) => {
     });
   } catch (error: any) {
     return res.status(400).json({ ok: false, error: error.message || "Invalid Growth Cockpit configuration." });
+  }
+});
+
+router.get("/growth-cockpit/cj-status", async (_req, res) => {
+  try {
+    const result = await testCjReadConnection();
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, source: "CJ_OPEN_API", ...result, checkedAt: new Date().toISOString() });
+  } catch (error: any) {
+    return res.status(502).json({
+      ok: false,
+      source: "CJ_OPEN_API",
+      connected: false,
+      error: String(error?.message || "CJ connection test failed.").slice(0, 240),
+    });
   }
 });
 

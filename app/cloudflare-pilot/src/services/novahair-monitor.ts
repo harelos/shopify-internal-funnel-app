@@ -45,6 +45,9 @@ const EXCLUDED_TAG_KEYWORDS = ["INTERNAL_", "TEST", "CANARY", "BOOTSTRAP", "DO_N
 const PRODUCT_ID = "gid://shopify/Product/10341269274919";
 const SHOP_DOMAIN = "jacobfelipe.myshopify.com";
 const CJ_AUTH_URL = "https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken";
+const CJ_API_ROOT = "https://developers.cjdropshipping.com/api2.0/v1";
+
+let cjTokenCache: { token: string; expiresAt: number } | null = null;
 
 function getEnvVar(key: string, fallback: string = ""): string {
   const envObj = (cloudflareEnv as any) ?? (globalThis as any).__SHOPIFY_WORKER_ENV__;
@@ -178,27 +181,57 @@ async function shopifyGql(query: string, variables: any = {}): Promise<any> {
 }
 
 async function getCjToken(): Promise<string> {
+  if (cjTokenCache && cjTokenCache.expiresAt > Date.now() + 60_000) return cjTokenCache.token;
   const apiKey = getEnvVar("CJ_API_KEY");
+  if (!apiKey) throw new Error("CJ_API_KEY is not configured.");
   const res = await fetch(CJ_AUTH_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ apiKey })
+    body: JSON.stringify({ apiKey }),
+    signal: AbortSignal.timeout(10_000),
   });
   const data: any = await res.json();
-  return data?.data?.accessToken || "";
+  const token = data?.data?.accessToken;
+  if (!res.ok || !token || data?.result === false) {
+    throw new Error(`CJ authentication failed: ${String(data?.message || `HTTP ${res.status}`).slice(0, 180)}`);
+  }
+  const documentedExpiry = Date.parse(String(data?.data?.accessTokenExpiryDate || ""));
+  cjTokenCache = {
+    token,
+    expiresAt: Number.isFinite(documentedExpiry) ? documentedExpiry : Date.now() + 23 * 60 * 60 * 1000,
+  };
+  return token;
 }
 
 async function cjGet(endpoint: string, params: Record<string, any> = {}): Promise<any> {
   const token = await getCjToken();
-  const url = new URL(`https://developers.cjdropshipping.com/api2.0/v1/${endpoint}`);
+  const url = new URL(`${CJ_API_ROOT}/${endpoint}`);
   Object.keys(params).forEach(k => url.searchParams.append(k, String(params[k])));
   const res = await fetch(url.toString(), {
     headers: {
       "CJ-Access-Token": token,
       "Content-Type": "application/json"
-    }
+    },
+    signal: AbortSignal.timeout(10_000),
   });
-  return res.json();
+  const data: any = await res.json();
+  if (!res.ok || data?.result === false) {
+    throw new Error(`CJ ${endpoint} failed: ${String(data?.message || `HTTP ${res.status}`).slice(0, 180)}`);
+  }
+  return data;
+}
+
+export async function testCjReadConnection(): Promise<{
+  connected: true;
+  orderRead: true;
+  firstPageRows: number;
+  tokenCached: boolean;
+}> {
+  const hadCachedToken = Boolean(cjTokenCache && cjTokenCache.expiresAt > Date.now() + 60_000);
+  const response = await cjGet("shopping/order/list", { pageNum: 1, pageSize: 1 });
+  const rows = response?.data?.list;
+  if (!Array.isArray(rows)) throw new Error("CJ order list returned an unexpected response shape.");
+  return { connected: true, orderRead: true, firstPageRows: rows.length, tokenCached: hadCachedToken };
 }
 
 export async function snapshotProductState(): Promise<any> {
