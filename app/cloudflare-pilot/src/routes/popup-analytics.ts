@@ -128,6 +128,9 @@ router.post("/popup/confirm-lead", async (req, res) => {
     const persisted = await persistPopupEvent(confirmedInput, req.query as Record<string, unknown>, "SHOPIFY_ADMIN");
     return res.json({ confirmed: true, duplicateLead: persisted.duplicate, eventId: persisted.event.id });
   } catch (error: any) {
+    console.error("Popup lead verification failed.", {
+      error: String(error?.message || "unknown Shopify verification error").slice(0, 500),
+    });
     return res.status(502).json({ confirmed: false, failureCategory: "shopify_verification_unavailable", error: error.message || "Shopify lead verification failed." });
   }
 });
