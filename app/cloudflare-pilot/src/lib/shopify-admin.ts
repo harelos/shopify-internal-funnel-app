@@ -1,4 +1,5 @@
 import { getShopifyConfig, isValidShopDomain, workerEnvValue } from "./shopify-config.js";
+import { mergePopupLeadCandidates, type PopupLeadCandidate } from "./popup-lead-candidates.js";
 
 export class ShopifyConfigurationError extends Error {
   constructor(message: string) {
@@ -98,20 +99,23 @@ export class ShopifyAdminClient {
 
   async findPopupLead(email: string, sessionToken?: string) {
     const escapedEmail = email.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    return this.graphql<{
-      customers: {
-        nodes: Array<{
-          id: string;
-          email: string | null;
-          tags: string[];
-          emailMarketingConsent: { marketingState: string } | null;
-        }>;
-      };
+    const result = await this.graphql<{
+      indexedCustomers: { nodes: PopupLeadCandidate[] };
+      recentCustomers: { nodes: PopupLeadCandidate[] };
     }>(`query PopupLead($query: String!) {
-      customers(first: 5, query: $query) {
+      indexedCustomers: customers(first: 5, query: $query) {
+        nodes { id email tags emailMarketingConsent { marketingState } }
+      }
+      recentCustomers: customers(first: 50, sortKey: CREATED_AT, reverse: true) {
         nodes { id email tags emailMarketingConsent { marketingState } }
       }
     }`, { query: `email:\"${escapedEmail}\"` }, sessionToken);
+
+    return {
+      customers: {
+        nodes: mergePopupLeadCandidates(result.indexedCustomers.nodes, result.recentCustomers.nodes),
+      },
+    };
   }
 
   async shopifyqlQuery(queryText: string, sessionToken?: string) {
