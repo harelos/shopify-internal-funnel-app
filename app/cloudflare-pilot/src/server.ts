@@ -9,6 +9,7 @@ import stepRoutes from "./routes/steps.js";
 import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
 import popupAnalyticsRoutes from "./routes/popup-analytics.js";
+import growthCockpitRoutes from "./routes/growth-cockpit.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -127,6 +128,7 @@ app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", popupAnalyticsRoutes);
+app.use("/api", growthCockpitRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", shopifyRoutes);
 

@@ -1,0 +1,36 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+test("Growth Cockpit dashboard uses authenticated contracts and no mock finance data", () => {
+  const html = readFileSync(new URL("../public/admin/growth-cockpit.html", import.meta.url), "utf8");
+  const script = readFileSync(new URL("../public/admin/js/growth-cockpit.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../public/admin/css/growth-cockpit.css", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../src/routes/growth-cockpit.ts", import.meta.url), "utf8");
+  const ledgerMigration = readFileSync(new URL("../migrations/0006_growth_cockpit_financial_ledger.sql", import.meta.url), "utf8");
+  assert.match(html, /noindex,nofollow,noarchive/);
+  assert.match(html, /Verified financial inputs/i);
+  assert.match(html, /NovaHair popup funnel/i);
+  assert.match(html, /popup-funnel/);
+  assert.match(html, /comparison-summary/);
+  assert.match(html, /aria-live="polite"/);
+  assert.match(script, /window\.shopify\.idToken/);
+  assert.match(script, /\/api\/growth-cockpit\/config/);
+  assert.match(script, /\/api\/growth-cockpit\/finance/);
+  assert.match(script, /\/api\/analytics\/popup/);
+  assert.match(route, /SHOPIFY_TRANSACTION_FEES/);
+  assert.match(route, /fetchMetaSpend/);
+  assert.match(route, /persistFinancialLedgerCoverage/);
+  assert.match(ledgerMigration, /FinancialLedgerEntry/);
+  assert.match(ledgerMigration, /FinancialLedgerCoverage/);
+  assert.match(script, /renderPopup/);
+  assert.match(script, /dismissals/);
+  assert.match(script, /definition-trigger/);
+  assert.match(script, /comparisonText/);
+  assert.match(script, /MISSING/);
+  assert.doesNotMatch(script, /mockData|Math\.random\(|placeholderRevenue/i);
+  assert.match(styles, /@media \(max-width: 1080px\)/);
+  assert.match(styles, /@media \(max-width: 840px\)/);
+  assert.match(styles, /font-variant-numeric: tabular-nums/);
+  assert.match(styles, /\.panel \{ margin-bottom: 20px; overflow: visible; \}/);
+});

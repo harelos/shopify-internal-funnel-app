@@ -19,8 +19,16 @@ export default {
     (globalThis as any).__SHOPIFY_WORKER_ENV__ = workerEnv;
     try {
       const { processPendingQueueCron } = await import("./services/novahair-monitor.js");
+      const {
+        reconcileGrowthCockpitMetaSpend,
+        reconcileGrowthCockpitShopifyFinancials,
+      } = await import("./services/growth-cockpit-reconcile.js");
       if (workerEnv?.DB) {
-        ctx.waitUntil(processPendingQueueCron(workerEnv.DB));
+        ctx.waitUntil(Promise.all([
+          processPendingQueueCron(workerEnv.DB),
+          reconcileGrowthCockpitMetaSpend(),
+          reconcileGrowthCockpitShopifyFinancials(),
+        ]));
       }
     } catch (cronErr) {
       console.error("[CRON EXECUTION ERROR]", cronErr);

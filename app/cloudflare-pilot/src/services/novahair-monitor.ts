@@ -1,4 +1,5 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
+import { persistFinancialLedgerEntries } from "../lib/financial-ledger.js";
 
 export interface NovaHairState {
   id: string;
@@ -439,6 +440,26 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     }
 
     await saveNovaHairState(db, state);
+    const costAmount = Number(cjData.orderAmount);
+    const costDateSource = orderPayload.processed_at || orderPayload.created_at || orderRecord.verified_at;
+    const costDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: getEnvVar("REPORTING_TIMEZONE", "Asia/Jerusalem"),
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(costDateSource));
+    if (Number.isFinite(costAmount) && costAmount >= 0) {
+      await persistFinancialLedgerEntries([{
+        source: "CJ_ORDER_COSTS",
+        category: "CJ_VARIABLE_COST",
+        externalKey: orderId,
+        occurredDate: costDate,
+        amount: costAmount,
+        currency: "USD",
+        quality: "ESTIMATE",
+        metadata: { orderNumber: orderNum, costLabel: orderRecord.cost_label },
+      }]);
+    }
     await db.prepare('UPDATE "NovaHairPendingOrder" SET syncState = ?, result = ?, completedAt = CURRENT_TIMESTAMP WHERE orderId = ?')
       .bind("CJ_VERIFIED", "PASS", orderId).run();
   }

@@ -128,4 +128,115 @@ export class ShopifyAdminClient {
       }
     }`, { query: queryText }, sessionToken);
   }
+
+  async orderFinancialSummary(input: {
+    from?: string | null;
+    toExclusive?: string | null;
+    sessionToken?: string;
+    now?: Date;
+    maxPages?: number;
+  }) {
+    type OrderNode = {
+      id: string;
+      processedAt: string;
+      test: boolean;
+      cancelledAt: string | null;
+      displayFinancialStatus: string | null;
+      netPaymentSet: { shopMoney: { amount: string; currencyCode: string } };
+      transactions: Array<{
+        kind: string;
+        status: string;
+        fees: Array<{
+          amount: { amount: string; currencyCode: string };
+          taxAmount: { amount: string; currencyCode: string };
+        }>;
+      }>;
+    };
+    type OrdersPage = {
+      orders: {
+        nodes: OrderNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    };
+
+    const clauses = ["test:false"];
+    if (input.from) clauses.push(`processed_at:>='${input.from}'`);
+    if (input.toExclusive) clauses.push(`processed_at:<'${input.toExclusive}'`);
+    const searchQuery = clauses.join(" ");
+    const maxPages = Math.max(1, Math.min(input.maxPages ?? 20, 50));
+    const nodes: OrderNode[] = [];
+    let cursor: string | null = null;
+    let hasNextPage = false;
+
+    for (let page = 0; page < maxPages; page += 1) {
+      const data: OrdersPage = await this.graphql<OrdersPage>(`query GrowthCockpitOrders($after: String, $query: String!) {
+        orders(first: 100, after: $after, query: $query, sortKey: PROCESSED_AT) {
+          nodes {
+            id
+            processedAt
+            test
+            cancelledAt
+            displayFinancialStatus
+            netPaymentSet { shopMoney { amount currencyCode } }
+            transactions {
+              kind
+              status
+              fees {
+                amount { amount currencyCode }
+                taxAmount { amount currencyCode }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`, { after: cursor, query: searchQuery }, input.sessionToken);
+      nodes.push(...data.orders.nodes);
+      hasNextPage = data.orders.pageInfo.hasNextPage;
+      cursor = data.orders.pageInfo.endCursor;
+      if (!hasNextPage || !cursor) break;
+    }
+
+    const currencies = [...new Set(nodes.map(order => order.netPaymentSet.shopMoney.currencyCode.toUpperCase()))];
+    const netPayments = nodes.reduce((sum, order) => sum + Number(order.netPaymentSet.shopMoney.amount || 0), 0);
+    const paidOrders = nodes.filter(order => Number(order.netPaymentSet.shopMoney.amount || 0) > 0).length;
+    const successfulSaleOrders = nodes.filter(order => order.transactions.some(transaction => transaction.kind === "SALE" && transaction.status === "SUCCESS"));
+    const feeRows = successfulSaleOrders.reduce((sum, order) => sum + order.transactions.reduce((transactionSum, transaction) => {
+      if (transaction.kind !== "SALE" || transaction.status !== "SUCCESS") return transactionSum;
+      return transactionSum + transaction.fees.length;
+    }, 0), 0);
+    const feeCurrencies = [...new Set(successfulSaleOrders.flatMap(order => order.transactions
+      .filter(transaction => transaction.kind === "SALE" && transaction.status === "SUCCESS")
+      .flatMap(transaction => transaction.fees.map(fee => fee.amount.currencyCode.toUpperCase()))))];
+    const feeOrders = successfulSaleOrders.filter(order => order.transactions.some(transaction => transaction.kind === "SALE" && transaction.status === "SUCCESS" && transaction.fees.length > 0)).length;
+    const paymentFeesAmount = successfulSaleOrders.reduce((sum, order) => sum + order.transactions.reduce((transactionSum, transaction) => {
+      if (transaction.kind !== "SALE" || transaction.status !== "SUCCESS") return transactionSum;
+      return transactionSum + transaction.fees.reduce((feeSum, fee) => feeSum + Number(fee.amount.amount || 0) + Number(fee.taxAmount.amount || 0), 0);
+    }, 0), 0);
+    const now = input.now ?? new Date();
+    const accessibleFrom = new Date(now.getTime() - 60 * 86400000);
+    const rangeWithinDefaultOrderWindow = Boolean(input.from) && new Date(input.from as string) >= accessibleFrom;
+    const complete = rangeWithinDefaultOrderWindow && !hasNextPage && currencies.length <= 1;
+
+    return {
+      source: "SHOPIFY_ADMIN_ORDERS",
+      rows: nodes.length,
+      orders: paidOrders,
+      amount: currencies.length <= 1 ? Number(netPayments.toFixed(2)) : null,
+      currency: currencies.length === 1 ? currencies[0] : null,
+      quality: complete ? "ACTUAL" as const : "PARTIAL" as const,
+      truncated: hasNextPage,
+      rangeWithinDefaultOrderWindow,
+      definition: "Sum of Shopify Order.netPaymentSet.shopMoney after refunds; includes amounts collected for tax and shipping.",
+      paymentFees: feeRows > 0 && feeCurrencies.length <= 1
+        ? {
+            amount: Number(paymentFeesAmount.toFixed(2)),
+            currency: feeCurrencies[0] ?? null,
+            quality: feeOrders === successfulSaleOrders.length ? "ACTUAL" as const : "PARTIAL" as const,
+            source: "SHOPIFY_TRANSACTION_FEES",
+            rows: feeRows,
+            definition: "Sum of successful SALE transaction fees and fee tax amounts returned by Shopify Payments.",
+          }
+        : null,
+    };
+  }
 }

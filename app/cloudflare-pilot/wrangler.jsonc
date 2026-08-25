@@ -9,6 +9,11 @@
   "vars": {
     "RUNTIME": "cloudflare",
     "ANALYTICS_MODE": "LIVE",
+    "REPORTING_TIMEZONE": "Asia/Jerusalem",
+    "REPORTING_CURRENCY": "USD",
+    "META_AD_ACCOUNT_ID": "act_8852331774866389",
+    "META_AD_ACCOUNT_CURRENCY": "USD",
+    "META_GRAPH_API_VERSION": "v23.0",
     "NOVAHAIR_POPUP_VERSION": "novahair_popup_v1",
     "NOVAHAIR_POPUP_COUPON": "NOVA10",
     "APP_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev",
