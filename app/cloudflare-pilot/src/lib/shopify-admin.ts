@@ -239,4 +239,62 @@ export class ShopifyAdminClient {
         : null,
     };
   }
+
+  async ordersForCjCosts(input: {
+    from?: string | null;
+    toExclusive?: string | null;
+    maxPages?: number;
+  }): Promise<{ orders: Array<{
+    id: string;
+    legacyResourceId: string;
+    processedAt: string;
+    netPaymentAmount: number;
+    currency: string;
+  }>; truncated: boolean }> {
+    type OrderNode = {
+      id: string;
+      legacyResourceId: string;
+      processedAt: string;
+      netPaymentSet: { shopMoney: { amount: string; currencyCode: string } };
+    };
+    type OrdersPage = {
+      orders: {
+        nodes: OrderNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    };
+    const clauses = ["test:false"];
+    if (input.from) clauses.push(`processed_at:>='${input.from}'`);
+    if (input.toExclusive) clauses.push(`processed_at:<'${input.toExclusive}'`);
+    const maxPages = Math.max(1, Math.min(input.maxPages ?? 10, 20));
+    const nodes: OrderNode[] = [];
+    let cursor: string | null = null;
+    let hasNextPage = false;
+
+    for (let page = 0; page < maxPages; page += 1) {
+      const data: OrdersPage = await this.graphql<OrdersPage>(`query CjCostOrders($after: String, $query: String!) {
+        orders(first: 100, after: $after, query: $query, sortKey: PROCESSED_AT) {
+          nodes { id legacyResourceId processedAt netPaymentSet { shopMoney { amount currencyCode } } }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`, { after: cursor, query: clauses.join(" ") });
+      nodes.push(...data.orders.nodes);
+      hasNextPage = data.orders.pageInfo.hasNextPage;
+      cursor = data.orders.pageInfo.endCursor;
+      if (!hasNextPage || !cursor) break;
+    }
+
+    return {
+      orders: nodes
+        .filter(order => Number(order.netPaymentSet.shopMoney.amount || 0) > 0)
+        .map(order => ({
+          id: order.id,
+          legacyResourceId: String(order.legacyResourceId),
+          processedAt: order.processedAt,
+          netPaymentAmount: Number(order.netPaymentSet.shopMoney.amount || 0),
+          currency: order.netPaymentSet.shopMoney.currencyCode.toUpperCase(),
+        })),
+      truncated: hasNextPage,
+    };
+  }
 }

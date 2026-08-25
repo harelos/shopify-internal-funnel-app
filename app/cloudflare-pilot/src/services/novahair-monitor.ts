@@ -234,6 +234,22 @@ export async function testCjReadConnection(): Promise<{
   return { connected: true, orderRead: true, firstPageRows: rows.length, tokenCached: hadCachedToken };
 }
 
+export async function listCjOrders(pageNum: number, pageSize: number): Promise<any[]> {
+  const response = await cjGet("shopping/order/list", { pageNum, pageSize });
+  const rows = response?.data?.list;
+  if (!Array.isArray(rows)) throw new Error("CJ order list returned an unexpected response shape.");
+  return rows;
+}
+
+export async function getCjOrderDetail(orderId: string): Promise<any> {
+  if (!orderId) throw new Error("CJ order detail requires an order ID.");
+  const response = await cjGet("shopping/order/getOrderDetail", { orderId });
+  if (!response?.data || typeof response.data !== "object") {
+    throw new Error("CJ order detail returned an unexpected response shape.");
+  }
+  return response.data;
+}
+
 export async function snapshotProductState(): Promise<any> {
   const q = `
     query getProductSnapshot($id: ID!) {

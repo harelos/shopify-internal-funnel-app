@@ -4,16 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   const labels = { revenue: 'Revenue', orders: 'Orders', popupEvents: 'Popup events', metaSpend: 'Meta spend', cjCosts: 'CJ costs', paymentFees: 'Payment fees' };
 
-  async function apiGet(path) {
+  async function apiRequest(path, options = {}) {
     const headers = {};
     if (window.shopify && typeof window.shopify.idToken === 'function') {
       const token = await window.shopify.idToken();
       if (token) headers.Authorization = `Bearer ${token}`;
     }
-    const response = await fetch(path, { headers });
+    const response = await fetch(path, { ...options, headers: { ...headers, ...(options.headers || {}) } });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || 'Request failed');
     return body;
+  }
+
+  function apiGet(path) {
+    return apiRequest(path);
   }
 
   function query() {
@@ -197,5 +201,25 @@ document.addEventListener('DOMContentLoaded', () => {
     load();
   });
   byId('refresh-contract').addEventListener('click', load);
+  byId('reconcile-cj').addEventListener('click', async () => {
+    const button = byId('reconcile-cj');
+    button.disabled = true;
+    byId('cj-reconcile-status').textContent = 'Reading CJ and Shopify orders, then saving exact matches as estimated supplier costs...';
+    try {
+      const params = new URLSearchParams(query());
+      const result = await apiRequest('/api/growth-cockpit/cj-reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(params.entries()))
+      });
+      const summary = result.result || {};
+      byId('cj-reconcile-status').textContent = `CJ reconciliation completed: ${Number(summary.entriesPersisted || 0)} estimated cost row(s) saved from ${Number(summary.matches || 0)} exact match(es).`;
+      await load();
+    } catch (error) {
+      byId('cj-reconcile-status').textContent = `CJ reconciliation unavailable: ${error.message || 'Request failed.'}`;
+    } finally {
+      button.disabled = false;
+    }
+  });
   load();
 });

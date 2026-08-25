@@ -26,11 +26,13 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   assert.match(script, /\/api\/growth-cockpit\/finance/);
   assert.match(script, /\/api\/analytics\/popup/);
   assert.match(script, /\/api\/growth-cockpit\/cj-status/);
+  assert.match(script, /\/api\/growth-cockpit\/cj-reconcile/);
   assert.match(script, /CJ API authentication and read-only order access verified/);
   assert.match(route, /SHOPIFY_TRANSACTION_FEES/);
   assert.match(route, /fetchMetaSpend/);
   assert.match(route, /persistFinancialLedgerCoverage/);
   assert.match(route, /growth-cockpit\/cj-status/);
+  assert.match(route, /growth-cockpit\/cj-reconcile/);
   assert.match(route, /testCjReadConnection/);
   assert.match(ledgerMigration, /FinancialLedgerEntry/);
   assert.match(ledgerMigration, /FinancialLedgerCoverage/);

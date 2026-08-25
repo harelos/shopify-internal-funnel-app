@@ -20,6 +20,7 @@ import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { fetchMetaSpend } from "../lib/meta-ads.js";
 import { testCjReadConnection } from "../services/novahair-monitor.js";
+import { reconcileCjCosts } from "../services/cj-cost-reconcile.js";
 import {
   aggregateFinancialLedger,
   persistFinancialLedgerCoverage,
@@ -244,6 +245,37 @@ router.get("/growth-cockpit/cj-status", async (_req, res) => {
   }
 });
 
+router.post("/growth-cockpit/cj-reconcile", async (req, res) => {
+  try {
+    const config = getGrowthCockpitConfig(workerEnvValue);
+    const range = resolveGrowthCockpitRange({
+      preset: typeof req.body?.preset === "string" ? req.body.preset : undefined,
+      from: typeof req.body?.from === "string" ? req.body.from : undefined,
+      to: typeof req.body?.to === "string" ? req.body.to : undefined,
+      timezone: config.reportingTimezone,
+    });
+    const result = await reconcileCjCosts({
+      from: range.from,
+      toExclusive: range.toExclusive,
+      timezone: range.timezone,
+    });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({
+      ok: true,
+      source: "CJ_OPEN_API",
+      range: { localFrom: range.localFrom, localTo: range.localTo },
+      result,
+      note: "Only exact Shopify legacy order ID to CJ platform order ID matches are persisted. CJ orderAmount remains an estimate until a charged-cost source is available.",
+    });
+  } catch (error: any) {
+    return res.status(502).json({
+      ok: false,
+      source: "CJ_OPEN_API",
+      error: String(error?.message || "CJ cost reconciliation failed.").slice(0, 240),
+    });
+  }
+});
+
 router.get("/growth-cockpit/finance", async (req, res) => {
   try {
     const config = getGrowthCockpitConfig(workerEnvValue);
@@ -277,7 +309,7 @@ router.get("/growth-cockpit/finance", async (req, res) => {
       observations: current.observations,
       sourceOfTruth: {
         revenue: "Shopify Order.netPaymentSet.shopMoney for ranges within the accessible order window; D1 webhook rows are fallback observations only.",
-        cjCosts: "MISSING until a reviewed CJ ledger records charged or explicitly labeled estimated costs.",
+        cjCosts: "CJ orderAmount is stored only after exact Shopify/CJ order-ID matching and is explicitly an estimate, not charged cost.",
         paymentFees: "Shopify transaction fees are authoritative only when every successful SALE order has returned fee rows.",
         metaSpend: "Meta Insights API for the configured account; a persisted reconciliation ledger remains a Batch 7 requirement.",
       },
