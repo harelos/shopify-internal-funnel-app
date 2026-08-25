@@ -137,3 +137,37 @@ export async function aggregateFinancialLedger(input: {
     note: `${input.note} ${rows.length} persisted row(s); coverage is not authoritative for whole-store profit.`,
   };
 }
+
+export async function dailyFinancialLedger(input: {
+  source: string;
+  category: string;
+  localFrom: string | null;
+  localTo: string | null;
+}): Promise<Array<{ date: string; amount: number; currency: string; quality: FinancialQuality }>> {
+  const db = financialD1();
+  if (!db) return [];
+  const conditions = ["source = ?", "category = ?"];
+  const values: unknown[] = [input.source, input.category];
+  if (input.localFrom) { conditions.push("occurredDate >= ?"); values.push(input.localFrom); }
+  if (input.localTo) { conditions.push("occurredDate <= ?"); values.push(input.localTo); }
+  const result = await db.prepare(`
+    SELECT occurredDate, amount, currency, quality FROM "FinancialLedgerEntry"
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY occurredDate ASC
+  `).bind(...values).all();
+  const byDate = new Map<string, { amount: number; currencies: Set<string>; qualities: Set<FinancialQuality> }>();
+  for (const row of result.results ?? []) {
+    const date = String(row.occurredDate);
+    const current = byDate.get(date) ?? { amount: 0, currencies: new Set<string>(), qualities: new Set<FinancialQuality>() };
+    current.amount += Number(row.amount || 0);
+    current.currencies.add(String(row.currency).toUpperCase());
+    current.qualities.add(String(row.quality) as FinancialQuality);
+    byDate.set(date, current);
+  }
+  return [...byDate.entries()].flatMap(([date, value]) => value.currencies.size === 1 ? [{
+    date,
+    amount: Number(value.amount.toFixed(2)),
+    currency: [...value.currencies][0]!,
+    quality: value.qualities.has("ACTUAL") ? "ACTUAL" : "PARTIAL" as FinancialQuality,
+  }] : []);
+}

@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       financialCard('revenue', 'Shopify net payments', formatMoney(metrics.revenue.amount, metrics.revenue.currency), metrics.revenue.quality, metrics.revenue.source),
       financialCard('orders', 'Paid orders', metrics.orders.amount == null ? 'MISSING' : Number(metrics.orders.amount).toLocaleString(), metrics.orders.quality, metrics.orders.source),
       financialCard('cjCosts', 'CJ variable costs', formatMoney(metrics.cjCosts.amount, metrics.cjCosts.currency), metrics.cjCosts.quality, metrics.cjCosts.source),
+      financialCard('cjPaidCosts', 'CJ paid order costs', formatMoney(metrics.cjPaidCosts.amount, metrics.cjPaidCosts.currency), metrics.cjPaidCosts.quality, 'CJ account total · not Shopify-reconciled'),
       financialCard('paymentFees', 'Payment fees', formatMoney(metrics.paymentFees.amount, metrics.paymentFees.currency), metrics.paymentFees.quality, metrics.paymentFees.source),
       financialCard('metaSpend', 'Meta spend', formatMoney(metrics.metaSpend.amount, metrics.metaSpend.currency), metrics.metaSpend.quality, metrics.metaSpend.source),
       financialCard('cm1', 'CM1', formatMoney(profit.cm1, profit.currency), profitQuality, 'Revenue - CJ costs - payment fees'),
@@ -151,6 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `Authoritative profit available in ${profit.currency}.`
       : `Profit unavailable: ${profit.blockers.join(' ')}`;
     byId('financial-status').textContent = `Shopify: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
+    const daily = (report.observations?.cjPaidCostsDaily || []).map(row => `${row.date}: ${formatMoney(row.amount, row.currency)}`);
+    byId('cj-paid-costs-daily').textContent = daily.length
+      ? `CJ paid order costs by UTC payment date: ${daily.join(' · ')}`
+      : 'No synchronized CJ paid-order costs for this window.';
   }
 
   function renderCjStatus(status) {
@@ -204,19 +209,19 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('reconcile-cj').addEventListener('click', async () => {
     const button = byId('reconcile-cj');
     button.disabled = true;
-    byId('cj-reconcile-status').textContent = 'Reading CJ and Shopify orders, then saving exact matches as estimated supplier costs...';
+    byId('cj-reconcile-status').textContent = 'Reading CJ paid orders and saving their actual payment totals by CJ UTC payment date...';
     try {
       const params = new URLSearchParams(query());
-      const result = await apiRequest('/api/growth-cockpit/cj-reconcile', {
+      const result = await apiRequest('/api/growth-cockpit/cj-paid-costs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(params.entries()))
       });
       const summary = result.result || {};
-      byId('cj-reconcile-status').textContent = `CJ reconciliation completed: ${Number(summary.entriesPersisted || 0)} estimated cost row(s) saved from ${Number(summary.matches || 0)} exact match(es).`;
+      byId('cj-reconcile-status').textContent = `CJ paid-cost sync completed: ${Number(summary.entriesPersisted || 0)} actual payment row(s) saved from ${Number(summary.paidOrders || 0)} paid order(s).`;
       await load();
     } catch (error) {
-      byId('cj-reconcile-status').textContent = `CJ reconciliation unavailable: ${error.message || 'Request failed.'}`;
+      byId('cj-reconcile-status').textContent = `CJ paid-cost sync unavailable: ${error.message || 'Request failed.'}`;
     } finally {
       button.disabled = false;
     }

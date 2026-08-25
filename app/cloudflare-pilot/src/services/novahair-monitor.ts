@@ -234,8 +234,8 @@ export async function testCjReadConnection(): Promise<{
   return { connected: true, orderRead: true, firstPageRows: rows.length, tokenCached: hadCachedToken };
 }
 
-export async function listCjOrders(pageNum: number, pageSize: number): Promise<any[]> {
-  const response = await cjGet("shopping/order/list", { pageNum, pageSize });
+export async function listCjOrders(pageNum: number, pageSize: number, filters: Record<string, string> = {}): Promise<any[]> {
+  const response = await cjGet("shopping/order/list", { pageNum, pageSize, ...filters });
   const rows = response?.data?.list;
   if (!Array.isArray(rows)) throw new Error("CJ order list returned an unexpected response shape.");
   return rows;

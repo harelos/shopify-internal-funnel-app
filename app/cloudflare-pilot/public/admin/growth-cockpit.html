@@ -18,7 +18,7 @@
       </div>
       <div class="top-actions">
         <a class="btn" href="popup-analytics.html">Popup Analytics</a>
-        <button class="btn" id="reconcile-cj" type="button">Reconcile CJ</button>
+        <button class="btn" id="reconcile-cj" type="button">Sync CJ Paid Costs</button>
         <button class="btn btn-primary" id="refresh-contract" type="button">Refresh</button>
       </div>
     </div>
@@ -63,7 +63,8 @@
       <div class="panel-body">
         <div class="financial-grid" id="financial-grid"><p class="muted">Loading verified financial sources...</p></div>
         <p class="comparison-summary" id="comparison-summary" aria-live="polite">Loading comparison rules...</p>
-        <p class="muted" id="cj-reconcile-status" aria-live="polite">CJ costs remain unavailable until an admin runs a read-only reconciliation for this reporting window.</p>
+        <p class="muted" id="cj-reconcile-status" aria-live="polite">Sync CJ paid-order costs for this dated reporting window. Account-level totals remain separate from Shopify-reconciled COGS.</p>
+        <p class="muted" id="cj-paid-costs-daily" aria-live="polite"></p>
         <div class="warning-banner" id="profit-status" aria-live="polite">CM1 and CM2 remain unavailable until every required source is authoritative.</div>
       </div>
     </section>

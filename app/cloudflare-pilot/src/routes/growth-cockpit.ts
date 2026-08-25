@@ -21,8 +21,10 @@ import { workerEnvValue } from "../lib/shopify-config.js";
 import { fetchMetaSpend } from "../lib/meta-ads.js";
 import { testCjReadConnection } from "../services/novahair-monitor.js";
 import { reconcileCjCosts } from "../services/cj-cost-reconcile.js";
+import { reconcileCjPaidCosts } from "../services/cj-paid-costs.js";
 import {
   aggregateFinancialLedger,
+  dailyFinancialLedger,
   persistFinancialLedgerCoverage,
   persistFinancialLedgerEntries,
 } from "../lib/financial-ledger.js";
@@ -127,6 +129,19 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
     localTo: range.localTo,
     note: "No reviewed CJ cost rows exist for this range.",
   }).catch(() => missingFinancialMetric("CJ_ORDER_COSTS", "The CJ financial ledger is not initialized."));
+  const cjPaidCosts = await aggregateFinancialLedger({
+    source: "CJ_PAID_ORDERS",
+    category: "ACCOUNT_PAID_ORDER_COST",
+    localFrom: range.localFrom,
+    localTo: range.localTo,
+    note: "No CJ account paid-order costs have been synchronized for this range.",
+  }).catch(() => missingFinancialMetric("CJ_PAID_ORDERS", "The CJ paid-order ledger is not initialized."));
+  const cjPaidCostsDaily = await dailyFinancialLedger({
+    source: "CJ_PAID_ORDERS",
+    category: "ACCOUNT_PAID_ORDER_COST",
+    localFrom: range.localFrom,
+    localTo: range.localTo,
+  }).catch(() => []);
   const paymentFees = shopifyResult.value?.paymentFees
     ? reportingCurrencyMetric({
         amount: shopifyResult.value.paymentFees.amount,
@@ -183,7 +198,7 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
   };
   const profit = computeGrowthCockpitProfit({ revenue, cjCosts, paymentFees, metaSpend, orders: orderCount });
   return {
-    metrics: { revenue, orders, cjCosts, paymentFees, metaSpend },
+    metrics: { revenue, orders, cjCosts, cjPaidCosts, paymentFees, metaSpend },
     profit,
     observations: {
       shopifyAdmin: shopifyResult.value ?? { source: "SHOPIFY_ADMIN_ORDERS", error: shopifyResult.error },
@@ -203,6 +218,7 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
         ledgerRowsSaved: metaLedgerSaved,
         ledgerError: metaLedgerError,
       },
+      cjPaidCostsDaily,
     },
   };
 }
@@ -276,6 +292,32 @@ router.post("/growth-cockpit/cj-reconcile", async (req, res) => {
   }
 });
 
+router.post("/growth-cockpit/cj-paid-costs", async (req, res) => {
+  try {
+    const config = getGrowthCockpitConfig(workerEnvValue);
+    const range = resolveGrowthCockpitRange({
+      preset: typeof req.body?.preset === "string" ? req.body.preset : undefined,
+      from: typeof req.body?.from === "string" ? req.body.from : undefined,
+      to: typeof req.body?.to === "string" ? req.body.to : undefined,
+      timezone: config.reportingTimezone,
+    });
+    if (!range.from || !range.toExclusive) {
+      return res.status(400).json({ ok: false, error: "Choose a dated reporting range of 90 days or less for CJ paid costs." });
+    }
+    const result = await reconcileCjPaidCosts({ from: range.from, toExclusive: range.toExclusive });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({
+      ok: true,
+      source: "CJ_PAID_ORDERS",
+      range: { localFrom: range.localFrom, localTo: range.localTo },
+      result,
+      note: "CJ actualPayment is aggregated by CJ UTC payment date. It is an account-level paid-order total and is not yet reconciled to Shopify orders or used for store profit.",
+    });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, source: "CJ_PAID_ORDERS", error: String(error?.message || "CJ paid-cost synchronization failed.").slice(0, 240) });
+  }
+});
+
 router.get("/growth-cockpit/finance", async (req, res) => {
   try {
     const config = getGrowthCockpitConfig(workerEnvValue);
@@ -310,6 +352,7 @@ router.get("/growth-cockpit/finance", async (req, res) => {
       sourceOfTruth: {
         revenue: "Shopify Order.netPaymentSet.shopMoney for ranges within the accessible order window; D1 webhook rows are fallback observations only.",
         cjCosts: "CJ orderAmount is stored only after exact Shopify/CJ order-ID matching and is explicitly an estimate, not charged cost.",
+        cjPaidCosts: "CJ actualPayment grouped by CJ payment date; account-level paid-order total, not yet Shopify-order reconciled or used for store profit.",
         paymentFees: "Shopify transaction fees are authoritative only when every successful SALE order has returned fee rows.",
         metaSpend: "Meta Insights API for the configured account; a persisted reconciliation ledger remains a Batch 7 requirement.",
       },
