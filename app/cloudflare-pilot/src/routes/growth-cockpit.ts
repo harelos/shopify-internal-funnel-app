@@ -12,6 +12,7 @@ import {
 } from "../lib/growth-cockpit-comparison.js";
 import {
   computeGrowthCockpitProfit,
+  computeGrowthCockpitProfitBeforePaymentFees,
   missingFinancialMetric,
   type FinancialMetric,
 } from "../lib/growth-cockpit-finance.js";
@@ -196,10 +197,23 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
     source: revenue.source,
     note: "Orders with a positive Shopify net payment in the selected period.",
   };
-  const profit = computeGrowthCockpitProfit({ revenue, cjCosts, paymentFees, metaSpend, orders: orderCount });
+  const acceptedCjPaidCosts: FinancialMetric = cjPaidCosts.amount != null && cjPaidCosts.currency
+    ? {
+        ...cjPaidCosts,
+        quality: "ACTUAL",
+        note: "CJ paid-order totals accepted by the operator as the current COGS source; calculated before payment fees.",
+      }
+    : cjPaidCosts;
+  const strictProfit = computeGrowthCockpitProfit({ revenue, cjCosts, paymentFees, metaSpend, orders: orderCount });
+  const profit = computeGrowthCockpitProfitBeforePaymentFees({
+    revenue,
+    cjCosts: acceptedCjPaidCosts,
+    metaSpend,
+    orders: orderCount,
+  });
   return {
-    metrics: { revenue, orders, cjCosts, cjPaidCosts, paymentFees, metaSpend },
-    profit,
+    metrics: { revenue, orders, cjCosts, cjPaidCosts: acceptedCjPaidCosts, paymentFees, metaSpend },
+    profit: { ...profit, paymentFeesExcluded: true, strictBlockers: strictProfit.blockers },
     observations: {
       shopifyAdmin: shopifyResult.value ?? { source: "SHOPIFY_ADMIN_ORDERS", error: shopifyResult.error },
       d1OrderLedger: {

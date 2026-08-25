@@ -84,3 +84,43 @@ export function computeGrowthCockpitProfit(input: GrowthCockpitProfitInput): Gro
     blockers: [],
   };
 }
+
+export function computeGrowthCockpitProfitBeforePaymentFees(input: Omit<GrowthCockpitProfitInput, "paymentFees">): GrowthCockpitProfitOutput {
+  const required: Array<[string, FinancialMetric]> = [
+    ["Revenue", input.revenue],
+    ["CJ paid order costs", input.cjCosts],
+    ["Meta spend", input.metaSpend],
+  ];
+  const blockers = required.map(([label, metric]) => metricBlocker(label, metric)).filter((value): value is string => Boolean(value));
+  const currencies = [...new Set(required.map(([, metric]) => metric.currency).filter(Boolean))];
+  if (currencies.length > 1) blockers.push("Required sources do not share one reporting currency.");
+  if (blockers.length) {
+    return {
+      complete: false,
+      currency: currencies.length === 1 ? currencies[0] : null,
+      cm1: null,
+      cm2: null,
+      marginPct: null,
+      breakEvenCpa: null,
+      breakEvenRoas: null,
+      poas: null,
+      blockers,
+    };
+  }
+  const revenue = input.revenue.amount as number;
+  const cjCosts = input.cjCosts.amount as number;
+  const metaSpend = input.metaSpend.amount as number;
+  const cm1 = revenue - cjCosts;
+  const cm2 = cm1 - metaSpend;
+  return {
+    complete: true,
+    currency: currencies[0] ?? null,
+    cm1: round2(cm1),
+    cm2: round2(cm2),
+    marginPct: revenue > 0 ? round2((cm2 / revenue) * 100) : null,
+    breakEvenCpa: input.orders > 0 ? round2(cm1 / input.orders) : null,
+    breakEvenRoas: cm1 > 0 ? round2(revenue / cm1) : null,
+    poas: metaSpend > 0 ? round2(cm1 / metaSpend) : null,
+    blockers: [],
+  };
+}

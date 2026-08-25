@@ -138,19 +138,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const cards = [
       financialCard('revenue', 'Shopify net payments', formatMoney(metrics.revenue.amount, metrics.revenue.currency), metrics.revenue.quality, metrics.revenue.source),
       financialCard('orders', 'Paid orders', metrics.orders.amount == null ? 'MISSING' : Number(metrics.orders.amount).toLocaleString(), metrics.orders.quality, metrics.orders.source),
-      financialCard('cjCosts', 'CJ variable costs', formatMoney(metrics.cjCosts.amount, metrics.cjCosts.currency), metrics.cjCosts.quality, metrics.cjCosts.source),
-      financialCard('cjPaidCosts', 'CJ paid order costs', formatMoney(metrics.cjPaidCosts.amount, metrics.cjPaidCosts.currency), metrics.cjPaidCosts.quality, 'CJ account total · not Shopify-reconciled'),
-      financialCard('paymentFees', 'Payment fees', formatMoney(metrics.paymentFees.amount, metrics.paymentFees.currency), metrics.paymentFees.quality, metrics.paymentFees.source),
+      financialCard('cjPaidCosts', 'CJ paid order costs', formatMoney(metrics.cjPaidCosts.amount, metrics.cjPaidCosts.currency), metrics.cjPaidCosts.quality, 'Accepted COGS source for current profit view'),
+      financialCard('paymentFees', 'Payment fees', 'EXCLUDED', 'PARTIAL', 'Not included in current profit calculation'),
       financialCard('metaSpend', 'Meta spend', formatMoney(metrics.metaSpend.amount, metrics.metaSpend.currency), metrics.metaSpend.quality, metrics.metaSpend.source),
-      financialCard('cm1', 'CM1', formatMoney(profit.cm1, profit.currency), profitQuality, 'Revenue - CJ costs - payment fees'),
-      financialCard('cm2', 'CM2', formatMoney(profit.cm2, profit.currency), profitQuality, 'CM1 - Meta spend'),
-      financialCard('cm2Margin', 'CM2 margin', profit.marginPct == null ? 'MISSING' : `${Number(profit.marginPct).toFixed(1)}%`, profitQuality, 'CM2 / revenue')
+      financialCard('cm1', 'CM1 before payment fees', formatMoney(profit.cm1, profit.currency), profitQuality, 'Revenue - CJ paid order costs'),
+      financialCard('cm2', 'Profit before payment fees', formatMoney(profit.cm2, profit.currency), profitQuality, 'CM1 before payment fees - Meta spend'),
+      financialCard('cm2Margin', 'Profit margin before payment fees', profit.marginPct == null ? 'MISSING' : `${Number(profit.marginPct).toFixed(1)}%`, profitQuality, 'Profit before payment fees / revenue')
     ];
     byId('financial-grid').innerHTML = cards.join('');
     byId('comparison-summary').textContent = comparisonText(report.comparison);
     byId('profit-status').textContent = profit.complete
-      ? `Authoritative profit available in ${profit.currency}.`
-      : `Profit unavailable: ${profit.blockers.join(' ')}`;
+      ? `Profit before payment fees is available in ${profit.currency}. Payment fees are explicitly excluded until added later.`
+      : `Profit before payment fees is unavailable: ${profit.blockers.join(' ')}`;
     byId('financial-status').textContent = `Shopify: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
     const daily = (report.observations?.cjPaidCostsDaily || []).map(row => `${row.date}: ${formatMoney(row.amount, row.currency)}`);
     byId('cj-paid-costs-daily').textContent = daily.length

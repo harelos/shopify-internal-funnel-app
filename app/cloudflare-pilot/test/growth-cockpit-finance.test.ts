@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   computeGrowthCockpitProfit,
+  computeGrowthCockpitProfitBeforePaymentFees,
   missingFinancialMetric,
   type FinancialMetric,
 } from "../src/lib/growth-cockpit-finance.js";
@@ -70,4 +71,17 @@ test("Growth Cockpit refuses mixed-currency profit", () => {
   assert.equal(result.complete, false);
   assert.equal(result.currency, null);
   assert.match(result.blockers.join(" "), /do not share one reporting currency/);
+});
+
+test("Growth Cockpit calculates operator-approved CJ COGS before payment fees", () => {
+  const result = computeGrowthCockpitProfitBeforePaymentFees({
+    revenue: actual(1000, "SHOPIFY"),
+    cjCosts: actual(250, "CJ_PAID_ORDERS"),
+    metaSpend: actual(300, "META"),
+    orders: 10,
+  });
+  assert.equal(result.complete, true);
+  assert.equal(result.cm1, 750);
+  assert.equal(result.cm2, 450);
+  assert.equal(result.marginPct, 45);
 });
