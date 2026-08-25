@@ -6,6 +6,9 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   const html = readFileSync(new URL("../public/admin/growth-cockpit.html", import.meta.url), "utf8");
   const script = readFileSync(new URL("../public/admin/js/growth-cockpit.js", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../public/admin/css/growth-cockpit.css", import.meta.url), "utf8");
+  const adminIndex = readFileSync(new URL("../public/admin/index.html", import.meta.url), "utf8");
+  const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
+  const database = readFileSync(new URL("../src/lib/db.ts", import.meta.url), "utf8");
   const route = readFileSync(new URL("../src/routes/growth-cockpit.ts", import.meta.url), "utf8");
   const ledgerMigration = readFileSync(new URL("../migrations/0006_growth_cockpit_financial_ledger.sql", import.meta.url), "utf8");
   assert.match(html, /noindex,nofollow,noarchive/);
@@ -15,6 +18,10 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   assert.match(html, /comparison-summary/);
   assert.match(html, /aria-live="polite"/);
   assert.match(script, /window\.shopify\.idToken/);
+  assert.match(adminIndex, /href="growth-cockpit\.html"/);
+  assert.match(server, /workerEnvValue\("SHOPIFY_CLIENT_ID"\)/);
+  assert.doesNotMatch(database, /let client: PrismaClient/);
+  assert.match(database, /const requestClient = getClient\(\)/);
   assert.match(script, /\/api\/growth-cockpit\/config/);
   assert.match(script, /\/api\/growth-cockpit\/finance/);
   assert.match(script, /\/api\/analytics\/popup/);

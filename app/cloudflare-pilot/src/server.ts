@@ -15,6 +15,7 @@ import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
+import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
 const isWorkerRuntime = process.env.RUNTIME === "cloudflare" || Boolean(
@@ -72,7 +73,7 @@ async function serveAdminHtml(req: express.Request, res: express.Response, next:
     if (!response.ok) return next();
     const html = (await response.text()).replaceAll(
       "%SHOPIFY_API_KEY%",
-      escapeHtml(process.env.SHOPIFY_CLIENT_ID ?? process.env.SHOPIFY_API_KEY ?? ""),
+      escapeHtml(workerEnvValue("SHOPIFY_CLIENT_ID") || workerEnvValue("SHOPIFY_API_KEY")),
     );
     res.type("html").send(html);
     return;
@@ -82,7 +83,7 @@ async function serveAdminHtml(req: express.Request, res: express.Response, next:
   if (!filePath.startsWith(path.resolve(adminRoot) + path.sep) || !fs.existsSync(filePath)) return next();
 
   const html = fs.readFileSync(filePath, "utf8")
-    .replaceAll("%SHOPIFY_API_KEY%", escapeHtml(process.env.SHOPIFY_CLIENT_ID ?? process.env.SHOPIFY_API_KEY ?? ""));
+    .replaceAll("%SHOPIFY_API_KEY%", escapeHtml(workerEnvValue("SHOPIFY_CLIENT_ID") || workerEnvValue("SHOPIFY_API_KEY")));
   res.type("html").send(html);
 }
 

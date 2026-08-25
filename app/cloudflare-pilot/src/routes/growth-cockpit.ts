@@ -218,7 +218,7 @@ router.get("/growth-cockpit/config", (req, res) => {
     return res.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      contractVersion: "growth_cockpit_batch_6",
+      contractVersion: "growth_cockpit_batch_7",
       ...config,
       range,
       financialMetrics: "AUTHENTICATED_SOURCE_CONTRACT",
@@ -246,7 +246,7 @@ router.get("/growth-cockpit/finance", async (req, res) => {
     return res.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      contractVersion: "growth_cockpit_batch_6",
+      contractVersion: "growth_cockpit_batch_7",
       range,
       reportingCurrency: config.reportingCurrency,
       metrics: current.metrics,

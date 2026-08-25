@@ -13,5 +13,6 @@ public/admin/css/*
 !public/admin/js/
 public/admin/js/*
 !public/admin/growth-cockpit.html
+!public/admin/index.html
 !public/admin/css/growth-cockpit.css
 !public/admin/js/growth-cockpit.js
