@@ -1,0 +1,19 @@
+{
+  "name": "tbg-private-email-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/server.test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "imapflow": "^1.7.6",
+    "mailparser": "^3.9.16",
+    "zod": "^3.25.76"
+  }
+}
