@@ -1,5 +1,11 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { persistFinancialLedgerEntries } from "../lib/financial-ledger.js";
+import {
+  buildNovaHairCjCreateOrderPayload,
+  CJ_PHYSICAL_MAPPINGS,
+  novaHairAutoCjOrderNumber,
+  type ExpectedBundle,
+} from "../lib/novahair-cj-auto-order.js";
 
 export interface NovaHairState {
   id: string;
@@ -17,27 +23,6 @@ export interface NovaHairState {
   lastCjSyncTimestamp: string | null;
   updatedAt: string;
 }
-
-export interface ExpectedBundle {
-  bundle_size: number;
-  black: number;
-  dark_brown: number;
-  light_brown: number;
-  purple: number;
-  red: number;
-  free_kit: number;
-  expected_weight_g: number;
-  original_sku: string;
-}
-
-export const CJ_PHYSICAL_MAPPINGS = {
-  black: { vid: "2412030839551624000", sku: "CJYD223160001AZ", name: "Black", weight_g: 330.0 },
-  dark_brown: { vid: "2412030839551624200", sku: "CJYD223160002BY", name: "Dark Brown", weight_g: 330.0 },
-  light_brown: { vid: "2412030839551624400", sku: "CJYD223160003CX", name: "Light Brown", weight_g: 330.0 },
-  purple: { vid: "2412030839551624700", sku: "CJYD223160005EV", name: "Purple", weight_g: 330.0 },
-  red: { vid: "2412030839551624600", sku: "CJYD223160004DW", name: "Red", weight_g: 330.0 },
-  free_kit: { vid: "ED56BD86-3AF9-4E8E-9855-FBD046D33613", sku: "CJBJMRPF00756-Suit", name: "Free Kit", weight_g: 110.0 }
-};
 
 const REGEX_NOVASALE = /^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$/;
 const EXCLUDED_ORDER_NUMBERS = new Set(["4359", "4360", "4361", "4362"]);
@@ -168,7 +153,7 @@ export function decodeBundleSku(sku: string, parentQuantity: number = 1): Expect
 }
 
 async function shopifyGql(query: string, variables: any = {}): Promise<any> {
-  const token = getEnvVar("SHOPIFY_ADMIN_ACCESS_TOKEN");
+  const token = getEnvVar("SHOPIFY_ADMIN_ACCESS_TOKEN", getEnvVar("SHOPIFY_ACCESS_TOKEN"));
   const res = await fetch(`https://${SHOP_DOMAIN}/admin/api/2024-04/graphql.json`, {
     method: "POST",
     headers: {
@@ -219,6 +204,78 @@ async function cjGet(endpoint: string, params: Record<string, any> = {}): Promis
     throw new Error(`CJ ${endpoint} failed: ${String(data?.message || `HTTP ${res.status}`).slice(0, 180)}`);
   }
   return data;
+}
+
+async function cjPost(endpoint: string, payload: Record<string, any>): Promise<any> {
+  const token = await getCjToken();
+  const res = await fetch(`${CJ_API_ROOT}/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "CJ-Access-Token": token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const data: any = await res.json();
+  if (!res.ok || data?.result === false) {
+    throw new Error(`CJ ${endpoint} failed: ${String(data?.message || `HTTP ${res.status}`).slice(0, 180)}`);
+  }
+  return data;
+}
+
+function envFlag(name: string): boolean {
+  return ["1", "true", "yes", "on"].includes(String(getEnvVar(name)).toLowerCase());
+}
+
+function envInt(name: string, fallback: number): number {
+  const parsed = Number.parseInt(String(getEnvVar(name, String(fallback))), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function shopifyOrderNumberValue(orderNum: string): number | null {
+  const digits = String(orderNum || "").replace(/[^\d]/g, "");
+  if (!digits) return null;
+  const parsed = Number.parseInt(digits, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isNovaHairAutoCreateEligible(orderNum: string): boolean {
+  const minOrderNumber = envInt("NOVAHAIR_CJ_AUTO_CREATE_MIN_ORDER_NUMBER", 0);
+  if (minOrderNumber <= 0) return true;
+  const currentOrderNumber = shopifyOrderNumberValue(orderNum);
+  return currentOrderNumber !== null && currentOrderNumber >= minOrderNumber;
+}
+
+async function findCjOrderForNovaHair(orderNum: string, rawId: string, preferAuto: boolean): Promise<any | null> {
+  const autoOrderNumber = novaHairAutoCjOrderNumber(orderNum);
+  const listRes = await cjGet("shopping/order/list", { pageNum: 1, pageSize: 100 });
+  const orders = listRes?.data?.list || [];
+  if (!Array.isArray(orders)) return null;
+
+  const autoOrder = orders.find((o: any) => String(o.orderNum || o.orderNumber || "") === autoOrderNumber);
+  if (autoOrder || preferAuto) return autoOrder || null;
+
+  return orders.find((o: any) =>
+    String(o.platformOrderId || "") === String(rawId) ||
+    String(o.orderNum || o.orderNumber || "").endsWith(orderNum)
+  ) || null;
+}
+
+async function ensureAutoCjOrder(orderPayload: any, expected: ExpectedBundle, orderNum: string, rawId: string): Promise<any | null> {
+  const existing = await findCjOrderForNovaHair(orderNum, rawId, true);
+  if (existing) return existing;
+
+  const payload = buildNovaHairCjCreateOrderPayload(orderPayload, expected, {
+    orderNumber: novaHairAutoCjOrderNumber(orderNum),
+    isSandbox: envFlag("NOVAHAIR_CJ_AUTO_CREATE_SANDBOX"),
+  });
+  const response = await cjPost("shopping/order/createOrderV2", payload as unknown as Record<string, any>);
+  const createdOrderId = response?.data?.orderId;
+  if (!createdOrderId) {
+    throw new Error("CJ createOrderV2 returned no orderId for NovaHair auto order.");
+  }
+  return { orderId: createdOrderId, orderNum: payload.orderNumber, autoCreated: true };
 }
 
 export async function testCjReadConnection(): Promise<{
@@ -355,7 +412,8 @@ export async function enqueuePendingOrder(orderPayload: any, expected: ExpectedB
 export async function processPendingQueueCron(db: any): Promise<void> {
   const pendingRows = await db.prepare(`
     SELECT * FROM "NovaHairPendingOrder"
-    WHERE syncState IN ('WAITING_FOR_CJ_SYNC', 'CJ_SYNC_DELAYED')
+    WHERE syncState IN ('WAITING_FOR_CJ_SYNC', 'CJ_SYNC_DELAYED', 'CJ_AUTO_CREATED')
+      OR (syncState = 'CJ_AUTO_CREATE_FAILED' AND attempts < 3)
     ORDER BY firstSeenAt ASC LIMIT 10
   `).all();
 
@@ -375,17 +433,40 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const elapsedSeconds = Math.floor((Date.now() - firstSeen) / 1000);
 
     let cjOrder: any = null;
+    const autoCreateEnabled = envFlag("NOVAHAIR_CJ_AUTO_CREATE_ENABLED");
     try {
-      const listRes = await cjGet("shopping/order/list", { pageNum: 1, pageSize: 20 });
-      const orders = listRes?.data?.list || [];
-      for (const o of orders) {
-        if (String(o.platformOrderId) === String(rawId) || String(o.orderNum).endsWith(orderNum)) {
-          cjOrder = o;
-          break;
+      if (autoCreateEnabled) {
+        if (!isNovaHairAutoCreateEligible(orderNum)) {
+          await db.prepare(`
+            UPDATE "NovaHairPendingOrder"
+            SET syncState = ?, attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
+            WHERE orderId = ?
+          `).bind(
+            "CJ_AUTO_SKIPPED_PRE_CUTOFF",
+            attempts,
+            `Skipped because NOVAHAIR_CJ_AUTO_CREATE_MIN_ORDER_NUMBER=${envInt("NOVAHAIR_CJ_AUTO_CREATE_MIN_ORDER_NUMBER", 0)}`,
+            orderId
+          ).run();
+          continue;
         }
+        cjOrder = await ensureAutoCjOrder(orderPayload, expected, orderNum, rawId);
+        await db.prepare(`
+          UPDATE "NovaHairPendingOrder"
+          SET syncState = ?, attempts = ?, lastAttemptAt = CURRENT_TIMESTAMP
+          WHERE orderId = ?
+        `).bind("CJ_AUTO_CREATED", attempts, orderId).run();
+      } else {
+        cjOrder = await findCjOrderForNovaHair(orderNum, rawId, false);
       }
     } catch (err) {
-      console.warn(`[CRON CJ POLL TRANSIENT ERROR] Order #${orderNum}:`, err);
+      console.warn(`[CRON CJ AUTO/POLL TRANSIENT ERROR] Order #${orderNum}:`, err);
+      const message = err instanceof Error ? err.message : String(err);
+      await db.prepare(`
+        UPDATE "NovaHairPendingOrder"
+        SET syncState = ?, attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
+        WHERE orderId = ?
+      `).bind("CJ_AUTO_CREATE_FAILED", attempts, message.slice(0, 240), orderId).run();
+      continue;
     }
 
     if (!cjOrder) {

@@ -28,7 +28,10 @@
     "SHOPIFY_REQUIRE_AUTH": "true",
     "SHOPIFY_PIXEL_INGEST_ENABLED": "false",
     "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",
-    "SHOPIFY_PAGE_IMPORT_ALLOWED_HOSTS": "tigerbrandsglobal.com"
+    "SHOPIFY_PAGE_IMPORT_ALLOWED_HOSTS": "tigerbrandsglobal.com",
+    "NOVAHAIR_CJ_AUTO_CREATE_ENABLED": "true",
+    "NOVAHAIR_CJ_AUTO_CREATE_MIN_ORDER_NUMBER": "4378",
+    "NOVAHAIR_CJ_AUTO_CREATE_SANDBOX": "false"
   },
   "assets": {
     "directory": "./public",
