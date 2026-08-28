@@ -1,0 +1,50 @@
+{
+  "name": "shopify-funnel-control",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [
+    { "type": "CompiledWasm", "globs": ["**/*.wasm"] }
+  ],
+  "vars": {
+    "RUNTIME": "cloudflare",
+    "ANALYTICS_MODE": "LIVE",
+    "REPORTING_TIMEZONE": "Asia/Jerusalem",
+    "REPORTING_CURRENCY": "USD",
+    "META_AD_ACCOUNT_ID": "act_8852331774866389",
+    "META_AD_ACCOUNT_CURRENCY": "USD",
+    "META_GRAPH_API_VERSION": "v23.0",
+    "NOVAHAIR_POPUP_VERSION": "novahair_popup_v1",
+    "NOVAHAIR_POPUP_COUPON": "NOVA10",
+    "APP_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev",
+    "SHOP_DOMAIN": "jacobfelipe.myshopify.com",
+    "ALLOWED_SHOP_DOMAIN": "jacobfelipe.myshopify.com",
+    "SHOPIFY_DISTRIBUTION": "custom",
+    "SHOPIFY_API_VERSION": "2026-07",
+    "SHOPIFY_SCOPES": "read_orders,read_customers,read_discounts,read_reports,read_customer_events,write_app_proxy,write_pixels",
+    "SHOPIFY_APP_PROXY_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev",
+    "SHOPIFY_APP_PROXY_PATH": "/apps/funnels",
+    "SHOPIFY_LIVE_CONNECT": "true",
+    "SHOPIFY_REQUIRE_AUTH": "true",
+    "SHOPIFY_PIXEL_INGEST_ENABLED": "false",
+    "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",
+    "SHOPIFY_PAGE_IMPORT_ALLOWED_HOSTS": "tigerbrandsglobal.com",
+    "NOVAHAIR_CJ_AUTO_CREATE_ENABLED": "true",
+    "NOVAHAIR_CJ_AUTO_CREATE_MIN_ORDER_NUMBER": "4378",
+    "NOVAHAIR_CJ_AUTO_CREATE_SANDBOX": "false"
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shopify-funnel-control-db",
+      "database_id": "3b3d2e40-28b3-456f-9109-2607fbc51b17"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  }
+}

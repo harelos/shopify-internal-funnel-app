@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Funnel Builder — Control Panel</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <span class="brand-name">Shopify Funnel Builder</span>
+        <span class="eyebrow">v0.2.0</span>
+      </div>
+      <div class="top-actions">
+        <a href="growth-cockpit.html" class="btn">Growth Cockpit</a>
+        <a href="popup-analytics.html" class="btn">Popup Analytics</a>
+        <a href="analytics.html" class="btn">Analytics Overview</a>
+        <button class="btn" id="btn-duplicate-funnel">Duplicate Shopify Funnel</button>
+        <button class="btn btn-primary" id="btn-new-funnel">+ New Funnel</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="intro">
+      <h1>Your Funnels</h1>
+      <p class="muted">Create, edit, and A/B test high-converting sales funnels for your store</p>
+      <div id="shopify-connection-status" class="muted" style="margin-top:12px; font-size:12px;">Checking Shopify connection...</div>
+    </div>
+
+    <div id="funnel-list" class="grid-3">
+      <!-- Funnel cards will be rendered here -->
+    </div>
+
+    <div id="empty-state" class="empty-state" style="display:none">
+      <h2>No funnels created yet</h2>
+      <p>Build your first multi-step funnel to start scaling conversions.</p>
+      <button class="btn btn-primary" id="btn-empty-create">+ Create First Funnel</button>
+    </div>
+  </main>
+
+  <!-- New Funnel Modal -->
+  <div class="modal-overlay" id="modal-new-funnel" style="display:none">
+    <div class="modal">
+      <h2>Create New Funnel</h2>
+      <form id="form-new-funnel">
+        <label class="eyebrow">Funnel Name</label>
+        <input class="input" name="name" placeholder="Summer Sale Promo" required>
+        <label class="eyebrow">URL Path Slug</label>
+        <input class="input" name="slug" placeholder="summer-sale" required pattern="[a-z0-9-]+">
+        <p class="muted" style="font-size:12px; margin-bottom:14px;">Store Path: /apps/funnels/<strong id="slug-preview">summer-sale</strong></p>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Funnel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Duplicate Shopify Funnel Modal -->
+  <div class="modal-overlay" id="modal-duplicate-funnel" style="display:none">
+    <div class="modal">
+      <h2>Duplicate Shopify Funnel</h2>
+      <p class="muted" style="font-size:12px; margin-bottom:14px;">Imports page snapshots into a separate draft. Live Shopify pages are not changed.</p>
+      <form id="form-duplicate-funnel">
+        <label class="eyebrow">Funnel Name</label>
+        <input class="input" name="name" value="NovaHair staging duplicate" required>
+        <label class="eyebrow">URL Path Slug</label>
+        <input class="input" name="slug" value="novahair-staging-duplicate" required pattern="[a-z0-9-]+">
+        <label class="eyebrow">Listicle / Advertorial URL</label>
+        <input class="input" type="url" name="listicleUrl" value="https://tigerbrandsglobal.com/pages/novahair-7-reasons-staging" required>
+        <label class="eyebrow">Sales Page URL</label>
+        <input class="input" type="url" name="salesUrl" value="https://tigerbrandsglobal.com/pages/novahair-sales-staging" required>
+        <p class="muted" style="font-size:12px; margin:8px 0 14px;">The duplicate has Listicle → Sales Page → Shopify Checkout. Shade/package selection remains on the sales page.</p>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-duplicate-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Draft Duplicate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

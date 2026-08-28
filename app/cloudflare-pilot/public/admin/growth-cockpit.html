@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Growth Cockpit</title>
+  <link rel="stylesheet" href="css/growth-cockpit.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a class="brand-name" href="index.html">Shopify Funnel Control</a>
+        <span class="badge badge-active">Live data</span>
+      </div>
+      <div class="top-actions">
+        <a class="btn" href="popup-analytics.html">Popup Analytics</a>
+        <button class="btn" id="reconcile-cj" type="button">Sync CJ Paid Costs</button>
+        <button class="btn btn-primary" id="refresh-contract" type="button">Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main cockpit-main">
+    <div class="intro cockpit-intro">
+      <div>
+        <p class="eyebrow">Internal admin · authenticated reporting</p>
+        <h1>Growth Cockpit</h1>
+      </div>
+      <p class="muted cockpit-status" id="contract-status" aria-live="polite">Loading the authenticated reporting contract...</p>
+    </div>
+
+    <section class="panel cockpit-panel">
+      <div class="panel-header"><h2>Reporting window</h2><span class="eyebrow panel-state" id="timezone-label">Timezone: —</span></div>
+      <div class="panel-body">
+        <div class="segmented" id="date-presets" aria-label="Reporting date presets">
+          <button type="button" data-preset="today" class="active">Today</button>
+          <button type="button" data-preset="yesterday">Yesterday</button>
+          <button type="button" data-preset="last_7_days">Last 7 days</button>
+          <button type="button" data-preset="last_30_days">Last 30 days</button>
+          <button type="button" data-preset="all_time">All time</button>
+        </div>
+        <div class="custom-range">
+          <label>From<input class="input" id="date-from" type="date"></label>
+          <label>To<input class="input" id="date-to" type="date"></label>
+          <button class="btn" id="apply-custom-range" type="button">Apply range</button>
+        </div>
+        <p class="range-summary" id="range-summary" aria-live="polite">—</p>
+      </div>
+    </section>
+
+    <section class="grid-3 cockpit-contract-grid" aria-label="Cockpit contract status">
+      <article class="metric-card"><span class="metric-label">Reporting currency</span><strong class="metric-val" id="currency-value">—</strong><span class="muted" id="currency-status" aria-live="polite">Checking configuration</span></article>
+      <article class="metric-card"><span class="metric-label">Data access</span><strong class="metric-val cockpit-small-value" id="data-access-value">—</strong><span class="muted">Shopify session token</span></article>
+      <article class="metric-card"><span class="metric-label">Document access</span><strong class="metric-val cockpit-small-value" id="document-access-value">—</strong><span class="muted" id="document-access-note">Checking gate</span></article>
+    </section>
+
+    <section class="panel cockpit-panel">
+      <div class="panel-header"><h2>Verified financial inputs</h2><span class="eyebrow panel-state">Fail-closed profit contract</span></div>
+      <div class="panel-body">
+        <div class="financial-grid" id="financial-grid"><p class="muted">Loading verified financial sources...</p></div>
+        <p class="comparison-summary" id="comparison-summary" aria-live="polite">Loading comparison rules...</p>
+        <p class="muted" id="cj-reconcile-status" aria-live="polite">Sync CJ paid-order costs for this dated reporting window. Account-level totals remain separate from Shopify-reconciled COGS.</p>
+        <p class="muted" id="cj-paid-costs-daily" aria-live="polite"></p>
+        <div class="warning-banner" id="profit-status" aria-live="polite">CM1 and CM2 remain unavailable until every required source is authoritative.</div>
+      </div>
+    </section>
+
+    <section class="panel cockpit-panel">
+      <div class="panel-header"><h2>Source-of-truth contract</h2><span class="eyebrow panel-state">No placeholder financial values</span></div>
+      <div class="panel-body">
+        <div class="source-grid" id="source-grid"></div>
+        <div class="warning-banner" id="financial-status" aria-live="polite">Source status is loaded from the authenticated Batch 2 finance contract.</div>
+      </div>
+    </section>
+
+    <section class="panel cockpit-panel">
+      <div class="panel-header"><h2>NovaHair popup funnel</h2><span class="eyebrow panel-state" id="popup-status" aria-live="polite">Loading authenticated popup data...</span></div>
+      <div class="panel-body">
+        <div class="popup-kpi-grid" id="popup-kpi-grid"></div>
+        <div class="popup-layout">
+          <div>
+            <h3 class="section-label">Funnel stages</h3>
+            <div class="popup-funnel" id="popup-funnel"></div>
+          </div>
+          <div>
+            <h3 class="section-label">Dismissals and errors</h3>
+            <div class="popup-diagnostics" id="popup-diagnostics"></div>
+            <div class="popup-failures" id="popup-failures"></div>
+          </div>
+        </div>
+        <div class="popup-breakdown-block">
+          <h3 class="section-label">Attribution breakdowns</h3>
+          <div class="popup-breakdown-grid" id="popup-breakdowns"></div>
+        </div>
+        <p class="popup-source-truth" id="popup-source-truth"></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/growth-cockpit.js"></script>
+</body>
+</html>
