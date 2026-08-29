@@ -43,6 +43,44 @@ test("authorized offer returns percentage but never invents or allocates a coupo
   assert.equal(result.couponCode, null);
 });
 
+test("public QA mode blocks non-read-only tools even when the role normally allows them", async () => {
+  const previous = process.env.BOT_PUBLIC_QA_MODE;
+  process.env.BOT_PUBLIC_QA_MODE = "true";
+  try {
+    await assert.rejects(
+      executeBotTool("offer.request", {}, context("SALES", offer5)),
+      (error: unknown) => error instanceof BotToolExecutionError && error.code === "PUBLIC_QA_WRITE_BLOCKED",
+    );
+  } finally {
+    if (previous === undefined) delete process.env.BOT_PUBLIC_QA_MODE;
+    else process.env.BOT_PUBLIC_QA_MODE = previous;
+  }
+});
+
+test("public QA mode still permits verified read-only order access", async () => {
+  const previous = process.env.BOT_PUBLIC_QA_MODE;
+  process.env.BOT_PUBLIC_QA_MODE = "true";
+  try {
+    const result = await executeBotTool(
+      "order.read_scoped",
+      { orderName: "#1001", email: "buyer@example.com" },
+      context("SUPPORT"),
+      { orderTool: { async readVerifiedOrder() { return {
+        id: "gid://shopify/Order/1",
+        name: "#1001",
+        displayFinancialStatus: "PAID",
+        displayFulfillmentStatus: "FULFILLED",
+        createdAt: "2026-08-23T00:00:00Z",
+        fulfillments: [],
+      }; } } },
+    ) as any;
+    assert.equal(result.name, "#1001");
+  } finally {
+    if (previous === undefined) delete process.env.BOT_PUBLIC_QA_MODE;
+    else process.env.BOT_PUBLIC_QA_MODE = previous;
+  }
+});
+
 test("support order access requires contact verification material", async () => {
   await assert.rejects(
     executeBotTool("order.read_scoped", { orderName: "#1001" }, context("SUPPORT")),
