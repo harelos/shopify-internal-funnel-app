@@ -57,6 +57,27 @@ test("public QA mode blocks non-read-only tools even when the role normally allo
   }
 });
 
+test("public QA mode permits authoritative product reads", async () => {
+  const previous = process.env.BOT_PUBLIC_QA_MODE;
+  process.env.BOT_PUBLIC_QA_MODE = "true";
+  try {
+    let received: any = null;
+    const result = await executeBotTool(
+      "product.read",
+      { query: "NovaHair" },
+      context("SALES"),
+      { productTool: { async readProduct(input) { received = input; return [{ id: "gid://shopify/Product/1", title: "NovaHair", handle: "novahair", description: "", status: "ACTIVE", onlineStoreUrl: null, productType: null, vendor: null, options: [], variants: [] }]; } } },
+    ) as any;
+    assert.equal(received.query, "NovaHair");
+    assert.equal(result.source, "SHOPIFY_ADMIN_READ_ONLY");
+    assert.equal(result.count, 1);
+    assert.equal(result.products[0].title, "NovaHair");
+  } finally {
+    if (previous === undefined) delete process.env.BOT_PUBLIC_QA_MODE;
+    else process.env.BOT_PUBLIC_QA_MODE = previous;
+  }
+});
+
 test("public QA mode still permits verified read-only order access", async () => {
   const previous = process.env.BOT_PUBLIC_QA_MODE;
   process.env.BOT_PUBLIC_QA_MODE = "true";
@@ -65,14 +86,7 @@ test("public QA mode still permits verified read-only order access", async () =>
       "order.read_scoped",
       { orderName: "#1001", email: "buyer@example.com" },
       context("SUPPORT"),
-      { orderTool: { async readVerifiedOrder() { return {
-        id: "gid://shopify/Order/1",
-        name: "#1001",
-        displayFinancialStatus: "PAID",
-        displayFulfillmentStatus: "FULFILLED",
-        createdAt: "2026-08-23T00:00:00Z",
-        fulfillments: [],
-      }; } } },
+      { orderTool: { async readVerifiedOrder() { return { id: "gid://shopify/Order/1", name: "#1001", displayFinancialStatus: "PAID", displayFulfillmentStatus: "FULFILLED", createdAt: "2026-08-23T00:00:00Z", fulfillments: [] }; } } },
     ) as any;
     assert.equal(result.name, "#1001");
   } finally {
@@ -82,54 +96,24 @@ test("public QA mode still permits verified read-only order access", async () =>
 });
 
 test("support order access requires contact verification material", async () => {
-  await assert.rejects(
-    executeBotTool("order.read_scoped", { orderName: "#1001" }, context("SUPPORT")),
-    (error: unknown) => error instanceof BotToolExecutionError && error.code === "ORDER_VERIFICATION_REQUIRED",
-  );
+  await assert.rejects(executeBotTool("order.read_scoped", { orderName: "#1001" }, context("SUPPORT")), (error: unknown) => error instanceof BotToolExecutionError && error.code === "ORDER_VERIFICATION_REQUIRED");
 });
 
 test("support scoped order tool passes contact to verifier and returns only verifier result", async () => {
   let received: any = null;
-  const expected = {
-    id: "gid://shopify/Order/1",
-    name: "#1001",
-    displayFinancialStatus: "PAID",
-    displayFulfillmentStatus: "FULFILLED",
-    createdAt: "2026-08-23T00:00:00Z",
-    fulfillments: [{ status: "SUCCESS", deliveredAt: null, trackingInfo: [{ company: "Carrier", number: "ABC", url: "https://tracking.example/ABC" }] }],
-  };
-  const result = await executeBotTool(
-    "order.read_scoped",
-    { orderName: "#1001", email: "buyer@example.com" },
-    context("SUPPORT"),
-    { orderTool: { async readVerifiedOrder(input) { received = input; return expected; } } },
-  );
+  const expected = { id: "gid://shopify/Order/1", name: "#1001", displayFinancialStatus: "PAID", displayFulfillmentStatus: "FULFILLED", createdAt: "2026-08-23T00:00:00Z", fulfillments: [{ status: "SUCCESS", deliveredAt: null, trackingInfo: [{ company: "Carrier", number: "ABC", url: "https://tracking.example/ABC" }] }] };
+  const result = await executeBotTool("order.read_scoped", { orderName: "#1001", email: "buyer@example.com" }, context("SUPPORT"), { orderTool: { async readVerifiedOrder(input) { received = input; return expected; } } });
   assert.equal(received.email, "buyer@example.com");
   assert.deepEqual(result, expected);
 });
 
 test("tracking tool strips financial status from returned shape", async () => {
-  const result = await executeBotTool(
-    "tracking.read_scoped",
-    { orderName: "#1001", phone: "+972501234567" },
-    context("SUPPORT"),
-    { orderTool: { async readVerifiedOrder() { return {
-      id: "gid://shopify/Order/1",
-      name: "#1001",
-      displayFinancialStatus: "PAID",
-      displayFulfillmentStatus: "FULFILLED",
-      createdAt: "2026-08-23T00:00:00Z",
-      fulfillments: [{ status: "SUCCESS", deliveredAt: null, trackingInfo: [] }],
-    }; } } },
-  ) as any;
+  const result = await executeBotTool("tracking.read_scoped", { orderName: "#1001", phone: "+972501234567" }, context("SUPPORT"), { orderTool: { async readVerifiedOrder() { return { id: "gid://shopify/Order/1", name: "#1001", displayFinancialStatus: "PAID", displayFulfillmentStatus: "FULFILLED", createdAt: "2026-08-23T00:00:00Z", fulfillments: [{ status: "SUCCESS", deliveredAt: null, trackingInfo: [] }] }; } } }) as any;
   assert.equal(result.displayFulfillmentStatus, "FULFILLED");
   assert.equal("displayFinancialStatus" in result, false);
   assert.equal("createdAt" in result, false);
 });
 
-test("unimplemented tools fail explicitly instead of fabricating results", async () => {
-  await assert.rejects(
-    executeBotTool("product.read", { productId: "123" }, context("SALES")),
-    (error: unknown) => error instanceof BotToolExecutionError && error.code === "TOOL_NOT_IMPLEMENTED",
-  );
+test("unimplemented policy tool fails explicitly instead of fabricating results", async () => {
+  await assert.rejects(executeBotTool("policy.read", {}, context("SALES")), (error: unknown) => error instanceof BotToolExecutionError && error.code === "TOOL_NOT_IMPLEMENTED");
 });
