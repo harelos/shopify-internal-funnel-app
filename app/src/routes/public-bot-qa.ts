@@ -3,6 +3,7 @@ import { currentBotShopDomain, loadCurrentBotConfiguration } from "../lib/bot-co
 import { providerStatus } from "../lib/bot-provider.js";
 import { publicShopifyStatus } from "../lib/shopify-config.js";
 import { runBotTurn } from "../lib/bot-runtime.js";
+import { executeBotTool } from "../lib/bot-tool-executor.js";
 import { verifyPublicQaToken } from "../lib/public-bot-qa.js";
 
 const router = Router();
@@ -12,9 +13,7 @@ function qaToken(req: any): string {
 }
 
 router.use((req, res, next) => {
-  if (!verifyPublicQaToken(qaToken(req))) {
-    return res.status(404).json({ error: "Not found." });
-  }
+  if (!verifyPublicQaToken(qaToken(req))) return res.status(404).json({ error: "Not found." });
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
   next();
@@ -30,11 +29,7 @@ router.get("/status", async (_req, res) => {
       mode: "PUBLIC_QA_READ_ONLY",
       storefrontEnabled: false,
       writeActionsEnabled: false,
-      selectedModels: config.models.map(item => ({
-        provider: String(item.provider || "").toLowerCase(),
-        model: item.model,
-        trafficPct: item.trafficPct,
-      })),
+      selectedModels: config.models.map(item => ({ provider: String(item.provider || "").toLowerCase(), model: item.model, trafficPct: item.trafficPct })),
       shopify: {
         liveConnect: shopify.mode === "live",
         adminReadReady: Boolean(shopify.mode === "live" && shopify.shopDomain && (shopify.hasAccessToken || shopify.tokenExchangeReady)),
@@ -44,6 +39,27 @@ router.get("/status", async (_req, res) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed to load public QA status." });
+  }
+});
+
+router.get("/product", async (req, res) => {
+  try {
+    const result = await executeBotTool(
+      "product.read",
+      {
+        productId: req.query.productId ? String(req.query.productId) : null,
+        handle: req.query.handle ? String(req.query.handle) : null,
+        query: req.query.q ? String(req.query.q) : null,
+      },
+      {
+        role: "SALES",
+        conversationId: "public-qa-product-read",
+        discount: { action: "NO_OFFER", reason: "PUBLIC_QA_READ_ONLY" },
+      },
+    );
+    res.json({ ok: true, result, storefrontEnabled: false, writeActionsEnabled: false, mode: "PUBLIC_QA_READ_ONLY" });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || "Product read failed.", code: error?.code || undefined });
   }
 });
 
