@@ -28,6 +28,16 @@ export interface BotToolExecutorDeps {
   onHumanEscalation?: (input: { conversationId: string; reason?: string | null }) => Promise<{ queued: boolean; reference?: string | null }>;
 }
 
+const PUBLIC_QA_READ_ONLY_TOOLS: readonly BotToolName[] = [
+  "product.read",
+  "policy.read",
+  "shipping.read",
+  "recommendation.build",
+  "order.read_scoped",
+  "tracking.read_scoped",
+  "customer.summary_scoped",
+];
+
 function objectArgs(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new BotToolExecutionError("INVALID_TOOL_ARGUMENTS", "Tool arguments must be an object.");
@@ -38,6 +48,16 @@ function objectArgs(value: unknown): Record<string, unknown> {
 function requireAllowed(role: BotAgentRole, name: BotToolName) {
   if (!isToolAllowed(role, name)) {
     throw new BotToolExecutionError("TOOL_NOT_ALLOWED", `Tool ${name} is not allowed for ${role}.`);
+  }
+}
+
+function requirePublicQaReadOnly(name: BotToolName) {
+  if (process.env.BOT_PUBLIC_QA_MODE !== "true") return;
+  if (!PUBLIC_QA_READ_ONLY_TOOLS.includes(name)) {
+    throw new BotToolExecutionError(
+      "PUBLIC_QA_WRITE_BLOCKED",
+      `Tool ${name} is disabled in public QA mode. Public QA is read-only and fail-closed.`,
+    );
   }
 }
 
@@ -90,6 +110,7 @@ export async function executeBotTool(
 ): Promise<unknown> {
   requireConversation(context);
   requireAllowed(context.role, name);
+  requirePublicQaReadOnly(name);
   const args = objectArgs(rawArgs);
 
   if (name === "offer.request") {
