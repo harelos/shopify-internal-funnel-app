@@ -12,6 +12,7 @@ import commerceIntelligenceRoutes from "./routes/commerce-intelligence.js";
 import profitOsRoutes from "./routes/profit-os.js";
 import botRoutes from "./routes/bot.js";
 import botRuntimeRoutes from "./routes/bot-runtime.js";
+import publicBotQaRoutes from "./routes/public-bot-qa.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -77,6 +78,10 @@ app.use("/", shopifyIngestRoutes);
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Public QA is intentionally isolated from the embedded Shopify session layer.
+// It is disabled unless BOT_PUBLIC_QA_MODE=true and requires its own secret token.
+app.use("/qa/bot", publicBotQaRoutes);
 
 // All admin API routes are protected in hosted mode. Local preview remains
 // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
