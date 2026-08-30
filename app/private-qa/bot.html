@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
-  <meta name="bot-qa-token" content="%BOT_PUBLIC_QA_TOKEN%">
   <title>TIGER Bot — Private QA</title>
   <style>
     :root{color-scheme:dark;--bg:#0d0b12;--panel:#17131f;--panel2:#211a2d;--line:#352b43;--text:#f6f2fb;--muted:#aaa0b7;--good:#7dd3a7;--warn:#f0c674;--bad:#f18d8d;--accent:#be8cff}
@@ -21,7 +20,7 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <div><div class="brand">TIGER Bot — Private QA</div><div class="sub">מבודד מהחנות החיה · Read-only · Storefront OFF · לא מוזרק ל־Shopify theme</div></div>
+    <div><div class="brand">TIGER Bot — Private QA</div><div class="sub">מבודד מהחנות החיה · Read-only commerce · Storefront OFF · לא מוזרק ל־Shopify theme</div></div>
     <div class="badge">PRIVATE STAGING</div>
   </div>
 
@@ -32,7 +31,7 @@
     <div class="stat"><div class="label">Storefront</div><div class="value good">OFF</div></div>
   </div>
 
-  <div class="notice"><strong>בטיחות:</strong> העמוד הזה משתמש רק ב־<code>/qa/bot/*</code>. פעולות כתיבה חסומות בצד השרת. שום קוד לא נוסף ל־theme החי.</div>
+  <div class="notice"><strong>בטיחות:</strong> כל הבקשות נשארות תחת ה־private QA path ומוגנות באותו Basic Auth. אין QA token ב־URL או ב־HTML, אין theme injection, ו־Shopify write actions אינם חלק מהעמוד הזה.</div>
 
   <div class="grid">
     <div>
@@ -68,17 +67,17 @@
   </div>
 </div>
 <script>
-const QA_TOKEN=document.querySelector('meta[name="bot-qa-token"]').content;
-const H={'Content-Type':'application/json','x-bot-qa-token':QA_TOKEN};
+const API_BASE=location.pathname.replace(/\/$/,'');
+const H={'Content-Type':'application/json'};
+const visitorKey='private-qa-'+((crypto&&crypto.randomUUID)?crypto.randomUUID():Math.random().toString(36).slice(2));
 let conversationId=null;
 const $=id=>document.getElementById(id);
-function esc(v){return String(v??'')}
 function log(node,value){node.textContent=typeof value==='string'?value:JSON.stringify(value,null,2)}
 function add(text,type,meta=''){const el=document.createElement('div');el.className='msg '+type;el.textContent=text;if(meta){const m=document.createElement('div');m.className='meta';m.textContent=meta;el.appendChild(m)}$('messages').appendChild(el);$('messages').scrollTop=$('messages').scrollHeight}
-async function request(url,opts={}){const r=await fetch(url,{...opts,headers:{...H,...(opts.headers||{})},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||`HTTP ${r.status}`);e.code=d.code;e.status=r.status;throw e}return d}
-async function status(){try{const d=await request('/qa/bot/status');$('runtime').textContent=d.mode||'OK';$('runtime').className='value good';const m=(d.selectedModels||[])[0];$('model').textContent=m?`${m.provider}:${m.model}`:'none';$('model').className='value '+(m&&m.provider!=='mock'?'good':'warn');$('shopify').textContent=d.shopify?.adminReadReady?'READY':'NOT READY';$('shopify').className='value '+(d.shopify?.adminReadReady?'good':'warn');return d}catch(e){$('runtime').textContent='ERROR';$('runtime').className='value bad';$('model').textContent='—';$('shopify').textContent='—';throw e}}
-async function productTest(){const q=$('productQuery').value.trim();$('productTest').disabled=true;try{const d=await request('/qa/bot/product?q='+encodeURIComponent(q));log($('productLog'),d);return d}catch(e){log($('productLog'),{error:e.message,code:e.code,status:e.status});throw e}finally{$('productTest').disabled=false}}
-async function send(text){text=String(text||'').trim();if(!text)return;add(text,'user');$('input').value='';try{const productQuery=$('productQuery').value.trim();const d=await request('/qa/bot/message',{method:'POST',body:JSON.stringify({visitorKey:'private-qa-'+Math.random().toString(36).slice(2),conversationId,message:text,productQuery,pageContext:{pageType:'PRODUCT',productTitle:productQuery||'NovaHair'}})});conversationId=d.conversationId||conversationId;const tools=(d.toolTrace||[]).map(t=>`${t.name}:${t.status}${t.errorCode?`(${t.errorCode})`:''}`).join(', ');add(d.reply||'No reply','bot',`route=${d.route||'?'} · stage=${d.salesStage||'-'} · model=${d.model?.provider||'?'}:${d.model?.model||'?'}${tools?' · tools='+tools:''}`);log($('turnLog'),d);return d}catch(e){add('QA ERROR: '+e.message,'bot',`status=${e.status||'?'} code=${e.code||'-'}`);log($('turnLog'),{error:e.message,code:e.code,status:e.status});throw e}}
+async function request(path,opts={}){const r=await fetch(API_BASE+path,{...opts,headers:{...H,...(opts.headers||{})},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||`HTTP ${r.status}`);e.code=d.code;e.status=r.status;throw e}return d}
+async function status(){try{const d=await request('/status');$('runtime').textContent=d.mode||'OK';$('runtime').className='value good';const m=(d.selectedModels||[])[0];$('model').textContent=m?`${m.provider}:${m.model}`:'none';$('model').className='value '+(m&&m.provider!=='mock'&&m.configured?'good':'warn');$('shopify').textContent=d.shopify?.adminReadReady?'READY':'NOT READY';$('shopify').className='value '+(d.shopify?.adminReadReady?'good':'warn');return d}catch(e){$('runtime').textContent='ERROR';$('runtime').className='value bad';$('model').textContent='—';$('shopify').textContent='—';throw e}}
+async function productTest(){const q=$('productQuery').value.trim();$('productTest').disabled=true;try{const d=await request('/product?q='+encodeURIComponent(q));log($('productLog'),d);return d}catch(e){log($('productLog'),{error:e.message,code:e.code,status:e.status});throw e}finally{$('productTest').disabled=false}}
+async function send(text){text=String(text||'').trim();if(!text)return;add(text,'user');$('input').value='';try{const productQuery=$('productQuery').value.trim();const d=await request('/message',{method:'POST',body:JSON.stringify({visitorKey,conversationId,message:text,productQuery,pageContext:{pageType:'PRODUCT',productTitle:productQuery||'NovaHair'}})});conversationId=d.conversationId||conversationId;const tools=(d.toolTrace||[]).map(t=>`${t.name}:${t.status}${t.errorCode?`(${t.errorCode})`:''}`).join(', ');add(d.reply||'No reply','bot',`route=${d.route||'?'} · stage=${d.salesStage||'-'} · model=${d.model?.provider||'?'}:${d.model?.model||'?'}${tools?' · tools='+tools:''}`);log($('turnLog'),d);return d}catch(e){add('QA ERROR: '+e.message,'bot',`status=${e.status||'?'} code=${e.code||'-'}`);log($('turnLog'),{error:e.message,code:e.code,status:e.status});throw e}}
 const scenarios=[
   {id:'product',name:'Product question',prompt:'איך משתמשים במוצר?',check:d=>d.route==='SALES'&&Boolean(d.reply)},
   {id:'price',name:'Price objection',prompt:'יקר לי, יש הנחה?',check:d=>d.route==='SALES'&&Boolean(d.reply)},
@@ -88,7 +87,7 @@ const scenarios=[
   {id:'ordergate',name:'Order verification gate',prompt:'איפה ההזמנה שלי?',check:d=>(d.toolTrace||[]).some(t=>t.status==='AWAITING_VERIFICATION')}
 ];
 function renderChecks(){const root=$('checks');root.innerHTML=scenarios.map(s=>`<div class="check" id="check-${s.id}"><strong>${s.name}</strong><small>Not run</small></div>`).join('')}
-async function runSafeSuite(){conversationId=null;$('runSafeSuite').disabled=true;for(const s of scenarios){const el=$('check-'+s.id),small=el.querySelector('small');el.className='check run';small.textContent='Running…';try{const d=await send(s.prompt);const pass=s.check(d);el.className='check '+(pass?'pass':'fail');small.textContent=pass?`PASS · route=${d.route}`:`FAIL · route=${d.route||'?'}`;}catch(e){el.className='check fail';small.textContent='FAIL · '+e.message;}await new Promise(r=>setTimeout(r,250))}$('runSafeSuite').disabled=false}
+async function runSafeSuite(){$('runSafeSuite').disabled=true;for(const s of scenarios){conversationId=null;const el=$('check-'+s.id),small=el.querySelector('small');el.className='check run';small.textContent='Running…';try{const d=await send(s.prompt);const pass=s.check(d);el.className='check '+(pass?'pass':'fail');small.textContent=pass?`PASS · route=${d.route}`:`FAIL · route=${d.route||'?'}`;}catch(e){el.className='check fail';small.textContent='FAIL · '+e.message;}await new Promise(r=>setTimeout(r,250))}$('runSafeSuite').disabled=false}
 $('form').onsubmit=e=>{e.preventDefault();send($('input').value)};$('refreshStatus').onclick=()=>status().catch(e=>log($('turnLog'),{statusError:e.message}));$('productTest').onclick=()=>productTest().catch(()=>{});$('runSafeSuite').onclick=runSafeSuite;$('resetChat').onclick=()=>{conversationId=null;$('messages').innerHTML='<div class="msg bot">שיחה אופסה.<div class="meta">PRIVATE QA</div></div>';log($('turnLog'),'No turns yet.');renderChecks()};document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>send(b.dataset.q));renderChecks();status().catch(e=>log($('turnLog'),{statusError:e.message}));
 </script>
 </body>
