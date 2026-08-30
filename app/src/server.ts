@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { createHash, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 });
 
 const adminRoot = path.join(__dirname, "../admin");
+const privateQaRoot = path.join(__dirname, "../private-qa");
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, character => ({
@@ -45,6 +47,62 @@ function escapeHtml(value: string): string {
     '"': "&quot;",
   })[character] as string);
 }
+
+function secureTextEqual(left: string, right: string): boolean {
+  const leftDigest = createHash("sha256").update(String(left)).digest();
+  const rightDigest = createHash("sha256").update(String(right)).digest();
+  return timingSafeEqual(leftDigest, rightDigest);
+}
+
+function privateQaCredentials(req: express.Request): { username: string; password: string } | null {
+  const authorization = String(req.get("authorization") || "");
+  if (!authorization.startsWith("Basic ")) return null;
+  try {
+    const decoded = Buffer.from(authorization.slice(6).trim(), "base64").toString("utf8");
+    const separator = decoded.indexOf(":");
+    if (separator < 0) return null;
+    return { username: decoded.slice(0, separator), password: decoded.slice(separator + 1) };
+  } catch {
+    return null;
+  }
+}
+
+// Dedicated isolated bot QA console. This route is intentionally outside the
+// Shopify theme and outside /admin. It fails closed unless all QA secrets are
+// configured server-side. The QA API token is injected only after Basic Auth.
+app.get("/private-bot-qa/:slug", (req, res) => {
+  const configuredSlug = String(process.env.BOT_QA_PAGE_SLUG || "").trim();
+  if (!configuredSlug || !secureTextEqual(String(req.params.slug || ""), configuredSlug)) {
+    return res.status(404).send("Not found.");
+  }
+
+  const expectedUsername = String(process.env.BOT_QA_PAGE_USER || "").trim();
+  const expectedPassword = String(process.env.BOT_QA_PAGE_PASSWORD || "");
+  const publicQaToken = String(process.env.BOT_PUBLIC_QA_TOKEN || "").trim();
+  const pagePath = path.join(privateQaRoot, "bot.html");
+  const configured = process.env.BOT_PUBLIC_QA_MODE === "true"
+    && expectedUsername
+    && expectedPassword
+    && publicQaToken
+    && fs.existsSync(pagePath);
+
+  if (!configured) return res.status(503).send("Private QA is not configured.");
+
+  const supplied = privateQaCredentials(req);
+  if (!supplied || !secureTextEqual(supplied.username, expectedUsername) || !secureTextEqual(supplied.password, expectedPassword)) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="TIGER Bot QA", charset="UTF-8"');
+    return res.status(401).send("Authentication required.");
+  }
+
+  const html = fs.readFileSync(pagePath, "utf8")
+    .replaceAll("%BOT_PUBLIC_QA_TOKEN%", escapeHtml(publicQaToken));
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+  return res.type("html").send(html);
+});
 
 // Injects only the public client ID into App Bridge's required meta tag.
 // Secrets are never sent to the browser.
