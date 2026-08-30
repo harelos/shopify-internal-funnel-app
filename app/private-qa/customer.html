@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <title>TIGER Bot — Customer Simulation</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0e0b12;--panel:#17121d;--line:#32263d;--text:#f8f5fb;--muted:#a99eb3;--accent:#b66cff;--good:#67d7aa;--user:#6f3b8e;--bot:#201728}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#23142f 0,var(--bg) 42%);font-family:Arial,"Noto Sans Hebrew",sans-serif;color:var(--text);min-height:100vh}.wrap{max-width:760px;margin:auto;padding:18px 14px 32px}.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}.title{font-size:20px;font-weight:900}.tiny{font-size:11px;color:var(--muted);margin-top:4px}.badge{border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:10px;color:var(--good)}
+    .mode{background:rgba(23,18,29,.96);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}.mode-title{font-size:12px;color:var(--muted);margin-bottom:8px}.mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mode button,.actions button,.send{border:1px solid var(--line);background:#201728;color:var(--text);border-radius:11px;padding:11px 12px;font:inherit;cursor:pointer}.mode button.active{background:var(--accent);border-color:var(--accent);color:#100914;font-weight:800}
+    .chat{background:rgba(23,18,29,.97);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,.28)}.head{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(145deg,#d9a7ff,#7a43a7);display:grid;place-items:center;color:#140b18;font-weight:900}.head strong{display:block}.head small{color:var(--muted)}.online{margin-right:auto;color:var(--good);font-size:11px}.messages{height:min(64vh,590px);overflow:auto;padding:14px;background:#0f0b14}.msg{max-width:86%;padding:11px 13px;border-radius:15px;margin:0 0 10px;line-height:1.55;font-size:14px;white-space:pre-wrap}.bot{background:var(--bot);margin-left:auto;border:1px solid #34243f}.user{background:var(--user);margin-right:auto}.meta{font-size:9px;color:#988ca2;margin-top:5px;direction:ltr;text-align:left}.composer{display:flex;gap:8px;padding:11px;border-top:1px solid var(--line);background:#15101b}.composer input{flex:1;min-width:0;background:#0f0b14;border:1px solid var(--line);border-radius:11px;color:var(--text);padding:12px;font:inherit}.send{background:var(--accent);color:#120817;border-color:var(--accent);font-weight:800}.actions{display:flex;gap:8px;margin-top:10px}.actions button{font-size:12px;padding:9px 11px}.status{font-size:11px;color:var(--muted);margin-top:10px;min-height:16px}.warn{color:#f1c779}.good{color:var(--good)}
+    @media(max-width:560px){.messages{height:60vh}.mode-buttons{grid-template-columns:1fr}.wrap{padding:10px}.title{font-size:18px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><div class="title">Customer Simulation</div><div class="tiny">עמוד בדיקה פרטי · לא מחובר ל־storefront</div></div><div class="badge" id="modelBadge">בודק מודל…</div></div>
+  <section class="mode">
+    <div class="mode-title">בחר איך להתחיל את השיחה</div>
+    <div class="mode-buttons"><button id="newMode" class="active">לקוחה חדשה</button><button id="existingMode">לקוחה קיימת</button></div>
+  </section>
+  <section class="chat">
+    <div class="head"><div class="avatar">T</div><div><strong>TIGER Assistant</strong><small id="modeLabel">בדיקת לקוחה חדשה</small></div><div class="online">● online</div></div>
+    <div class="messages" id="messages"><div class="msg bot">היי, איך אפשר לעזור לך היום?</div></div>
+    <form class="composer" id="form"><input id="input" maxlength="2000" autocomplete="off" placeholder="כתבי הודעה כאילו את לקוחה…"><button class="send">שלח</button></form>
+  </section>
+  <div class="actions"><button id="reset">איפוס שיחה</button><button id="back">חזרה ל־QA Dashboard</button></div>
+  <div class="status" id="status"></div>
+</div>
+<script>
+let conversationId=null;
+let customerMode='new';
+const visitorKey='customer-sim-'+Math.random().toString(36).slice(2);
+const messages=document.getElementById('messages');
+const input=document.getElementById('input');
+const statusNode=document.getElementById('status');
+function add(text,type,meta=''){const el=document.createElement('div');el.className='msg '+type;el.textContent=text;if(meta){const m=document.createElement('div');m.className='meta';m.textContent=meta;el.appendChild(m)}messages.appendChild(el);messages.scrollTop=messages.scrollHeight}
+async function api(path,opts={}){const r=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||`HTTP ${r.status}`);e.code=d.code;throw e}return d}
+async function refreshStatus(){try{const d=await api('./status');const m=(d.selectedModels||[])[0];const real=d.mode==='REAL_MODEL_PRIVATE_QA';document.getElementById('modelBadge').textContent=real?`${m?.provider||'AI'} · ${m?.model||''}`:'MOCK MODEL';document.getElementById('modelBadge').className='badge '+(real?'good':'warn');statusNode.textContent=d.shopify?.adminReadReady?'Shopify verified customer/order reads: READY':'שיחות AI עובדות; אימות הזמנה מול Shopify עדיין לא מוכן';statusNode.className='status '+(d.shopify?.adminReadReady?'good':'warn')}catch(e){document.getElementById('modelBadge').textContent='STATUS ERROR';statusNode.textContent=e.message}}
+async function send(text){text=String(text||'').trim();if(!text)return;add(text,'user');input.value='';statusNode.textContent='הבוט חושב…';try{const d=await api('./message',{method:'POST',body:JSON.stringify({visitorKey,conversationId,message:text,productQuery:'NovaHair',pageContext:{pageType:'PRODUCT',productTitle:'NovaHair',returningCustomer:customerMode==='existing'},profile:{},leadContext:{customerMessages:1}})});conversationId=d.conversationId||conversationId;add(d.reply||'לא התקבלה תשובה.','bot');statusNode.textContent=`${d.model?.provider||'?'} · ${d.model?.model||'?'} · ${d.route||''}`;statusNode.className='status good'}catch(e){add('כרגע לא הצלחתי לקבל תשובה מהבוט: '+e.message,'bot');statusNode.textContent=e.code||e.message;statusNode.className='status warn'}}
+function setMode(mode){customerMode=mode;conversationId=null;document.getElementById('newMode').classList.toggle('active',mode==='new');document.getElementById('existingMode').classList.toggle('active',mode==='existing');document.getElementById('modeLabel').textContent=mode==='new'?'בדיקת לקוחה חדשה':'בדיקת לקוחה קיימת';messages.innerHTML='<div class="msg bot">'+(mode==='new'?'היי, איך אפשר לעזור לך היום?':'היי, איך אפשר לעזור לך עם ההזמנה או המוצר?')+'</div>';input.placeholder=mode==='new'?'כתבי הודעה כאילו את לקוחה חדשה…':'אפשר לכתוב מייל, מספר הזמנה וכל פרט כמו לקוחה קיימת…';input.focus()}
+document.getElementById('newMode').onclick=()=>setMode('new');document.getElementById('existingMode').onclick=()=>setMode('existing');document.getElementById('reset').onclick=()=>setMode(customerMode);document.getElementById('back').onclick=()=>location.href='./';document.getElementById('form').onsubmit=e=>{e.preventDefault();send(input.value)};refreshStatus();
+</script>
+</body>
+</html>
