@@ -13,6 +13,7 @@ import type { BotProductSummary } from "../lib/bot-shopify-tools.js";
 const router = Router({ mergeParams: true });
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pagePath = path.resolve(__dirname, "../../private-qa/bot.html");
+const customerPagePath = path.resolve(__dirname, "../../private-qa/customer.html");
 
 // Fallbacks are intentionally non-secret except for one-way SHA-256 hashes.
 // The plaintext QA password is never stored in Git. Render env vars can replace
@@ -123,11 +124,14 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get("/", (_req, res) => {
-  if (!fs.existsSync(pagePath)) return res.status(503).send("Private QA page unavailable.");
+function sendProtectedHtml(res: any, filePath: string, unavailableMessage: string) {
+  if (!fs.existsSync(filePath)) return res.status(503).send(unavailableMessage);
   res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
-  return res.type("html").send(fs.readFileSync(pagePath, "utf8"));
-});
+  return res.type("html").send(fs.readFileSync(filePath, "utf8"));
+}
+
+router.get("/", (_req, res) => sendProtectedHtml(res, pagePath, "Private QA page unavailable."));
+router.get("/customer", (_req, res) => sendProtectedHtml(res, customerPagePath, "Customer simulation page unavailable."));
 
 router.get("/status", async (_req, res) => {
   try {
