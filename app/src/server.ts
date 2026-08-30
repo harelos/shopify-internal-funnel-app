@@ -19,6 +19,7 @@ import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
+import { runPrivateQaSmoke } from "./lib/private-qa-smoke.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,5 +117,12 @@ app.listen(port, async () => {
   // enabled. A hosted app never seeds or deletes owner data on startup.
   if (process.env.ENABLE_DEMO_SEED === "true") {
     await seedDemoFunnelIfNeeded();
+  }
+  if (process.env.BOT_PRIVATE_QA_SMOKE_ON_START === "true") {
+    try {
+      await runPrivateQaSmoke(`http://127.0.0.1:${port}`);
+    } catch (error: any) {
+      console.error(`PRIVATE_QA_SMOKE_FATAL ${String(error?.message || error)}`);
+    }
   }
 });
