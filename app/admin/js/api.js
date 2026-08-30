@@ -52,3 +52,7 @@ const API = {
     return res.json();
   }
 };
+
+// Classic scripts share lexical bindings, but module pages intentionally read
+// the client from window so they can detect whether the shared API is loaded.
+window.API = API;

@@ -33,6 +33,7 @@ export interface FunnelContext {
   funnelId?: string;
   stepId?: string;
   variantId?: string;
+  sessionId?: string;
 }
 
 export interface ShopifyPixelEventInput {
@@ -121,6 +122,7 @@ export function normalizeShopifyPixelEvent(input: ShopifyPixelEventInput, contex
       platformEventName: name,
       hasCheckoutToken: Boolean(token),
       hasOrderId: Boolean(orderGid(data, order)),
+      ...(context.sessionId ? { sessionId: context.sessionId } : {}),
     },
   };
   return { accepted: true, value: event };

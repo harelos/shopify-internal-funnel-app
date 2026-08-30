@@ -5,6 +5,15 @@ import { selectVariant } from "../services/ab-engine.js";
 
 const router = Router();
 
+function edgeCountryCode(headers: Record<string, unknown>): string {
+  const candidates = [headers["cf-ipcountry"], headers["x-vercel-ip-country"], headers["cloudfront-viewer-country"]];
+  for (const candidate of candidates) {
+    const value = Array.isArray(candidate) ? candidate[0] : candidate;
+    if (typeof value === "string" && /^[A-Za-z]{2,3}$/.test(value.trim())) return value.trim().toUpperCase();
+  }
+  return "";
+}
+
 // GET /preview/:versionId — Sandboxed HTML preview for variant content editor
 router.get("/preview/:versionId", async (req, res) => {
   try {
@@ -97,8 +106,9 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
 
     const variantLabel = `${step.name} (${variant?.name || 'Main'})`;
     const trackingEndpoint = JSON.stringify(`${process.env.SHOPIFY_APP_PROXY_PATH || ""}/api/track`.replace(/^\/\/api/, "/api"));
+    const countryCode = edgeCountryCode(req.headers as Record<string, unknown>);
 
-    // Tracking pixel + CTA handler injection with UTM, Dwell Time, and #down link resolution
+    // Tracking pixel + CTA handler injection with UTM and session-level commerce context.
     const trackingPixelScript = `
       <script>
         (function() {
@@ -110,10 +120,40 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             sessionStorage.setItem(pathKey, JSON.stringify(pathHistory));
           }
 
+          var now = Date.now();
+          var commerceSessionKey = "_commerce_session";
+          var commerceSession = null;
+          try { commerceSession = JSON.parse(sessionStorage.getItem(commerceSessionKey) || "null"); } catch (_) {}
+          if (!commerceSession || !commerceSession.id || !commerceSession.lastActivityAt || now - Number(commerceSession.lastActivityAt) > 30 * 60 * 1000) {
+            var randomPart = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2) + now.toString(36);
+            commerceSession = { id: randomPart, startedAt: now, lastActivityAt: now, landingPath: window.location.pathname || "/" };
+          } else {
+            commerceSession.lastActivityAt = now;
+          }
+          sessionStorage.setItem(commerceSessionKey, JSON.stringify(commerceSession));
+
           var urlParams = new URLSearchParams(window.location.search);
-          var utm_source = urlParams.get("utm_source") || (document.referrer.indexOf("facebook") >= 0 ? "facebook" : "organic");
+          var utm_source = urlParams.get("utm_source") || (document.referrer.indexOf("facebook") >= 0 ? "facebook" : document.referrer.indexOf("instagram") >= 0 ? "instagram" : "organic");
           var utm_medium = urlParams.get("utm_medium") || "";
           var utm_campaign = urlParams.get("utm_campaign") || "";
+          var ua = navigator.userAgent || "";
+          var metaEnvironment = /Instagram/i.test(ua) ? "INSTAGRAM_IN_APP" : /(FBAN|FBAV|FB_IAB)/i.test(ua) ? "FACEBOOK_IN_APP" : "OTHER";
+          var browserFamily = /SamsungBrowser/i.test(ua) ? "SAMSUNG_INTERNET" : /CriOS/i.test(ua) ? "CHROME_IOS" : /Chrome\//i.test(ua) ? "CHROME" : /Safari\//i.test(ua) && !/Chrome|CriOS|Android/i.test(ua) ? "SAFARI" : "OTHER";
+          var telemetryPayload = {
+            sessionId: commerceSession.id,
+            sessionStartedAt: new Date(Number(commerceSession.startedAt)).toISOString(),
+            landingPath: commerceSession.landingPath,
+            pagePath: window.location.pathname || "/",
+            pageUrl: window.location.href,
+            referrer: document.referrer || "",
+            userAgent: ua,
+            browserFamily: browserFamily,
+            metaEnvironment: metaEnvironment,
+            viewportWidth: window.innerWidth || null,
+            language: navigator.language || "",
+            countryCode: "${countryCode}",
+            countrySource: "${countryCode ? "EDGE_HEADER" : "UNKNOWN"}"
+          };
 
           var t = {
             funnelId: "${funnel.id}",
@@ -125,7 +165,8 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             pathFingerprint: pathHistory.join(" ➔ "),
             utm_source: utm_source,
             utm_medium: utm_medium,
-            utm_campaign: utm_campaign
+            utm_campaign: utm_campaign,
+            payload: telemetryPayload
           };
 
           var vid = localStorage.getItem("_fv") || "${visitorId}";
@@ -136,7 +177,8 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
             visitorId: vid,
             funnelId: "${funnel.id}",
             stepId: "${step.id}",
-            variantId: "${variantId}"
+            variantId: "${variantId}",
+            sessionId: commerceSession.id
           })) + "; Path=/; SameSite=Lax";
           t.visitorId = vid;
 
@@ -149,6 +191,7 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
 
           // Expose CTA tracking helper
           window.__trackCta = function(ctaName, targetUrl) {
+            telemetryPayload.pagePath = window.location.pathname || "/";
             fetch(${trackingEndpoint}, {
               method: "POST",
               headers: { "Content-Type": "application/json" },

@@ -247,6 +247,7 @@ router.post("/api/shopify/pixel", async (req, res) => {
     funnelId: textValue(rawContext.funnelId),
     stepId: textValue(rawContext.stepId),
     variantId: textValue(rawContext.variantId),
+    sessionId: textValue(rawContext.sessionId),
   };
   const normalized = normalizeShopifyPixelEvent({
     id: eventInput?.id,

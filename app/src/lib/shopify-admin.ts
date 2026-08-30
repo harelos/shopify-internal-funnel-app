@@ -7,6 +7,21 @@ export class ShopifyConfigurationError extends Error {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(attempt: number, retryAfterHeader?: string | null, throttleStatus?: { currentlyAvailable?: number; restoreRate?: number }) {
+  const retryAfter = Number(retryAfterHeader);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(10_000, retryAfter * 1000);
+  const available = Number(throttleStatus?.currentlyAvailable);
+  const restoreRate = Number(throttleStatus?.restoreRate);
+  if (Number.isFinite(available) && Number.isFinite(restoreRate) && restoreRate > 0 && available < 50) {
+    return Math.min(10_000, Math.max(250, Math.ceil(((50 - available) / restoreRate) * 1000)));
+  }
+  return Math.min(5000, 300 * (2 ** attempt) + Math.floor(Math.random() * 250));
+}
+
 export class ShopifyAdminClient {
   private readonly exchangedTokens = new Map<string, { token: string; expiresAt: number }>();
 
@@ -60,27 +75,60 @@ export class ShopifyAdminClient {
       throw new ShopifyConfigurationError("SHOP_DOMAIN must be a valid myshopify.com domain.");
     }
     const accessToken = await this.resolveAccessToken(sessionToken);
+    const endpoint = `https://${config.shopDomain}/admin/api/${config.apiVersion}/graphql.json`;
 
-    const response = await fetch(`https://${config.shopDomain}/admin/api/${config.apiVersion}/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken,
-      },
-      body: JSON.stringify({ query, variables }),
-      signal: AbortSignal.timeout(10000),
-    });
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": accessToken,
+          },
+          body: JSON.stringify({ query, variables }),
+          signal: AbortSignal.timeout(12000),
+        });
+      } catch {
+        lastError = new Error("Shopify Admin API network request failed.");
+        if (attempt < 2) {
+          await sleep(retryDelayMs(attempt));
+          continue;
+        }
+        throw lastError;
+      }
 
-    if (!response.ok) {
-      throw new Error(`Shopify Admin API returned HTTP ${response.status}.`);
+      const raw = await response.text();
+      let payload: {
+        data?: T;
+        errors?: Array<{ message?: string; extensions?: { code?: string } }>;
+        extensions?: { cost?: { throttleStatus?: { currentlyAvailable?: number; restoreRate?: number } } };
+      } = {};
+      try { payload = raw ? JSON.parse(raw) : {}; } catch { payload = {}; }
+
+      const throttled = payload.errors?.some(error => error.extensions?.code === "THROTTLED") || response.status === 429;
+      const retryableHttp = response.status >= 500;
+      if ((!response.ok && (throttled || retryableHttp)) || throttled) {
+        lastError = new Error(throttled ? "Shopify Admin API request was throttled." : `Shopify Admin API returned HTTP ${response.status}.`);
+        if (attempt < 2) {
+          await sleep(retryDelayMs(attempt, response.headers.get("retry-after"), payload.extensions?.cost?.throttleStatus));
+          continue;
+        }
+        throw lastError;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Shopify Admin API returned HTTP ${response.status}.`);
+      }
+      if (payload.errors?.length) {
+        throw new Error(`Shopify Admin API GraphQL error: ${payload.errors[0]?.message ?? "unknown error"}`);
+      }
+      if (!payload.data) throw new Error("Shopify Admin API returned no data.");
+      return payload.data;
     }
 
-    const payload = await response.json() as { data?: T; errors?: Array<{ message?: string }> };
-    if (payload.errors?.length) {
-      throw new Error(`Shopify Admin API GraphQL error: ${payload.errors[0]?.message ?? "unknown error"}`);
-    }
-    if (!payload.data) throw new Error("Shopify Admin API returned no data.");
-    return payload.data;
+    throw lastError || new Error("Shopify Admin API request failed.");
   }
 
   async storeSummary(sessionToken?: string) {
@@ -98,9 +146,9 @@ export class ShopifyAdminClient {
       shopifyqlQuery: {
         tableData?: {
           columns?: Array<{ name: string; dataType: string; displayName?: string }>;
-          rows?: Array<Record<string, string | number | null>>;
+          rowData?: Array<Record<string, string | number | null>>;
         };
-        parseErrors?: string[];
+        parseErrors?: Array<{ code?: string; message?: string }>;
       };
     }>(`query ShopifyAnalytics($query: String!) {
       shopifyqlQuery(query: $query) {

@@ -214,3 +214,39 @@ model ShopifyWebhookDelivery {
 
   @@index([shopId, topic, receivedAt])
 }
+
+model BotConfiguration {
+  id           String   @id @default(uuid())
+  shopDomain   String   @unique
+  status       String   @default("DRAFT")
+  name         String
+  label        String
+  welcome      String
+  placement    String
+  routingJson  String   @default("{}")
+  playbookJson String   @default("{}")
+  offersJson   String   @default("{}")
+  crmJson      String   @default("{}")
+  securityJson String   @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  modelVariants BotModelVariant[]
+
+  @@index([status, updatedAt])
+}
+
+model BotModelVariant {
+  id                 String           @id @default(uuid())
+  botConfigurationId String
+  slot               Int
+  provider           String
+  model              String
+  trafficBasisPoints Int
+  enabled            Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  botConfiguration   BotConfiguration @relation(fields: [botConfigurationId], references: [id], onDelete: Cascade)
+
+  @@unique([botConfigurationId, slot])
+  @@index([botConfigurationId, enabled])
+}

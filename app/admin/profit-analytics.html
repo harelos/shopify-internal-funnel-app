@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>TIGER Profit OS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .module-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.module-nav a{text-decoration:none}
+    .module-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.module-tab{cursor:pointer}.module-tab.active{background:#17231e;color:white}
+    .profit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.profit-kpi{padding:16px}.profit-kpi .metric-val{font-size:24px}
+    .health-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08)}
+    .quality{font-size:11px;font-weight:700;letter-spacing:.04em}.quality.actual{color:#197b5b}.quality.missing{color:#b42318}.quality.stale{color:#b26a00}
+    .hidden{display:none!important}.notice{padding:12px 14px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;margin-bottom:14px}
+    @media(max-width:900px){.profit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.profit-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand"><a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a><span class="brand-name">TIGER Profit OS</span><span class="eyebrow">V1 staging</span></div>
+      <div class="top-actions"><button class="btn" id="btn-meta-settings">Meta Token</button><button class="btn btn-primary" id="btn-refresh">Refresh</button></div>
+    </div>
+  </header>
+  <main class="main">
+    <div class="module-nav">
+      <a class="btn btn-primary" href="profit-analytics.html">Profit OS</a>
+      <a class="btn" href="analytics.html">Funnel Analytics</a>
+      <a class="btn" href="bot.html">Bot</a>
+      <a class="btn" href="popups.html">Popups</a>
+    </div>
+
+    <div class="notice" id="staging-notice">Feature-branch UI only. It must not be treated as production until the Cloudflare Worker/D1 production source is synchronized and the integration PR passes QA.</div>
+
+    <div class="module-tabs" id="profit-tabs">
+      <button class="btn module-tab active" data-tab="overview">Overview</button>
+      <button class="btn module-tab" data-tab="profit">Profit</button>
+      <button class="btn module-tab" data-tab="marketing">Marketing</button>
+      <button class="btn module-tab" data-tab="products">Products</button>
+      <button class="btn module-tab" data-tab="orders">Orders</button>
+      <button class="btn module-tab" data-tab="customers">Customers</button>
+      <button class="btn module-tab" data-tab="recommendations">Recommendations</button>
+      <button class="btn module-tab" data-tab="health">Data Health</button>
+    </div>
+
+    <section data-panel="overview">
+      <div class="profit-grid">
+        <div class="panel profit-kpi"><div class="metric-label">Contribution Revenue</div><div class="metric-val" id="kpi-revenue">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">Orders</div><div class="metric-val" id="kpi-orders">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">Meta Spend</div><div class="metric-val" id="kpi-meta">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">CM2</div><div class="metric-val" id="kpi-cm2">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">CJ Variable Cost</div><div class="metric-val" id="kpi-cj">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">Payment Fees</div><div class="metric-val" id="kpi-fees">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">Margin</div><div class="metric-val" id="kpi-margin">—</div></div>
+        <div class="panel profit-kpi"><div class="metric-label">POAS</div><div class="metric-val" id="kpi-poas">—</div></div>
+      </div>
+      <div class="panel" style="margin-top:16px"><div class="panel-header"><h3>Profit completeness</h3></div><div class="panel-body" id="profit-completeness">Loading…</div></div>
+    </section>
+
+    <section class="hidden" data-panel="profit"><div class="panel"><div class="panel-header"><h3>Profit waterfall</h3></div><div class="panel-body" id="profit-waterfall">Awaiting normalized source data.</div></div></section>
+    <section class="hidden" data-panel="marketing"><div class="panel"><div class="panel-header"><h3>Marketing</h3></div><div class="panel-body"><p class="muted">Meta daily spend, CPA, ROAS and campaign/ad breakdown. Missing token days remain visibly stale until refreshed.</p></div></div></section>
+    <section class="hidden" data-panel="products"><div class="panel"><div class="panel-header"><h3>Products / Bundles / Shades</h3></div><div class="panel-body"><p class="muted">Product profitability drilldown will consume normalized Shopify lines + CJ cost ledger.</p></div></div></section>
+    <section class="hidden" data-panel="orders"><div class="panel"><div class="panel-header"><h3>Profit by order</h3></div><div class="panel-body"><p class="muted">Order-level source lineage: Shopify → CJ → payment fees → attribution diagnostic.</p></div></div></section>
+    <section class="hidden" data-panel="customers"><div class="panel"><div class="panel-header"><h3>Customers</h3></div><div class="panel-body"><p class="muted">New vs returning customer profitability.</p></div></div></section>
+    <section class="hidden" data-panel="recommendations"><div class="panel"><div class="panel-header"><h3>Recommendations</h3></div><div class="panel-body" id="recommendation-list"><p class="muted">Rules engine staging area. Recommendations must explain the metric and evidence used.</p></div></div></section>
+    <section class="hidden" data-panel="health"><div class="panel"><div class="panel-header"><h3>Data Health</h3></div><div class="panel-body" id="data-health">Loading…</div></div></section>
+  </main>
+
+  <div class="modal-overlay" id="modal-meta" style="display:none">
+    <div class="modal">
+      <h2>Meta connection</h2>
+      <p class="muted">The production implementation must validate the token server-side and encrypt it at rest. Never store it in frontend code.</p>
+      <label class="eyebrow">Access Token</label>
+      <input class="input" id="meta-token" type="password" autocomplete="off" placeholder="Paste current Meta access token">
+      <label class="eyebrow">Ad Account IDs</label>
+      <input class="input" id="meta-accounts" placeholder="act_123, act_456">
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="btn-meta-cancel">Cancel</button><button class="btn btn-primary" id="btn-meta-save">Validate & refresh missing days</button></div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/profit-analytics.js"></script>
+</body>
+</html>

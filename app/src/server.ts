@@ -8,11 +8,18 @@ import funnelRoutes from "./routes/funnels.js";
 import stepRoutes from "./routes/steps.js";
 import variantRoutes from "./routes/variants.js";
 import analyticsRoutes from "./routes/analytics.js";
+import commerceIntelligenceRoutes from "./routes/commerce-intelligence.js";
+import profitOsRoutes from "./routes/profit-os.js";
+import botRoutes from "./routes/bot.js";
+import botRuntimeRoutes from "./routes/bot-runtime.js";
+import publicBotQaRoutes from "./routes/public-bot-qa.js";
+import privateBotQaRoutes from "./routes/private-bot-qa.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
+import { runPrivateQaSmoke } from "./lib/private-qa-smoke.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +48,11 @@ function escapeHtml(value: string): string {
   })[character] as string);
 }
 
+// Private bot QA is isolated from both the live Shopify theme and the embedded
+// admin API. It is protected by HTTP Basic Auth and exposes read-only commerce
+// checks plus the staging conversation runtime only.
+app.use("/private-bot-qa/:slug", privateBotQaRoutes);
+
 // Injects only the public client ID into App Bridge's required meta tag.
 // Secrets are never sent to the browser.
 function serveAdminHtml(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -65,7 +77,6 @@ app.use("/preview", express.static(path.join(__dirname, "../../preview")));
 // Mount OAuth routes
 app.use("/", authRoutes);
 
-// Mount API routes
 // Mount Proxy / Preview routes
 app.use("/", proxyRoutes);
 app.use("/", shopifyIngestRoutes);
@@ -75,6 +86,10 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Public QA is intentionally isolated from the embedded Shopify session layer.
+// It is disabled unless BOT_PUBLIC_QA_MODE=true and requires its own secret token.
+app.use("/qa/bot", publicBotQaRoutes);
+
 // All admin API routes are protected in hosted mode. Local preview remains
 // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
 app.use("/api", requireShopifySession);
@@ -82,6 +97,10 @@ app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
+app.use("/api", commerceIntelligenceRoutes);
+app.use("/api", profitOsRoutes);
+app.use("/api", botRoutes);
+app.use("/api", botRuntimeRoutes);
 app.use("/api", shopifyRoutes);
 
 // Root redirect to Admin
@@ -98,5 +117,12 @@ app.listen(port, async () => {
   // enabled. A hosted app never seeds or deletes owner data on startup.
   if (process.env.ENABLE_DEMO_SEED === "true") {
     await seedDemoFunnelIfNeeded();
+  }
+  if (process.env.BOT_PRIVATE_QA_SMOKE_ON_START === "true") {
+    try {
+      await runPrivateQaSmoke(`http://127.0.0.1:${port}`);
+    } catch (error: any) {
+      console.error(`PRIVATE_QA_SMOKE_FATAL ${String(error?.message || error)}`);
+    }
   }
 });
