@@ -1,6 +1,8 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
 import { analyticsDataContract, analyticsModeForRequest, isTestForMode } from "../lib/analytics-config.js";
+import { createEventOnce } from "../lib/event-store.js";
+import { findOrCreateVisitor } from "../lib/visitor-store.js";
 
 const router = Router();
 
@@ -522,20 +524,11 @@ router.post("/track", async (req, res) => {
 
     let visitor = null;
     if (visitorId) {
-      visitor = await prisma.visitor.upsert({
-        where: { shopId_anonymousKeyHash: { shopId: shop.id, anonymousKeyHash: visitorId } },
-        update: {},
-        create: { shopId: shop.id, anonymousKeyHash: visitorId },
-      });
+      visitor = await findOrCreateVisitor(shop.id, visitorId);
     }
 
     const minuteBucket = Math.floor(Date.now() / 60000);
     const eventKey = explicitEventKey || `${event}:${funnelId || 'popup'}:${stepId || 'none'}:${variantId || 'none'}:${visitorId || 'anon'}:${minuteBucket}`;
-
-    const existingEvent = await prisma.event.findUnique({ where: { eventKey } });
-    if (existingEvent) {
-      return res.json({ success: true, eventId: existingEvent.id, duplicate: true });
-    }
 
     const mergedPayload = {
       ...(payload || {}),
@@ -545,8 +538,7 @@ router.post("/track", async (req, res) => {
       utm_campaign: utm_campaign || "",
     };
 
-    const createdEvent = await prisma.event.create({
-      data: {
+    const eventResult = await createEventOnce(eventKey, {
         shopId: shop.id,
         eventKey,
         name: event,
@@ -562,8 +554,11 @@ router.post("/track", async (req, res) => {
         utmCampaign: utm_campaign || null,
         payload: JSON.stringify(mergedPayload),
         isTest: isTestForMode(mode),
-      },
     });
+
+    if (eventResult.duplicate) {
+      return res.json({ success: true, eventId: eventResult.event.id, duplicate: true });
+    }
 
     if (checkoutToken && (event === "checkout_started" || event === "CHECKOUT_STARTED")) {
       await prisma.checkoutAttribution.upsert({
@@ -582,7 +577,7 @@ router.post("/track", async (req, res) => {
       });
     }
 
-    res.status(201).json({ success: true, eventId: createdEvent.id, duplicate: false, dataMode: mode });
+    res.status(201).json({ success: true, eventId: eventResult.event.id, duplicate: false, dataMode: mode });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "Failed to record event" });
   }

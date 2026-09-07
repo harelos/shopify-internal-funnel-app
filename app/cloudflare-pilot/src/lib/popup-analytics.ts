@@ -2,6 +2,8 @@ import { analyticsModeForRequest, isTestForMode } from "./analytics-config.js";
 
 export const POPUP_VERSION = "novahair_popup_v1";
 export const POPUP_EVENTS = [
+  "popup_signal",
+  "popup_suppressed",
   "popup_eligible",
   "popup_view",
   "popup_email_started",
@@ -13,11 +15,17 @@ export const POPUP_EVENTS = [
   "popup_continue_clicked",
   "popup_closed",
   "popup_purchase",
+  "popup_result_email_sent",
+  // AI concierge: one row per conversation step, so every step of the flow
+  // can be read back and improved independently.
+  "popup_ai_step",
 ] as const;
 
 export type PopupEventName = typeof POPUP_EVENTS[number];
 
 const STOREFRONT_EVENTS = new Set<PopupEventName>([
+  "popup_signal",
+  "popup_suppressed",
   "popup_eligible",
   "popup_view",
   "popup_email_started",
@@ -27,6 +35,7 @@ const STOREFRONT_EVENTS = new Set<PopupEventName>([
   "popup_coupon_revealed",
   "popup_continue_clicked",
   "popup_closed",
+  "popup_ai_step",
 ]);
 const DEVICES = new Set(["mobile", "desktop", "tablet", "other"]);
 const CLOSE_METHODS = new Set(["x", "backdrop", "esc", "other"]);
@@ -34,6 +43,32 @@ const SAFE_PAYLOAD_KEYS = new Set([
   "popupId", "popupVersion", "sessionId", "path", "template", "device",
   "trigger", "consent", "attemptId", "attemptNumber", "closeMethod",
   "failureCategory", "couponConfigured", "confirmationSource", "customerKey",
+  // Behavioural engine v2. `reason` is the auditable decision string
+  // (e.g. "return_to_top+depth67+returnToTop+52s+e7/a6") that lets us judge
+  // months later which triggers produced leads and which only annoyed people.
+  "reason", "engagementScore", "abandonScore", "intentScore",
+  "scrollDepth", "engagedSeconds", "visitNumber", "pageVariant",
+  "currentScrollDepth", "scrollVelocity", "timeOnPage", "qualified",
+  "failedGates", "blockedBy", "evaluationSource", "experimentId", "experimentVariant",
+  "experimentBucket", "holdoutPercent",
+  // AI concierge step telemetry. `freeText` is shopper-typed and is the only
+  // free-form field here, so it is length-capped and must never be used to
+  // key anything; treat it as content to read, not as an identifier.
+  "conversationId", "stepId", "stepIndex", "stepType", "action",
+  "choiceId", "choiceLabel", "freeText", "dwellMs", "angle", "tags",
+  "shadeKey", "shadeMethod", "shadeConfidence",
+  // Coarse writing-style key (e.g. "terse/casual/skep") used to compare how
+  // different registers move through the flow. Style only, never identity.
+  "tone",
+  // Which agent lane served the conversation (sales/retention/vip/service)
+  // and where the widget was placed. Lets analytics compare lanes.
+  "agent", "placement",
+  "emailKind",
+  // Full marketing attribution carried on every event. utm_source/medium/
+  // campaign already have dedicated Event columns; these are the rest, so a
+  // step can be sliced by ad content, keyword, or click id, and matched to the
+  // Shopify order that inherits the same values from cart attributes.
+  "utm_content", "utm_term", "gclid", "fbclid", "landingPath", "referrerHost",
 ]);
 
 export interface PopupEventInput {
@@ -69,6 +104,16 @@ function safeOccurredAt(value: unknown): Date {
   return Number.isFinite(parsed.getTime()) && drift <= 24 * 60 * 60 * 1000 ? parsed : new Date();
 }
 
+function redactFreeText(value: string): string {
+  return value
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email]")
+    .replace(/(?:\+?972[-\s]?|0)(?:5\d|[23489])[-\s]?\d{3}[-\s]?\d{4}\b/g, "[phone]")
+    .replace(/https?:\/\/\S+/gi, "[link]")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    .slice(0, 400);
+}
+
 function safePayload(value: unknown): Record<string, string | number | boolean> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const result: Record<string, string | number | boolean> = {};
@@ -76,7 +121,12 @@ function safePayload(value: unknown): Record<string, string | number | boolean> 
     if (!SAFE_PAYLOAD_KEYS.has(key)) continue;
     if (typeof raw === "boolean") result[key] = raw;
     else if (typeof raw === "number" && Number.isFinite(raw)) result[key] = raw;
-    else if (typeof raw === "string") result[key] = raw.slice(0, key === "path" ? 500 : 180);
+    else if (typeof raw === "string") {
+      // freeText is a whole sentence a shopper typed; 180 chars would cut the
+      // objection in half and make the step unreadable in analysis.
+      const limit = key === "path" ? 500 : key === "freeText" ? 400 : 180;
+      result[key] = key === "freeText" ? redactFreeText(raw) : raw.slice(0, limit);
+    }
   }
   return result;
 }
@@ -118,23 +168,24 @@ export function normalizePopupEventInput(body: unknown, allowServerEvents = fals
 }
 
 export async function persistPopupEvent(input: PopupEventInput, query: Record<string, unknown>, source = "STOREFRONT") {
-  const [{ default: prisma }, { getShopifyConfig }] = await Promise.all([
-    import("./db.js"), import("./shopify-config.js"),
+  const [{ default: prisma }, { getShopifyConfig }, { findOrCreateVisitor }, { createEventOnce }] = await Promise.all([
+    import("./db.js"), import("./shopify-config.js"), import("./visitor-store.js"), import("./event-store.js"),
   ]);
   const mode = analyticsModeForRequest(query);
+  const qaAttribution = [input.utmSource, input.utmMedium, input.utmCampaign, input.payload.trigger, input.payload.path, input.payload.template]
+    .filter(Boolean)
+    .map(value => String(value).toLowerCase());
+  const isKnownQaEvent = qaAttribution.some(value => value === "codex_qa"
+    || value === "production_test"
+    || value.includes("concierge_email_release_")
+    || value.includes("production_qa")
+    || value.includes("popup-qa"));
   const shop = await prisma.shop.findUnique({ where: { domain: getShopifyConfig().shopDomain } });
   if (!shop) throw new Error("No shop record configured.");
   const visitor = input.visitorId
-    ? await prisma.visitor.upsert({
-      where: { shopId_anonymousKeyHash: { shopId: shop.id, anonymousKeyHash: input.visitorId } },
-      update: {},
-      create: { shopId: shop.id, anonymousKeyHash: input.visitorId },
-    })
+    ? await findOrCreateVisitor(shop.id, input.visitorId)
     : null;
-  const existing = await prisma.event.findUnique({ where: { eventKey: input.eventKey } });
-  if (existing) return { event: existing, duplicate: true, mode };
-  const event = await prisma.event.create({
-    data: {
+  const result = await createEventOnce(input.eventKey, {
       shopId: shop.id,
       eventKey: input.eventKey,
       name: input.event,
@@ -146,10 +197,9 @@ export async function persistPopupEvent(input: PopupEventInput, query: Record<st
       utmCampaign: input.utmCampaign ?? null,
       deviceClass: input.device ?? null,
       payload: JSON.stringify(input.payload),
-      isTest: isTestForMode(mode),
-    },
+      isTest: isTestForMode(mode) || isKnownQaEvent,
   });
-  return { event, duplicate: false, mode };
+  return { event: result.event, duplicate: result.duplicate, mode };
 }
 
 export function parsePayload(payload: string): Record<string, unknown> {

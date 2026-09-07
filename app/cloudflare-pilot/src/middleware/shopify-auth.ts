@@ -1,6 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { getShopifyConfig, isValidShopDomain, normalizeShopDomain, workerEnvValue } from "../lib/shopify-config.js";
+import {
+  isShopifyStorefrontProxyPath,
+  verifyShopifyAppProxySignature,
+} from "../lib/shopify-app-proxy-auth.js";
+
+export { isShopifyStorefrontProxyPath } from "../lib/shopify-app-proxy-auth.js";
 
 export interface ShopifySessionClaims {
   aud?: string;
@@ -25,28 +31,11 @@ function constantTimeEqual(left: Buffer, right: Buffer): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-function proxyQueryValue(value: unknown): string {
-  if (Array.isArray(value)) return value.map(item => String(item)).join(",");
-  return String(value ?? "");
-}
-
 /** Verifies Shopify's signed App Proxy query without trusting shop/user IDs. */
 export function verifyShopifyAppProxyRequest(req: Request): boolean {
   const config = getShopifyConfig();
-  const signature = String(req.query.signature ?? "");
-  const shop = normalizeShopDomain(String(req.query.shop ?? ""));
-  const timestamp = Number(req.query.timestamp);
   const secret = workerEnvValue("SHOPIFY_CLIENT_SECRET");
-  if (!signature || !secret || !isValidShopDomain(shop) || shop !== normalizeShopDomain(config.shopDomain)) return false;
-  if (!Number.isFinite(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) return false;
-
-  const message = Object.keys(req.query)
-    .filter(key => key !== "signature")
-    .sort()
-    .map(key => `${key}=${proxyQueryValue(req.query[key])}`)
-    .join("");
-  const expected = createHmac("sha256", secret).update(message).digest("hex");
-  return constantTimeEqual(Buffer.from(expected, "utf8"), Buffer.from(signature, "utf8"));
+  return verifyShopifyAppProxySignature(req.query, secret, config.shopDomain);
 }
 
 export function verifyShopifySessionToken(token: string): ShopifySessionClaims {
@@ -96,9 +85,27 @@ export function requireShopifySession(req: Request, res: Response, next: NextFun
 
   // Storefront tracking reaches the server through Shopify App Proxy rather
   // than App Bridge. It must carry Shopify's signed proxy query instead.
-  const storefrontProxyPath = req.path === "/track" || req.path === "/popup/confirm-lead";
-  if ((storefrontProxyPath || req.path === "/shopify/pixel")
-    && (req.path === "/shopify/pixel" || verifyShopifyAppProxyRequest(req))) return next();
+  const storefrontProxyPath = isShopifyStorefrontProxyPath(req.path);
+  if (storefrontProxyPath && verifyShopifyAppProxyRequest(req)) {
+    res.locals.shopifyAppProxy = true;
+    return next();
+  }
+  if (storefrontProxyPath) {
+    const requestShop = normalizeShopDomain(String(req.query.shop ?? ""));
+    const expectedShop = normalizeShopDomain(config.shopDomain);
+    const timestamp = Number(req.query.timestamp);
+    const diagnostics = {
+      path: req.path,
+      queryKeys: Object.keys(req.query).sort(),
+      shopMatches: Boolean(requestShop) && requestShop === expectedShop,
+      timestampFresh: Number.isFinite(timestamp)
+        && Math.abs(Math.floor(Date.now() / 1000) - timestamp) <= 300,
+      signatureShape: /^[a-f0-9]{64}$/i.test(String(req.query.signature ?? "")),
+      secretConfigured: Boolean(workerEnvValue("SHOPIFY_CLIENT_SECRET")),
+    };
+    console.warn("[SHOPIFY APP PROXY REJECTED]", JSON.stringify(diagnostics));
+  }
+  if (req.path === "/shopify/pixel") return next();
 
   const authorization = req.get("authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";

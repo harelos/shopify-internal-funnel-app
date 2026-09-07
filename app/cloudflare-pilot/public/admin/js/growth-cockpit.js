@@ -86,7 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderPopup(report, config) {
     const metric = report.metrics;
-    const currency = config.reportingCurrency;
+    const currency = metric.popupRevenueCurrency || config.reportingCurrency;
+    const popupRevenue = (metric.popupAttributedRevenueByCurrency || [])
+      .map(row => popupMoney(row.revenue, row.currency)).join(' + ') || popupMoney(metric.popupAttributedRevenue, currency);
     byId('popup-status').textContent = `${report.dataMode} · D1 events + Shopify order truth · Updated ${new Date(report.generatedAt).toLocaleString()}`;
     byId('popup-kpi-grid').innerHTML = [
       popupKpi('Eligible sessions', Number(metric.eligibleSessions).toLocaleString(), 'D1 popup_eligible'),
@@ -95,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
       popupKpi('Submit success', `${Number(metric.submitSuccessRate || 0).toFixed(1)}%`, `${Number(metric.submitAttempts).toLocaleString()} attempts`),
       popupKpi('Coupon reveals', Number(metric.couponReveals).toLocaleString(), report.configuredCoupon || 'Configured coupon'),
       popupKpi('Popup orders', Number(metric.popupAttributedOrders).toLocaleString(), 'Shopify-attributed orders'),
-      popupKpi('Popup revenue', popupMoney(metric.popupAttributedRevenue, currency), currency ? 'Shopify net order revenue' : 'Reporting currency required'),
+      popupKpi('Popup revenue', popupRevenue, 'Shopify net order revenue'),
       popupKpi('Coupon orders', Number(metric.couponOrders).toLocaleString(), popupMoney(metric.couponRevenue, currency))
     ].join('');
 
@@ -123,9 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('popup-failures').textContent = recentFailures ? `Recent failure categories: ${recentFailures}` : 'No recent submit failures in this range.';
 
     const breakdowns = report.breakdowns || {};
-    byId('popup-breakdowns').innerHTML = ['device', 'page', 'source'].map(key => {
+    const breakdownLabels = { device: 'Device', page: 'Page', source: 'UTM source', medium: 'UTM medium', campaign: 'UTM campaign' };
+    byId('popup-breakdowns').innerHTML = ['device', 'page', 'source', 'medium', 'campaign'].map(key => {
       const rows = (breakdowns[key] || []).slice(0, 5);
-      return `<div class="popup-breakdown"><h4>${escapeHtml(key === 'source' ? 'Source / UTM' : key[0].toUpperCase() + key.slice(1))}</h4>${rows.length ? rows.map(row => `<div class="popup-breakdown-row"><span>${escapeHtml(row.value)}</span><strong>${Number(row.views).toLocaleString()} views</strong></div>`).join('') : '<span class="muted">No data</span>'}</div>`;
+      return `<div class="popup-breakdown"><h4>${escapeHtml(breakdownLabels[key])}</h4>${rows.length ? rows.map(row => {
+        const revenue = row.currency && row.revenue != null ? ` · ${popupMoney(row.revenue, row.currency)}` : '';
+        return `<div class="popup-breakdown-row"><span>${escapeHtml(row.value)}</span><strong>${Number(row.views).toLocaleString()} views · ${Number(row.leads).toLocaleString()} leads · ${Number(row.orders).toLocaleString()} orders${escapeHtml(revenue)}</strong></div>`;
+      }).join('') : '<span class="muted">No data</span>'}</div>`;
     }).join('');
     byId('popup-source-truth').textContent = `Source of truth: ${report.sourceOfTruth?.eligibilityViewsInteractionsDismissals || 'D1 popup events'}; leads: ${report.sourceOfTruth?.successfulLeads || 'Shopify confirmation'}; orders: ${report.sourceOfTruth?.ordersRevenue || 'Shopify order webhooks'}.`;
   }

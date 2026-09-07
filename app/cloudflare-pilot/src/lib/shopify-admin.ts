@@ -17,7 +17,8 @@ export class ShopifyAdminClient {
       throw new ShopifyConfigurationError("SHOP_DOMAIN, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET are required for token exchange.");
     }
 
-    const cached = this.exchangedTokens.get(config.shopDomain);
+    const cacheKey = `session:${config.shopDomain}`;
+    const cached = this.exchangedTokens.get(cacheKey);
     if (cached && cached.expiresAt > Date.now() + 30000) return cached.token;
 
     const body = new URLSearchParams({
@@ -38,9 +39,42 @@ export class ShopifyAdminClient {
 
     const payload = await response.json() as { access_token?: string; expires_in?: number };
     if (!payload.access_token) throw new Error("Shopify token exchange returned no access token.");
-    this.exchangedTokens.set(config.shopDomain, {
+    this.exchangedTokens.set(cacheKey, {
       token: payload.access_token,
       expiresAt: Date.now() + Math.max(60000, (payload.expires_in ?? 3600) * 1000),
+    });
+    return payload.access_token;
+  }
+
+  private async exchangeClientCredentials(): Promise<string> {
+    const config = getShopifyConfig();
+    const clientSecret = workerEnvValue("SHOPIFY_CLIENT_SECRET");
+    if (!config.clientId || !clientSecret || !isValidShopDomain(config.shopDomain)) {
+      throw new ShopifyConfigurationError("SHOP_DOMAIN, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET are required for client credentials.");
+    }
+
+    const cacheKey = `client:${config.shopDomain}`;
+    const cached = this.exchangedTokens.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now() + 60000) return cached.token;
+
+    const body = new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: config.clientId,
+      client_secret: clientSecret,
+    });
+    const response = await fetch(`https://${config.shopDomain}/admin/oauth/access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error(`Shopify client credentials returned HTTP ${response.status}.`);
+
+    const payload = await response.json() as { access_token?: string; expires_in?: number };
+    if (!payload.access_token) throw new Error("Shopify client credentials returned no access token.");
+    this.exchangedTokens.set(cacheKey, {
+      token: payload.access_token,
+      expiresAt: Date.now() + Math.max(60000, (payload.expires_in ?? 86400) * 1000),
     });
     return payload.access_token;
   }
@@ -54,7 +88,12 @@ export class ShopifyAdminClient {
     throw new ShopifyConfigurationError("A Shopify session token or rotated SHOPIFY_ACCESS_TOKEN is required.");
   }
 
-  async graphql<T>(query: string, variables: Record<string, unknown> = {}, sessionToken?: string): Promise<T> {
+  async graphql<T>(
+    query: string,
+    variables: Record<string, unknown> = {},
+    sessionToken?: string,
+    accessTokenOverride?: string,
+  ): Promise<T> {
     const config = getShopifyConfig();
     if (!config.liveConnect) {
       throw new ShopifyConfigurationError("Live Shopify connection is disabled. Set SHOPIFY_LIVE_CONNECT=true only after rotating credentials.");
@@ -62,7 +101,7 @@ export class ShopifyAdminClient {
     if (!isValidShopDomain(config.shopDomain)) {
       throw new ShopifyConfigurationError("SHOP_DOMAIN must be a valid myshopify.com domain.");
     }
-    const accessToken = await this.resolveAccessToken(sessionToken);
+    const accessToken = accessTokenOverride || await this.resolveAccessToken(sessionToken);
 
     const response = await fetch(`https://${config.shopDomain}/admin/api/${config.apiVersion}/graphql.json`, {
       method: "POST",
@@ -86,6 +125,20 @@ export class ShopifyAdminClient {
     return payload.data;
   }
 
+  private async resolveCustomerAccessToken(sessionToken?: string): Promise<string> {
+    if (sessionToken) return this.resolveAccessToken(sessionToken);
+    const piiToken = workerEnvValue("SHOPIFY_PII_TOKEN");
+    if (piiToken) return piiToken;
+    const config = getShopifyConfig();
+    if (config.clientId && config.hasClientSecret) return this.exchangeClientCredentials();
+    return this.resolveAccessToken();
+  }
+
+  private async customerGraphql<T>(query: string, variables: Record<string, unknown> = {}, sessionToken?: string): Promise<T> {
+    const accessToken = await this.resolveCustomerAccessToken(sessionToken);
+    return this.graphql<T>(query, variables, sessionToken, accessToken);
+  }
+
   async storeSummary(sessionToken?: string) {
     return this.graphql<{
       shop: {
@@ -97,7 +150,7 @@ export class ShopifyAdminClient {
   }
 
   async findPopupLeadByTag(verificationTag: string, sessionToken?: string) {
-    return this.graphql<{
+    return this.customerGraphql<{
       customers: {
         nodes: Array<{
           id: string;
@@ -110,6 +163,157 @@ export class ShopifyAdminClient {
         nodes { id tags emailMarketingConsent { marketingState } }
       }
     }`, { query: `tag:\"${verificationTag}\"` }, sessionToken);
+  }
+
+  async findCustomerByEmail(email: string, sessionToken?: string) {
+    type CustomerResult = {
+      customers: { nodes: Array<{
+        id: string;
+        email: string | null;
+        tags: string[];
+        emailMarketingConsent: { marketingState: string } | null;
+        orders: { nodes: Array<{
+          id: string;
+          name: string;
+          createdAt: string;
+          lineItems: { nodes: Array<{ name: string; title: string; variantTitle: string | null }> };
+        }> };
+      }> };
+    };
+    const escaped = email.replace(/[\\"]/g, char => `\\${char}`);
+    return this.customerGraphql<CustomerResult>(`query ConciergeCustomer($query: String!) {
+      customers(first: 2, query: $query) {
+        nodes {
+          id email tags emailMarketingConsent { marketingState }
+          orders(first: 1, sortKey: CREATED_AT, reverse: true) {
+            nodes { id name createdAt lineItems(first: 20) { nodes { name title variantTitle } } }
+          }
+        }
+      }
+    }`, { query: `email:\"${escaped}\"` }, sessionToken);
+  }
+
+  async findCustomerById(customerId: string, sessionToken?: string) {
+    return this.customerGraphql<{
+      customer: {
+        id: string;
+        email: string | null;
+        tags: string[];
+        emailMarketingConsent: { marketingState: string } | null;
+        orders: { nodes: Array<{
+          id: string; name: string; createdAt: string;
+          lineItems: { nodes: Array<{ name: string; title: string; variantTitle: string | null }> };
+        }> };
+      } | null;
+    }>(`query ConciergeCustomerById($id: ID!) {
+      customer(id: $id) {
+        id email tags emailMarketingConsent { marketingState }
+        orders(first: 1, sortKey: CREATED_AT, reverse: true) {
+          nodes { id name createdAt lineItems(first: 20) { nodes { name title variantTitle } } }
+        }
+      }
+    }`, { id: customerId }, sessionToken);
+  }
+
+  async listConciergeCustomers(sessionToken?: string) {
+    type CustomerNode = {
+      id: string;
+      displayName: string;
+      defaultEmailAddress: { emailAddress: string; marketingState: string } | null;
+      createdAt: string;
+      updatedAt: string;
+      tags: string[];
+      metafields: { nodes: Array<{ key: string; value: string }> };
+      orders: { nodes: Array<{
+        id: string; name: string; createdAt: string;
+        currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+        discountCodes: string[];
+      }> };
+    };
+    type CustomerPage = {
+      customers: {
+        nodes: CustomerNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    };
+    const customers: CustomerNode[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < 5; page += 1) {
+      const data: CustomerPage = await this.customerGraphql<CustomerPage>(`query ConciergeLeads($query: String!, $after: String) {
+        customers(first: 100, after: $after, query: $query, sortKey: UPDATED_AT, reverse: true) {
+          nodes {
+            id displayName createdAt updatedAt tags
+            defaultEmailAddress { emailAddress marketingState }
+            metafields(first: 20, namespace: "novahair_ai") { nodes { key value } }
+            orders(first: 1, sortKey: CREATED_AT, reverse: true) {
+              nodes {
+                id name createdAt discountCodes
+                currentTotalPriceSet { shopMoney { amount currencyCode } }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`, { query: "tag:nova_ai OR tag:novahair-exit-popup", after: cursor }, sessionToken);
+      customers.push(...data.customers.nodes);
+      cursor = data.customers.pageInfo.endCursor;
+      if (!data.customers.pageInfo.hasNextPage || !cursor) break;
+    }
+    return customers;
+  }
+
+  async createCustomerWithEmail(email: string, sessionToken?: string) {
+    return this.customerGraphql<{
+      customerCreate: { customer: { id: string; email: string | null } | null; userErrors: Array<{ field: string[] | null; message: string }> };
+    }>(`mutation ConciergeCustomerCreate($input: CustomerInput!) {
+      customerCreate(input: $input) {
+        customer { id email }
+        userErrors { field message }
+      }
+    }`, { input: { email } }, sessionToken);
+  }
+
+  async addCustomerTags(customerId: string, tags: string[], sessionToken?: string) {
+    return this.customerGraphql<{
+      tagsAdd: { node: { id: string } | null; userErrors: Array<{ message: string }> };
+    }>(`mutation ConciergeTagsAdd($id: ID!, $tags: [String!]!) {
+      tagsAdd(id: $id, tags: $tags) { node { id } userErrors { message } }
+    }`, { id: customerId, tags }, sessionToken);
+  }
+
+  async setCustomerConciergeMetafields(customerId: string, values: Record<string, string>, sessionToken?: string) {
+    const metafields = Object.entries(values)
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => ({ ownerId: customerId, namespace: "novahair_ai", key, type: key === "last_interaction_at" ? "date_time" : "single_line_text_field", value: value.slice(0, 255) }));
+    if (!metafields.length) return null;
+    return this.customerGraphql<{
+      metafieldsSet: { metafields: Array<{ key: string }> | null; userErrors: Array<{ field: string[] | null; message: string }> };
+    }>(`mutation ConciergeMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) { metafields { key } userErrors { field message } }
+    }`, { metafields }, sessionToken);
+  }
+
+  async subscribeCustomerEmail(customerId: string, consentUpdatedAt: string, sessionToken?: string) {
+    return this.customerGraphql<{
+      customerEmailMarketingConsentUpdate: {
+        customer: { id: string; emailMarketingConsent: { marketingState: string } | null } | null;
+        userErrors: Array<{ field: string[] | null; message: string }>;
+      };
+    }>(`mutation ConciergeMarketingConsent($input: CustomerEmailMarketingConsentUpdateInput!) {
+      customerEmailMarketingConsentUpdate(input: $input) {
+        customer { id emailMarketingConsent { marketingState } }
+        userErrors { field message }
+      }
+    }`, {
+      input: {
+        customerId,
+        emailMarketingConsent: {
+          marketingState: "SUBSCRIBED",
+          marketingOptInLevel: "SINGLE_OPT_IN",
+          consentUpdatedAt,
+        },
+      },
+    }, sessionToken);
   }
 
   async shopifyqlQuery(queryText: string, sessionToken?: string) {

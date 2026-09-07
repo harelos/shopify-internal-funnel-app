@@ -14,6 +14,8 @@ import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
+import { aiConciergeStorefront, aiConciergeAdmin } from "./routes/ai-concierge.js";
+import { cartOfferAdmin, cartOfferStorefront } from "./routes/cart-offers.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
@@ -108,14 +110,23 @@ app.use("/", authRoutes);
 
 import novahairRoutes from "./routes/novahair.js";
 
-// Mount Proxy / Preview routes
-app.use("/", proxyRoutes);
+// Mount ingest and order routes before the storefront proxy surface.
 app.use("/", shopifyIngestRoutes);
 app.use("/", novahairRoutes);
 
 // Shopify forwards storefront popup telemetry to this exact App Proxy path.
 // The middleware accepts only Shopify-signed proxy requests here.
 app.use("/apps/funnels/api", requireShopifySession, popupAnalyticsRoutes);
+
+// AI concierge free-text turns. Storefront-facing (proxy-signed) so shoppers
+// can reach it. The admin-only /ai-steps analytics is mounted separately below.
+app.use("/apps/funnels/api", requireShopifySession, aiConciergeStorefront);
+app.use("/apps/funnels/api", requireShopifySession, cartOfferStorefront);
+
+// Generic funnel routes include /apps/funnels/:slug/:step. Keep them after
+// the explicit API mount or a GET such as /api/proxy-health is interpreted as
+// a funnel named "api" and never reaches its authenticated handler.
+app.use("/", proxyRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -132,6 +143,9 @@ app.use("/api", popupAnalyticsRoutes);
 app.use("/api", growthCockpitRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", shopifyRoutes);
+// Admin-only: per-step AI funnel with shopper free text. Never on the proxy path.
+app.use("/api", aiConciergeAdmin);
+app.use("/api", cartOfferAdmin);
 
 // Error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

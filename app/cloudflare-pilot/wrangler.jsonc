@@ -4,7 +4,7 @@
   "compatibility_date": "2026-08-20",
   "compatibility_flags": ["nodejs_compat"],
   "rules": [
-    { "type": "CompiledWasm", "globs": ["**/*.wasm"] }
+    { "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": false }
   ],
   "vars": {
     "RUNTIME": "cloudflare",
@@ -16,13 +16,17 @@
     "META_GRAPH_API_VERSION": "v23.0",
     "NOVAHAIR_POPUP_VERSION": "novahair_popup_v1",
     "NOVAHAIR_POPUP_COUPON": "NOVA10",
+    "POSTHOG_PROJECT_API_KEY": "phc_AyNmzdT6Nky4RZX3XCBBCun4RrC2ThFFvsC9km5pTpr5",
+    "POSTHOG_HOST": "https://us.i.posthog.com",
+    "OPENROUTER_VISION_MODEL": "google/gemini-2.5-flash",
+    "NOVAHAIR_EMAIL_SERVICE_URL": "https://novahair-email-service-production.up.railway.app",
     "APP_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev",
     "SHOP_DOMAIN": "jacobfelipe.myshopify.com",
     "ALLOWED_SHOP_DOMAIN": "jacobfelipe.myshopify.com",
     "SHOPIFY_DISTRIBUTION": "custom",
     "SHOPIFY_API_VERSION": "2026-07",
-    "SHOPIFY_SCOPES": "read_orders,read_customers,read_discounts,read_reports,read_customer_events,write_app_proxy,write_pixels",
-    "SHOPIFY_APP_PROXY_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev",
+    "SHOPIFY_SCOPES": "read_orders,read_customers,write_customers,read_products,read_discounts,write_discounts,read_reports,read_customer_events,write_app_proxy,write_pixels",
+    "SHOPIFY_APP_PROXY_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/apps/funnels",
     "SHOPIFY_APP_PROXY_PATH": "/apps/funnels",
     "SHOPIFY_LIVE_CONNECT": "true",
     "SHOPIFY_REQUIRE_AUTH": "true",
@@ -35,7 +39,13 @@
   },
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Static assets are normally served straight from the edge before the
+    // Worker runs, which bypassed serveAdminHtml and shipped the literal
+    // %SHOPIFY_API_KEY% placeholder to App Bridge. Admin HTML must go through
+    // the Worker so the client ID is injected; everything else still serves
+    // directly from the asset store.
+    "run_worker_first": ["/admin", "/admin/*"]
   },
   "d1_databases": [
     {
