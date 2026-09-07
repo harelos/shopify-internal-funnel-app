@@ -1,0 +1,37 @@
+<div data-funnel-control-root {{ block.shopify_attributes }}></div>
+<script type="application/json" data-funnel-control-config>
+  {
+    "endpoint": {{ block.settings.endpoint | json }},
+    "pagePath": {{ request.path | json }},
+    "debug": {{ block.settings.debug | json }},
+    "isInternal": {{ request.design_mode | json }},
+    "labels": {
+      "gallery": {{ 'blocks.runtime.gallery_label' | t | json }},
+      "images": {{ 'blocks.runtime.images_label' | t | json }},
+      "showImage": {{ 'blocks.runtime.show_image' | t | json }}
+    }
+  }
+</script>
+
+{% schema %}
+{
+  "name": "t:blocks.runtime.name",
+  "target": "body",
+  "javascript": "funnel-control-elements.js",
+  "stylesheet": "funnel-control-elements.css",
+  "settings": [
+    {
+      "type": "text",
+      "id": "endpoint",
+      "label": "t:blocks.runtime.settings.endpoint",
+      "default": "/apps/funnels"
+    },
+    {
+      "type": "checkbox",
+      "id": "debug",
+      "label": "t:blocks.runtime.settings.debug",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

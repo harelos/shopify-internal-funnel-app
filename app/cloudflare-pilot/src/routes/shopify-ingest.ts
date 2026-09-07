@@ -10,6 +10,13 @@ import {
   type ShopifyIntegrationEvent,
   type FunnelContext,
 } from "../lib/shopify-integration.js";
+import {
+  normalizeElementAssignmentContexts,
+  reconcileOrdersForCheckout,
+  resolveBrowserVisitor,
+  snapshotCheckoutElementAssignments,
+  snapshotOrderElementAssignments,
+} from "../services/element-attribution.js";
 
 const router = Router();
 
@@ -86,11 +93,23 @@ function webhookSecret(): string {
   return envObj?.SHOPIFY_WEBHOOK_SECRET || envObj?.SHOPIFY_CLIENT_SECRET || process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_CLIENT_SECRET || "";
 }
 
+async function ensureCheckoutAttribution(shopId: string, checkoutToken: string | undefined, occurredAt: Date) {
+  if (!checkoutToken) return null;
+  return prisma.checkoutAttribution.upsert({
+    where: { checkoutToken },
+    update: {},
+    create: {
+      shopId,
+      checkoutToken,
+      startedAt: occurredAt,
+      confidence: "UNATTRIBUTED",
+    },
+  });
+}
+
 async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, orderPayload: Record<string, unknown>) {
-  const checkout = event.checkoutToken
-    ? await prisma.checkoutAttribution.findUnique({ where: { checkoutToken: event.checkoutToken } })
-    : null;
-  const confidence = checkout ? "HIGH" : "UNATTRIBUTED";
+  const checkout = await ensureCheckoutAttribution(shopId, event.checkoutToken, event.occurredAt ?? new Date());
+  const confidence = checkout?.visitorId || checkout?.funnelId ? "HIGH" : "UNATTRIBUTED";
   const popup = extractPopupAttribution(orderPayload);
   const discountCodes = extractDiscountCodes(orderPayload);
   const popupFields = {
@@ -194,6 +213,7 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
       },
     });
   }
+  await snapshotOrderElementAssignments(order.id, order.checkoutToken);
   return order;
 }
 
@@ -204,9 +224,11 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
   if (!gid || amount === undefined || !currency) return false;
 
   const checkoutToken = textValue(payload.checkout_token);
-  const checkout = checkoutToken
-    ? await prisma.checkoutAttribution.findUnique({ where: { checkoutToken } })
-    : null;
+  const checkout = await ensureCheckoutAttribution(
+    shopId,
+    checkoutToken,
+    dateValue(payload.processed_at) ?? dateValue(payload.created_at) ?? new Date(),
+  );
   const status = safeOrderStatus(payload);
   const existing = await prisma.orderAttribution.findUnique({ where: { shopifyOrderGid: gid } });
   const popup = extractPopupAttribution(payload);
@@ -224,7 +246,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
     popupUtmCampaign: popup.utmCampaign ?? existing?.popupUtmCampaign ?? null,
     popupAttributionMethod: "LINE_ITEM_PROPERTIES",
   } : {};
-  await prisma.orderAttribution.upsert({
+  const order = await prisma.orderAttribution.upsert({
     where: { shopifyOrderGid: gid },
     update: {
       checkoutToken: checkout?.checkoutToken ?? existing?.checkoutToken ?? null,
@@ -250,7 +272,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       netRevenueAmount: status.netRevenue,
       refundedAmount: Math.max(0, amount - status.netRevenue),
       status: status.status,
-      confidence: checkout ? "HIGH" : "UNATTRIBUTED",
+      confidence: checkout?.visitorId || checkout?.funnelId ? "HIGH" : "UNATTRIBUTED",
       isTest: false,
       discountCodes: JSON.stringify(discountCodes),
       popupAttributed: Boolean(popup),
@@ -268,6 +290,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       cancelledAt: status.cancelledAt,
     },
   });
+  await snapshotOrderElementAssignments(order.id, order.checkoutToken);
   return true;
 }
 
@@ -386,14 +409,7 @@ router.post("/api/shopify/pixel", async (req, res) => {
     const existing = await prisma.event.findUnique({ where: { eventKey: normalized.value.eventKey } });
     if (existing) return res.json({ accepted: true, duplicate: true });
 
-    let visitor = null;
-    if (context.visitorId) {
-      visitor = await prisma.visitor.upsert({
-        where: { shopId_anonymousKeyHash: { shopId: shop.id, anonymousKeyHash: context.visitorId } },
-        update: {},
-        create: { shopId: shop.id, anonymousKeyHash: context.visitorId },
-      });
-    }
+    const visitor = context.visitorId ? await resolveBrowserVisitor(shop.id, context.visitorId) : null;
     await prisma.event.create({
       data: {
         shopId: shop.id,
@@ -417,6 +433,21 @@ router.post("/api/shopify/pixel", async (req, res) => {
         update: { visitorId: visitor?.id ?? null, funnelId: context.funnelId ?? null, lastStepId: context.stepId ?? null, lastVariantId: context.variantId ?? null },
         create: { shopId: shop.id, checkoutToken: normalized.value.checkoutToken, visitorId: visitor?.id ?? null, funnelId: context.funnelId ?? null, lastStepId: context.stepId ?? null, lastVariantId: context.variantId ?? null, startedAt: normalized.value.occurredAt ?? new Date(), confidence: "MEDIUM" },
       });
+      if (visitor) {
+        const captured = await snapshotCheckoutElementAssignments({
+          shopId: shop.id,
+          checkoutToken: normalized.value.checkoutToken,
+          visitorId: visitor.id,
+          contexts: normalizeElementAssignmentContexts(rawContext.elementAssignments),
+        });
+        if (captured > 0) {
+          await prisma.checkoutAttribution.update({
+            where: { checkoutToken: normalized.value.checkoutToken },
+            data: { confidence: "HIGH" },
+          });
+          await reconcileOrdersForCheckout(normalized.value.checkoutToken);
+        }
+      }
     }
     if (normalized.value.checkoutToken && normalized.value.name === "CHECKOUT_COMPLETED_OBSERVED") {
       await prisma.checkoutAttribution.updateMany({ where: { checkoutToken: normalized.value.checkoutToken }, data: { completedAt: normalized.value.occurredAt ?? new Date() } });

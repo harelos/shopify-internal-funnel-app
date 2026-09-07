@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Element A/B Lab — Funnel Control</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .lab-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; align-items:start; }
+    .slot-card { width:100%; padding:12px; text-align:left; border:1px solid var(--line); background:var(--card); cursor:pointer; border-radius:8px; margin-bottom:8px; }
+    .slot-card.active { border-color:var(--accent); box-shadow:0 0 0 2px rgba(216,83,54,.13); }
+    .stack { display:grid; gap:14px; }
+    .variant-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.85fr); gap:20px; }
+    .preview-shell { margin:auto; width:390px; max-width:100%; padding:10px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 16px 40px rgba(23,35,30,.12); }
+    .preview-shell[data-device="desktop"] { width:760px; }
+    .variant-grid.preview-desktop { grid-template-columns:1fr; }
+    .preview-stage { overflow:hidden; aspect-ratio:4/5; border-radius:12px; background:#eee; }
+    .preview-stage img { width:100%; height:100%; display:block; object-fit:cover; }
+    .preview-thumbs { display:grid; grid-auto-flow:column; grid-auto-columns:56px; gap:7px; overflow:auto; margin-top:8px; }
+    .preview-thumbs img { width:56px; height:66px; object-fit:cover; border-radius:7px; }
+    .code-note { padding:10px 12px; border-radius:8px; background:#edf7f2; color:#145941; font-family:var(--mono); font-size:12px; overflow-wrap:anywhere; }
+    .danger-note { padding:10px 12px; border-radius:8px; background:#fff4e8; color:#7a4318; border:1px solid #efd2b4; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .results-table-wrap { overflow-x:auto; }
+    .results-note { margin-top:12px; padding:11px 13px; border-radius:8px; background:#edf7f2; color:#145941; }
+    .uplift-positive { color:var(--green); font-weight:800; }
+    .uplift-negative { color:var(--red); font-weight:800; }
+    @media (max-width:900px) { .lab-layout,.variant-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a href="index.html" class="brand-name">Funnel Control</a>
+        <span class="eyebrow">Element A/B Lab</span>
+      </div>
+      <div class="top-actions">
+        <span class="badge badge-draft">DRAFT FIRST</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="intro">
+      <h1>Element experiments</h1>
+      <p class="muted">Build and preview a single-element experiment without duplicating the Shopify page.</p>
+    </div>
+
+    <div class="lab-layout">
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-header"><h2>New gallery test</h2></div>
+          <form class="panel-body" id="create-slot-form">
+            <label class="eyebrow" for="page-path">Shopify page path</label>
+            <input class="input" id="page-path" name="pagePath" value="/pages/novahair-sales-staging" required>
+            <label class="eyebrow" for="slot-key">Stable slot key</label>
+            <input class="input" id="slot-key" name="slotKey" value="novahair.sales.gallery.primary" required>
+            <label class="eyebrow" for="slot-name">Name</label>
+            <input class="input" id="slot-name" name="name" value="NOVAHAIR primary gallery" required>
+            <button class="btn btn-primary" type="submit">Create 50/50 draft</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header"><h2>Slots</h2></div>
+          <div class="panel-body" id="slot-list"><p class="muted">Loading…</p></div>
+        </section>
+      </aside>
+
+      <section id="empty-detail" class="empty-state">
+        <h2>Select or create a gallery experiment</h2>
+        <p>The control preserves the current gallery. Variant B contains the new image order and assets.</p>
+      </section>
+
+      <section id="slot-detail" class="stack" hidden>
+        <div class="panel">
+          <div class="panel-header">
+            <div><h2 id="detail-name"></h2><span class="eyebrow" id="detail-path"></span></div>
+            <span class="badge" id="detail-status"></span>
+          </div>
+          <div class="panel-body stack">
+            <div class="code-note" id="detail-selector"></div>
+            <div class="danger-note">Saving and publishing content keeps the test inactive. “Start experiment” is the separate action that sends eligible live visitors into the selected traffic split.</div>
+            <div>
+              <label class="eyebrow" for="variant-b-weight">Variant B traffic: <strong id="variant-b-weight-label">50%</strong></label>
+              <input id="variant-b-weight" type="range" min="1" max="99" value="50" style="width:100%;">
+            </div>
+            <div class="actions">
+              <button class="btn" id="save-weights">Save 50/50 split</button>
+              <button class="btn btn-primary" id="start-experiment">Start experiment</button>
+              <button class="btn" id="pause-experiment">Pause</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="variant-grid">
+          <div class="panel">
+            <div class="panel-header"><h2>Variant B gallery</h2><span class="badge badge-draft" id="variant-state">DRAFT</span></div>
+            <div class="panel-body">
+              <p class="muted" style="margin-bottom:12px;">One image per line: <code>id | https://image-url | alt text | optional caption</code></p>
+              <textarea class="textarea" id="gallery-lines" rows="14" placeholder="hero-proof | https://cdn.shopify.com/... | NOVAHAIR bottles | What arrives in the package"></textarea>
+              <label class="eyebrow" for="initial-index">First image</label>
+              <input class="input" id="initial-index" type="number" min="1" value="1">
+              <label style="display:flex; gap:8px; align-items:center; margin-bottom:16px;"><input id="show-thumbnails" type="checkbox" checked> Show thumbnails</label>
+              <div class="actions">
+                <button class="btn" id="preview-variant">Refresh preview</button>
+                <button class="btn" id="save-variant">Save draft</button>
+                <button class="btn btn-primary" id="publish-variant">Publish variant</button>
+              </div>
+              <p class="muted" id="save-message" style="margin-top:10px;"></p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div><h2 id="preview-title">390px preview</h2><span class="eyebrow">RESPONSIVE QA</span></div>
+              <div class="actions" role="group" aria-label="Preview width">
+                <button class="btn btn-sm btn-primary" id="preview-mobile" type="button" aria-pressed="true">Mobile · 390</button>
+                <button class="btn btn-sm" id="preview-desktop" type="button" aria-pressed="false">Desktop · 760</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="preview-shell" id="gallery-preview" data-device="mobile"><p class="muted" style="padding:40px 12px;text-align:center;">Add image lines to preview Variant B.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div><h2>Sales results</h2><span class="eyebrow">SHOPIFY PAID ORDERS · SOURCE OF TRUTH</span></div>
+            <div class="actions"><span class="badge badge-draft" id="results-status">NO DATA</span><button class="btn btn-sm" id="refresh-results" type="button">Refresh</button></div>
+          </div>
+          <div class="panel-body" id="experiment-results">
+            <p class="muted">Start the experiment and collect real exposures, checkouts, and paid orders to compare variants.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/element-experiments.js"></script>
+</body>
+</html>

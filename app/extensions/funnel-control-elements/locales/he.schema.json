@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "runtime": {
+      "name": "מנוע הניסויים של Funnel Control",
+      "settings": {
+        "endpoint": "כתובת App Proxy",
+        "debug": "הפעלת רישום בדיקות"
+      }
+    },
+    "slot": {
+      "name": "אזור ניסוי של Funnel Control",
+      "settings": {
+        "slot_key": "מזהה האזור",
+        "minimum_height": "גובה מינימלי שמור"
+      }
+    }
+  }
+}
