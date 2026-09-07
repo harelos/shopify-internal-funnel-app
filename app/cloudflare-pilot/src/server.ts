@@ -16,6 +16,7 @@ import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { aiConciergeStorefront, aiConciergeAdmin } from "./routes/ai-concierge.js";
 import { cartOfferAdmin, cartOfferStorefront } from "./routes/cart-offers.js";
+import { elementAdminRouter, elementRuntimeRouter } from "./routes/element-experiments.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
@@ -110,6 +111,10 @@ app.use("/", authRoutes);
 
 import novahairRoutes from "./routes/novahair.js";
 
+// Storefront element experiments must be mounted before the generic funnel
+// proxy so /apps/funnels/element-runtime/... is not interpreted as a slug.
+app.use("/apps/funnels", elementRuntimeRouter);
+
 // Mount ingest and order routes before the storefront proxy surface.
 app.use("/", shopifyIngestRoutes);
 app.use("/", novahairRoutes);
@@ -136,6 +141,7 @@ app.get("/api/health", (_req, res) => {
 // All admin API routes are protected in hosted mode. Local preview remains
 // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
 app.use("/api", requireShopifySession);
+app.use("/api", elementAdminRouter);
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);

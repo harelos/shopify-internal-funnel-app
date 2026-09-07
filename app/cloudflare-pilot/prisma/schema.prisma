@@ -21,6 +21,11 @@ model Shop {
   checkouts CheckoutAttribution[]
   orders    OrderAttribution[]
   webhookDeliveries ShopifyWebhookDelivery[]
+  elementTemplates ElementTemplate[]
+  elementSlots ElementSlot[]
+  elementExposures ElementExposure[]
+  checkoutElementAttributions CheckoutElementAttribution[]
+  orderElementAttributions OrderElementAttribution[]
 }
 
 model Funnel {
@@ -124,8 +129,202 @@ model Visitor {
   assignments      Assignment[]
   events           Event[]
   checkouts        CheckoutAttribution[]
+  elementAssignments ElementAssignment[]
+  elementExposures ElementExposure[]
+  checkoutElementAttributions CheckoutElementAttribution[]
 
   @@unique([shopId, anonymousKeyHash])
+}
+
+model ElementTemplate {
+  id            String        @id @default(uuid())
+  shopId        String
+  key           String
+  name          String
+  type          String        @default("GALLERY")
+  schemaVersion Int           @default(1)
+  schemaJson    String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  slots         ElementSlot[]
+
+  @@unique([shopId, key])
+  @@index([shopId, type])
+}
+
+model ElementSlot {
+  id             String             @id @default(uuid())
+  shopId         String
+  templateId     String
+  pagePath       String
+  slotKey        String
+  name           String
+  targetSelector String
+  status         String             @default("DRAFT")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  shop           Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  template       ElementTemplate    @relation(fields: [templateId], references: [id])
+  variants       ElementVariant[]
+  experiment     ElementExperiment?
+  exposures      ElementExposure[]
+  checkoutAttributions CheckoutElementAttribution[]
+  orderAttributions OrderElementAttribution[]
+
+  @@unique([shopId, pagePath, slotKey])
+  @@index([shopId, status])
+}
+
+model ElementVariant {
+  id                 String                        @id @default(uuid())
+  slotId             String
+  key                String
+  name               String
+  isControl          Boolean                       @default(false)
+  publishedVersionId String?                       @unique
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  slot               ElementSlot                   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  versions           ElementVariantVersion[]
+  allocations        ElementExperimentAllocation[]
+  assignments        ElementAssignment[]
+  exposures          ElementExposure[]
+  checkoutAttributions CheckoutElementAttribution[]
+  orderAttributions  OrderElementAttribution[]
+
+  @@unique([slotId, key])
+  @@index([slotId])
+}
+
+model ElementVariantVersion {
+  id          String         @id @default(uuid())
+  variantId   String
+  revision    Int
+  state       String         @default("DRAFT")
+  payloadJson String
+  createdAt   DateTime       @default(now())
+  publishedAt DateTime?
+  variant     ElementVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, revision])
+  @@index([variantId, state])
+}
+
+model ElementExperiment {
+  id                String                        @id @default(uuid())
+  slotId            String                        @unique
+  key               String                        @unique
+  status            String                        @default("DRAFT")
+  allocationVersion Int                           @default(1)
+  posthogFlagKey    String?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  slot              ElementSlot                   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  allocations       ElementExperimentAllocation[]
+  assignments       ElementAssignment[]
+  exposures         ElementExposure[]
+  checkoutAttributions CheckoutElementAttribution[]
+  orderAttributions OrderElementAttribution[]
+}
+
+model ElementExperimentAllocation {
+  id                String            @id @default(uuid())
+  experimentId      String
+  variantId         String
+  weightBasisPoints Int
+  experiment        ElementExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant           ElementVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, variantId])
+  @@index([experimentId])
+}
+
+model ElementAssignment {
+  id                String            @id @default(uuid())
+  visitorId         String
+  experimentId      String
+  variantId         String
+  allocationVersion Int               @default(1)
+  assignedAt        DateTime           @default(now())
+  visitor           Visitor           @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  experiment        ElementExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant           ElementVariant    @relation(fields: [variantId], references: [id])
+  exposures         ElementExposure[]
+  checkoutAttributions CheckoutElementAttribution[]
+  orderAttributions OrderElementAttribution[]
+
+  @@unique([visitorId, experimentId])
+  @@index([experimentId, variantId])
+}
+
+model ElementExposure {
+  id           String            @id @default(uuid())
+  eventId      String            @unique
+  shopId       String
+  slotId       String
+  visitorId    String
+  assignmentId String
+  experimentId String
+  variantId    String
+  occurredAt   DateTime          @default(now())
+  isInternal   Boolean           @default(false)
+  shop         Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  slot         ElementSlot       @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  visitor      Visitor           @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  assignment   ElementAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  experiment   ElementExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant      ElementVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, variantId, occurredAt])
+  @@index([visitorId, occurredAt])
+}
+
+model CheckoutElementAttribution {
+  id            String              @id @default(uuid())
+  shopId        String
+  checkoutToken String
+  visitorId     String
+  assignmentId  String
+  experimentId  String
+  variantId     String
+  slotId        String
+  capturedAt    DateTime            @default(now())
+  shop          Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  checkout      CheckoutAttribution @relation(fields: [checkoutToken], references: [checkoutToken], onDelete: Cascade)
+  visitor       Visitor             @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  assignment    ElementAssignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  experiment    ElementExperiment   @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant       ElementVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  slot          ElementSlot         @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  orders        OrderElementAttribution[]
+
+  @@unique([checkoutToken, experimentId])
+  @@index([experimentId, variantId, capturedAt])
+}
+
+model OrderElementAttribution {
+  id                    String                     @id @default(uuid())
+  shopId                String
+  orderAttributionId    String
+  checkoutAttributionId String
+  assignmentId          String
+  experimentId          String
+  variantId             String
+  slotId                String
+  attributedAt          DateTime                   @default(now())
+  shop                  Shop                       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order                 OrderAttribution           @relation(fields: [orderAttributionId], references: [id], onDelete: Cascade)
+  checkoutAttribution   CheckoutElementAttribution @relation(fields: [checkoutAttributionId], references: [id], onDelete: Cascade)
+  assignment            ElementAssignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  experiment            ElementExperiment          @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant               ElementVariant             @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  slot                  ElementSlot                @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([orderAttributionId, experimentId])
+  @@index([experimentId, variantId, attributedAt])
 }
 
 model Assignment {
@@ -186,6 +385,7 @@ model CheckoutAttribution {
   shop          Shop     @relation(fields: [shopId], references: [id])
   visitor       Visitor? @relation(fields: [visitorId], references: [id])
   orders        OrderAttribution[]
+  elementAttributions CheckoutElementAttribution[]
 
   @@index([funnelId])
 }
@@ -221,6 +421,7 @@ model OrderAttribution {
   updatedAt        DateTime @updatedAt
   shop             Shop     @relation(fields: [shopId], references: [id])
   checkout         CheckoutAttribution? @relation(fields: [checkoutToken], references: [checkoutToken])
+  elementAttributions OrderElementAttribution[]
 
   @@index([funnelId, variantId, paidAt])
   @@index([popupAttributed, popupVersion, paidAt])
