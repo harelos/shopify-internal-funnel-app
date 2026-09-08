@@ -50,10 +50,12 @@ export function mayAutoSend(input: {
   language?: string;
 }): boolean {
   const canAnswerWithoutOrder = input.policy.topic === "GENERAL_SHIPPING";
+  const approvedAutoSendTopic = input.policy.topic === "GENERAL_SHIPPING" || input.policy.topic === "ORDER_STATUS";
   const recentEnough = input.messageAgeMinutes === undefined || input.messageAgeMinutes <= 72 * 60;
   const supportedLanguage = input.language === undefined || input.language === "HEBREW" || input.language === "MIXED";
   return input.automationMode === "AUTOSEND_LOW_RISK"
     && input.policy.riskLevel === "LOW"
+    && approvedAutoSendTopic
     && !input.policy.mustEscalate
     && input.confidence >= 0.92
     && (input.hasVerifiedOrder || canAnswerWithoutOrder)

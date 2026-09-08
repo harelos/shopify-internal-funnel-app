@@ -128,6 +128,12 @@ test("English operational mail cannot auto-send even if a shipping phrase matche
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: false, hasUnverifiedClaims: false, language: "ENGLISH" }), false);
 });
 
+test("unknown low-risk topics stay in review even for a verified customer", () => {
+  const policy = evaluateSupportPolicy("יש לי שאלה כללית על המוצר");
+  assert.equal(policy.topic, "OTHER");
+  assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: true, hasUnverifiedClaims: false, language: "HEBREW" }), false);
+});
+
 test("ambiguous Hebrew personal mail is held for triage rather than auto-processed", () => {
   const result = triageMailboxMessage({
     direction: "INBOUND",
