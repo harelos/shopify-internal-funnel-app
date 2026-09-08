@@ -1,6 +1,6 @@
 # NovaHair CJ add-on reconciliation plan
 
-Status: **proposal only - awaiting merchant approval**
+Status: **Gate A approved; report-only implementation prepared; Gate B not approved**
 
 Audit date: 2026-09-08
 
@@ -33,10 +33,13 @@ The read-only audit found these current unpaid CJ records with missing physical 
 
 These are repair candidates, not an authorization to mutate them. Re-read state immediately before any future replacement.
 
+The Gate A production-data dry run returned exactly these five manifest drifts, all then reported as `CREATED`, unpaid, untracked, and replaceable candidates. It performed no writes.
+
 Deferred cases:
 
 - `#4391` contains a physical scalp-brush cross-sell, but its CJ record is already paid and `UNSHIPPED`. Never auto-delete it; handle it separately later as requested.
 - `#4365` has multiple historical CJ rescue records, including split shipped add-ons. It is already excluded from automatic tracking logic and must remain untouched.
+- `#4407` has no CJ rescue record because the available street address is only four digits. It remains a separate `NEEDS_DATA` exception and is not part of add-on reconciliation.
 
 ## Product classification and mappings
 
@@ -49,12 +52,14 @@ Every mapping must match both the Shopify variant ID and expected Shopify SKU. C
 | `50459892580647` | `CJJT228873001AZ` | Hair Gloss 100 ml | `2502110727121606600` | `CJJT228873001AZ` |
 | `52010595320103` | `CJYD231269201AZ` | Argan hair mask 500 g | `2503011116441608900` | `CJYD231269201AZ` |
 | `52010652401959` | `CJYD268780701AZ` | Keratin hair oil/serum 50 ml | `2512250315511638400` | `CJYD268780701AZ` |
+| `51885840400679` | `CJYD3055354` | Beauty headband, CC05 230 | `2608130207121632101` | `CJYD305535402BY` |
+
+The headband mapping was resolved on 2026-09-08 by matching the exact live Shopify cross-sell image filename (`d0e60057-38b4-4066-a555-8a5f6b4c6609.jpg`) to CJ's exact variant image filename. The other two CJ variants use different images.
 
 ### Physical mappings that require a deliberate variant choice
 
 - Shopify variant `51885840072999`, generic SKU `CJYD1973934`, scalp brush. Historical order `#4365` used purple CJ variant `1760593893348872192` / `CJYD197393402BY`, but this must be recorded explicitly before new automatic fulfillment.
 - Shopify variant `51885840138535`, generic SKU `CJYD3068279`, steam cap. CJ exposes 19 variants; no canonical choice is established.
-- Shopify variant `51885840400679`, generic SKU `CJYD3055354`, headband. CJ exposes 3 variants; no canonical choice is established. This item is in the current live cross-sell set, so an order containing it must become `NEEDS_MAPPING` until the merchant chooses the CJ variant.
 
 ### Shopify-only lines
 
@@ -66,7 +71,7 @@ These lines are intentional nonphysical purchases and must not be included in CJ
 | `51880636875047` | `ELASTIC-DIGITAL-GUIDE` | Digital hair-recovery guide |
 | `51880681472295` | `MASK-DIGITAL-GUIDE` | Digital Glass Skin guide |
 
-## Proposed implementation
+## Gate A implementation
 
 ### 1. Build a canonical expected physical manifest
 
@@ -105,7 +110,7 @@ On every cycle while a CJ order is replaceable:
 
 The CJ API does not document a normal-order endpoint for editing product lines. Its delete endpoint is limited to `CREATED` or `IN_CART`, so controlled delete-and-recreate is the proposed reconciliation method for replaceable orders.
 
-### 4. Replace safely
+### 4. Gate B replacement design, not implemented
 
 Replacement must run in the single worker replica and follow this sequence:
 
@@ -176,8 +181,8 @@ Add tests before deployment for:
 - Existing tracking-to-Shopify behavior remains unchanged.
 - The current Meta comment-monitoring automation remains untouched.
 
-## Approval requested
+## Approval gates
 
-Gate A authorizes implementation, unit tests, and a Railway deployment in `report` mode only. Gate A does **not** authorize deleting or recreating any CJ order.
+Gate A was approved. It authorizes implementation, unit tests, and a Railway deployment in `report` mode only. Gate A does **not** authorize deleting or recreating any CJ order.
 
 Gate B will be requested separately after the report-mode output is reviewed.

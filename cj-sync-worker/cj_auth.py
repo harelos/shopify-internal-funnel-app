@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import ssl
 import time
 import urllib.error
@@ -29,6 +30,8 @@ CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1"
 
 # Refresh a little before real expiry so a long batch cannot expire mid-run.
 EXPIRY_SAFETY_MARGIN_SECONDS = 600
+RETRYABLE_HTTP_CODES = {429, 502, 503, 504}
+GET_MAX_ATTEMPTS = 3
 
 
 def load_env_file(path: Path = ENV_PATH) -> None:
@@ -90,15 +93,30 @@ def request_json(
 ) -> dict[str, Any]:
     data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", "replace")
+    attempts = GET_MAX_ATTEMPTS if method.upper() == "GET" else 1
+    for attempt in range(attempts):
         try:
-            return json.loads(body)
-        except json.JSONDecodeError:
-            raise RuntimeError(f"HTTP {exc.code} from {urllib.parse.urlsplit(url).path}: {body[:300]}") from None
+            with urllib.request.urlopen(req, context=SSL_CTX, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", "replace")
+            if exc.code in RETRYABLE_HTTP_CODES and attempt + 1 < attempts:
+                time.sleep((2**attempt) + random.uniform(0.05, 0.35))
+                continue
+            try:
+                return json.loads(body)
+            except json.JSONDecodeError:
+                raise RuntimeError(
+                    f"HTTP {exc.code} from {urllib.parse.urlsplit(url).path}: {body[:300]}"
+                ) from None
+        except urllib.error.URLError as exc:
+            if attempt + 1 < attempts:
+                time.sleep((2**attempt) + random.uniform(0.05, 0.35))
+                continue
+            raise RuntimeError(
+                f"Network error from {urllib.parse.urlsplit(url).path}: {exc.reason}"
+            ) from None
+    raise RuntimeError(f"GET retry loop exhausted for {urllib.parse.urlsplit(url).path}")
 
 
 def _read_cache() -> dict[str, Any]:

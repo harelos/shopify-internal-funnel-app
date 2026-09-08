@@ -18,6 +18,13 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cj_auth import cj_request as _cj_request  # noqa: E402
 from cj_auth import get_token, request_json  # noqa: E402
+from novahair_manifest import (  # noqa: E402
+    BUNDLE_SKU_RE as SKU_RE,
+    COMPONENTS,
+    GIFT,
+    actual_products,
+    expected_products,
+)
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -34,17 +41,7 @@ TARGET_ORDER_NUMBERS = {4358, 4378, 4379, 4380, 4381, 4382, 4383}
 # order. run() sets this before any validation happens, so validate_order stays
 # the single authority on what may be pushed.
 ACTIVE_TARGETS: set[int] = set(TARGET_ORDER_NUMBERS)
-SKU_RE = re.compile(r"^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$")
 LOGISTIC_NAME = "CJPacket YP Special Line"
-
-COMPONENTS = (
-    ("black", "2412030839551624000", "CJYD223160001AZ"),
-    ("dark_brown", "2412030839551624200", "CJYD223160002BY"),
-    ("light_brown", "2412030839551624400", "CJYD223160003CX"),
-    ("purple", "2412030839551624700", "CJYD223160005EV"),
-    ("red", "2412030839551624600", "CJYD223160004DW"),
-)
-GIFT = ("free_kit", "ED56BD86-3AF9-4E8E-9855-FBD046D33613", "CJBJMRPF00756-Suit")
 
 
 def load_env_file(path: Path) -> None:
@@ -118,6 +115,14 @@ def cj_variant_catalog(token: str) -> dict[str, dict[str, Any]]:
     return catalog
 
 
+def cj_variant_by_vid(token: str, vid: str) -> dict[str, Any]:
+    response = cj_request(token, "GET", "product/variant/queryByVid", params={"vid": vid})
+    variant = response.get("data") or {}
+    if not response.get("result") or str(variant.get("vid") or "") != vid:
+        raise DataGapError(f"CJ variant lookup failed for {vid}")
+    return variant
+
+
 def normalize_phone(value: str) -> str:
     raw = re.sub(r"[^0-9+]", "", value or "")
     if raw.startswith("00972"):
@@ -179,6 +184,43 @@ def build_products(composition: dict[str, int], catalog: dict[str, dict[str, Any
         if price is None:
             raise DataGapError(f"CJ price missing for {name}")
         products.append({"vid": vid, "quantity": quantity, "unitPrice": float(price)})
+    return products
+
+
+def build_manifest_products(
+    token: str,
+    manifest_items: list[dict[str, Any]],
+    catalog: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Validate and price every expected physical line for createOrderV2."""
+    products: list[dict[str, Any]] = []
+    for item in manifest_items:
+        vid = str(item.get("vid") or "")
+        expected_sku = str(item.get("sku") or "")
+        quantity = int(item.get("quantity") or 0)
+        if not vid or not expected_sku or quantity < 1:
+            raise DataGapError("Manifest contains an invalid physical item")
+
+        variant = catalog.get(vid)
+        if not variant:
+            variant = cj_variant_by_vid(token, vid)
+            catalog[vid] = variant
+        actual_sku = str(variant.get("variantSku") or "")
+        if actual_sku != expected_sku:
+            raise DataGapError(f"CJ mapping mismatch for {item.get('key') or vid}")
+        price = variant.get("variantSellPrice")
+        if price is None:
+            raise DataGapError(f"CJ price missing for {item.get('key') or vid}")
+
+        product: dict[str, Any] = {
+            "vid": vid,
+            "quantity": quantity,
+            "unitPrice": float(price),
+        }
+        store_line_item_id = str(item.get("store_line_item_id") or "").strip()
+        if store_line_item_id:
+            product["storeLineItemId"] = store_line_item_id
+        products.append(product)
     return products
 
 
@@ -357,6 +399,7 @@ def create_one(
     supplement: dict[str, Any],
     bottle_count: int,
     existing: dict[str, list[dict[str, Any]]],
+    manifest_items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Create and verify one unpaid CJ order. Mirrors the audited path in run().
 
@@ -370,8 +413,13 @@ def create_one(
     recipient = recipient_from_shopify(order) or recipient_from_cj(token, original_rows)
     recipient = apply_supplement(recipient, number, supplement)
 
-    products = build_products(composition, catalog)
-    if sum(item["quantity"] for item in products if item["vid"] != GIFT[1]) != bottle_count:
+    products = (
+        build_manifest_products(token, manifest_items, catalog)
+        if manifest_items is not None
+        else build_products(composition, catalog)
+    )
+    bottle_vids = {vid for _, vid, _ in COMPONENTS}
+    if sum(item["quantity"] for item in products if item["vid"] in bottle_vids) != bottle_count:
         raise ValueError("CJ bottle quantities do not reconcile")
 
     response = cj_request(
@@ -391,8 +439,8 @@ def create_one(
     detail = detail_for(token, cj_order_id)
     if str(detail.get("orderNum") or "") != rescue_number:
         raise ValueError("CJ verification returned the wrong order number")
-    actual = {str(i.get("vid")): int(i.get("quantity") or 0) for i in (detail.get("productList") or [])}
-    expected = {str(i["vid"]): int(i["quantity"]) for i in products}
+    actual = actual_products(detail.get("productList") or [])
+    expected = expected_products(products)
     if actual != expected or int(detail.get("isComplete") or 0) != 1:
         raise ValueError("CJ product verification failed")
 
