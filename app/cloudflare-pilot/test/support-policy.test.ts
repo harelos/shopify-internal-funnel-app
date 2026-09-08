@@ -153,5 +153,6 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(html, /viewport-fit=cover/);
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(js, /Approve & send/);
+  assert.match(html, /data-status="CLOSED"/);
   assert.doesNotMatch(html + js, /utm_|externalMessageId|policyFlagsJson/);
 });

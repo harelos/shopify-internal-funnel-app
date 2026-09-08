@@ -91,7 +91,7 @@ supportBridgeRouter.get("/conversations", async (req, res) => {
   const status = allowedStatuses.has(requestedStatus) ? requestedStatus : undefined;
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const rows = await prisma.supportConversation.findMany({
-    where: status ? { status } : undefined,
+    where: status ? { status } : { status: { not: "CLOSED" } },
     orderBy: { updatedAt: "desc" },
     take: limit,
     include: {
@@ -248,7 +248,7 @@ supportAdminRouter.get("/support/overview", async (_req, res) => {
 supportAdminRouter.get("/support/conversations", async (req, res) => {
   const status = typeof req.query.status === "string" && req.query.status !== "ALL" ? req.query.status : undefined;
   const rows = await prisma.supportConversation.findMany({
-    where: status ? { status } : undefined,
+    where: status ? { status } : { status: { not: "CLOSED" } },
     orderBy: { updatedAt: "desc" },
     take: 100,
     include: {
