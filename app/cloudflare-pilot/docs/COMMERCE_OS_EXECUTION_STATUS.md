@@ -11,6 +11,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Exit popup and AI Concierge remain separate experiences. They can share orchestration and reporting, but one experience must not silently change the other.
 - Support auto-send is limited to low-risk, policy-approved cases. Refunds, chargebacks, legal/medical issues, uncertain identity, hostile messages, and missing order facts require escalation.
 - GitHub stores code, schemas, runbooks, and sanitized examples. Runtime secrets and customer data remain in their designated systems.
+- Infrastructure-provider mail from approved operations domains is excluded before support keyword matching. Existing false positives are preserved in the database as `NON_CUSTOMER` and removed from customer-support reporting; they are not deleted.
 
 ## Product navigation
 
@@ -72,6 +73,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Outbound replies no longer overwrite the topic, risk, language, or customer classification established by the customer's inbound message. A bounded scheduled reconciliation repairs historic topics deterministically.
 - The Support Quality view reports verified inbound volume, median first-response time, escalations, repeat contacts, AI-assisted sends, Sent-folder verification and top contact reasons for 7-, 30- and 90-day ranges. New sends record whether policy automation, the owner, or an authenticated agent authorized them; older sends without that evidence remain visibly unclassified rather than guessed.
 - Failed sends create a visible inbox alert and a dedicated filter leading to the stored delivery error and guarded retry action.
+- Namecheap, Private Email, Cloudflare, Railway, GitHub, and OpenRouter operations mail is excluded by sender-domain gate in both the mailbox worker and the support API. Historic false positives are closed as `NON_CUSTOMER` during the support cron.
 - Live DNS verification on 2026-09-08 found Namecheap MX and DKIM, DMARC monitoring, and a missing SPF record. DNS was not changed because all legitimate domain senders must be inventoried before a single consolidated SPF record is published.
 - Operational details: `docs/SUPPORT_DELIVERY_RUNBOOK.md`.
 

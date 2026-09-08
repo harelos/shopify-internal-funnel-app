@@ -14,10 +14,13 @@ let deliverabilityCache: { domain: string; expiresAt: number; value: unknown } |
 
 function customerSupportScope() {
   return {
-    OR: [
-      { messages: { some: { direction: "INBOUND" } } },
-      { language: { in: ["HEBREW", "MIXED"] } },
-      { shopifyOrderGid: { not: null } },
+    AND: [
+      { audienceType: { not: "NON_CUSTOMER" } },
+      { OR: [
+        { messages: { some: { direction: "INBOUND" } } },
+        { language: { in: ["HEBREW", "MIXED"] } },
+        { shopifyOrderGid: { not: null } },
+      ] },
     ],
   };
 }

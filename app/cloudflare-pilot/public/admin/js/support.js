@@ -117,6 +117,7 @@
     document.getElementById("quality-auto-sent").textContent = metrics.automaticAiRepliesSent;
     document.getElementById("quality-owner-sent").textContent = metrics.ownerApprovedAiRepliesSent;
     document.getElementById("quality-agent-sent").textContent = metrics.agentApprovedAiRepliesSent;
+    document.getElementById("quality-unclassified-sent").textContent = metrics.unclassifiedAiRepliesSent;
     document.getElementById("quality-failed").textContent = metrics.deliveryFailures;
     document.getElementById("quality-delivery").textContent = metrics.verifiedSentCopies;
     document.getElementById("quality-coverage").textContent = data.quality.coverage === "COMPLETE_FOR_RANGE" ? "Complete range" : "First 500 threads";

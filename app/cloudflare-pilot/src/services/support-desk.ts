@@ -514,26 +514,43 @@ export async function processSupportDeskCron() {
 
 export async function reclassifyHistoricSupportTopics(limit = 100) {
   const conversations = await prisma.supportConversation.findMany({
-    where: { topic: "OTHER", messages: { some: { direction: "INBOUND" } } },
+    where: { audienceType: { not: "NON_CUSTOMER" }, messages: { some: { direction: "INBOUND" } } },
     orderBy: { updatedAt: "desc" },
     take: Math.min(250, Math.max(1, limit)),
     select: {
       id: true,
       subject: true,
-      messages: { where: { direction: "INBOUND" }, orderBy: { sentAt: "desc" }, take: 1, select: { textBody: true } },
+      topic: true,
+      messages: { where: { direction: "INBOUND" }, orderBy: { sentAt: "desc" }, take: 1, select: { fromAddress: true, textBody: true } },
     },
   });
-  let updated = 0;
+  let topicsUpdated = 0;
+  let noiseExcluded = 0;
   for (const conversation of conversations) {
     const latestInbound = conversation.messages[0];
     if (!latestInbound) continue;
+    const triage = triageMailboxMessage({
+      direction: "INBOUND",
+      fromAddress: latestInbound.fromAddress,
+      subject: conversation.subject,
+      textBody: latestInbound.textBody,
+    });
+    if (triage.classification === "IGNORE") {
+      await prisma.supportConversation.update({
+        where: { id: conversation.id },
+        data: { audienceType: "NON_CUSTOMER", triageStatus: "IGNORED", status: "CLOSED", nextActionAt: null },
+      });
+      noiseExcluded += 1;
+      continue;
+    }
+    if (conversation.topic !== "OTHER") continue;
     const policy = evaluateSupportPolicy(`${conversation.subject}\n${latestInbound.textBody}`);
     if (policy.topic === "OTHER") continue;
     await prisma.supportConversation.update({
       where: { id: conversation.id },
       data: { topic: policy.topic, priority: policy.priority, riskLevel: policy.riskLevel },
     });
-    updated += 1;
+    topicsUpdated += 1;
   }
-  return updated;
+  return { topicsUpdated, noiseExcluded };
 }

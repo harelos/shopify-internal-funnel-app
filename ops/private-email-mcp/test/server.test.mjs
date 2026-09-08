@@ -54,3 +54,13 @@ test("Shopify payout notices never enter the customer-support queue", () => {
   assert.equal(result.triageClass, "IGNORE");
   assert.ok(result.triageReasons.includes("BUSINESS_OR_SYSTEM_MAIL_SIGNAL"));
 });
+
+test("operations-provider senders are excluded before keyword matching", () => {
+  const result = triageMessage({
+    fromAddress: "risk-management@namecheap.com",
+    subject: "Re: email address review",
+    textBody: "Please confirm the shipping address and delivery email address.",
+  });
+  assert.equal(result.triageClass, "IGNORE");
+  assert.ok(result.triageReasons.includes("OPERATIONS_SERVICE_PROVIDER_SENDER"));
+});

@@ -38,6 +38,10 @@ On 2026-09-08, live DNS had working Namecheap MX and DKIM plus DMARC in monitori
 ## Inbox scope
 
 - A visible support conversation must contain an inbound customer message, Hebrew or mixed-language service history, or verified Shopify-order context.
+- Customer-support classification happens twice: once in the Railway IMAP worker and again in the Cloudflare support API.
+- Known infrastructure-provider domains are rejected before broad keywords such as `shipping`, `delivery`, or `email address` are evaluated.
+- A historic provider-mail false positive is retained for auditability, relabeled `NON_CUSTOMER`, closed, and excluded from owner-facing support counts.
+- Add a provider domain to this gate only when it is an operations-only sender for this mailbox; do not use the gate to suppress real customer domains.
 - Outbound-only English vendor, finance, infrastructure, and account-operation threads stay preserved in the mailbox but are excluded from the Support workspace.
 - The mailbox connector applies the same rule before ingestion: outbound mail is imported only when it belongs to an accepted inbound thread or is itself Hebrew customer-service content.
 - The filter is non-destructive. It changes product scope and future ingestion; it does not delete mailbox evidence.

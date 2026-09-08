@@ -135,6 +135,17 @@ test("supplier and sourcing conversations are filtered even when they mention sh
   assert.ok(result.reasons.includes("SUPPLIER_OR_OPERATIONS_SIGNAL"));
 });
 
+test("operations-provider mail never enters the customer-support queue", () => {
+  const result = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "risk-management@namecheap.com",
+    subject: "Re: email address review",
+    textBody: "Please reply with the shipping address connected to this email account.",
+  });
+  assert.equal(result.classification, "IGNORE");
+  assert.ok(result.reasons.includes("OPERATIONS_SERVICE_PROVIDER_SENDER"));
+});
+
 test("English operational mail cannot auto-send even if a shipping phrase matches", () => {
   const policy = evaluateSupportPolicy("What is the shipping cost?");
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: false, hasUnverifiedClaims: false, language: "ENGLISH" }), false);
@@ -172,6 +183,7 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(html, /Service quality/);
   assert.match(html, /Automatic sends/);
   assert.match(html, /Owner-approved/);
+  assert.match(html, /Unclassified legacy/);
   assert.match(html, /data-status="DELIVERY_FAILED"/);
   assert.match(js, /show-delivery-failures/);
   assert.match(html, /Historic replies are suggestions only/);
@@ -180,6 +192,7 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   const route = fs.readFileSync(path.join(appRoot, "src/routes/support-desk.ts"), "utf8");
   const service = fs.readFileSync(path.join(appRoot, "src/services/support-desk.ts"), "utf8");
   assert.match(route, /customerSupportConversationWhere/);
+  assert.match(route, /audienceType:\s*\{\s*not:\s*"NON_CUSTOMER"/);
   assert.match(route, /messages:\s*\{\s*some:\s*\{\s*direction:\s*"INBOUND"/);
   assert.match(route, /\/support\/voice-examples/);
   assert.match(route, /\/support\/analytics/);
@@ -190,6 +203,8 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);
   assert.match(service, /reclassifyHistoricSupportTopics/);
+  assert.match(service, /triage\.classification === "IGNORE"/);
+  assert.match(service, /audienceType:\s*"NON_CUSTOMER"/);
   assert.match(service, /SEND_AUTHORIZED/);
   assert.match(service, /AUTOMATION_POLICY/);
   assert.match(service, /"status" = 'WAITING_CUSTOMER', "lastAgentMessageAt"/);
