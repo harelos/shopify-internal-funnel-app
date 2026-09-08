@@ -74,6 +74,32 @@ export function triageMessage(message) {
   return { triageClass: "IGNORE", triageScore: 0.9, triageReasons: ["NO_CUSTOMER_SUPPORT_SIGNAL"] };
 }
 
+export function parseDeliveryFailure(input) {
+  const raw = String(input?.rawSource || "");
+  const isDeliveryReport = input?.automated === true || /(?:multipart\/report|message\/delivery-status)/i.test(raw);
+  if (!isDeliveryReport) return null;
+  const originalMessageId = raw.match(/^(?:Original-Message-ID|Message-ID|In-Reply-To):\s*(<support-draft-[a-z0-9-]+@tigerbrandsglobal\.com>)/mi)?.[1] || null;
+  if (!originalMessageId) return null;
+  const action = raw.match(/^Action:\s*([^\r\n]+)/mi)?.[1]?.trim().toLowerCase() || "";
+  const status = raw.match(/^Status:\s*([245]\.\d{1,3}\.\d{1,3})/mi)?.[1] || "";
+  if (action !== "failed" && !status.startsWith("5.")) return null;
+  if (action === "delayed" || status.startsWith("4.")) return null;
+  const diagnostic = raw.match(/^Diagnostic-Code:\s*([^\r\n]+)/mi)?.[1]?.trim()
+    || raw.match(/(?:could not be delivered|undeliverable|mailbox unavailable|recipient address rejected)[^\r\n]*/i)?.[0]?.trim()
+    || "The recipient mail server rejected the message.";
+  const finalRecipient = raw.match(/^Final-Recipient:\s*(?:[^;]+;)?\s*([^\s\r\n]+)/mi)?.[1]?.trim().toLowerCase() || null;
+  const occurredAt = new Date(input?.sentAt || Date.now());
+  return {
+    originalMessageId,
+    bounceMessageId: String(input?.bounceMessageId || "").trim() || null,
+    action: action || "failed",
+    status: status || "5.0.0",
+    diagnostic: diagnostic.slice(0, 500),
+    finalRecipient,
+    occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date().toISOString() : occurredAt.toISOString(),
+  };
+}
+
 function requireConfig() {
   const missing = [];
   if (!mailboxAddress) missing.push("NAMECHEAP_PRIVATE_EMAIL_USER");
@@ -170,7 +196,7 @@ async function attachmentManifest(attachments = []) {
   })));
 }
 
-async function collectMessages(client, folder, direction, since) {
+async function collectMessages(client, folder, direction, since, deliveryFailures = []) {
   const lock = await client.getMailboxLock(folder);
   try {
     const uids = await client.search({ since }, { uid: true });
@@ -178,7 +204,20 @@ async function collectMessages(client, folder, direction, since) {
     const rows = [];
     if (!selected.length) return rows;
     for await (const message of client.fetch(selected, { source: true, internalDate: true }, { uid: true })) {
-      const parsed = await simpleParser(message.source);
+      const parsed = await simpleParser(message.source, { keepDeliveryStatus: true });
+      if (direction === "INBOUND") {
+        const deliveryFailure = parseDeliveryFailure({
+          rawSource: message.source.toString("utf8"),
+          subject: parsed.subject,
+          automated: automated(parsed),
+          bounceMessageId: parsed.messageId || `<${folder}-${message.uid}@local-bounce>`,
+          sentAt: parsed.date || message.internalDate || new Date(),
+        });
+        if (deliveryFailure) {
+          deliveryFailures.push(deliveryFailure);
+          continue;
+        }
+      }
       if (automated(parsed)) continue;
       const from = addresses(parsed.from);
       const to = addresses(parsed.to);
@@ -229,8 +268,9 @@ export async function syncMailbox() {
     const inbox = folders.find(folder => folder.specialUse === "\\Inbox")?.path || "INBOX";
     const sent = folders.find(folder => folder.specialUse === "\\Sent")?.path || folders.find(folder => /sent/i.test(folder.path))?.path;
     if (!sent) throw new Error("The Namecheap Sent folder could not be resolved.");
+    const deliveryFailures = [];
     const candidates = [
-      ...(await collectMessages(client, inbox, "INBOUND", since)),
+      ...(await collectMessages(client, inbox, "INBOUND", since, deliveryFailures)),
       ...(await collectMessages(client, sent, "OUTBOUND", since)),
     ].sort((left, right) => new Date(left.sentAt) - new Date(right.sentAt));
     const classified = candidates.map(message => ({ ...message, ...triageMessage(message) }));
@@ -243,6 +283,15 @@ export async function syncMailbox() {
       return message.triageClass !== "IGNORE" && HEBREW.test(`${message.subject}\n${message.textBody}`);
     });
     const ignored = classified.length - messages.length;
+    let bouncesMatched = 0;
+    let bouncesDuplicate = 0;
+    let bouncesUnmatched = 0;
+    for (const failure of deliveryFailures) {
+      const result = await supportBridgeFetch("/support-bridge/delivery/bounce", { method: "POST", body: JSON.stringify(failure) });
+      if (result.duplicate) bouncesDuplicate += 1;
+      else if (result.matched) bouncesMatched += 1;
+      else bouncesUnmatched += 1;
+    }
     let imported = 0;
     let duplicates = 0;
     const threadGroups = new Map();
@@ -268,8 +317,8 @@ export async function syncMailbox() {
       }
     });
     await Promise.all(workers);
-    await writeState({ lastSuccessfulSyncAt: new Date().toISOString(), scanned: candidates.length, imported, duplicates, ignored });
-    return { scanned: candidates.length, accepted: messages.length, ignored, imported, duplicates, inbox, sent };
+    await writeState({ lastSuccessfulSyncAt: new Date().toISOString(), scanned: candidates.length, imported, duplicates, ignored, bouncesMatched, bouncesDuplicate, bouncesUnmatched });
+    return { scanned: candidates.length, accepted: messages.length, ignored, imported, duplicates, bouncesMatched, bouncesDuplicate, bouncesUnmatched, inbox, sent };
   } finally {
     if (client.usable) await client.logout().catch(() => {});
   }
@@ -418,7 +467,7 @@ export async function runOnce() {
     const sync = await syncMailbox();
     const outbox = await sendOutbox();
     const delivery = await verifyRecordedSentMessages();
-    const result = `Scanned ${sync.scanned}; accepted ${sync.accepted}; ignored ${sync.ignored}; sent ${outbox.sent || 0}; verified ${delivery.verified}`;
+    const result = `Scanned ${sync.scanned}; accepted ${sync.accepted}; ignored ${sync.ignored}; bounces ${sync.bouncesMatched || 0}; sent ${outbox.sent || 0}; verified ${delivery.verified}`;
     await supportBridgeFetch("/support-bridge/heartbeat", { method: "POST", body: JSON.stringify({ mailboxAddress, status: "IDLE", scanned: sync.scanned, ignored: sync.ignored, result, intervalMs }) });
     console.log(JSON.stringify({ ok: true, sync, outbox, delivery, at: new Date().toISOString() }));
     return { ok: true, sync, outbox, delivery, result };

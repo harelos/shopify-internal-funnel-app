@@ -11,7 +11,7 @@ This runbook defines what the support product may claim about an outbound email.
 | SMTP accepted | Namecheap accepted the RFC 5322 message | The sender transferred the message to Namecheap. It does not prove recipient inbox placement. |
 | Sent copy verified | The exact deterministic Message-ID is present in the Namecheap Sent folder | The transmitted message has a durable mailbox copy and can be reconciled after a worker restart. |
 | Failed | SMTP, Sent-folder append, verification, or bridge acknowledgement failed | Human review or a guarded retry is required. |
-| Bounced | A delivery-status notification was matched to the deterministic Message-ID | The receiving system rejected the message after submission. Bounce ingestion remains a separate follow-up checkpoint. |
+| Bounced | A permanent delivery-status notification was matched to the deterministic Message-ID | The receiving system rejected the message after submission. The conversation is escalated and never resent automatically. |
 
 Never label SMTP acceptance or a Sent-folder copy as “delivered to customer.” Recipient inbox placement requires recipient-provider delivery evidence that standard Namecheap SMTP does not expose.
 
@@ -23,6 +23,15 @@ Never label SMTP acceptance or a Sent-folder copy as “delivered to customer.�
 - Only after those checks does the connector acknowledge the draft as sent.
 - If a process dies after SMTP acceptance, the next run finds the existing Sent copy and acknowledges it without resending.
 - The Worker exposes a bounded pending-verification feed so the agent can backfill Sent-folder evidence for earlier sends.
+
+## Bounce ingestion
+
+- The parser follows the permanent-failure fields defined by [RFC 3464](https://www.rfc-editor.org/rfc/rfc3464.html): original message identity, `Action`, `Status`, and `Diagnostic-Code`.
+- The Railway mailbox worker scans automated Inbox mail before normal support triage discards it.
+- A permanent bounce is accepted only when the raw DSN contains the exact deterministic `support-draft-*` Message-ID and either `Action: failed` or a `5.x.x` status.
+- Temporary `4.x.x` delays are ignored as bounces. An unmatched or malformed notice cannot change support state.
+- The Cloudflare bridge independently validates the Message-ID, matches an already-sent draft, updates the exact outbound message to `BOUNCED`, escalates the conversation, and appends one idempotent `OUTBOUND_BOUNCED` evidence event.
+- The owner-facing alert combines pre-send failures and verified post-send bounces, but the conversation names the verified reason and provides no automatic resend action.
 
 ## Domain authentication
 

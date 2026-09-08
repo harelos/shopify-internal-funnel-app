@@ -31,7 +31,7 @@ export function summarizeSupportSendAuthorizations(
   }).filter(([draftId]) => Boolean(draftId)));
   const summary: SupportSendSummary = { total: 0, automatic: 0, ownerApproved: 0, agentApproved: 0, unclassified: 0 };
   for (const draft of drafts) {
-    if (draft.status !== "SENT" || !draft.sentAt || draft.sentAt < since) continue;
+    if (!["SENT", "BOUNCED"].includes(draft.status) || !draft.sentAt || draft.sentAt < since) continue;
     summary.total += 1;
     const actor = actors.get(draft.id);
     if (actor === "AUTOMATION_POLICY") summary.automatic += 1;

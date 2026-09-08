@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { cleanMessageText, parseShopifyContactForm, triageMessage } from "../src/support-sync.mjs";
+import { cleanMessageText, parseDeliveryFailure, parseShopifyContactForm, triageMessage } from "../src/support-sync.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(here, "../src/server.mjs"), "utf8");
@@ -63,4 +63,34 @@ test("operations-provider senders are excluded before keyword matching", () => {
   });
   assert.equal(result.triageClass, "IGNORE");
   assert.ok(result.triageReasons.includes("OPERATIONS_SERVICE_PROVIDER_SENDER"));
+});
+
+test("a permanent DSN is matched only through the exact support Message-ID", () => {
+  const result = parseDeliveryFailure({
+    subject: "Delivery Status Notification (Failure)",
+    bounceMessageId: "<bounce-1@example.net>",
+    sentAt: "2026-09-08T17:00:00.000Z",
+    rawSource: [
+      "Content-Type: multipart/report; report-type=delivery-status",
+      "Original-Message-ID: <support-draft-123e4567-e89b-12d3-a456-426614174000@tigerbrandsglobal.com>",
+      "Final-Recipient: rfc822; shopper@example.com",
+      "Action: failed",
+      "Status: 5.1.1",
+      "Diagnostic-Code: smtp; 550 mailbox unavailable",
+    ].join("\r\n"),
+  });
+  assert.equal(result?.originalMessageId, "<support-draft-123e4567-e89b-12d3-a456-426614174000@tigerbrandsglobal.com>");
+  assert.equal(result?.status, "5.1.1");
+  assert.equal(result?.action, "failed");
+});
+
+test("temporary delay notices and unrelated failures are not marked as bounces", () => {
+  assert.equal(parseDeliveryFailure({
+    subject: "Delivery Status Notification (Delay)",
+    rawSource: "Original-Message-ID: <support-draft-123e4567-e89b-12d3-a456-426614174000@tigerbrandsglobal.com>\r\nAction: delayed\r\nStatus: 4.2.0",
+  }), null);
+  assert.equal(parseDeliveryFailure({
+    subject: "Delivery Status Notification (Failure)",
+    rawSource: "Action: failed\r\nStatus: 5.1.1",
+  }), null);
 });

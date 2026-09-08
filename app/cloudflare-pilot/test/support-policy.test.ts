@@ -200,6 +200,9 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(route, /SEND_AUTHORIZED/);
   assert.match(route, /OWNER_ADMIN/);
   assert.match(route, /AGENT_API/);
+  assert.match(route, /\/delivery\/bounce/);
+  assert.match(route, /OUTBOUND_BOUNCED/);
+  assert.match(route, /status:\s*"BOUNCED"/);
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);
   assert.match(service, /reclassifyHistoricSupportTopics/);

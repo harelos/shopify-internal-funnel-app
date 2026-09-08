@@ -74,6 +74,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 - The Support Quality view reports verified inbound volume, median first-response time, escalations, repeat contacts, AI-assisted sends, Sent-folder verification and top contact reasons for 7-, 30- and 90-day ranges. New sends record whether policy automation, the owner, or an authenticated agent authorized them; older sends without that evidence remain visibly unclassified rather than guessed.
 - Failed sends create a visible inbox alert and a dedicated filter leading to the stored delivery error and guarded retry action.
 - Namecheap, Private Email, Cloudflare, Railway, GitHub, and OpenRouter operations mail is excluded by sender-domain gate in both the mailbox worker and the support API. Historic false positives are closed as `NON_CUSTOMER` during the support cron.
+- Permanent delivery-status notifications are matched to the exact deterministic support Message-ID. Verified bounces move the sent draft and outbound message to `BOUNCED`, create hash-chained evidence, escalate the conversation, and cannot trigger an automatic resend. Temporary delays and unmatched DSNs fail closed.
 - Live DNS verification on 2026-09-08 found Namecheap MX and DKIM, DMARC monitoring, and a missing SPF record. DNS was not changed because all legitimate domain senders must be inventoried before a single consolidated SPF record is published.
 - Operational details: `docs/SUPPORT_DELIVERY_RUNBOOK.md`.
 
@@ -91,6 +92,6 @@ Snapshot date: 2026-09-08.
 2. Finish and release the unified shell, then apply it incrementally to existing modules without changing storefront runtimes.
 3. Normalize owner-facing labels into plain English while preserving raw identifiers behind drill-down details.
 4. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
-5. Add bounce ingestion and delivery-failure alerts to the support automation layer.
+5. Monitor the bounce parser against real provider DSNs and add narrow provider-specific fixtures only when required.
 6. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
 7. Add operations health and incident timelines before public app-store hardening.

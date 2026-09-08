@@ -26,14 +26,14 @@
     document.getElementById("count-review").textContent = data.counts.pendingReview;
     document.getElementById("count-escalated").textContent = data.counts.escalated;
     document.getElementById("count-sent").textContent = data.counts.sentReplies;
-    document.getElementById("count-failed").textContent = data.counts.failedReplies;
+    document.getElementById("count-failed").textContent = data.counts.deliveryAttention;
     document.getElementById("count-voice-review").textContent = data.counts.voicePendingReview;
     document.getElementById("voice-tab-count").textContent = data.counts.voicePendingReview;
     const failureAlert = document.getElementById("delivery-failure-alert");
-    failureAlert.hidden = data.counts.failedReplies === 0;
-    document.getElementById("delivery-failure-title").textContent = data.counts.failedReplies === 1
+    failureAlert.hidden = data.counts.deliveryAttention === 0;
+    document.getElementById("delivery-failure-title").textContent = data.counts.deliveryAttention === 1
       ? "1 reply needs delivery attention"
-      : `${data.counts.failedReplies} replies need delivery attention`;
+      : `${data.counts.deliveryAttention} replies need delivery attention`;
     state.mailbox = data.mailboxes[0] || null;
     const status = document.getElementById("mailbox-status");
     if (!state.mailbox) {
@@ -197,6 +197,9 @@
   function renderDraft(row, draft) {
     if (!draft) return `<section class="draft-card"><div class="draft-head"><div><strong>No draft yet</strong><div class="draft-reason">Generate a grounded reply from this thread and Shopify order data.</div></div></div><div class="draft-actions"><button class="support-button" id="generate-draft">Generate reply</button></div></section>`;
     const sentCopyVerified = row.evidence?.some(event => event.kind === "OUTBOUND_DELIVERY_VERIFIED");
+    if (draft.status === "BOUNCED") {
+      return `<section class="draft-card delivery-failed"><div class="draft-head"><div><strong>Recipient server returned this email</strong><div class="draft-reason">${esc(draft.lastDeliveryError || "The recipient mail server rejected the message.")}</div></div></div><div class="draft-receipt"><strong>Human follow-up required</strong><span>The bounce was matched to this exact reply and recorded in the evidence ledger. Check the address or contact the customer through a verified alternative; the system will not resend automatically.</span></div></section>`;
+    }
     if (draft.status === "SENT") {
       return `<section class="draft-card"><div class="draft-head"><div><strong>AI reply sent</strong><div class="draft-reason">${esc(when(draft.sentAt))}</div></div></div><div class="draft-receipt"><strong>${sentCopyVerified ? "SMTP accepted · Sent-folder copy verified" : "SMTP accepted by Namecheap"}</strong><span>${sentCopyVerified ? "The exact message is recorded in the mailbox Sent folder and in the support evidence ledger. Recipient inbox placement is controlled by the receiving provider." : "This earlier reply was accepted by Namecheap. Sent-folder verification was not recorded for this historical send."}</span></div></section>`;
     }
@@ -222,7 +225,7 @@
       <div class="context-card"><small>Confidence</small><strong>${Math.round((row.confidence || 0) * 100)}%</strong></div>
     </section>
     ${row.triageStatus === "NEEDS_REVIEW" ? `<section class="triage-notice"><strong>Needs inbox triage</strong><span>${esc(row.triageReason || "This message did not contain enough support signals for automatic handling.")}</span></section>` : ""}
-    <section class="message-thread">${row.messages.map(message => `<article class="message ${message.direction.toLowerCase()}"><div class="message-head"><strong>${message.direction === "INBOUND" ? "Customer" : "Tiger Brands"}${message.direction === "OUTBOUND" ? `<span class="delivery-state">${esc(message.deliveryStatus === "SENT_COPY_VERIFIED" ? "Sent copy verified" : "Sent")}</span>` : ""}</strong><span>${esc(when(message.sentAt))}</span></div><div class="message-body">${esc(message.textBody)}</div></article>`).join("")}</section>
+    <section class="message-thread">${row.messages.map(message => `<article class="message ${message.direction.toLowerCase()}"><div class="message-head"><strong>${message.direction === "INBOUND" ? "Customer" : "Tiger Brands"}${message.direction === "OUTBOUND" ? `<span class="delivery-state">${esc(message.deliveryStatus === "BOUNCED" ? "Bounced" : message.deliveryStatus === "SENT_COPY_VERIFIED" ? "Sent copy verified" : "Sent")}</span>` : ""}</strong><span>${esc(when(message.sentAt))}</span></div><div class="message-body">${esc(message.textBody)}</div></article>`).join("")}</section>
     ${renderDraft(row, draft)}`;
     workspace.classList.add("has-selection");
     panel.querySelector(".conversation-top")?.addEventListener("click", event => {

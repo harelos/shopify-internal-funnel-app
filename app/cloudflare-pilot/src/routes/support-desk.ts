@@ -27,7 +27,7 @@ function customerSupportScope() {
 
 function customerSupportConversationWhere(status?: string) {
   const statusFilter = status === "DELIVERY_FAILED"
-    ? { drafts: { some: { status: "FAILED" } } }
+    ? { drafts: { some: { status: { in: ["FAILED", "BOUNCED"] } } } }
     : status
       ? { status }
       : { status: { not: "CLOSED" } };
@@ -168,6 +168,48 @@ supportBridgeRouter.post("/delivery/:id/verify-sent-copy", async (req, res) => {
     data: { source: "NAMECHEAP_SMTP_AND_IMAP_SENT", deliveryStatus: "SENT_COPY_VERIFIED" },
   });
   return res.json({ ok: true, duplicate: Boolean(existing) });
+});
+
+supportBridgeRouter.post("/delivery/bounce", async (req, res) => {
+  const originalMessageId = String(req.body?.originalMessageId || "").trim();
+  const matchedId = originalMessageId.match(/^<support-draft-([a-z0-9-]+)@tigerbrandsglobal\.com>$/i)?.[1];
+  const bounceMessageId = String(req.body?.bounceMessageId || "").trim().slice(0, 500);
+  const action = String(req.body?.action || "").trim().toLowerCase();
+  const status = String(req.body?.status || "").trim().slice(0, 40);
+  const diagnostic = String(req.body?.diagnostic || "The recipient mail server rejected the message.").trim().slice(0, 500);
+  const occurredAt = new Date(req.body?.occurredAt || Date.now());
+  if (!matchedId || !bounceMessageId || (action !== "failed" && !status.startsWith("5.")) || Number.isNaN(occurredAt.getTime())) {
+    return res.status(400).json({ ok: false, error: "A matching failed delivery report is required." });
+  }
+  const draft = await prisma.supportDraft.findUnique({ where: { id: matchedId } });
+  if (!draft || !draft.sentAt || !["SENT", "BOUNCED"].includes(draft.status)) {
+    return res.json({ ok: true, matched: false, duplicate: false });
+  }
+  const priorBounceEvidence = await prisma.supportEvidenceEvent.findMany({
+    where: { conversationId: draft.conversationId, kind: "OUTBOUND_BOUNCED" },
+    orderBy: { occurredAt: "desc" },
+    take: 50,
+    select: { payloadJson: true },
+  });
+  const duplicate = priorBounceEvidence.some(event => {
+    try { return JSON.parse(event.payloadJson)?.bounceMessageId === bounceMessageId; }
+    catch { return false; }
+  });
+  await prisma.$transaction([
+    prisma.supportDraft.update({ where: { id: draft.id }, data: { status: "BOUNCED", claimedAt: null, lastDeliveryError: diagnostic } }),
+    prisma.supportMessage.updateMany({ where: { externalMessageId: originalMessageId, direction: "OUTBOUND" }, data: { deliveryStatus: "BOUNCED" } }),
+    prisma.supportConversation.update({ where: { id: draft.conversationId }, data: { status: "ESCALATED", priority: "URGENT", escalationReason: "OUTBOUND_EMAIL_BOUNCED", nextActionAt: null } }),
+  ]);
+  if (!duplicate) {
+    await appendSupportEvidence({
+      conversationId: draft.conversationId,
+      kind: "OUTBOUND_BOUNCED",
+      source: "NAMECHEAP_IMAP_DSN",
+      occurredAt,
+      payload: { draftId: draft.id, originalMessageId, bounceMessageId, action, status, diagnostic },
+    });
+  }
+  return res.json({ ok: true, matched: true, duplicate });
 });
 
 supportBridgeRouter.get("/conversations", async (req, res) => {
@@ -339,7 +381,7 @@ supportBridgeRouter.post("/outbox/:id/failed", async (req, res) => {
 });
 
 supportAdminRouter.get("/support/overview", async (_req, res) => {
-  const [mailboxes, open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, verifiedSentCopies] = await Promise.all([
+  const [mailboxes, open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, bouncedReplies, verifiedSentCopies] = await Promise.all([
     prisma.supportMailbox.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.supportConversation.count({ where: customerSupportConversationWhere("OPEN") }),
     prisma.supportConversation.count({ where: customerSupportConversationWhere("ESCALATED") }),
@@ -347,12 +389,13 @@ supportAdminRouter.get("/support/overview", async (_req, res) => {
     prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "PENDING_REVIEW"] } } }),
     prisma.supportVoiceExample.count({ where: { qualityStatus: "APPROVED" } }),
     prisma.supportDraft.count({ where: { status: { in: ["QUEUED_TO_SEND", "SENDING"] } } }),
-    prisma.supportDraft.count({ where: { status: "SENT" } }),
+    prisma.supportDraft.count({ where: { status: { in: ["SENT", "BOUNCED"] } } }),
     prisma.supportDraft.count({ where: { status: "FAILED" } }),
+    prisma.supportDraft.count({ where: { status: "BOUNCED" } }),
     prisma.supportEvidenceEvent.count({ where: { kind: "OUTBOUND_DELIVERY_VERIFIED" } }),
   ]);
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, verifiedSentCopies } });
+  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, bouncedReplies, deliveryAttention: failedReplies + bouncedReplies, verifiedSentCopies } });
 });
 
 supportAdminRouter.get("/support/voice-examples", async (req, res) => {
@@ -435,7 +478,7 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     ownerApprovedAiRepliesSent += sendSummary.ownerApproved;
     agentApprovedAiRepliesSent += sendSummary.agentApproved;
     unclassifiedAiRepliesSent += sendSummary.unclassified;
-    deliveryFailures += conversation.drafts.filter(draft => draft.status === "FAILED").length;
+    deliveryFailures += conversation.drafts.filter(draft => ["FAILED", "BOUNCED"].includes(draft.status)).length;
     topicCounts.set(conversation.topic, (topicCounts.get(conversation.topic) || 0) + 1);
     customerCounts.set(conversation.customerId, (customerCounts.get(conversation.customerId) || 0) + 1);
   }

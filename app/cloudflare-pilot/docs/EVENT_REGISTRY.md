@@ -103,12 +103,16 @@ The support evidence ledger currently uses:
 | `SEND_AUTHORIZED` | Support policy/admin/API | Records whether automation policy, the owner, or an authenticated agent authorized the send |
 | `DRAFT_APPROVED_FOR_SEND` | Support API | Legacy compatibility evidence for agent-approved drafts |
 | `OUTBOUND_DELIVERY_VERIFIED` | Namecheap Sent via IMAP | Deterministic Message-ID exists in Sent |
+| `OUTBOUND_BOUNCED` | Namecheap delivery-status notification via IMAP | A permanent DSN was matched to the exact deterministic support Message-ID |
 | `SHOPIFY_ORDER_SNAPSHOT` | Shopify Admin | Order facts used for an AI decision |
 | `ORDER_LOOKUP_FAILED` | Shopify Admin | Order verification failed |
 | `AI_DECISION` | AI provider | Decision, confidence, policy result, and draft reference |
 
 Support evidence is hash-chained per conversation. Sent-folder verification proves the
 mailbox accepted and stored a Sent copy; it does not prove recipient inbox placement.
+A bounce requires an exact `support-draft-*` Message-ID plus an RFC-style permanent
+failure signal. Delayed `4.x.x` reports are not treated as bounces, and unmatched DSNs
+do not alter a conversation.
 
 ## Adding a new event
 

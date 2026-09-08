@@ -10,16 +10,18 @@ test("support send reporting separates policy, owner, agent and legacy sends", (
     { id: "owner", status: "SENT", sentAt: new Date("2026-09-03T00:00:00.000Z") },
     { id: "agent", status: "SENT", sentAt: new Date("2026-09-04T00:00:00.000Z") },
     { id: "legacy", status: "SENT", sentAt: new Date("2026-09-05T00:00:00.000Z") },
+    { id: "bounced", status: "BOUNCED", sentAt: new Date("2026-09-06T00:00:00.000Z") },
     { id: "failed", status: "FAILED", sentAt: null },
   ];
   const evidence = [
     { payloadJson: JSON.stringify({ draftId: "auto", actor: "AUTOMATION_POLICY" }) },
     { payloadJson: JSON.stringify({ draftId: "owner", actor: "OWNER_ADMIN" }) },
     { payloadJson: JSON.stringify({ draftId: "agent", actor: "AGENT_API" }) },
+    { payloadJson: JSON.stringify({ draftId: "bounced", actor: "AUTOMATION_POLICY" }) },
   ];
   assert.deepEqual(summarizeSupportSendAuthorizations(drafts, evidence, since), {
-    total: 4,
-    automatic: 1,
+    total: 5,
+    automatic: 2,
     ownerApproved: 1,
     agentApproved: 1,
     unclassified: 1,

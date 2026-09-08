@@ -25,7 +25,7 @@
       <article><span class="summary-value" id="count-review">—</span><span>Needs review</span></article>
       <article class="summary-alert"><span class="summary-value" id="count-escalated">—</span><span>Escalated</span></article>
       <article><span class="summary-value" id="count-sent">—</span><span>AI replies sent</span></article>
-      <article class="summary-alert"><span class="summary-value" id="count-failed">—</span><span>Delivery failed</span></article>
+      <article class="summary-alert"><span class="summary-value" id="count-failed">—</span><span>Delivery attention</span></article>
       <article><span class="summary-value" id="count-voice-review">—</span><span>Voice to review</span></article>
     </section>
 
@@ -68,7 +68,7 @@
       </section>
 
       <section class="delivery-failure-alert" id="delivery-failure-alert" hidden aria-live="assertive">
-        <div><strong id="delivery-failure-title">A reply needs delivery attention</strong><span>The message was not sent. Its error and a guarded retry are available in the conversation.</span></div>
+        <div><strong id="delivery-failure-title">A reply needs delivery attention</strong><span>A send failed or the recipient server returned it. Open the conversation for the verified reason and safe next step.</span></div>
         <button class="support-button support-button-danger" id="show-delivery-failures">Review failed replies</button>
       </section>
 
@@ -78,7 +78,7 @@
       <button data-status="ESCALATED">Escalated</button>
       <button data-status="NEEDS_TRIAGE">Needs triage</button>
       <button data-status="WAITING_CUSTOMER">Waiting</button>
-      <button data-status="DELIVERY_FAILED">Delivery failed</button>
+      <button data-status="DELIVERY_FAILED">Delivery attention</button>
       <button data-status="CLOSED">Closed</button>
       </nav>
 
@@ -153,7 +153,7 @@
         <article><span class="quality-value" id="quality-owner-sent">—</span><strong>Owner-approved</strong><small>Approved in this inbox</small></article>
         <article><span class="quality-value" id="quality-agent-sent">—</span><strong>Agent-approved</strong><small>Explicit support API approval</small></article>
         <article><span class="quality-value" id="quality-unclassified-sent">—</span><strong>Unclassified legacy</strong><small>Older sends without authorization evidence</small></article>
-        <article><span class="quality-value" id="quality-failed">—</span><strong>Delivery failures</strong><small>Namecheap send errors</small></article>
+        <article><span class="quality-value" id="quality-failed">—</span><strong>Delivery failures</strong><small>Send errors and verified bounces</small></article>
         <article><span class="quality-value" id="quality-delivery">—</span><strong>Sent copies verified</strong><small>Namecheap evidence</small></article>
       </section>
       <div class="quality-grid">
