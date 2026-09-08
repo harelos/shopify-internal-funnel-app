@@ -118,3 +118,17 @@ export function journeyDurationMinutes(timeline: JourneyTimelineEntry[], paidAt:
   if (!Number.isFinite(firstAt) || !Number.isFinite(purchaseAt) || purchaseAt < firstAt) return null;
   return Math.round((purchaseAt - firstAt) / 60000);
 }
+
+export function compactJourneyTimeline(entries: JourneyTimelineEntry[]): JourneyTimelineEntry[] {
+  return [...entries]
+    .sort((left, right) => new Date(left.at).getTime() - new Date(right.at).getTime())
+    .filter((entry, index, all) => {
+      if (index === 0) return true;
+      const previous = all[index - 1];
+      const sameContent = entry.label === previous.label && entry.detail === previous.detail && entry.page === previous.page;
+      if (!sameContent) return true;
+      if (entry.at === previous.at) return false;
+      if (entry.category !== "experiment") return true;
+      return new Date(entry.at).getTime() - new Date(previous.at).getTime() > 30 * 60_000;
+    });
+}

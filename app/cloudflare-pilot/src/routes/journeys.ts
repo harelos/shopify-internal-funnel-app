@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
-import { friendlyChannel, humanizeJourneyEvent, journeyDurationMinutes, type JourneyTimelineEntry } from "../lib/journey-view.js";
+import { compactJourneyTimeline, friendlyChannel, humanizeJourneyEvent, journeyDurationMinutes, type JourneyTimelineEntry } from "../lib/journey-view.js";
 
 const router = Router();
 const DAY_MS = 86_400_000;
@@ -98,12 +98,10 @@ router.get("/journeys", async (req, res) => {
         detail: `${order.currency} ${order.netRevenueAmount.toFixed(2)}`,
         page: null,
       };
-      const timeline = [...visibleEvents, ...exposureEntries, ...checkoutEntry, purchaseEntry]
-        .sort((left, right) => new Date(left.at).getTime() - new Date(right.at).getTime())
-        .filter((entry, index, all) => index === 0 || !(entry.label === all[index - 1].label && entry.at === all[index - 1].at && entry.detail === all[index - 1].detail));
+      const timeline = compactJourneyTimeline([...visibleEvents, ...exposureEntries, ...checkoutEntry, purchaseEntry]);
       const firstTrackedEvent = matchingEvents[0];
       const lastTrackedEvent = matchingEvents[matchingEvents.length - 1];
-      const status = !visitorId ? "UNATTRIBUTED" : visibleEvents.length ? "VERIFIED" : "PARTIAL";
+      const status = !visitorId ? "UNATTRIBUTED" : (visibleEvents.length || exposureEntries.length) ? "VERIFIED" : "PARTIAL";
 
       return {
         id: order.id,

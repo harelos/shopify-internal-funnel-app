@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { friendlyChannel, humanizeJourneyEvent, journeyDurationMinutes } from "../src/lib/journey-view.js";
+import { compactJourneyTimeline, friendlyChannel, humanizeJourneyEvent, journeyDurationMinutes } from "../src/lib/journey-view.js";
 
 test("customer journeys translate technical attribution into owner-readable channels", () => {
   assert.equal(friendlyChannel("facebook", "paid_social"), "Facebook / Instagram ad");
@@ -27,3 +27,16 @@ test("customer journey duration is bounded by the first verified touchpoint", ()
   assert.equal(journeyDurationMinutes([], "2026-09-08T10:42:00.000Z"), null);
 });
 
+test("customer journeys collapse repeat experiment exposure noise", () => {
+  const timeline = compactJourneyTimeline([
+    { at: "2026-09-08T10:00:00.000Z", category: "experiment", label: "Saw an experiment variant", detail: "Gallery B", page: null },
+    { at: "2026-09-08T10:08:00.000Z", category: "experiment", label: "Saw an experiment variant", detail: "Gallery B", page: null },
+    { at: "2026-09-08T10:40:00.000Z", category: "experiment", label: "Saw an experiment variant", detail: "Gallery B", page: null },
+    { at: "2026-09-08T10:42:00.000Z", category: "purchase", label: "Completed purchase", detail: "ILS 239", page: null },
+  ]);
+  assert.deepEqual(timeline.map(entry => entry.at), [
+    "2026-09-08T10:00:00.000Z",
+    "2026-09-08T10:40:00.000Z",
+    "2026-09-08T10:42:00.000Z",
+  ]);
+});
