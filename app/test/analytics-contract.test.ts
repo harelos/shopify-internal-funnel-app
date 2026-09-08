@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
 import { analyticsDataContract, analyticsModeForRequest } from "../src/lib/analytics-config.js";
+import {
+  FUNNEL_CONTROL_PIXEL_ENDPOINT,
+  resolvePixelEndpoint,
+} from "../extensions/funnel-control-pixel/src/runtime.js";
 
 test("analytics mode defaults to TEST and never becomes LIVE from a query string", () => {
   const previous = process.env.ANALYTICS_MODE;
@@ -30,4 +34,11 @@ test("live ingestion contract contains both webhook reconciliation and pixel che
   assert.match(webhookSource, /shopifyWebhookDelivery/);
   assert.match(pixelSource, /checkout_started/);
   assert.match(pixelSource, /checkout_completed/);
+});
+
+test("checkout pixel always uses the fixed app-owned ingestion endpoint", () => {
+  assert.equal(resolvePixelEndpoint(undefined), FUNNEL_CONTROL_PIXEL_ENDPOINT);
+  assert.equal(resolvePixelEndpoint(""), FUNNEL_CONTROL_PIXEL_ENDPOINT);
+  assert.equal(resolvePixelEndpoint("https://example.com/collect"), FUNNEL_CONTROL_PIXEL_ENDPOINT);
+  assert.equal(resolvePixelEndpoint(FUNNEL_CONTROL_PIXEL_ENDPOINT), FUNNEL_CONTROL_PIXEL_ENDPOINT);
 });

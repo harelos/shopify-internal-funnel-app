@@ -1,8 +1,8 @@
 import {register} from '@shopify/web-pixels-extension';
+import {resolvePixelEndpoint} from './runtime.js';
 
 register(({analytics, browser, settings}) => {
-  const endpoint = String(settings.endpoint || '').trim();
-  if (!endpoint) return;
+  const endpoint = resolvePixelEndpoint(settings.endpoint);
 
   async function context() {
     let raw = '';
