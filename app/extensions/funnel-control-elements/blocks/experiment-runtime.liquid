@@ -2,7 +2,9 @@
 <script type="application/json" data-funnel-control-config>
   {
     "endpoint": {{ block.settings.endpoint | json }},
+    "selectionEndpoint": {{ block.settings.selection_endpoint | json }},
     "pagePath": {{ request.path | json }},
+    "revealTimeoutMs": {{ block.settings.reveal_timeout | json }},
     "debug": {{ block.settings.debug | json }},
     "isInternal": {{ request.design_mode | json }},
     "slots": [
@@ -41,6 +43,12 @@
     },
     {
       "type": "text",
+      "id": "selection_endpoint",
+      "label": "Fast assignment endpoint",
+      "default": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/apps/funnels/public"
+    },
+    {
+      "type": "text",
       "id": "slot_key",
       "label": "Experiment slot key",
       "default": "novahair.sales.gallery.primary"
@@ -56,6 +64,16 @@
       "id": "page_path",
       "label": "Only run on this page path",
       "default": "/pages/novahair-sales-staging"
+    },
+    {
+      "type": "range",
+      "id": "reveal_timeout",
+      "label": "Fail-open timeout",
+      "min": 400,
+      "max": 2000,
+      "step": 100,
+      "unit": "ms",
+      "default": 1400
     }
   ]
 }

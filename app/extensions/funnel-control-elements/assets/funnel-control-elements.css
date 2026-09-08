@@ -1,3 +1,16 @@
+.nova .hero-media:not([data-fce-ready="true"]) {
+  opacity: 0;
+  pointer-events: none;
+  animation: funnel-control-gallery-fail-open 1ms linear 2900ms forwards;
+}
+
+@keyframes funnel-control-gallery-fail-open {
+  to {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .fce-slot {
   min-height: var(--fce-slot-min-height, 0);
 }
@@ -105,6 +118,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nova .hero-media:not([data-fce-ready="true"]) {
+    animation-duration: 1ms !important;
+    animation-delay: 2900ms !important;
+  }
+
   .fce-gallery *,
   .fce-gallery *::before,
   .fce-gallery *::after {

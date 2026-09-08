@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import prisma from "../lib/db.js";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
@@ -12,6 +12,8 @@ import {
 } from "../lib/element-templates.js";
 import {
   ELEMENT_BASIS_POINTS_TOTAL,
+  chooseElementVariant,
+  elementBucket,
   hashAnonymousKey,
   selectElementVariant,
   simulateElementAllocation,
@@ -559,10 +561,187 @@ elementAdminRouter.post("/element-experiments/:id/promote/:variantId", async (re
   }
 });
 
-elementRuntimeRouter.get("/element-runtime/:slotKey", async (req, res) => {
+function configuredStorefrontOrigin(): string {
+  const configured = workerEnvValue("SHOPIFY_STOREFRONT_DOMAIN").trim();
+  if (!configured) return "";
+  try {
+    return new URL(configured.includes("://") ? configured : `https://${configured}`).origin;
+  } catch {
+    return "";
+  }
+}
+
+function allowPublicStorefrontRuntime(req: Request, res: Response): boolean {
+  const allowedOrigin = configuredStorefrontOrigin();
+  const requestOrigin = String(req.get("origin") ?? "").trim();
+  if (!allowedOrigin || requestOrigin !== allowedOrigin) {
+    res.status(403).json({ error: "Storefront origin required." });
+    return false;
+  }
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Vary", "Origin");
+  return true;
+}
+
+type PublicRuntimeRow = {
+  shopId: string;
+  slotId: string;
+  resolvedSlotKey: string;
+  targetSelector: string;
+  templateType: string;
+  templateVersion: number;
+  experimentId: string;
+  experimentKey: string;
+  allocationVersion: number;
+  posthogFlagKey: string | null;
+  variantId: string;
+  variantKey: string;
+  variantName: string;
+  isControl: number;
+  publishedVersionId: string | null;
+  contentRevision: number | null;
+  payloadJson: string | null;
+  weightBasisPoints: number;
+};
+
+function runtimeD1(): D1Database {
+  const db = (globalThis as typeof globalThis & {
+    __SHOPIFY_WORKER_ENV__?: { DB?: D1Database };
+  }).__SHOPIFY_WORKER_ENV__?.DB;
+  if (!db) throw new Error("Cloudflare D1 binding DB is unavailable in the current request context.");
+  return db;
+}
+
+async function sendPublicElementRuntime(req: Request, res: Response) {
+  try {
+    const visitorKey = String(req.query.visitor_id ?? "").trim();
+    if (visitorKey.length < 8 || visitorKey.length > 200) return res.status(400).json({ error: "A valid anonymous visitor id is required." });
+    const normalizedPath = pagePath(req.query.page);
+    const normalizedKey = slotKey(req.params.slotKey);
+    const db = runtimeD1();
+    const rowsResult = await db.prepare(`
+      SELECT
+        shop.id AS shopId,
+        slot.id AS slotId,
+        slot.slotKey AS resolvedSlotKey,
+        slot.targetSelector,
+        template.type AS templateType,
+        template.schemaVersion AS templateVersion,
+        experiment.id AS experimentId,
+        experiment.key AS experimentKey,
+        experiment.allocationVersion,
+        experiment.posthogFlagKey,
+        variant.id AS variantId,
+        variant.key AS variantKey,
+        variant.name AS variantName,
+        variant.isControl,
+        variant.publishedVersionId,
+        version.revision AS contentRevision,
+        version.payloadJson,
+        allocation.weightBasisPoints
+      FROM Shop shop
+      JOIN ElementSlot slot ON slot.shopId = shop.id
+      JOIN ElementTemplate template ON template.id = slot.templateId
+      JOIN ElementExperiment experiment ON experiment.slotId = slot.id
+      JOIN ElementExperimentAllocation allocation ON allocation.experimentId = experiment.id
+      JOIN ElementVariant variant ON variant.id = allocation.variantId
+      LEFT JOIN ElementVariantVersion version ON version.id = variant.publishedVersionId
+      WHERE shop.domain = ? AND slot.pagePath = ? AND slot.slotKey = ?
+        AND slot.status = 'ACTIVE' AND experiment.status IN ('RUNNING', 'COMPLETED')
+        AND allocation.weightBasisPoints > 0
+      ORDER BY variant.id ASC
+    `).bind(configuredShopDomain(), normalizedPath, normalizedKey).all<PublicRuntimeRow>();
+    const rows = rowsResult.results ?? [];
+    if (!rows.length) return res.json({ active: false, reason: "slot_or_experiment_inactive" });
+
+    const first = rows[0];
+    const selectedVariantId = chooseElementVariant(
+      rows.map(row => ({ variantId: row.variantId, weightBasisPoints: row.weightBasisPoints })),
+      elementBucket(visitorKey, first.experimentId, first.allocationVersion),
+    );
+    let variant = rows.find(row => row.variantId === selectedVariantId && row.publishedVersionId && row.payloadJson);
+    if (!variant) variant = rows.find(row => Boolean(row.isControl) && row.publishedVersionId && row.payloadJson);
+    if (!variant) return res.json({ active: false, reason: "no_published_variant" });
+
+    const anonymousKeyHash = hashAnonymousKey(visitorKey);
+    const visitorId = randomUUID();
+    const proposedAssignmentId = randomUUID();
+    const timestamp = new Date().toISOString();
+    const assignmentBatch = await db.batch([
+      db.prepare(`
+        INSERT OR IGNORE INTO Visitor (id, shopId, anonymousKeyHash, createdAt)
+        VALUES (?, ?, ?, ?)
+      `).bind(visitorId, first.shopId, anonymousKeyHash, timestamp),
+      db.prepare(`
+        INSERT OR IGNORE INTO ElementAssignment (id, visitorId, experimentId, variantId, allocationVersion, assignedAt)
+        SELECT ?, visitor.id, ?, ?, ?, ?
+        FROM Visitor visitor
+        WHERE visitor.shopId = ? AND visitor.anonymousKeyHash = ?
+      `).bind(
+        proposedAssignmentId,
+        first.experimentId,
+        variant.variantId,
+        first.allocationVersion,
+        timestamp,
+        first.shopId,
+        anonymousKeyHash,
+      ),
+      db.prepare(`
+        UPDATE ElementAssignment
+        SET variantId = ?, allocationVersion = ?, assignedAt = ?
+        WHERE experimentId = ? AND visitorId = (
+          SELECT id FROM Visitor WHERE shopId = ? AND anonymousKeyHash = ?
+        ) AND (variantId <> ? OR allocationVersion <> ?)
+      `).bind(
+        variant.variantId,
+        first.allocationVersion,
+        timestamp,
+        first.experimentId,
+        first.shopId,
+        anonymousKeyHash,
+        variant.variantId,
+        first.allocationVersion,
+      ),
+      db.prepare(`
+        SELECT assignment.id
+        FROM ElementAssignment assignment
+        JOIN Visitor visitor ON visitor.id = assignment.visitorId
+        WHERE visitor.shopId = ? AND visitor.anonymousKeyHash = ? AND assignment.experimentId = ?
+        LIMIT 1
+      `).bind(first.shopId, anonymousKeyHash, first.experimentId),
+    ]);
+    const assignmentId = String((assignmentBatch[3]?.results?.[0] as { id?: string } | undefined)?.id ?? "");
+    if (!assignmentId) throw new Error("Element assignment could not be persisted.");
+
+    res.setHeader("Cache-Control", "private, no-store, max-age=0");
+    return res.json({
+      active: true,
+      slotId: first.slotId,
+      slotKey: first.resolvedSlotKey,
+      selector: first.targetSelector,
+      templateType: first.templateType,
+      templateVersion: first.templateVersion,
+      experimentId: first.experimentId,
+      experimentKey: first.experimentKey,
+      posthogFlagKey: first.posthogFlagKey,
+      allocationVersion: first.allocationVersion,
+      assignmentId,
+      variantId: variant.variantId,
+      variantKey: variant.variantKey,
+      variantName: variant.variantName,
+      isControl: Boolean(variant.isControl),
+      contentRevision: variant.contentRevision,
+      payload: parseStoredPayload(variant.payloadJson ?? "{}"),
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to resolve public element experiment." });
+  }
+}
+
+async function sendElementRuntime(req: Request, res: Response, requireSignedProxy: boolean) {
   try {
     const config = getShopifyConfig();
-    if (config.liveConnect && !verifyShopifyAppProxyRequest(req)) {
+    if (requireSignedProxy && config.liveConnect && !verifyShopifyAppProxyRequest(req)) {
       return res.status(401).json({ error: "Signed Shopify App Proxy request required." });
     }
     const visitorKey = String(req.query.visitor_id ?? "").trim();
@@ -610,6 +789,15 @@ elementRuntimeRouter.get("/element-runtime/:slotKey", async (req, res) => {
   } catch (error: any) {
     res.status(400).json({ error: error.message || "Failed to resolve element experiment." });
   }
+}
+
+elementRuntimeRouter.get("/public/element-runtime/:slotKey", async (req, res) => {
+  if (!allowPublicStorefrontRuntime(req, res)) return;
+  await sendPublicElementRuntime(req, res);
+});
+
+elementRuntimeRouter.get("/element-runtime/:slotKey", async (req, res) => {
+  await sendElementRuntime(req, res, true);
 });
 
 elementRuntimeRouter.post("/element-exposure", async (req, res) => {

@@ -49,6 +49,39 @@ test("element runtime persists assignment against the Shopify cart without mutat
   assert.doesNotMatch(source, /cart\/update\.js|cart\/add\.js/);
 });
 
+test("element runtime prevents control-to-challenger flicker and fails open safely", () => {
+  const runtime = readFileSync("public/assets/funnel-control-elements.js", "utf8");
+  const liquid = readFileSync("../extensions/funnel-control-elements/blocks/experiment-runtime.liquid", "utf8");
+  const stylesheet = readFileSync("../extensions/funnel-control-elements/assets/funnel-control-elements.css", "utf8");
+  assert.match(liquid, /"target": "body"/);
+  assert.match(liquid, /revealTimeoutMs/);
+  assert.match(stylesheet, /\.nova \.hero-media:not\(\[data-fce-ready="true"\]\)/);
+  assert.match(stylesheet, /funnel-control-gallery-fail-open/);
+  assert.match(runtime, /Control revealed after runtime timeout/);
+  assert.match(runtime, /image_error/);
+  assert.match(runtime, /new Image/);
+  assert.match(runtime, /_funnel_context/);
+  assert.match(runtime, /element-cart-attribution/);
+  assert.match(runtime, /fceReady/);
+  assert.match(runtime, /\/apps\/funnels\/public/);
+  assert.match(runtime, /credentials:[a-zA-Z_$][\w$]*\?"omit":"same-origin"/);
+});
+
+test("fast public assignment is storefront-origin scoped while tracking stays signed", () => {
+  const route = readFileSync("src/routes/element-experiments.ts", "utf8");
+  assert.match(route, /req\.get\("origin"\)/);
+  assert.match(route, /requestOrigin !== allowedOrigin/);
+  assert.match(route, /Access-Control-Allow-Origin/);
+  assert.match(route, /get\("\/public\/element-runtime\/:slotKey"/);
+  assert.match(route, /sendPublicElementRuntime\(req, res\)/);
+  assert.match(route, /runtimeD1\(\)/);
+  assert.match(route, /INSERT OR IGNORE INTO ElementAssignment/);
+  assert.match(route, /get\("\/element-runtime\/:slotKey"/);
+  assert.match(route, /sendElementRuntime\(req, res, true\)/);
+  assert.match(route, /post\("\/element-exposure"/);
+  assert.match(route, /verifyShopifyAppProxyRequest\(req\)/);
+});
+
 test("Shopify cart tokens are normalized consistently between Ajax cart and order webhooks", () => {
   assert.equal(normalizeShopifyCartToken("hWNGZwzghba0PrMBxF0L3g3f?key=secret"), "hWNGZwzghba0PrMBxF0L3g3f");
   assert.equal(normalizeShopifyCartToken(" hWNGa6uRtc3k2QREIVMkeXel "), "hWNGa6uRtc3k2QREIVMkeXel");
