@@ -34,6 +34,8 @@ Do not infer that a Git commit is live. Compare the deployment and file hashes b
 - `monitor_cj_tracking_to_shopify.py`: CJ status/tracking to Shopify reconciliation.
 - `cj_auth.py`: CJ token acquisition and local token cache.
 - `cj_order_state.py`: normalized CJ state helpers.
+- `shipment_risk.py`: pure, Israel-calendar shipment risk scoring.
+- `shipment_snapshot.py`: PII-minimized Shopify + CJ reporting bridge for Commerce OS.
 - `tests/test_cj_order_state.py`: current unit coverage for state normalization.
 - `railway.json`, `Procfile`, `requirements.txt`: service runtime definition.
 
@@ -48,6 +50,8 @@ Store values only in Railway or a local untracked environment. Never commit them
 - `SYNC_LOOKBACK_DAYS` (optional, defaults to `7`)
 - `CJ_RECONCILE_MODE` (must be `report` until Gate B is approved)
 - `ORDER_SETTLE_SECONDS` (optional, defaults to `600`)
+- `SHIPMENT_BRIDGE_URL` (Commerce OS `/shipment-bridge/ingest` endpoint)
+- `SHIPMENT_BRIDGE_TOKEN` (shared secret stored only in Railway and Cloudflare)
 
 `recipient_supplement.json` may contain customer data and is ignored. Use `recipient_supplement.example.json` only as a shape reference.
 
@@ -62,6 +66,18 @@ Store values only in Railway or a local untracked environment. Never commit them
 - Unknown physical Shopify lines must block creation as `NEEDS_MAPPING`; silently omitting a physical item is not acceptable.
 - Digital products and nonphysical services stay in Shopify and are not sent to CJ.
 - Use one replica for any reconciliation that may replace a CJ order.
+- Shipment snapshots run after the existing sync, are reporting-only, contain no
+  customer name, address, phone, or email, and cannot block fulfillment.
+- The shipment dashboard may suggest a customer/CJ action, but it never sends a
+  message, pays CJ, cancels, refunds, or auto-rejects an order.
+
+## Shipment risk schedule
+
+The long-running worker still reconciles orders and tracking every 15 minutes.
+The heavier shipment-risk snapshot is published at the latest due Israel-time
+checkpoint (09:00, 15:00, or 21:00). A failed bridge upload is retried on the
+next worker cycle. The dashboard uses Sunday–Thursday as Israeli business days;
+Friday and Saturday are excluded.
 
 ## Gate A behavior
 
