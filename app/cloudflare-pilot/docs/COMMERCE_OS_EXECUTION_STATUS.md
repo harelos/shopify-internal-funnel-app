@@ -99,6 +99,12 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Currency mismatch still blocks contribution profit, blended ROAS, and cross-source arithmetic until an authoritative FX source is configured.
 - A missing conversion is labelled separately from a missing Shopify source; seven paid ILS orders were present at the verification checkpoint.
 
+### 9. Credential-bearing helper retirement
+
+- Removed four obsolete local Meta export scripts that embedded access tokens and bypassed the production secret boundary.
+- Production Meta reads now run only through the Worker integration, where the token is a deployment secret and is never returned, logged, or committed.
+- Because removing a credential from the current tree does not remove it from Git history, the Meta credential still requires provider-side rotation. History rewriting is not attempted automatically because it would be destructive for every collaborator and clone.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.
