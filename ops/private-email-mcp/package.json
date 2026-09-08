@@ -12,6 +12,7 @@
     "start:support-worker": "node src/support-worker-server.mjs",
     "support:sync": "node src/support-sync.mjs --once",
     "support:watch": "node src/support-sync.mjs --watch",
+    "support:check-sent": "node scripts/check-sent-message.mjs",
     "test": "node --test test/server.test.mjs"
   },
   "dependencies": {

@@ -2,10 +2,13 @@ import { Router } from "express";
 import prisma from "../lib/db.js";
 import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
+import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
 export const supportAdminRouter = Router();
 export const supportBridgeRouter = Router();
+
+let deliverabilityCache: { domain: string; expiresAt: number; value: unknown } | null = null;
 
 function bearer(req: any): string {
   const header = String(req.get("authorization") || "");
@@ -83,6 +86,52 @@ supportBridgeRouter.get("/status", async (_req, res) => {
     escalated: Number(counts.escalated || 0),
     queued: Number(counts.queued || 0),
   } });
+});
+
+supportBridgeRouter.get("/delivery/pending-verification", async (_req, res) => {
+  const db = supportD1();
+  const rows = await db.prepare(`SELECT d."id", d."conversationId", d."sentAt"
+    FROM "SupportDraft" d
+    WHERE d."status" = 'SENT' AND d."sentAt" IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM "SupportEvidenceEvent" e
+        WHERE e."conversationId" = d."conversationId"
+          AND e."kind" = 'OUTBOUND_DELIVERY_VERIFIED'
+          AND e."payloadJson" LIKE '%' || d."id" || '%'
+      )
+    ORDER BY d."sentAt" DESC LIMIT 50`).all<{ id: string; conversationId: string; sentAt: string }>();
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ ok: true, drafts: (rows.results || []).map(row => ({
+    ...row,
+    deterministicMessageId: `<support-draft-${row.id}@tigerbrandsglobal.com>`,
+  })) });
+});
+
+supportBridgeRouter.post("/delivery/:id/verify-sent-copy", async (req, res) => {
+  const draft = await prisma.supportDraft.findUnique({ where: { id: req.params.id } });
+  if (!draft || draft.status !== "SENT" || !draft.sentAt) return res.status(404).json({ ok: false, error: "A sent support draft was not found." });
+  const expectedMessageId = `<support-draft-${draft.id}@tigerbrandsglobal.com>`;
+  if (String(req.body?.externalMessageId || "").trim() !== expectedMessageId || req.body?.sentFolderCopy !== true) {
+    return res.status(400).json({ ok: false, error: "A verified Sent-folder copy and matching Message-ID are required." });
+  }
+  const db = supportD1();
+  const existing = await db.prepare(`SELECT "id" FROM "SupportEvidenceEvent"
+    WHERE "conversationId" = ? AND "kind" = 'OUTBOUND_DELIVERY_VERIFIED' AND "payloadJson" LIKE ? LIMIT 1`)
+    .bind(draft.conversationId, `%${draft.id}%`).first<{ id: string }>();
+  if (!existing) {
+    await appendSupportEvidence({
+      conversationId: draft.conversationId,
+      kind: "OUTBOUND_DELIVERY_VERIFIED",
+      source: "NAMECHEAP_IMAP_SENT",
+      occurredAt: new Date(),
+      payload: { externalMessageId: expectedMessageId, draftId: draft.id, sentFolderCopy: true, reconciled: true },
+    });
+  }
+  await prisma.supportMessage.updateMany({
+    where: { externalMessageId: expectedMessageId, direction: "OUTBOUND" },
+    data: { source: "NAMECHEAP_SMTP_AND_IMAP_SENT", deliveryStatus: "SENT_COPY_VERIFIED" },
+  });
+  return res.json({ ok: true, duplicate: Boolean(existing) });
 });
 
 supportBridgeRouter.get("/conversations", async (req, res) => {
@@ -195,6 +244,10 @@ supportBridgeRouter.post("/outbox/:id/sent", async (req, res) => {
   if (!draft || !["SENDING", "QUEUED_TO_SEND"].includes(draft.status)) return res.status(404).json({ ok: false, error: "Claimed support draft not found." });
   const externalMessageId = String(req.body?.externalMessageId || "").trim();
   const providerMessageId = String(req.body?.providerMessageId || "").trim() || null;
+  const deliveryProof = req.body?.deliveryProof && typeof req.body.deliveryProof === "object"
+    ? req.body.deliveryProof as Record<string, unknown>
+    : null;
+  const sentFolderCopyVerified = deliveryProof?.sentFolderCopy === true;
   const sentAt = new Date(req.body?.sentAt || Date.now());
   if (!externalMessageId || Number.isNaN(sentAt.getTime())) return res.status(400).json({ ok: false, error: "externalMessageId and a valid sentAt are required." });
   await prisma.$transaction([
@@ -208,8 +261,8 @@ supportBridgeRouter.post("/outbox/:id/sent", async (req, res) => {
       subject: draft.conversation.subject,
       textBody: draft.replyText,
       sentAt,
-      source: "NAMECHEAP_SMTP",
-      deliveryStatus: "SENT",
+      source: sentFolderCopyVerified ? "NAMECHEAP_SMTP_AND_IMAP_SENT" : "NAMECHEAP_SMTP",
+      deliveryStatus: sentFolderCopyVerified ? "SENT_COPY_VERIFIED" : "SENT",
       aiGenerated: true,
     } }),
     prisma.supportConversation.update({ where: { id: draft.conversationId }, data: { status: "WAITING_CUSTOMER", lastAgentMessageAt: sentAt } }),
@@ -217,10 +270,19 @@ supportBridgeRouter.post("/outbox/:id/sent", async (req, res) => {
   await appendSupportEvidence({
     conversationId: draft.conversationId,
     kind: "OUTBOUND_EMAIL",
-    source: "NAMECHEAP_SMTP",
+    source: sentFolderCopyVerified ? "NAMECHEAP_SMTP_AND_IMAP_SENT" : "NAMECHEAP_SMTP",
     occurredAt: sentAt,
-    payload: { externalMessageId, providerMessageId, draftId: draft.id, subject: draft.conversation.subject, to: draft.conversation.customer.email, textBody: draft.replyText },
+    payload: { externalMessageId, providerMessageId, draftId: draft.id, subject: draft.conversation.subject, to: draft.conversation.customer.email, textBody: draft.replyText, deliveryProof },
   });
+  if (sentFolderCopyVerified) {
+    await appendSupportEvidence({
+      conversationId: draft.conversationId,
+      kind: "OUTBOUND_DELIVERY_VERIFIED",
+      source: "NAMECHEAP_IMAP_SENT",
+      occurredAt: sentAt,
+      payload: { externalMessageId, providerMessageId, draftId: draft.id, sentFolderCopy: true },
+    });
+  }
   return res.json({ ok: true });
 });
 
@@ -234,15 +296,34 @@ supportBridgeRouter.post("/outbox/:id/failed", async (req, res) => {
 });
 
 supportAdminRouter.get("/support/overview", async (_req, res) => {
-  const [mailboxes, open, escalated, pendingReview, learnedReplies] = await Promise.all([
+  const [mailboxes, open, escalated, pendingReview, learnedReplies, queuedReplies, sentReplies, failedReplies, verifiedSentCopies] = await Promise.all([
     prisma.supportMailbox.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.supportConversation.count({ where: { status: "OPEN" } }),
     prisma.supportConversation.count({ where: { status: "ESCALATED" } }),
     prisma.supportDraft.count({ where: { status: "PENDING_REVIEW" } }),
     prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "APPROVED"] } } }),
+    prisma.supportDraft.count({ where: { status: { in: ["QUEUED_TO_SEND", "SENDING"] } } }),
+    prisma.supportDraft.count({ where: { status: "SENT" } }),
+    prisma.supportDraft.count({ where: { status: "FAILED" } }),
+    prisma.supportEvidenceEvent.count({ where: { kind: "OUTBOUND_DELIVERY_VERIFIED" } }),
   ]);
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, learnedReplies } });
+  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, learnedReplies, queuedReplies, sentReplies, failedReplies, verifiedSentCopies } });
+});
+
+supportAdminRouter.get("/support/deliverability", async (_req, res) => {
+  try {
+    const mailbox = await prisma.supportMailbox.findFirst({ orderBy: { updatedAt: "desc" }, select: { address: true } });
+    const domain = String(mailbox?.address || "").split("@").at(-1) || "";
+    if (!domain) return res.status(404).json({ ok: false, error: "A support mailbox has not been configured yet." });
+    if (!deliverabilityCache || deliverabilityCache.domain !== domain || deliverabilityCache.expiresAt <= Date.now()) {
+      deliverabilityCache = { domain, expiresAt: Date.now() + 5 * 60_000, value: await inspectSupportEmailDomain(domain) };
+    }
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, deliverability: deliverabilityCache.value });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
 });
 
 supportAdminRouter.get("/support/conversations", async (req, res) => {

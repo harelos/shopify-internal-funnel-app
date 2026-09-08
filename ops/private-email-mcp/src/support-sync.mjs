@@ -293,9 +293,42 @@ async function appendSentMessage(rawMessage, sentAt) {
     if (!sent) throw new Error("The Namecheap Sent folder could not be resolved.");
     const appended = await client.append(sent, rawMessage, ["\\Seen"], sentAt);
     if (!appended) throw new Error("Namecheap accepted the SMTP message but did not confirm the Sent-folder copy.");
+    return { sentFolder: sent, appendUid: Number(appended.uid || 0) || null };
   } finally {
     if (client.usable) await client.logout().catch(() => {});
   }
+}
+
+async function verifyRecordedSentMessages() {
+  const payload = await supportBridgeFetch("/support-bridge/delivery/pending-verification");
+  const drafts = Array.isArray(payload.drafts) ? payload.drafts.slice(0, 20) : [];
+  if (!drafts.length) return { checked: 0, verified: 0 };
+  const client = new ImapFlow({ host: imapHost, port: Number(process.env.NAMECHEAP_IMAP_PORT || 993), secure: true, auth: { user: mailboxAddress, pass: password }, logger: false });
+  const verifiedDrafts = [];
+  await client.connect();
+  try {
+    const folders = await client.list();
+    const sent = folders.find(folder => folder.specialUse === "\\Sent")?.path || folders.find(folder => /sent/i.test(folder.path))?.path;
+    if (!sent) throw new Error("The Namecheap Sent folder could not be resolved.");
+    const lock = await client.getMailboxLock(sent);
+    try {
+      for (const draft of drafts) {
+        const uids = await client.search({ header: { "message-id": draft.deterministicMessageId } }, { uid: true });
+        if (uids.length > 0) verifiedDrafts.push(draft);
+      }
+    } finally {
+      lock.release();
+    }
+  } finally {
+    if (client.usable) await client.logout().catch(() => {});
+  }
+  for (const draft of verifiedDrafts) {
+    await supportBridgeFetch(`/support-bridge/delivery/${encodeURIComponent(draft.id)}/verify-sent-copy`, {
+      method: "POST",
+      body: JSON.stringify({ externalMessageId: draft.deterministicMessageId, sentFolderCopy: true }),
+    });
+  }
+  return { checked: drafts.length, verified: verifiedDrafts.length };
 }
 
 export async function sendOutbox() {
@@ -316,7 +349,11 @@ export async function sendOutbox() {
       if (await alreadySentMessage(draft.deterministicMessageId)) {
         await supportBridgeFetch(`/support-bridge/outbox/${encodeURIComponent(draft.id)}/sent`, {
           method: "POST",
-          body: JSON.stringify({ externalMessageId: draft.deterministicMessageId, sentAt: new Date().toISOString() }),
+          body: JSON.stringify({
+            externalMessageId: draft.deterministicMessageId,
+            sentAt: new Date().toISOString(),
+            deliveryProof: { sentFolderCopy: true, recoveredFromExistingCopy: true },
+          }),
         });
         sent += 1;
         continue;
@@ -341,13 +378,17 @@ export async function sendOutbox() {
       // SMTP servers do not guarantee that programmatic sends appear in the
       // webmail Sent folder. Append the exact transmitted message before
       // acknowledging delivery so both the owner and the retry guard can see it.
-      await appendSentMessage(rawMessage, sentAt);
+      const sentFolderProof = await appendSentMessage(rawMessage, sentAt);
+      if (!(await alreadySentMessage(draft.deterministicMessageId))) {
+        throw new Error("The Sent-folder copy could not be verified after append.");
+      }
       await supportBridgeFetch(`/support-bridge/outbox/${encodeURIComponent(draft.id)}/sent`, {
         method: "POST",
         body: JSON.stringify({
           externalMessageId: draft.deterministicMessageId,
           providerMessageId: result.messageId || null,
           sentAt: sentAt.toISOString(),
+          deliveryProof: { smtpAccepted: true, sentFolderCopy: true, ...sentFolderProof },
         }),
       });
       sent += 1;
@@ -366,10 +407,11 @@ export async function runOnce() {
   try {
     const sync = await syncMailbox();
     const outbox = await sendOutbox();
-    const result = `Scanned ${sync.scanned}; accepted ${sync.accepted}; ignored ${sync.ignored}; sent ${outbox.sent || 0}`;
+    const delivery = await verifyRecordedSentMessages();
+    const result = `Scanned ${sync.scanned}; accepted ${sync.accepted}; ignored ${sync.ignored}; sent ${outbox.sent || 0}; verified ${delivery.verified}`;
     await supportBridgeFetch("/support-bridge/heartbeat", { method: "POST", body: JSON.stringify({ mailboxAddress, status: "IDLE", scanned: sync.scanned, ignored: sync.ignored, result, intervalMs }) });
-    console.log(JSON.stringify({ ok: true, sync, outbox, at: new Date().toISOString() }));
-    return { ok: true, sync, outbox, result };
+    console.log(JSON.stringify({ ok: true, sync, outbox, delivery, at: new Date().toISOString() }));
+    return { ok: true, sync, outbox, delivery, result };
   } catch (error) {
     await supportBridgeFetch("/support-bridge/heartbeat", { method: "POST", body: JSON.stringify({ mailboxAddress, status: "ERROR", error: String(error?.message || error), result: "Mailbox agent failed", intervalMs }) }).catch(() => {});
     throw error;

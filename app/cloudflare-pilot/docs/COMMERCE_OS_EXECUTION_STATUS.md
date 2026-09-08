@@ -59,19 +59,30 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Journey queries are bounded to 90 days and 100 paid orders per request, with event caps to protect embedded-app performance.
 - Desktop and embedded-mobile QA are required before this checkpoint is marked released.
 
+### 5. Support delivery integrity
+
+- The hosted Railway mailbox agent is connected, runs once per minute, and remains the only active sender.
+- Outbound replies now distinguish SMTP acceptance, verified Namecheap Sent-folder evidence, queue state, and failure state.
+- The agent reconciles earlier sent drafts by deterministic Message-ID without resending them.
+- The Support workspace exposes queued, sent, failed, and delivery-authentication health in owner-readable language.
+- A guarded retry is available for failed drafts; sent drafts are displayed as receipts instead of appearing to have no draft.
+- Live DNS verification on 2026-09-08 found Namecheap MX and DKIM, DMARC monitoring, and a missing SPF record. DNS was not changed because all legitimate domain senders must be inventoried before a single consolidated SPF record is published.
+- Operational details: `docs/SUPPORT_DELIVERY_RUNBOOK.md`.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.
 
 - AI Concierge: engagement and saved leads are present, but verified attributed sales are zero.
-- NovaHair gallery experiment: two verified attributed paid orders; the sample is far too small to declare a winner.
-- Three paid orders are visible in store revenue but remain unattributed because the earlier webhook gap left no checkout identity that can be proven now.
+- NovaHair gallery experiment: three verified attributed paid orders (control: one; Variant B: two); the sample is far too small to declare a winner.
+- Six paid orders are visible in the current-day store revenue snapshot; three historical orders remain unattributed because the earlier webhook gap left no checkout identity that can be proven now.
 
 ## Next checkpoints
 
-1. Finish and release the unified shell, then apply it incrementally to existing modules without changing storefront runtimes.
-2. Normalize owner-facing labels into plain English while preserving raw identifiers behind drill-down details.
-3. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
-4. Expand support automation with order/tracking context, documented escalation, delivery evidence, and mobile QA.
-5. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
-6. Add operations health and incident timelines before public app-store hardening.
+1. Inventory every legitimate sender for `tigerbrandsglobal.com`, publish one consolidated SPF record, and verify propagation before treating sender authentication as healthy.
+2. Finish and release the unified shell, then apply it incrementally to existing modules without changing storefront runtimes.
+3. Normalize owner-facing labels into plain English while preserving raw identifiers behind drill-down details.
+4. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
+5. Add bounce ingestion and delivery-failure alerts to the support automation layer.
+6. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
+7. Add operations health and incident timelines before public app-store hardening.

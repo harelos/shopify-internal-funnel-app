@@ -96,6 +96,10 @@ Outbound delivery is disabled by default. Set `SUPPORT_MAIL_SEND_ENABLED=true`
 only after the app is in the desired `DRAFT_ONLY` or `AUTOSEND_LOW_RISK` mode.
 Approving a draft queues it; the bridge sends it through the existing Namecheap
 SMTP account and reports the sent Message-ID back to the evidence timeline.
+The worker then verifies the exact deterministic Message-ID in the Namecheap
+Sent folder. A read-only operational check can be run with
+`npm run support:check-sent -- support-draft-<draft-id>@tigerbrandsglobal.com`;
+it prints only the presence result and never mailbox credentials or message content.
 
 ## Run the MCP locally
 

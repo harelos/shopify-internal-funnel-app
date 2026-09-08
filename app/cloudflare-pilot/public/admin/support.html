@@ -24,6 +24,8 @@
       <article><span class="summary-value" id="count-open">—</span><span>Open</span></article>
       <article><span class="summary-value" id="count-review">—</span><span>Needs review</span></article>
       <article class="summary-alert"><span class="summary-value" id="count-escalated">—</span><span>Escalated</span></article>
+      <article><span class="summary-value" id="count-sent">—</span><span>AI replies sent</span></article>
+      <article class="summary-alert"><span class="summary-value" id="count-failed">—</span><span>Delivery failed</span></article>
       <article><span class="summary-value" id="count-learned">—</span><span>Replies learned</span></article>
     </section>
 
@@ -47,6 +49,15 @@
         </label>
         <button class="support-button support-button-secondary" id="save-settings">Save</button>
       </div>
+    </section>
+
+    <section class="delivery-health" id="delivery-health" aria-live="polite">
+      <div class="delivery-health-copy">
+        <span class="delivery-health-kicker">Email delivery health</span>
+        <strong id="delivery-health-title">Checking sender authentication…</strong>
+        <span id="delivery-health-summary">Verifying MX, SPF, DKIM and DMARC.</span>
+      </div>
+      <div class="delivery-checks" id="delivery-checks"></div>
     </section>
 
     <nav class="support-filters" aria-label="Conversation filters">

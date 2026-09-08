@@ -25,6 +25,8 @@
     document.getElementById("count-open").textContent = data.counts.open;
     document.getElementById("count-review").textContent = data.counts.pendingReview;
     document.getElementById("count-escalated").textContent = data.counts.escalated;
+    document.getElementById("count-sent").textContent = data.counts.sentReplies;
+    document.getElementById("count-failed").textContent = data.counts.failedReplies;
     document.getElementById("count-learned").textContent = data.counts.learnedReplies;
     state.mailbox = data.mailboxes[0] || null;
     const status = document.getElementById("mailbox-status");
@@ -46,6 +48,26 @@
         : "Agent is configured but has not checked in during the last 6 minutes.";
     document.getElementById("automation-mode").value = state.mailbox.automationMode;
     document.getElementById("reply-delay").value = String(state.mailbox.replyDelayMinutes);
+  }
+
+  async function deliverability() {
+    const container = document.getElementById("delivery-health");
+    const title = document.getElementById("delivery-health-title");
+    const summary = document.getElementById("delivery-health-summary");
+    const checks = document.getElementById("delivery-checks");
+    try {
+      const data = await API.get("/api/support/deliverability");
+      const report = data.deliverability;
+      container.classList.toggle("needs-attention", report.status !== "HEALTHY");
+      title.textContent = report.status === "HEALTHY" ? "Sender authentication is healthy" : "Sender authentication needs attention";
+      summary.textContent = report.summary;
+      checks.innerHTML = report.checks.map(check => `<div class="delivery-check ${esc(check.status.toLowerCase())}" title="${esc(check.detail)}"><strong>${esc(check.key)} · ${esc(check.status === "PASS" ? "Ready" : check.status === "WARN" ? "Review" : "Fix")}</strong><span>${esc(check.detail)}</span></div>`).join("");
+    } catch (error) {
+      container.classList.add("needs-attention");
+      title.textContent = "Delivery check is temporarily unavailable";
+      summary.textContent = error.message;
+      checks.innerHTML = "";
+    }
   }
 
   function renderList() {
@@ -76,8 +98,15 @@
     renderList();
   }
 
-  function latestUsableDraft(row) {
-    return row.drafts.find(draft => ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND"].includes(draft.status));
+  function renderDraft(row, draft) {
+    if (!draft) return `<section class="draft-card"><div class="draft-head"><div><strong>No draft yet</strong><div class="draft-reason">Generate a grounded reply from this thread and Shopify order data.</div></div></div><div class="draft-actions"><button class="support-button" id="generate-draft">Generate reply</button></div></section>`;
+    const sentCopyVerified = row.evidence?.some(event => event.kind === "OUTBOUND_DELIVERY_VERIFIED");
+    if (draft.status === "SENT") {
+      return `<section class="draft-card"><div class="draft-head"><div><strong>AI reply sent</strong><div class="draft-reason">${esc(when(draft.sentAt))}</div></div></div><div class="draft-receipt"><strong>${sentCopyVerified ? "SMTP accepted · Sent-folder copy verified" : "SMTP accepted by Namecheap"}</strong><span>${sentCopyVerified ? "The exact message is recorded in the mailbox Sent folder and in the support evidence ledger. Recipient inbox placement is controlled by the receiving provider." : "This earlier reply was accepted by Namecheap. Sent-folder verification was not recorded for this historical send."}</span></div></section>`;
+    }
+    const queued = ["QUEUED_TO_SEND", "SENDING"].includes(draft.status);
+    const failed = draft.status === "FAILED";
+    return `<section class="draft-card ${failed ? "delivery-failed" : ""}"><div class="draft-head"><div><strong>${failed ? "Delivery failed" : draft.status === "ESCALATED" ? "Needs your decision" : "AI reply draft"}</strong><div class="draft-reason">${esc(failed ? (draft.lastDeliveryError || draft.reason) : draft.reason)} · ${Math.round(draft.confidence * 100)}% confidence</div></div></div><textarea id="reply-text" ${queued ? "disabled" : ""}>${esc(draft.replyText)}</textarea><div class="draft-actions">${queued ? '<span class="human-badge">Queued for the Namecheap connector</span>' : `<button class="support-button support-button-danger" id="reject-draft">Escalate</button><button class="support-button" id="approve-draft">${failed ? "Retry sending" : "Approve & send"}</button>`}</div></section>`;
   }
 
   async function selectConversation(id) {
@@ -85,7 +114,7 @@
     renderList();
     const data = await API.get(`/api/support/conversations/${encodeURIComponent(id)}`);
     const row = data.conversation;
-    const draft = latestUsableDraft(row);
+    const draft = row.drafts[0] || null;
     panel.innerHTML = `<header class="conversation-top">
       <div><h2>${esc(row.customer.displayName || row.customer.email)}</h2><p>${esc(row.subject)}</p></div>
       <div class="conversation-badges"><span class="human-badge">${esc(row.audienceType.replaceAll("_", " "))}</span><span class="human-badge">${esc(row.topic.replaceAll("_", " "))}</span><span class="human-badge risk-${row.riskLevel.toLowerCase()}">${esc(row.riskLevel)} risk</span></div>
@@ -97,8 +126,8 @@
       <div class="context-card"><small>Confidence</small><strong>${Math.round((row.confidence || 0) * 100)}%</strong></div>
     </section>
     ${row.triageStatus === "NEEDS_REVIEW" ? `<section class="triage-notice"><strong>Needs inbox triage</strong><span>${esc(row.triageReason || "This message did not contain enough support signals for automatic handling.")}</span></section>` : ""}
-    <section class="message-thread">${row.messages.map(message => `<article class="message ${message.direction.toLowerCase()}"><div class="message-head"><strong>${message.direction === "INBOUND" ? "Customer" : "Tiger Brands"}</strong><span>${esc(when(message.sentAt))}</span></div><div class="message-body">${esc(message.textBody)}</div></article>`).join("")}</section>
-    ${draft ? `<section class="draft-card"><div class="draft-head"><div><strong>${draft.status === "ESCALATED" ? "Needs your decision" : "AI reply draft"}</strong><div class="draft-reason">${esc(draft.reason)} · ${Math.round(draft.confidence * 100)}% confidence</div></div></div><textarea id="reply-text" ${draft.status === "QUEUED_TO_SEND" ? "disabled" : ""}>${esc(draft.replyText)}</textarea><div class="draft-actions">${draft.status === "QUEUED_TO_SEND" ? '<span class="human-badge">Queued to send</span>' : `<button class="support-button support-button-danger" id="reject-draft">Escalate</button><button class="support-button" id="approve-draft">Approve & send</button>`}</div></section>` : `<section class="draft-card"><div class="draft-head"><div><strong>No draft yet</strong><div class="draft-reason">Generate a grounded reply from this thread and Shopify order data.</div></div></div><div class="draft-actions"><button class="support-button" id="generate-draft">Generate reply</button></div></section>`}`;
+    <section class="message-thread">${row.messages.map(message => `<article class="message ${message.direction.toLowerCase()}"><div class="message-head"><strong>${message.direction === "INBOUND" ? "Customer" : "Tiger Brands"}${message.direction === "OUTBOUND" ? `<span class="delivery-state">${esc(message.deliveryStatus === "SENT_COPY_VERIFIED" ? "Sent copy verified" : "Sent")}</span>` : ""}</strong><span>${esc(when(message.sentAt))}</span></div><div class="message-body">${esc(message.textBody)}</div></article>`).join("")}</section>
+    ${renderDraft(row, draft)}`;
     workspace.classList.add("has-selection");
     panel.querySelector(".conversation-top")?.addEventListener("click", event => {
       if (window.innerWidth <= 760 && event.target === event.currentTarget) workspace.classList.remove("has-selection");
@@ -139,7 +168,7 @@
     workspace.classList.remove("has-selection");
     await conversations();
   }));
-  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations()]); notify("Inbox refreshed"); });
+  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations(), deliverability()]); notify("Inbox refreshed"); });
   document.getElementById("save-settings").addEventListener("click", async () => {
     if (!state.mailbox) return;
     await API.patch(`/api/support/mailboxes/${encodeURIComponent(state.mailbox.id)}`, { automationMode: document.getElementById("automation-mode").value, replyDelayMinutes: Number(document.getElementById("reply-delay").value) });
@@ -147,5 +176,5 @@
     await overview();
   });
 
-  Promise.all([overview(), conversations()]).catch(error => { list.innerHTML = `<div class="support-empty">${esc(error.message)}</div>`; });
+  Promise.all([overview(), conversations(), deliverability()]).catch(error => { list.innerHTML = `<div class="support-empty">${esc(error.message)}</div>`; });
 })();
