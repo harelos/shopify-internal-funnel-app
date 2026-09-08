@@ -17,7 +17,7 @@ test("Commerce OS overview keeps every primary product destination working", () 
     ["Experiences", "ai-concierge.html"],
     ["Experiments", "element-experiments.html"],
     ["Support", "support.html"],
-    ["Operations", "cart-offers.html"],
+    ["Operations", "operations.html"],
   ]) {
     assert.match(html, new RegExp(`href="${href}"[^>]*>${label}<`));
   }

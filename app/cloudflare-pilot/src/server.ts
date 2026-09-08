@@ -11,6 +11,7 @@ import analyticsRoutes from "./routes/analytics.js";
 import popupAnalyticsRoutes from "./routes/popup-analytics.js";
 import growthCockpitRoutes from "./routes/growth-cockpit.js";
 import journeyRoutes from "./routes/journeys.js";
+import operationsRoutes from "./routes/operations.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -157,6 +158,7 @@ app.use("/api", popupAnalyticsRoutes);
 app.use("/api", growthCockpitRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", journeyRoutes);
+app.use("/api", operationsRoutes);
 app.use("/api", shopifyRoutes);
 // Admin-only: per-step AI funnel with shopper free text. Never on the proxy path.
 app.use("/api", aiConciergeAdmin);

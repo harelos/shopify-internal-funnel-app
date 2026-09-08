@@ -23,7 +23,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 | Experiences | `/admin/ai-concierge.html` | AI Concierge configuration and verified business impact |
 | Experiments | `/admin/element-experiments.html` | Element tests, deterministic allocation, preflight, and Shopify-paid-order results |
 | Support | `/admin/support.html` | AI support inbox, drafts, escalation, evidence, and agent health |
-| Operations | `/admin/cart-offers.html` | Storefront offer operations; broader fulfillment and incident work remains ahead |
+| Operations | `/admin/operations.html` | Read-only health and incident view across revenue, support, attribution, experiments and storefront safeguards |
 
 ## Completed checkpoints
 
@@ -78,6 +78,13 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Live DNS verification on 2026-09-08 found Namecheap MX and DKIM, DMARC monitoring, and a missing SPF record. DNS was not changed because all legitimate domain senders must be inventoried before a single consolidated SPF record is published.
 - Operational details: `docs/SUPPORT_DELIVERY_RUNBOOK.md`.
 
+### 6. Operations health
+
+- Added one read-only owner view across Shopify revenue reconciliation, support-agent freshness, delivery failures and bounces, verified journey coverage, experiments, Meta cost coverage, and NovaHair order safeguards.
+- Every card exposes a human-readable state and last verified signal. Raw customer identifiers and provider payloads remain behind the authenticated API and are not rendered.
+- Incidents are derived from existing authoritative ledgers. The view does not mutate storefront configuration, resend mail, reconcile orders, or launch experiments.
+- The page refreshes once per minute and links each issue to the workspace that owns it. Existing Cart Offers remains available as a separate Operations workspace.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.
@@ -94,4 +101,4 @@ Snapshot date: 2026-09-08.
 4. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
 5. Monitor the bounce parser against real provider DSNs and add narrow provider-specific fixtures only when required.
 6. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
-7. Add operations health and incident timelines before public app-store hardening.
+7. Persist incident open/resolved transitions after the read-only health view has proven stable in production.

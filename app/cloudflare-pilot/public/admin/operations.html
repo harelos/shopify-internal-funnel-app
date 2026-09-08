@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Operations — Commerce OS</title>
+  <link rel="stylesheet" href="css/overview.css">
+  <link rel="stylesheet" href="css/operations.css">
+</head>
+<body>
+  <div class="os-shell">
+    <header class="os-header">
+      <a class="os-brand" href="index.html" aria-label="Commerce OS overview">
+        <span class="os-mark" aria-hidden="true">CO</span>
+        <div><strong>Commerce OS</strong><span>by Funnel Builder</span></div>
+      </a>
+      <div class="connection-pill" id="health-pill" role="status">
+        <span class="status-dot" aria-hidden="true"></span>
+        Checking live systems
+      </div>
+    </header>
+
+    <nav class="os-nav" aria-label="Commerce OS sections">
+      <a href="index.html">Overview</a>
+      <a href="growth-cockpit.html">Insights</a>
+      <a href="journeys.html">Journeys</a>
+      <a href="ai-concierge.html">Experiences</a>
+      <a href="element-experiments.html">Experiments</a>
+      <a href="support.html">Support</a>
+      <a class="active" href="operations.html" aria-current="page">Operations</a>
+    </nav>
+
+    <main class="os-main operations-main">
+      <section class="page-intro operations-intro">
+        <div>
+          <p class="eyebrow">LIVE OPERATIONS</p>
+          <h1>Is anything broken?</h1>
+          <p class="intro-copy">One readable view of revenue reconciliation, support delivery, attribution, experiments, and storefront safeguards.</p>
+        </div>
+        <button class="button secondary" id="refresh-operations" type="button">Refresh now</button>
+      </section>
+
+      <section class="operations-summary" id="operations-summary" aria-live="polite">
+        <div>
+          <span class="summary-state" id="summary-state">Checking</span>
+          <h2 id="summary-title">Verifying every live signal…</h2>
+          <p id="summary-detail">No storefront settings are changed from this screen.</p>
+        </div>
+        <span class="summary-time" id="summary-time">—</span>
+      </section>
+
+      <section class="health-grid" id="health-grid" aria-label="System health">
+        <article class="health-card loading-card"><span class="skeleton-line"></span><span class="skeleton-line short"></span></article>
+        <article class="health-card loading-card"><span class="skeleton-line"></span><span class="skeleton-line short"></span></article>
+        <article class="health-card loading-card"><span class="skeleton-line"></span><span class="skeleton-line short"></span></article>
+      </section>
+
+      <section class="operations-layout">
+        <article class="surface incident-surface">
+          <div class="surface-heading compact">
+            <div>
+              <p class="eyebrow">ACTION QUEUE</p>
+              <h2>What needs attention</h2>
+              <p>Only verified operational signals appear here. Missing attribution is never guessed.</p>
+            </div>
+          </div>
+          <div class="incident-list" id="incident-list" aria-live="polite"></div>
+        </article>
+
+        <aside class="surface quick-links">
+          <p class="eyebrow">WORKSPACES</p>
+          <h2>Go to the owner</h2>
+          <a href="support.html"><span>Customer support</span><small>Inbox, delivery and escalations</small></a>
+          <a href="element-experiments.html"><span>Experiments</span><small>Allocation, exposure and paid results</small></a>
+          <a href="growth-cockpit.html"><span>Financial inputs</span><small>Shopify, Meta and cost coverage</small></a>
+          <a href="cart-offers.html"><span>Cart offers</span><small>Existing offer operations</small></a>
+        </aside>
+      </section>
+
+      <p class="operations-footnote" id="operations-footnote">Automatically refreshes every minute · Reporting calendar: Asia/Jerusalem</p>
+    </main>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/operations.js"></script>
+</body>
+</html>
