@@ -29,6 +29,11 @@
     document.getElementById("count-failed").textContent = data.counts.failedReplies;
     document.getElementById("count-voice-review").textContent = data.counts.voicePendingReview;
     document.getElementById("voice-tab-count").textContent = data.counts.voicePendingReview;
+    const failureAlert = document.getElementById("delivery-failure-alert");
+    failureAlert.hidden = data.counts.failedReplies === 0;
+    document.getElementById("delivery-failure-title").textContent = data.counts.failedReplies === 1
+      ? "1 reply needs delivery attention"
+      : `${data.counts.failedReplies} replies need delivery attention`;
     state.mailbox = data.mailboxes[0] || null;
     const status = document.getElementById("mailbox-status");
     if (!state.mailbox) {
@@ -109,6 +114,10 @@
     document.getElementById("quality-escalation").textContent = percent(metrics.escalationRate);
     document.getElementById("quality-repeat").textContent = metrics.repeatCustomers;
     document.getElementById("quality-ai-sent").textContent = metrics.aiRepliesSent;
+    document.getElementById("quality-auto-sent").textContent = metrics.automaticAiRepliesSent;
+    document.getElementById("quality-owner-sent").textContent = metrics.ownerApprovedAiRepliesSent;
+    document.getElementById("quality-agent-sent").textContent = metrics.agentApprovedAiRepliesSent;
+    document.getElementById("quality-failed").textContent = metrics.deliveryFailures;
     document.getElementById("quality-delivery").textContent = metrics.verifiedSentCopies;
     document.getElementById("quality-coverage").textContent = data.quality.coverage === "COMPLETE_FOR_RANGE" ? "Complete range" : "First 500 threads";
     document.getElementById("quality-source").textContent = data.quality.source;
@@ -247,13 +256,17 @@
     await overview();
   }
 
-  document.querySelectorAll(".support-filters button").forEach(button => button.addEventListener("click", async () => {
+  async function applyStatusFilter(button) {
     document.querySelectorAll(".support-filters button").forEach(item => item.classList.toggle("active", item === button));
     state.status = button.dataset.status;
     state.selectedId = null;
     workspace.classList.remove("has-selection");
+    await setView("inbox");
     await conversations();
-  }));
+  }
+
+  document.querySelectorAll(".support-filters button").forEach(button => button.addEventListener("click", () => applyStatusFilter(button)));
+  document.getElementById("show-delivery-failures").addEventListener("click", () => applyStatusFilter(document.querySelector('[data-status="DELIVERY_FAILED"]')));
   document.querySelectorAll(".support-view-tabs button").forEach(button => button.addEventListener("click", () => setView(button.dataset.view)));
   document.getElementById("voice-example-list").addEventListener("click", event => {
     const action = event.target.closest("[data-voice-action]");

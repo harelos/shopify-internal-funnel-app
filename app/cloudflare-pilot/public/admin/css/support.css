@@ -55,6 +55,11 @@
 .delivery-check.warn strong::before { background: #e6a36f; }
 .delivery-check.fail strong::before { background: var(--support-danger); }
 .delivery-check span { display: block; margin-top: 3px; color: var(--support-muted); font-size: 10px; line-height: 1.35; }
+.delivery-failure-alert { margin: -4px 0 14px; padding: 13px 15px; border: 1px solid #edc4c7; border-radius: 15px; background: var(--support-danger-soft); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.delivery-failure-alert[hidden] { display: none; }
+.delivery-failure-alert div { display: grid; gap: 3px; }
+.delivery-failure-alert strong { color: var(--support-danger); }
+.delivery-failure-alert span { color: var(--support-muted); font-size: 11px; line-height: 1.4; }
 .support-filters { display: flex; gap: 6px; overflow-x: auto; padding: 3px 0 11px; scrollbar-width: none; }
 .support-filters button { flex: 0 0 auto; border: 1px solid var(--support-line); background: white; color: var(--support-muted); padding: 8px 14px; border-radius: 999px; font-weight: 750; cursor: pointer; }
 .support-filters button.active { color: white; background: var(--support-primary); border-color: var(--support-primary); }
@@ -141,7 +146,7 @@
 .quality-header p, .data-trust-card p { color: var(--support-muted); line-height: 1.5; }
 .quality-header label { color: var(--support-muted); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
 .quality-header select { display: block; min-width: 150px; margin-top: 4px; padding: 9px 12px; border: 1px solid var(--support-line); border-radius: 10px; background: white; color: var(--support-text); font: inherit; text-transform: none; letter-spacing: 0; }
-.quality-metrics { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 9px; }
+.quality-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 9px; }
 .quality-metrics article { min-width: 0; padding: 15px; border: 1px solid var(--support-line); border-radius: 15px; background: white; box-shadow: 0 3px 18px rgba(18, 31, 25, .035); }
 .quality-metrics span, .quality-metrics strong, .quality-metrics small { display: block; }
 .quality-value { margin-bottom: 7px; font-size: 24px; font-weight: 850; letter-spacing: -.04em; }
@@ -178,6 +183,7 @@
   .mailbox-controls .support-button { grid-column: 1 / -1; }
   .delivery-health { grid-template-columns: 1fr; gap: 12px; border-radius: 15px; }
   .delivery-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .delivery-failure-alert { align-items: stretch; flex-direction: column; }
   .support-workspace { display: block; min-height: 0; border-radius: 16px; }
   .conversation-list { max-height: none; border-right: 0; }
   .conversation-panel { display: none; }

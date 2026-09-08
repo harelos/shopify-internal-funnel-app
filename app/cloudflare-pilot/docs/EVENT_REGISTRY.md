@@ -100,7 +100,8 @@ The support evidence ledger currently uses:
 | --- | --- | --- |
 | `INBOUND_EMAIL` | Namecheap IMAP | Customer message observed |
 | `OUTBOUND_EMAIL` | Namecheap IMAP/SMTP | Reply observed or sent |
-| `DRAFT_APPROVED_FOR_SEND` | Support API | An explicit actor authorized queueing a reply |
+| `SEND_AUTHORIZED` | Support policy/admin/API | Records whether automation policy, the owner, or an authenticated agent authorized the send |
+| `DRAFT_APPROVED_FOR_SEND` | Support API | Legacy compatibility evidence for agent-approved drafts |
 | `OUTBOUND_DELIVERY_VERIFIED` | Namecheap Sent via IMAP | Deterministic Message-ID exists in Sent |
 | `SHOPIFY_ORDER_SNAPSHOT` | Shopify Admin | Order facts used for an AI decision |
 | `ORDER_LOOKUP_FAILED` | Shopify Admin | Order verification failed |

@@ -3,6 +3,7 @@ import prisma from "../lib/db.js";
 import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
+import { summarizeSupportSendAuthorizations } from "../lib/support-analytics.js";
 import { APPROVED_STORE_FACTS } from "../lib/support-replies.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
@@ -22,9 +23,14 @@ function customerSupportScope() {
 }
 
 function customerSupportConversationWhere(status?: string) {
+  const statusFilter = status === "DELIVERY_FAILED"
+    ? { drafts: { some: { status: "FAILED" } } }
+    : status
+      ? { status }
+      : { status: { not: "CLOSED" } };
   return {
     AND: [
-      status ? { status } : { status: { not: "CLOSED" } },
+      statusFilter,
       customerSupportScope(),
     ],
   };
@@ -233,6 +239,13 @@ supportBridgeRouter.post("/drafts/:id/approve", async (req, res) => {
     occurredAt: new Date(),
     payload: { draftId: draft.id, approvedReplyText: replyText },
   });
+  await appendSupportEvidence({
+    conversationId: draft.conversationId,
+    kind: "SEND_AUTHORIZED",
+    source: "SUPPORT_AGENT_API",
+    occurredAt: new Date(),
+    payload: { draftId: draft.id, actor: "AGENT_API" },
+  });
   return res.json({ ok: true, draft });
 });
 
@@ -387,6 +400,7 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     include: {
       messages: { orderBy: { sentAt: "asc" }, take: 100 },
       drafts: { where: { createdAt: { gte: since } }, orderBy: { createdAt: "asc" } },
+      evidence: { where: { kind: "SEND_AUTHORIZED", occurredAt: { gte: since } }, orderBy: { occurredAt: "asc" } },
     },
   });
 
@@ -397,6 +411,10 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
   let escalated = 0;
   let waiting = 0;
   let aiRepliesSent = 0;
+  let automaticAiRepliesSent = 0;
+  let ownerApprovedAiRepliesSent = 0;
+  let agentApprovedAiRepliesSent = 0;
+  let unclassifiedAiRepliesSent = 0;
   let deliveryFailures = 0;
 
   for (const conversation of conversations) {
@@ -408,7 +426,12 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     }
     if (conversation.status === "ESCALATED") escalated += 1;
     if (conversation.status === "WAITING_CUSTOMER") waiting += 1;
-    aiRepliesSent += conversation.drafts.filter(draft => draft.status === "SENT" && draft.sentAt && draft.sentAt >= since).length;
+    const sendSummary = summarizeSupportSendAuthorizations(conversation.drafts, conversation.evidence, since);
+    aiRepliesSent += sendSummary.total;
+    automaticAiRepliesSent += sendSummary.automatic;
+    ownerApprovedAiRepliesSent += sendSummary.ownerApproved;
+    agentApprovedAiRepliesSent += sendSummary.agentApproved;
+    unclassifiedAiRepliesSent += sendSummary.unclassified;
     deliveryFailures += conversation.drafts.filter(draft => draft.status === "FAILED").length;
     topicCounts.set(conversation.topic, (topicCounts.get(conversation.topic) || 0) + 1);
     customerCounts.set(conversation.customerId, (customerCounts.get(conversation.customerId) || 0) + 1);
@@ -435,6 +458,10 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
       escalationRate: conversations.length ? escalated / conversations.length : 0,
       medianFirstResponseMinutes: median(responseMinutes),
       aiRepliesSent,
+      automaticAiRepliesSent,
+      ownerApprovedAiRepliesSent,
+      agentApprovedAiRepliesSent,
+      unclassifiedAiRepliesSent,
       deliveryFailures,
       verifiedSentCopies,
       repeatCustomers,
@@ -443,7 +470,7 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     quality: {
       source: "Namecheap messages, Shopify-backed support context and the internal support evidence ledger",
       coverage: conversations.length >= 500 ? "CAPPED" : "COMPLETE_FOR_RANGE",
-      note: "AI-assisted replies are counted from sent support drafts. Automatic and owner-approved sends are not separated yet, so no automation-rate claim is made.",
+      note: "Automatic and owner-approved sends are separated from the authorization evidence ledger. Older sends without an authorization record remain unclassified rather than being guessed.",
     },
   });
 });
@@ -523,6 +550,15 @@ supportAdminRouter.post("/support/drafts/:id/approve", async (req, res) => {
   });
   if (updated.count !== 1) return res.status(409).json({ ok: false, error: "This draft is already queued or sent." });
   const draft = await prisma.supportDraft.findUnique({ where: { id: req.params.id } });
+  if (draft) {
+    await appendSupportEvidence({
+      conversationId: draft.conversationId,
+      kind: "SEND_AUTHORIZED",
+      source: "SUPPORT_ADMIN",
+      occurredAt: new Date(),
+      payload: { draftId: draft.id, actor: "OWNER_ADMIN" },
+    });
+  }
   return res.json({ ok: true, draft });
 });
 

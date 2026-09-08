@@ -468,6 +468,15 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
       sendAfter: canAutoSend ? new Date() : null,
     },
   });
+  if (canAutoSend) {
+    await appendSupportEvidence({
+      conversationId: conversation.id,
+      kind: "SEND_AUTHORIZED",
+      source: "SUPPORT_POLICY",
+      occurredAt: new Date(),
+      payload: { draftId: draft.id, actor: "AUTOMATION_POLICY", reason: "LOW_RISK_POLICY_PASS" },
+    });
+  }
   await prisma.supportConversation.update({
     where: { id: conversation.id },
     data: {

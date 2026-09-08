@@ -170,6 +170,10 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(html, /Email delivery health/);
   assert.match(html, /Teach the AI/);
   assert.match(html, /Service quality/);
+  assert.match(html, /Automatic sends/);
+  assert.match(html, /Owner-approved/);
+  assert.match(html, /data-status="DELIVERY_FAILED"/);
+  assert.match(js, /show-delivery-failures/);
   assert.match(html, /Historic replies are suggestions only/);
   assert.match(js, /Approve as an example/);
   assert.match(js, /medianFirstResponseMinutes/);
@@ -180,9 +184,14 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(route, /\/support\/voice-examples/);
   assert.match(route, /\/support\/analytics/);
   assert.match(route, /COMPLETE_FOR_RANGE/);
+  assert.match(route, /SEND_AUTHORIZED/);
+  assert.match(route, /OWNER_ADMIN/);
+  assert.match(route, /AGENT_API/);
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);
   assert.match(service, /reclassifyHistoricSupportTopics/);
+  assert.match(service, /SEND_AUTHORIZED/);
+  assert.match(service, /AUTOMATION_POLICY/);
   assert.match(service, /"status" = 'WAITING_CUSTOMER', "lastAgentMessageAt"/);
   assert.match(html, /data-status="CLOSED"/);
   assert.doesNotMatch(html + js, /utm_|externalMessageId|policyFlagsJson/);

@@ -67,12 +67,18 @@
       <div class="delivery-checks" id="delivery-checks"></div>
       </section>
 
+      <section class="delivery-failure-alert" id="delivery-failure-alert" hidden aria-live="assertive">
+        <div><strong id="delivery-failure-title">A reply needs delivery attention</strong><span>The message was not sent. Its error and a guarded retry are available in the conversation.</span></div>
+        <button class="support-button support-button-danger" id="show-delivery-failures">Review failed replies</button>
+      </section>
+
       <nav class="support-filters" aria-label="Conversation filters">
       <button class="active" data-status="ALL">All</button>
       <button data-status="OPEN">Open</button>
       <button data-status="ESCALATED">Escalated</button>
       <button data-status="NEEDS_TRIAGE">Needs triage</button>
       <button data-status="WAITING_CUSTOMER">Waiting</button>
+      <button data-status="DELIVERY_FAILED">Delivery failed</button>
       <button data-status="CLOSED">Closed</button>
       </nav>
 
@@ -142,7 +148,11 @@
         <article><span class="quality-value" id="quality-response">—</span><strong>Median first response</strong><small>Answered conversations</small></article>
         <article><span class="quality-value" id="quality-escalation">—</span><strong>Escalation rate</strong><small>Human decision required</small></article>
         <article><span class="quality-value" id="quality-repeat">—</span><strong>Repeat contacts</strong><small>Customers with multiple threads</small></article>
-        <article><span class="quality-value" id="quality-ai-sent">—</span><strong>AI replies sent</strong><small>Automatic or owner-approved</small></article>
+        <article><span class="quality-value" id="quality-ai-sent">—</span><strong>AI replies sent</strong><small>All verified send paths</small></article>
+        <article><span class="quality-value" id="quality-auto-sent">—</span><strong>Automatic sends</strong><small>Low-risk policy passed</small></article>
+        <article><span class="quality-value" id="quality-owner-sent">—</span><strong>Owner-approved</strong><small>Approved in this inbox</small></article>
+        <article><span class="quality-value" id="quality-agent-sent">—</span><strong>Agent-approved</strong><small>Explicit support API approval</small></article>
+        <article><span class="quality-value" id="quality-failed">—</span><strong>Delivery failures</strong><small>Namecheap send errors</small></article>
         <article><span class="quality-value" id="quality-delivery">—</span><strong>Sent copies verified</strong><small>Namecheap evidence</small></article>
       </section>
       <div class="quality-grid">
