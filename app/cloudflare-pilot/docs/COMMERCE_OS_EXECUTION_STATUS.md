@@ -23,7 +23,8 @@ This document is the repository-safe operating record for the Funnel Builder →
 | Experiences | `/admin/ai-concierge.html` | AI Concierge configuration and verified business impact |
 | Experiments | `/admin/element-experiments.html` | Element tests, deterministic allocation, preflight, and Shopify-paid-order results |
 | Support | `/admin/support.html` | AI support inbox, drafts, escalation, evidence, and agent health |
-| Operations | `/admin/operations.html` | Read-only health and incident view across revenue, support, attribution, experiments and storefront safeguards |
+| Operations | `/admin/operations.html` | Read-only health and incident view across revenue, support, attribution, experiments, storefront safeguards, and Shipment Control |
+| Shipment Control | `/admin/shipment-control.html` | Shopify-paid-order risk reconciled with authenticated CJ order and tracking evidence, with approval-gated owner workflow |
 
 ## Completed checkpoints
 
@@ -130,6 +131,20 @@ This document is the repository-safe operating record for the Funnel Builder →
   passed. Production release and consenting-checkout evidence are still required before
   this checkpoint is marked live.
 - Runbook: `docs/CHECKOUT_ATTRIBUTION_RUNBOOK.md`.
+
+### 12. Shipment Control
+
+- Added a signed, PII-minimized snapshot bridge from the production CJ sync worker into Commerce OS.
+- Shopify remains authoritative for payment and risk; authenticated CJ order details and CJPacket tracking provide fulfillment evidence.
+- Israeli business-day thresholds drive plain-English Critical, High, Medium, and Monitoring queues. Every actionable card says what happened, what to do, and whether the owner should contact CJ, the customer, or the internal team.
+- Customer messages, refunds, cancellations, CJ payments, and Shopify order mutations are not available from this screen. Workflow controls record only acknowledgement, assignment, supplier wait, customer-updated, and resolution state.
+- A private D1 export was created before the additive migration. Migration `0018_shipment_control.sql` was applied successfully.
+- Production snapshot verified on 2026-09-09 Israel time: Shopify `CURRENT`, CJ `CURRENT`, 60 orders reconciled, zero CJ read failures, one duplicate-CJ conflict, and five Critical cases.
+- This verification corrected the earlier public-tracker false negative: order `#4369` exists in authenticated CJ and is moving; it is due a proactive customer update, not a missing-tracking escalation.
+- Live embedded Shopify QA confirmed the dashboard, filters, order links, action instructions, and approval-only controls render correctly in the Commerce OS shell.
+- Verification: 165 Worker tests, 40 CJ-worker tests, and both TypeScript builds passed. Cloudflare version `d7e0660d-7f93-406e-b1c4-ac638176d1bd`; Railway deployment `362f0f80-c66d-4262-9baa-475aa28c5873`.
+- Git checkpoints: Commerce OS `0ae2c33`; CJ worker `7ab7190`.
+- Runbook: `docs/SHIPMENT_CONTROL_RUNBOOK.md`.
 
 ## Current truth snapshot
 
