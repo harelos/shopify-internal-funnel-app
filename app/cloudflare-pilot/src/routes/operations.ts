@@ -100,6 +100,11 @@ router.get("/operations/health", async (_req, res) => {
   } else if (stateFromAge(iso(shopifyCoverage.reconciledAt), now, 25) === "ATTENTION") {
     incidents.push({ severity: "WARNING", area: "Revenue", title: "Shopify financial reconciliation is stale", action: "Check the scheduled Worker before using the in-app revenue snapshot." });
   }
+  if (!metaCoverage) {
+    incidents.push({ severity: "WARNING", area: "Acquisition", title: "Meta cost coverage is unavailable", action: "Do not use blended ROAS from the app until the Meta connection is restored." });
+  } else if (stateFromAge(iso(metaCoverage.reconciledAt), now, 25) === "ATTENTION") {
+    incidents.push({ severity: "WARNING", area: "Acquisition", title: "Meta cost coverage is stale", action: "Use Meta Ads Manager for current spend until the scheduled sync is restored." });
+  }
   if (paidOrders > linkedOrders) {
     incidents.push({ severity: "INFO", area: "Attribution", title: `${paidOrders - linkedOrders} paid ${paidOrders - linkedOrders === 1 ? "order has" : "orders have"} no verified browser journey today`, action: "Revenue is counted, but the missing journey will remain unattributed rather than guessed." });
   }
