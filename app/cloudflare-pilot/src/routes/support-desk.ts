@@ -3,6 +3,7 @@ import prisma from "../lib/db.js";
 import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
+import { APPROVED_STORE_FACTS } from "../lib/support-replies.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
 export const supportAdminRouter = Router();
@@ -311,19 +312,64 @@ supportBridgeRouter.post("/outbox/:id/failed", async (req, res) => {
 });
 
 supportAdminRouter.get("/support/overview", async (_req, res) => {
-  const [mailboxes, open, escalated, pendingReview, learnedReplies, queuedReplies, sentReplies, failedReplies, verifiedSentCopies] = await Promise.all([
+  const [mailboxes, open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, verifiedSentCopies] = await Promise.all([
     prisma.supportMailbox.findMany({ orderBy: { updatedAt: "desc" } }),
     prisma.supportConversation.count({ where: customerSupportConversationWhere("OPEN") }),
     prisma.supportConversation.count({ where: customerSupportConversationWhere("ESCALATED") }),
     prisma.supportDraft.count({ where: { status: "PENDING_REVIEW" } }),
-    prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "APPROVED"] } } }),
+    prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "PENDING_REVIEW"] } } }),
+    prisma.supportVoiceExample.count({ where: { qualityStatus: "APPROVED" } }),
     prisma.supportDraft.count({ where: { status: { in: ["QUEUED_TO_SEND", "SENDING"] } } }),
     prisma.supportDraft.count({ where: { status: "SENT" } }),
     prisma.supportDraft.count({ where: { status: "FAILED" } }),
     prisma.supportEvidenceEvent.count({ where: { kind: "OUTBOUND_DELIVERY_VERIFIED" } }),
   ]);
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, learnedReplies, queuedReplies, sentReplies, failedReplies, verifiedSentCopies } });
+  return res.json({ ok: true, mailboxes, counts: { open, escalated, pendingReview, voicePendingReview, approvedVoiceExamples, queuedReplies, sentReplies, failedReplies, verifiedSentCopies } });
+});
+
+supportAdminRouter.get("/support/voice-examples", async (req, res) => {
+  const requestedStatus = typeof req.query.status === "string" ? req.query.status : "PENDING_REVIEW";
+  const qualityStatuses = requestedStatus === "PENDING_REVIEW" ? ["LEARNED", "PENDING_REVIEW"] : [requestedStatus];
+  const allowed = new Set(["LEARNED", "PENDING_REVIEW", "APPROVED", "REJECTED"]);
+  if (qualityStatuses.some(status => !allowed.has(status))) return res.status(400).json({ ok: false, error: "Invalid voice-example status." });
+  const examples = await prisma.supportVoiceExample.findMany({
+    where: { qualityStatus: { in: qualityStatuses } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, topic: true, customerMessage: true, ownerReply: true, qualityStatus: true, createdAt: true },
+  });
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ ok: true, examples });
+});
+
+supportAdminRouter.get("/support/knowledge", async (_req, res) => {
+  const [approvedVoiceExamples, pendingVoiceExamples] = await Promise.all([
+    prisma.supportVoiceExample.count({ where: { qualityStatus: "APPROVED" } }),
+    prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "PENDING_REVIEW"] } } }),
+  ]);
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({
+    ok: true,
+    approvedStoreFacts: APPROVED_STORE_FACTS,
+    voice: { approved: approvedVoiceExamples, pendingReview: pendingVoiceExamples },
+    policy: {
+      automatic: ["General delivery questions", "Verified order-status questions"],
+      reviewRequired: ["Product use or result questions", "Delivery disputes", "Uncertain customer or order identity"],
+      alwaysEscalate: ["Refunds or cancellations", "Address changes", "Chargebacks", "Legal, safety, fraud or privacy concerns"],
+    },
+  });
+});
+
+supportAdminRouter.patch("/support/voice-examples/:id", async (req, res) => {
+  const qualityStatus = String(req.body?.qualityStatus || "");
+  if (!new Set(["APPROVED", "REJECTED"]).has(qualityStatus)) return res.status(400).json({ ok: false, error: "Voice examples may only be approved or rejected." });
+  const example = await prisma.supportVoiceExample.update({
+    where: { id: req.params.id },
+    data: { qualityStatus },
+    select: { id: true, qualityStatus: true },
+  });
+  return res.json({ ok: true, example });
 });
 
 supportAdminRouter.get("/support/deliverability", async (_req, res) => {

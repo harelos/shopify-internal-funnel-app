@@ -42,6 +42,13 @@ On 2026-09-08, live DNS had working Namecheap MX and DKIM plus DMARC in monitori
 - The mailbox connector applies the same rule before ingestion: outbound mail is imported only when it belongs to an accepted inbound thread or is itself Hebrew customer-service content.
 - The filter is non-destructive. It changes product scope and future ingestion; it does not delete mailbox evidence.
 
+## Approval-gated voice learning
+
+- Historic owner replies enter the review queue as `PENDING_REVIEW`; they are not automatically used as model examples.
+- Only examples explicitly marked `APPROVED` may be supplied to the support model.
+- Rejected examples remain excluded from generation.
+- The embedded Support workspace shows the approved store facts and lets the owner approve or reject voice examples without exposing raw analytics identifiers.
+
 ## Safe deployment order
 
 1. Run the Worker tests and TypeScript build.

@@ -1,5 +1,5 @@
 (() => {
-  const state = { status: "ALL", conversations: [], selectedId: null, mailbox: null };
+  const state = { status: "ALL", view: "inbox", conversations: [], selectedId: null, mailbox: null, voiceExamples: [] };
   const list = document.getElementById("conversation-list");
   const panel = document.getElementById("conversation-panel");
   const workspace = document.querySelector(".support-workspace");
@@ -27,7 +27,8 @@
     document.getElementById("count-escalated").textContent = data.counts.escalated;
     document.getElementById("count-sent").textContent = data.counts.sentReplies;
     document.getElementById("count-failed").textContent = data.counts.failedReplies;
-    document.getElementById("count-learned").textContent = data.counts.learnedReplies;
+    document.getElementById("count-voice-review").textContent = data.counts.voicePendingReview;
+    document.getElementById("voice-tab-count").textContent = data.counts.voicePendingReview;
     state.mailbox = data.mailboxes[0] || null;
     const status = document.getElementById("mailbox-status");
     if (!state.mailbox) {
@@ -48,6 +49,59 @@
         : "Agent is configured but has not checked in during the last 6 minutes.";
     document.getElementById("automation-mode").value = state.mailbox.automationMode;
     document.getElementById("reply-delay").value = String(state.mailbox.replyDelayMinutes);
+  }
+
+  function renderPolicy(policy) {
+    const groups = [
+      ["Automatic", "Only after factual checks pass", policy.automatic || [], "safe"],
+      ["Needs review", "The AI may draft, but cannot send", policy.reviewRequired || [], "review"],
+      ["Always escalated", "A person must make the decision", policy.alwaysEscalate || [], "blocked"],
+    ];
+    document.getElementById("support-policy-grid").innerHTML = groups.map(([title, note, items, tone]) => `<article class="policy-column ${tone}"><strong>${esc(title)}</strong><span>${esc(note)}</span><ul>${items.map(item => `<li>${esc(item)}</li>`).join("")}</ul></article>`).join("");
+  }
+
+  function renderVoiceExamples() {
+    const container = document.getElementById("voice-example-list");
+    document.getElementById("pending-voice-count").textContent = `${state.voiceExamples.length} pending`;
+    if (!state.voiceExamples.length) {
+      container.innerHTML = '<div class="support-empty"><strong>You are caught up.</strong><br>No reply examples are waiting for review.</div>';
+      return;
+    }
+    container.innerHTML = state.voiceExamples.map(example => `<article class="voice-example" data-example-id="${esc(example.id)}">
+      <div class="voice-example-meta"><span class="human-badge">${esc(example.topic.replaceAll("_", " "))}</span><span>${esc(when(example.createdAt))}</span></div>
+      <div class="voice-pair"><div><small>Customer asked</small><p dir="auto">${esc(example.customerMessage)}</p></div><div><small>You replied</small><p dir="auto">${esc(example.ownerReply)}</p></div></div>
+      <div class="voice-actions"><button class="support-button support-button-danger" data-voice-action="REJECTED">Do not learn this</button><button class="support-button" data-voice-action="APPROVED">Approve as an example</button></div>
+    </article>`).join("");
+  }
+
+  async function learning() {
+    const [knowledge, examples] = await Promise.all([
+      API.get("/api/support/knowledge"),
+      API.get("/api/support/voice-examples?status=PENDING_REVIEW"),
+    ]);
+    state.voiceExamples = examples.examples || [];
+    document.getElementById("approved-voice-count").textContent = knowledge.voice.approved;
+    document.getElementById("knowledge-fact-count").textContent = `${knowledge.approvedStoreFacts.length} facts`;
+    document.getElementById("knowledge-list").innerHTML = knowledge.approvedStoreFacts.map(fact => `<li>${esc(fact)}</li>`).join("");
+    renderPolicy(knowledge.policy);
+    renderVoiceExamples();
+  }
+
+  async function reviewVoiceExample(id, qualityStatus) {
+    await API.patch(`/api/support/voice-examples/${encodeURIComponent(id)}`, { qualityStatus });
+    state.voiceExamples = state.voiceExamples.filter(example => example.id !== id);
+    renderVoiceExamples();
+    await overview();
+    document.getElementById("approved-voice-count").textContent = Number(document.getElementById("approved-voice-count").textContent || 0) + (qualityStatus === "APPROVED" ? 1 : 0);
+    notify(qualityStatus === "APPROVED" ? "Reply approved for future AI drafts" : "Reply excluded from AI learning");
+  }
+
+  async function setView(view) {
+    state.view = view;
+    document.querySelectorAll(".support-view-tabs button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
+    document.getElementById("inbox-view").hidden = view !== "inbox";
+    document.getElementById("learning-view").hidden = view !== "learning";
+    if (view === "learning") await learning();
   }
 
   async function deliverability() {
@@ -168,7 +222,15 @@
     workspace.classList.remove("has-selection");
     await conversations();
   }));
-  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations(), deliverability()]); notify("Inbox refreshed"); });
+  document.querySelectorAll(".support-view-tabs button").forEach(button => button.addEventListener("click", () => setView(button.dataset.view)));
+  document.getElementById("voice-example-list").addEventListener("click", event => {
+    const action = event.target.closest("[data-voice-action]");
+    const row = action?.closest("[data-example-id]");
+    if (!action || !row) return;
+    action.disabled = true;
+    reviewVoiceExample(row.dataset.exampleId, action.dataset.voiceAction).catch(error => { action.disabled = false; notify(error.message); });
+  });
+  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations(), deliverability(), state.view === "learning" ? learning() : Promise.resolve()]); notify("Support workspace refreshed"); });
   document.getElementById("save-settings").addEventListener("click", async () => {
     if (!state.mailbox) return;
     await API.patch(`/api/support/mailboxes/${encodeURIComponent(state.mailbox.id)}`, { automationMode: document.getElementById("automation-mode").value, replyDelayMinutes: Number(document.getElementById("reply-delay").value) });

@@ -625,7 +625,7 @@ model SupportVoiceExample {
   topic                 String   @default("OTHER")
   customerMessage       String
   ownerReply            String
-  qualityStatus         String   @default("LEARNED")
+  qualityStatus         String   @default("PENDING_REVIEW")
   createdAt             DateTime @default(now())
   shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 

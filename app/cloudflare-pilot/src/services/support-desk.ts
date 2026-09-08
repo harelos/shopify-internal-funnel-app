@@ -221,7 +221,7 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
     if (inbound) {
       await db.prepare(`INSERT INTO "SupportVoiceExample"
         ("id", "shopId", "inboundExternalId", "outboundExternalId", "topic", "customerMessage", "ownerReply", "qualityStatus", "createdAt")
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'LEARNED', ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING_REVIEW', ?)
         ON CONFLICT("shopId", "inboundExternalId", "outboundExternalId") DO UPDATE SET
           "ownerReply" = excluded."ownerReply", "topic" = excluded."topic"`)
         .bind(supportId("voice"), shop.id, inbound.externalMessageId, input.externalMessageId, policy.topic, inbound.textBody, input.textBody.trim(), now).run();
@@ -345,7 +345,7 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
       await prisma.supportVoiceExample.upsert({
         where: { shopId_inboundExternalId_outboundExternalId: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId } },
         update: { ownerReply: input.textBody.trim(), topic: conversation.topic },
-        create: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId, topic: conversation.topic, customerMessage: inbound.textBody, ownerReply: input.textBody.trim() },
+        create: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId, topic: conversation.topic, customerMessage: inbound.textBody, ownerReply: input.textBody.trim(), qualityStatus: "PENDING_REVIEW" },
       });
     }
   }
@@ -414,7 +414,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     await appendSupportEvidence({ conversationId: conversation.id, kind: "ORDER_LOOKUP_FAILED", source: "SHOPIFY_ADMIN", occurredAt: new Date(), payload: { error: String(error?.message || error).slice(0, 300) } });
   }
   const examples = await prisma.supportVoiceExample.findMany({
-    where: { shopId: conversation.shopId, qualityStatus: { in: ["LEARNED", "APPROVED"] } },
+    where: { shopId: conversation.shopId, qualityStatus: "APPROVED" },
     orderBy: { createdAt: "desc" },
     take: 12,
     select: { customerMessage: true, ownerReply: true },

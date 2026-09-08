@@ -26,10 +26,16 @@
       <article class="summary-alert"><span class="summary-value" id="count-escalated">—</span><span>Escalated</span></article>
       <article><span class="summary-value" id="count-sent">—</span><span>AI replies sent</span></article>
       <article class="summary-alert"><span class="summary-value" id="count-failed">—</span><span>Delivery failed</span></article>
-      <article><span class="summary-value" id="count-learned">—</span><span>Replies learned</span></article>
+      <article><span class="summary-value" id="count-voice-review">—</span><span>Voice to review</span></article>
     </section>
 
-    <section class="mailbox-strip" id="mailbox-strip">
+    <nav class="support-view-tabs" aria-label="Support workspace">
+      <button class="active" data-view="inbox">Inbox</button>
+      <button data-view="learning">Teach the AI <span class="tab-count" id="voice-tab-count">—</span></button>
+    </nav>
+
+    <div class="support-view active" id="inbox-view">
+      <section class="mailbox-strip" id="mailbox-strip">
       <div><span class="connection-dot" id="agent-dot"></span><strong>Namecheap mailbox</strong><small id="mailbox-status">Checking connection…</small><small class="agent-detail" id="agent-detail">Mailbox agent has not checked in yet.</small></div>
       <div class="mailbox-controls">
         <label>Mode
@@ -49,38 +55,78 @@
         </label>
         <button class="support-button support-button-secondary" id="save-settings">Save</button>
       </div>
-    </section>
+      </section>
 
-    <section class="delivery-health" id="delivery-health" aria-live="polite">
+      <section class="delivery-health" id="delivery-health" aria-live="polite">
       <div class="delivery-health-copy">
         <span class="delivery-health-kicker">Email delivery health</span>
         <strong id="delivery-health-title">Checking sender authentication…</strong>
         <span id="delivery-health-summary">Verifying MX, SPF, DKIM and DMARC.</span>
       </div>
       <div class="delivery-checks" id="delivery-checks"></div>
-    </section>
+      </section>
 
-    <nav class="support-filters" aria-label="Conversation filters">
+      <nav class="support-filters" aria-label="Conversation filters">
       <button class="active" data-status="ALL">All</button>
       <button data-status="OPEN">Open</button>
       <button data-status="ESCALATED">Escalated</button>
       <button data-status="NEEDS_TRIAGE">Needs triage</button>
       <button data-status="WAITING_CUSTOMER">Waiting</button>
       <button data-status="CLOSED">Closed</button>
-    </nav>
+      </nav>
 
-    <section class="support-workspace">
-      <aside class="conversation-list" id="conversation-list" aria-label="Conversations">
-        <div class="support-empty">Loading conversations…</div>
-      </aside>
+      <section class="support-workspace">
+        <aside class="conversation-list" id="conversation-list" aria-label="Conversations">
+          <div class="support-empty">Loading conversations…</div>
+        </aside>
 
-      <article class="conversation-panel" id="conversation-panel">
-        <div class="support-empty support-empty-large">
-          <span class="empty-icon">✦</span>
-          <h2>Select a conversation</h2>
-          <p>You will see the customer history, order status, tracking and reply decision here.</p>
+        <article class="conversation-panel" id="conversation-panel">
+          <div class="support-empty support-empty-large">
+            <span class="empty-icon">✦</span>
+            <h2>Select a conversation</h2>
+            <p>You will see the customer history, order status, tracking and reply decision here.</p>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <section class="support-view learning-view" id="learning-view" hidden>
+      <header class="learning-header">
+        <div>
+          <span class="delivery-health-kicker">Approval-gated learning</span>
+          <h2>Teach the AI from your best replies</h2>
+          <p>Historic replies are suggestions only. The AI cannot learn from one until you approve it.</p>
         </div>
-      </article>
+        <div class="learning-stats">
+          <strong id="approved-voice-count">—</strong>
+          <span>approved examples</span>
+        </div>
+      </header>
+
+      <div class="learning-grid">
+        <section class="knowledge-card">
+          <div class="section-heading">
+            <div><span class="delivery-health-kicker">Verified source</span><h3>Approved store facts</h3></div>
+            <span class="human-badge" id="knowledge-fact-count">— facts</span>
+          </div>
+          <p class="section-intro">The AI may use these facts in customer replies. Refunds, cancellations and policy exceptions still require a person.</p>
+          <ul class="knowledge-list" id="knowledge-list"><li>Loading approved knowledge…</li></ul>
+        </section>
+
+        <section class="knowledge-card">
+          <div class="section-heading">
+            <div><span class="delivery-health-kicker">Your voice</span><h3>Replies awaiting review</h3></div>
+            <span class="human-badge" id="pending-voice-count">— pending</span>
+          </div>
+          <p class="section-intro">Approve only replies whose tone and facts should guide future drafts. Rejected examples are never used.</p>
+          <div class="voice-example-list" id="voice-example-list"><div class="support-empty">Loading reply examples…</div></div>
+        </section>
+      </div>
+
+      <section class="automation-policy-card">
+        <div class="section-heading"><div><span class="delivery-health-kicker">Safety contract</span><h3>What the agent may do</h3></div></div>
+        <div class="policy-grid" id="support-policy-grid"></div>
+      </section>
     </section>
   </main>
 
