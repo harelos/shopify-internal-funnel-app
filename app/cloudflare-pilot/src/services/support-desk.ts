@@ -6,6 +6,7 @@ import { evaluateSupportPolicy, mayAutoSend } from "../lib/support-policy.js";
 import { extractSupportOrderNumber } from "../lib/support-email.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
+import { enabledSupportFactTexts } from "../lib/support-knowledge.js";
 
 const shopify = new ShopifyAdminClient();
 
@@ -39,6 +40,24 @@ function threadKey(input: SupportIngestInput): string {
   if (rootReference) return rootReference.trim().slice(0, 300);
   const normalizedSubject = input.subject.replace(/^(re|fw|fwd):\s*/gi, "").trim().toLowerCase();
   return `${canonicalEmail(input.customerEmail)}::${normalizedSubject}`.slice(0, 300);
+}
+
+function messageReferences(input: SupportIngestInput): string[] {
+  return [...new Set([input.inReplyTo, ...(input.references || [])]
+    .map(value => String(value || "").trim().slice(0, 500))
+    .filter(Boolean))];
+}
+
+async function referencedConversation(shopId: string, input: SupportIngestInput): Promise<any | null> {
+  const db = supportD1();
+  for (const reference of messageReferences(input)) {
+    const conversation = await db.prepare(`SELECT c.* FROM "SupportMessage" m
+      JOIN "SupportConversation" c ON c."id" = m."conversationId"
+      WHERE c."shopId" = ? AND m."externalMessageId" = ? LIMIT 1`)
+      .bind(shopId, reference).first<any>();
+    if (conversation) return conversation;
+  }
+  return null;
 }
 
 export async function appendSupportEvidence(input: {
@@ -160,11 +179,14 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
   const triageNeedsReview = triage.classification === "REVIEW";
   const audienceType = triage.classification === "SALES_QUESTION" ? "PROSPECT" : "UNVERIFIED_CUSTOMER";
   const status = input.direction === "INBOUND" ? (policy.mustEscalate ? "ESCALATED" : triageNeedsReview ? "NEEDS_TRIAGE" : "OPEN") : "WAITING_CUSTOMER";
-  const nextActionAt = input.direction === "INBOUND" && !policy.mustEscalate && !triageNeedsReview
+  const nextActionAt = input.direction === "INBOUND" && !triageNeedsReview
     ? new Date(sentAt.getTime() + Number(mailbox.replyDelayMinutes || 5) * 60000).toISOString()
     : null;
-  let conversation = await db.prepare('SELECT * FROM "SupportConversation" WHERE "shopId" = ? AND "externalThreadKey" = ? LIMIT 1')
-    .bind(shop.id, externalThreadKey).first<any>();
+  let conversation = await referencedConversation(shop.id, input);
+  if (!conversation) {
+    conversation = await db.prepare('SELECT * FROM "SupportConversation" WHERE "shopId" = ? AND "externalThreadKey" = ? LIMIT 1')
+      .bind(shop.id, externalThreadKey).first<any>();
+  }
   if (!conversation) {
     const conversationId = supportId("conversation");
     await db.prepare(`INSERT OR IGNORE INTO "SupportConversation"
@@ -223,6 +245,14 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
   });
 
   if (input.direction === "OUTBOUND") {
+    await db.prepare(`UPDATE "SupportDraft" SET
+      "status" = 'REJECTED', "sendAfter" = NULL, "claimedAt" = NULL,
+      "lastDeliveryError" = 'Superseded by a later reply imported from the mailbox Sent folder.',
+      "updatedAt" = ?
+      WHERE "conversationId" = ? AND "sentAt" IS NULL
+        AND "status" IN ('PENDING_REVIEW', 'ESCALATED', 'QUEUED_TO_SEND', 'SENDING')
+        AND "createdAt" <= ?`)
+      .bind(now, conversation.id, sentAt.toISOString()).run();
     const inbound = await db.prepare(`SELECT "externalMessageId", "textBody" FROM "SupportMessage"
       WHERE "conversationId" = ? AND "direction" = 'INBOUND' AND "sentAt" <= ? ORDER BY "sentAt" DESC LIMIT 1`)
       .bind(conversation.id, sentAt.toISOString()).first<any>();
@@ -298,7 +328,7 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
       escalationReason: input.direction === "INBOUND" ? (policy.mustEscalate ? policy.flags.join(", ") : null) : undefined,
       lastCustomerMessageAt: input.direction === "INBOUND" ? sentAt : undefined,
       lastAgentMessageAt: input.direction === "OUTBOUND" ? sentAt : undefined,
-      nextActionAt: input.direction === "INBOUND" && !policy.mustEscalate && !triageNeedsReview ? new Date(sentAt.getTime() + delayMinutes * 60000) : null,
+      nextActionAt: input.direction === "INBOUND" && !triageNeedsReview ? new Date(sentAt.getTime() + delayMinutes * 60000) : null,
     },
     create: {
       shopId: shop.id,
@@ -317,7 +347,7 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
       escalationReason: policy.mustEscalate ? policy.flags.join(", ") : null,
       lastCustomerMessageAt: input.direction === "INBOUND" ? sentAt : null,
       lastAgentMessageAt: input.direction === "OUTBOUND" ? sentAt : null,
-      nextActionAt: input.direction === "INBOUND" && !policy.mustEscalate && !triageNeedsReview ? new Date(sentAt.getTime() + delayMinutes * 60000) : null,
+      nextActionAt: input.direction === "INBOUND" && !triageNeedsReview ? new Date(sentAt.getTime() + delayMinutes * 60000) : null,
     },
   });
   const message = await prisma.supportMessage.create({
@@ -349,6 +379,20 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
   });
 
   if (input.direction === "OUTBOUND") {
+    await prisma.supportDraft.updateMany({
+      where: {
+        conversationId: conversation.id,
+        sentAt: null,
+        status: { in: ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND", "SENDING"] },
+        createdAt: { lte: sentAt },
+      },
+      data: {
+        status: "REJECTED",
+        sendAfter: null,
+        claimedAt: null,
+        lastDeliveryError: "Superseded by a later reply imported from the mailbox Sent folder.",
+      },
+    });
     const inbound = await prisma.supportMessage.findFirst({
       where: { conversationId: conversation.id, direction: "INBOUND", sentAt: { lte: sentAt } },
       orderBy: { sentAt: "desc" },
@@ -431,6 +475,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     take: 12,
     select: { customerMessage: true, ownerReply: true },
   });
+  const approvedStoreFacts = await enabledSupportFactTexts(conversation.shopId);
   const decision = await generateSupportDecision({
     subject: conversation.subject,
     threadText: conversation.messages.slice(-12).map(message => `${message.direction}: ${message.textBody.slice(0, 4000)}`).join("\n\n").slice(-16000),
@@ -438,6 +483,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     orderContext,
     policy,
     audienceType: Array.isArray(orderContext) && orderContext.length > 0 ? "VERIFIED_CUSTOMER" : conversation.audienceType,
+    approvedStoreFacts,
   });
   const canAutoSend = mayAutoSend({
     automationMode: conversation.mailbox.automationMode,
@@ -496,7 +542,7 @@ export async function processSupportDeskCron() {
   if (workerEnvValue("SUPPORT_AI_DRAFTS_ENABLED") !== "true") return { processed: 0, disabled: true };
   const reclassified = await reclassifyHistoricSupportTopics();
   const due = await prisma.supportConversation.findMany({
-    where: { status: "OPEN", nextActionAt: { lte: new Date() }, drafts: { none: { status: { in: ["PENDING_REVIEW", "QUEUED_TO_SEND"] } } } },
+    where: { status: { in: ["OPEN", "ESCALATED"] }, nextActionAt: { lte: new Date() }, drafts: { none: { status: { in: ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND", "SENDING"] } } } },
     orderBy: { nextActionAt: "asc" },
     take: 10,
     select: { id: true },

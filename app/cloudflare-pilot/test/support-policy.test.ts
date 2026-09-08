@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { evaluateSupportPolicy, mayAutoSend } from "../src/lib/support-policy.js";
 import { triageMailboxMessage } from "../src/lib/support-triage.js";
 import { extractSupportOrderNumber } from "../src/lib/support-email.js";
-import { deterministicLowRiskDecision } from "../src/lib/support-replies.js";
+import { deterministicLowRiskDecision, ownerReviewHoldingDraft } from "../src/lib/support-replies.js";
 
 test("chargeback, legal, refund and safety messages always escalate", () => {
   for (const text of [
@@ -34,6 +34,14 @@ test("marketing opt-out and privacy requests always escalate while product appro
   assert.equal(regulatory.mustEscalate, false);
 });
 
+test("regulatory questions receive a safe owner-review holding draft without product claims", () => {
+  const policy = evaluateSupportPolicy("אפשר לקבל רשימת רכיבים ואישור משרד הבריאות?");
+  const draft = ownerReviewHoldingDraft(policy);
+  assert.match(draft, /מידע מדויק/);
+  assert.match(draft, /לאחר בדיקה/);
+  assert.doesNotMatch(draft, /מאושר|approved/i);
+});
+
 test("a simple tracking request is low risk but still needs verified order context", () => {
   const policy = evaluateSupportPolicy("היי, איפה החבילה שלי? יש מספר מעקב?");
   assert.equal(policy.topic, "ORDER_STATUS");
@@ -51,6 +59,22 @@ test("a general shipping question can auto-send from approved store facts withou
   const policy = evaluateSupportPolicy("היי, כמה זמן המשלוח וכמה הוא עולה?");
   assert.equal(policy.topic, "GENERAL_SHIPPING");
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.96, hasVerifiedOrder: false, hasUnverifiedClaims: false }), true);
+});
+
+test("shipping replies use the editable approved facts and never silently restore disabled defaults", () => {
+  const policy = evaluateSupportPolicy("היי, כמה זמן המשלוח וכמה הוא עולה?");
+  const edited = deterministicLowRiskDecision({
+    policy,
+    orderContext: null,
+    approvedStoreFacts: [
+      "Delivery is available throughout Israel and normally takes 7-14 business days.",
+      "Shipping is free for orders above ILS 249.",
+    ],
+  });
+  assert.match(edited?.replyText || "", /7–14 ימי עסקים/);
+  assert.match(edited?.replyText || "", /249 ₪/);
+  assert.doesNotMatch(edited?.replyText || "", /5–12|199 ₪/);
+  assert.equal(deterministicLowRiskDecision({ policy, orderContext: null, approvedStoreFacts: [] }), null);
 });
 
 test("a delivery ETA phrasing in Hebrew is recognized as order status", () => {
@@ -146,6 +170,17 @@ test("operations-provider mail never enters the customer-support queue", () => {
   assert.ok(result.reasons.includes("OPERATIONS_SERVICE_PROVIDER_SENDER"));
 });
 
+test("chargeback vendors remain operations mail even when their copy contains customer-support words", () => {
+  const result = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "jack@chargeback.io",
+    subject: "Re: New form submission: Customer Support Enquiry",
+    textBody: "We can auto refund alerts and review disputed transactions for your Shopify store.",
+  });
+  assert.equal(result.classification, "IGNORE");
+  assert.ok(result.reasons.includes("OPERATIONS_SERVICE_PROVIDER_SENDER"));
+});
+
 test("English operational mail cannot auto-send even if a shipping phrase matches", () => {
   const policy = evaluateSupportPolicy("What is the shipping cost?");
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: false, hasUnverifiedClaims: false, language: "ENGLISH" }), false);
@@ -186,9 +221,20 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(html, /Unclassified legacy/);
   assert.match(html, /data-status="DELIVERY_FAILED"/);
   assert.match(js, /show-delivery-failures/);
+  assert.match(js, /show-escalated/);
+  assert.match(html, /sensitive reply needs your approval/);
   assert.match(html, /Historic replies are suggestions only/);
+  assert.match(html, /training review queue/);
   assert.match(js, /Approve as an example/);
+  assert.match(js, /Save verified fact/);
+  assert.match(js, /This reply cannot send automatically/);
+  assert.match(js, /A later reply is already in the customer thread/);
+  assert.match(js, /funnel:support-mutation-replayed/);
   assert.match(js, /medianFirstResponseMinutes/);
+  const api = fs.readFileSync(path.join(appRoot, "public/admin/js/api.js"), "utf8");
+  assert.match(api, /SUPPORT_AUTH_RETRY_KEY/);
+  assert.match(api, /X-Shopify-Retry-Invalid-Session-Request/);
+  assert.match(api, /method === "GET" \|\| !String\(path\)\.startsWith\("\/api\/support\/"\)/);
   const route = fs.readFileSync(path.join(appRoot, "src/routes/support-desk.ts"), "utf8");
   const service = fs.readFileSync(path.join(appRoot, "src/services/support-desk.ts"), "utf8");
   assert.match(route, /customerSupportConversationWhere/);
@@ -199,9 +245,13 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(route, /COMPLETE_FOR_RANGE/);
   assert.match(route, /SEND_AUTHORIZED/);
   assert.match(route, /OWNER_ADMIN/);
+  assert.match(route, /support\/knowledge\/:id/);
   assert.match(route, /AGENT_API/);
   assert.match(route, /\/delivery\/bounce/);
   assert.match(route, /OUTBOUND_BOUNCED/);
+  assert.match(service, /referencedConversation/);
+  assert.match(service, /m\."externalMessageId" = \?/);
+  assert.match(service, /Superseded by a later reply imported from the mailbox Sent folder/);
   assert.match(route, /status:\s*"BOUNCED"/);
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);

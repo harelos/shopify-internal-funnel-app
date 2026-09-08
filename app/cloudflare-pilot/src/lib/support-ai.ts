@@ -1,6 +1,6 @@
 import { workerEnvValue } from "./shopify-config.js";
 import type { SupportPolicyDecision } from "./support-policy.js";
-import { APPROVED_STORE_FACTS, deterministicLowRiskDecision } from "./support-replies.js";
+import { deterministicLowRiskDecision, ownerReviewHoldingDraft } from "./support-replies.js";
 
 export interface SupportAiDecision {
   decision: "REPLY" | "WAIT" | "ESCALATE";
@@ -44,7 +44,7 @@ function fallbackDecision(policy: SupportPolicyDecision, reason: string): Suppor
     decision: "ESCALATE",
     topic: policy.topic,
     confidence: 0,
-    replyText: "",
+    replyText: ownerReviewHoldingDraft(policy),
     reason,
     factsUsed: [],
     unverifiedClaims: [],
@@ -78,8 +78,9 @@ export async function generateSupportDecision(input: {
   orderContext: unknown;
   policy: SupportPolicyDecision;
   audienceType: string;
+  approvedStoreFacts: string[];
 }): Promise<SupportAiDecision> {
-  const deterministic = deterministicLowRiskDecision(input);
+  const deterministic = deterministicLowRiskDecision({ ...input, approvedStoreFacts: input.approvedStoreFacts });
   if (deterministic) return deterministic;
   const apiKey = workerEnvValue("OPENROUTER_API_KEY");
   if (!apiKey) return fallbackDecision(input.policy, "OpenRouter is not configured; human review is required.");
@@ -116,7 +117,7 @@ export async function generateSupportDecision(input: {
                 "Lead with the direct answer, then one calming next step. Sound like a responsible retailer, never like a robot or aggressive salesperson.",
                 "Never invent order status, tracking movement, delivery date, refund, cancellation, policy, product result or medical claim.",
                 "Only use approvedStoreFacts and verifiedOrderContext as factual sources. Owner examples are voice examples only.",
-                "If the request concerns chargeback, legal action, safety/medical issues, fraud, refund, cancellation, address change, identity uncertainty or conflicting facts: decision must be ESCALATE and replyText must be empty.",
+                "If the request concerns chargeback, legal action, safety/medical issues, fraud, refund, cancellation, address change, identity uncertainty, regulatory approval, ingredients or conflicting facts: decision must be ESCALATE. Provide only a conservative holding draft for owner review; never assert an unverified fact or promise an outcome.",
                 "For a general pre-sale delivery or shipping question, a verified order is not required; answer only from approved store facts.",
                 "For a personal order/tracking question, verified order context is required. Otherwise escalate.",
                 "Do not mention AI, internal policy, confidence, risk labels or missing tools to the customer.",
@@ -130,7 +131,7 @@ export async function generateSupportDecision(input: {
                 subject: redactForModel(input.subject),
                 conversation: redactForModel(input.threadText),
                 deterministicPolicy: input.policy,
-                approvedStoreFacts: APPROVED_STORE_FACTS,
+                approvedStoreFacts: input.approvedStoreFacts,
                 verifiedOrderContext: redactForModel(input.orderContext),
                 ownerVoiceExamples: redactForModel(input.ownerExamples.slice(0, 8)),
               }),
@@ -144,7 +145,9 @@ export async function generateSupportDecision(input: {
       const raw = payload.choices?.[0]?.message?.content || payload.choices?.[0]?.message?.reasoning || "";
       const parsed = validDecision(JSON.parse(extractJson(raw)), model, input.policy.topic);
       if (!parsed) continue;
-      if (input.policy.mustEscalate) return { ...parsed, decision: "ESCALATE", replyText: "", confidence: Math.min(parsed.confidence, 0.7) };
+      const reviewDraft = parsed.replyText || ownerReviewHoldingDraft(input.policy);
+      if (input.policy.mustEscalate) return { ...parsed, decision: "ESCALATE", replyText: reviewDraft, confidence: Math.min(parsed.confidence, 0.7) };
+      if (parsed.decision === "ESCALATE" && !parsed.replyText) return { ...parsed, replyText: reviewDraft };
       return parsed;
     } catch {
       // A failed or malformed rung is never surfaced to the customer; try the next vetted rung.

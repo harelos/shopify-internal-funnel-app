@@ -4,7 +4,7 @@ import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
 import { summarizeSupportSendAuthorizations } from "../lib/support-analytics.js";
-import { APPROVED_STORE_FACTS } from "../lib/support-replies.js";
+import { ensureSupportKnowledgeFacts } from "../lib/support-knowledge.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
 export const supportAdminRouter = Router();
@@ -219,7 +219,7 @@ supportBridgeRouter.get("/conversations", async (req, res) => {
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const rows = await prisma.supportConversation.findMany({
     where: customerSupportConversationWhere(status),
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
     take: limit,
     include: {
       customer: { select: { email: true, displayName: true, riskLevel: true, lifetimeOrders: true } },
@@ -414,14 +414,18 @@ supportAdminRouter.get("/support/voice-examples", async (req, res) => {
 });
 
 supportAdminRouter.get("/support/knowledge", async (_req, res) => {
-  const [approvedVoiceExamples, pendingVoiceExamples] = await Promise.all([
+  const shopDomain = (workerEnvValue("SHOP_DOMAIN") || "local-dev.myshopify.com").toLowerCase();
+  const shop = await prisma.shop.findUnique({ where: { domain: shopDomain }, select: { id: true } });
+  if (!shop) return res.status(404).json({ ok: false, error: "The configured Shopify store was not found." });
+  const [approvedVoiceExamples, pendingVoiceExamples, approvedStoreFacts] = await Promise.all([
     prisma.supportVoiceExample.count({ where: { qualityStatus: "APPROVED" } }),
     prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "PENDING_REVIEW"] } } }),
+    ensureSupportKnowledgeFacts(shop.id),
   ]);
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     ok: true,
-    approvedStoreFacts: APPROVED_STORE_FACTS,
+    approvedStoreFacts,
     voice: { approved: approvedVoiceExamples, pendingReview: pendingVoiceExamples },
     policy: {
       automatic: ["General delivery questions", "Verified order-status questions"],
@@ -429,6 +433,19 @@ supportAdminRouter.get("/support/knowledge", async (_req, res) => {
       alwaysEscalate: ["Refunds or cancellations", "Address changes", "Chargebacks", "Legal, safety, fraud or privacy concerns"],
     },
   });
+});
+
+supportAdminRouter.patch("/support/knowledge/:id", async (req, res) => {
+  const factText = String(req.body?.factText || "").trim();
+  const enabled = req.body?.enabled;
+  if (factText.length < 5 || factText.length > 500) return res.status(400).json({ ok: false, error: "A verified store fact must be 5–500 characters." });
+  if (typeof enabled !== "boolean") return res.status(400).json({ ok: false, error: "Fact status must be enabled or disabled." });
+  const fact = await prisma.supportKnowledgeFact.update({
+    where: { id: req.params.id },
+    data: { factText, enabled, revision: { increment: 1 }, updatedBy: "OWNER_ADMIN" },
+    select: { id: true, key: true, factText: true, enabled: true, position: true, revision: true, updatedAt: true },
+  });
+  return res.json({ ok: true, fact });
 });
 
 supportAdminRouter.get("/support/analytics", async (req, res) => {
@@ -441,7 +458,7 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
         { messages: { some: { direction: "INBOUND", sentAt: { gte: since } } } },
       ],
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
     take: 500,
     include: {
       messages: { orderBy: { sentAt: "asc" }, take: 100 },
@@ -551,7 +568,7 @@ supportAdminRouter.get("/support/conversations", async (req, res) => {
   const status = typeof req.query.status === "string" && req.query.status !== "ALL" ? req.query.status : undefined;
   const rows = await prisma.supportConversation.findMany({
     where: customerSupportConversationWhere(status),
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
     take: 100,
     include: {
       customer: true,
@@ -581,7 +598,12 @@ supportAdminRouter.get("/support/conversations/:id", async (req, res) => {
 
 supportAdminRouter.post("/support/conversations/:id/draft", async (req, res) => {
   try {
-    return res.json({ ok: true, draft: await draftSupportReply(req.params.id, bearer(req)) });
+    const existing = await prisma.supportDraft.findFirst({
+      where: { conversationId: req.params.id, status: { in: ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND", "SENDING"] } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) return res.json({ ok: true, reused: true, draft: existing });
+    return res.json({ ok: true, reused: false, draft: await draftSupportReply(req.params.id, bearer(req)) });
   } catch (error: any) {
     return res.status(400).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
   }

@@ -34,6 +34,11 @@
     document.getElementById("delivery-failure-title").textContent = data.counts.deliveryAttention === 1
       ? "1 reply needs delivery attention"
       : `${data.counts.deliveryAttention} replies need delivery attention`;
+    const approvalAlert = document.getElementById("owner-approval-alert");
+    approvalAlert.hidden = data.counts.escalated === 0;
+    document.getElementById("owner-approval-title").textContent = data.counts.escalated === 1
+      ? "1 sensitive reply needs your approval"
+      : `${data.counts.escalated} sensitive replies need your approval`;
     state.mailbox = data.mailboxes[0] || null;
     const status = document.getElementById("mailbox-status");
     if (!state.mailbox) {
@@ -100,7 +105,31 @@
     state.voiceExamples = examples.examples || [];
     document.getElementById("approved-voice-count").textContent = knowledge.voice.approved;
     document.getElementById("knowledge-fact-count").textContent = `${knowledge.approvedStoreFacts.length} facts`;
-    document.getElementById("knowledge-list").innerHTML = knowledge.approvedStoreFacts.map(fact => `<li>${esc(fact)}</li>`).join("");
+    document.getElementById("knowledge-list").innerHTML = knowledge.approvedStoreFacts.map(fact => `<li class="knowledge-fact ${fact.enabled ? "" : "disabled"}" data-fact-id="${esc(fact.id)}">
+      <div class="knowledge-fact-view"><span>${esc(fact.factText)}</span><button class="knowledge-edit" type="button">Edit</button></div>
+      <div class="knowledge-fact-editor" hidden><textarea dir="auto" maxlength="500">${esc(fact.factText)}</textarea><label><input type="checkbox" ${fact.enabled ? "checked" : ""}> Available to AI</label><div><button class="support-button support-button-secondary knowledge-cancel" type="button">Cancel</button><button class="support-button knowledge-save" type="button">Save verified fact</button></div></div>
+      <small>Revision ${Number(fact.revision || 1)} · ${fact.enabled ? "available to AI" : "disabled"}</small>
+    </li>`).join("");
+    document.querySelectorAll(".knowledge-fact").forEach(row => {
+      const view = row.querySelector(".knowledge-fact-view");
+      const editor = row.querySelector(".knowledge-fact-editor");
+      row.querySelector(".knowledge-edit").addEventListener("click", () => { view.hidden = true; editor.hidden = false; editor.querySelector("textarea").focus(); });
+      row.querySelector(".knowledge-cancel").addEventListener("click", () => { editor.hidden = true; view.hidden = false; });
+      row.querySelector(".knowledge-save").addEventListener("click", async event => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = "Saving…";
+        try {
+          await API.patch(`/api/support/knowledge/${encodeURIComponent(row.dataset.factId)}`, { factText: editor.querySelector("textarea").value.trim(), enabled: editor.querySelector("input").checked });
+          notify("Verified store fact saved");
+          await learning();
+        } catch (error) {
+          notify(error.message);
+          button.disabled = false;
+          button.textContent = "Save verified fact";
+        }
+      });
+    });
     renderPolicy(knowledge.policy);
     renderVoiceExamples();
   }
@@ -181,7 +210,7 @@
           <span class="conversation-subject">${esc(row.subject)}</span>
           <span class="conversation-preview">${esc(last?.textBody || "No message preview")}</span>
         </span>
-        <span class="conversation-meta">${esc(when(row.updatedAt))}<span class="status-pill ${row.status.toLowerCase()}">${esc(row.status.replaceAll("_", " "))}</span></span>
+        <span class="conversation-meta">${esc(when(row.lastCustomerMessageAt || row.updatedAt))}<span class="status-pill ${row.status.toLowerCase()}">${esc(row.status.replaceAll("_", " "))}</span></span>
       </button>`;
     }).join("");
     list.querySelectorAll("[data-id]").forEach(button => button.addEventListener("click", () => selectConversation(button.dataset.id)));
@@ -195,7 +224,7 @@
   }
 
   function renderDraft(row, draft) {
-    if (!draft) return `<section class="draft-card"><div class="draft-head"><div><strong>No draft yet</strong><div class="draft-reason">Generate a grounded reply from this thread and Shopify order data.</div></div></div><div class="draft-actions"><button class="support-button" id="generate-draft">Generate reply</button></div></section>`;
+    if (!draft) return `<section class="draft-card"><div class="draft-head"><div><strong>No draft yet</strong><div class="draft-reason">Generate a grounded reply from this thread, approved store facts and Shopify order data.</div></div></div><div class="draft-actions"><button class="support-button" id="generate-draft">Generate reply</button></div></section>`;
     const sentCopyVerified = row.evidence?.some(event => event.kind === "OUTBOUND_DELIVERY_VERIFIED");
     if (draft.status === "BOUNCED") {
       return `<section class="draft-card delivery-failed"><div class="draft-head"><div><strong>Recipient server returned this email</strong><div class="draft-reason">${esc(draft.lastDeliveryError || "The recipient mail server rejected the message.")}</div></div></div><div class="draft-receipt"><strong>Human follow-up required</strong><span>The bounce was matched to this exact reply and recorded in the evidence ledger. Check the address or contact the customer through a verified alternative; the system will not resend automatically.</span></div></section>`;
@@ -203,9 +232,14 @@
     if (draft.status === "SENT") {
       return `<section class="draft-card"><div class="draft-head"><div><strong>AI reply sent</strong><div class="draft-reason">${esc(when(draft.sentAt))}</div></div></div><div class="draft-receipt"><strong>${sentCopyVerified ? "SMTP accepted · Sent-folder copy verified" : "SMTP accepted by Namecheap"}</strong><span>${sentCopyVerified ? "The exact message is recorded in the mailbox Sent folder and in the support evidence ledger. Recipient inbox placement is controlled by the receiving provider." : "This earlier reply was accepted by Namecheap. Sent-folder verification was not recorded for this historical send."}</span></div></section>`;
     }
+    if (draft.status === "REJECTED") {
+      const alreadyAnswered = row.status === "WAITING_CUSTOMER";
+      return `<section class="draft-card"><div class="draft-head"><div><strong>${alreadyAnswered ? "A later reply is already in the customer thread" : "Draft kept for human handling"}</strong><div class="draft-reason">${esc(draft.lastDeliveryError || draft.reason)}</div></div></div>${alreadyAnswered ? "" : '<div class="draft-actions"><button class="support-button support-button-secondary" id="generate-draft">Generate a new suggestion</button></div>'}</section>`;
+    }
     const queued = ["QUEUED_TO_SEND", "SENDING"].includes(draft.status);
     const failed = draft.status === "FAILED";
-    return `<section class="draft-card ${failed ? "delivery-failed" : ""}"><div class="draft-head"><div><strong>${failed ? "Delivery failed" : draft.status === "ESCALATED" ? "Needs your decision" : "AI reply draft"}</strong><div class="draft-reason">${esc(failed ? (draft.lastDeliveryError || draft.reason) : draft.reason)} · ${Math.round(draft.confidence * 100)}% confidence</div></div></div><textarea id="reply-text" ${queued ? "disabled" : ""}>${esc(draft.replyText)}</textarea><div class="draft-actions">${queued ? '<span class="human-badge">Queued for the Namecheap connector</span>' : `<button class="support-button support-button-danger" id="reject-draft">Escalate</button><button class="support-button" id="approve-draft">${failed ? "Retry sending" : "Approve & send"}</button>`}</div></section>`;
+    const needsOwner = draft.status === "ESCALATED";
+    return `<section class="draft-card ${failed ? "delivery-failed" : ""} ${needsOwner ? "owner-review" : ""}"><div class="draft-head"><div><strong>${failed ? "Delivery failed" : needsOwner ? "Draft ready · owner approval required" : "AI reply draft"}</strong><div class="draft-reason">${esc(failed ? (draft.lastDeliveryError || draft.reason) : draft.reason)} · ${Math.round(draft.confidence * 100)}% confidence</div></div></div>${needsOwner ? '<div class="owner-review-warning"><strong>This reply cannot send automatically.</strong><span>Regulatory, legal, medical, refund, chargeback and other sensitive topics always require your review.</span></div>' : ""}<textarea id="reply-text" ${queued ? "disabled" : ""} placeholder="Write or generate a careful reply for owner review…">${esc(draft.replyText)}</textarea><div class="draft-actions">${queued ? '<span class="human-badge">Queued for the Namecheap connector</span>' : `${!draft.replyText ? '<button class="support-button support-button-secondary" id="generate-draft">Generate suggested reply</button>' : ""}<button class="support-button support-button-danger" id="reject-draft">Keep escalated</button><button class="support-button" id="approve-draft">${failed ? "Retry sending" : "Approve & send"}</button>`}</div></section>`;
   }
 
   async function selectConversation(id) {
@@ -240,8 +274,8 @@
     const button = document.getElementById("generate-draft");
     button.disabled = true;
     button.textContent = "Checking order & drafting…";
-    try { await API.post(`/api/support/conversations/${encodeURIComponent(id)}/draft`, {}); notify("Reply draft created"); await selectConversation(id); await overview(); }
-    catch (error) { notify(error.message); button.disabled = false; button.textContent = "Generate reply"; }
+    try { await API.post(`/api/support/conversations/${encodeURIComponent(id)}/draft`, {}); notify("Reply draft created for your review"); await selectConversation(id); await overview(); }
+    catch (error) { notify(error.message); button.disabled = false; button.textContent = "Try generating again"; }
   }
 
   async function approveDraft(id) {
@@ -271,6 +305,7 @@
 
   document.querySelectorAll(".support-filters button").forEach(button => button.addEventListener("click", () => applyStatusFilter(button)));
   document.getElementById("show-delivery-failures").addEventListener("click", () => applyStatusFilter(document.querySelector('[data-status="DELIVERY_FAILED"]')));
+  document.getElementById("show-escalated").addEventListener("click", () => applyStatusFilter(document.querySelector('[data-status="ESCALATED"]')));
   document.querySelectorAll(".support-view-tabs button").forEach(button => button.addEventListener("click", () => setView(button.dataset.view)));
   document.getElementById("voice-example-list").addEventListener("click", event => {
     const action = event.target.closest("[data-voice-action]");
@@ -286,6 +321,20 @@
     await API.patch(`/api/support/mailboxes/${encodeURIComponent(state.mailbox.id)}`, { automationMode: document.getElementById("automation-mode").value, replyDelayMinutes: Number(document.getElementById("reply-delay").value) });
     notify("Support automation settings saved");
     await overview();
+  });
+
+  window.addEventListener("funnel:support-mutation-replayed", async event => {
+    const detail = event.detail || {};
+    if (!detail.ok) return notify(detail.error || "The Shopify session could not be refreshed. Reopen the app and try again.");
+    const draftMatch = String(detail.path || "").match(/^\/api\/support\/conversations\/([^/]+)\/draft$/);
+    await Promise.all([overview(), conversations()]);
+    if (draftMatch) {
+      await selectConversation(decodeURIComponent(draftMatch[1]));
+      notify("Shopify session refreshed · reply draft created");
+      return;
+    }
+    if (state.view === "learning") await learning();
+    notify("Shopify session refreshed · your change was saved");
   });
 
   Promise.all([overview(), conversations(), deliverability()]).catch(error => { list.innerHTML = `<div class="support-empty">${esc(error.message)}</div>`; });

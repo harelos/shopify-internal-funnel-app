@@ -72,6 +72,11 @@
         <button class="support-button support-button-danger" id="show-delivery-failures">Review failed replies</button>
       </section>
 
+      <section class="owner-approval-alert" id="owner-approval-alert" hidden aria-live="polite">
+        <div><strong id="owner-approval-title">A sensitive reply needs your approval</strong><span>It has been held safely. Review the suggested draft before anything can be sent.</span></div>
+        <button class="support-button" id="show-escalated">Review now</button>
+      </section>
+
       <nav class="support-filters" aria-label="Conversation filters">
       <button class="active" data-status="ALL">All</button>
       <button data-status="OPEN">Open</button>
@@ -116,7 +121,7 @@
             <div><span class="delivery-health-kicker">Verified source</span><h3>Approved store facts</h3></div>
             <span class="human-badge" id="knowledge-fact-count">— facts</span>
           </div>
-          <p class="section-intro">The AI may use these facts in customer replies. Refunds, cancellations and policy exceptions still require a person.</p>
+          <p class="section-intro">These are the only store facts the AI may use. Edit only verified information; every save increments the fact revision.</p>
           <ul class="knowledge-list" id="knowledge-list"><li>Loading approved knowledge…</li></ul>
         </section>
 
@@ -125,7 +130,7 @@
             <div><span class="delivery-health-kicker">Your voice</span><h3>Replies awaiting review</h3></div>
             <span class="human-badge" id="pending-voice-count">— pending</span>
           </div>
-          <p class="section-intro">Approve only replies whose tone and facts should guide future drafts. Rejected examples are never used.</p>
+          <p class="section-intro">This is the training review queue—not the place to approve a current customer reply. Current replies are reviewed and sent from Inbox.</p>
           <div class="voice-example-list" id="voice-example-list"><div class="support-empty">Loading reply examples…</div></div>
         </section>
       </div>

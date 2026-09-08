@@ -14,7 +14,7 @@ const SALES_QUESTION = /(?:כמה (?:עולה|המשלוח|זמן המשלוח)|
 const AUTOMATED = /(?:mailer-daemon|postmaster|no-?reply|do-?not-?reply|notification|newsletter|unsubscribe|list-unsubscribe|delivery status notification|undeliverable)/i;
 const BUSINESS_NOISE = /(?:invoice|חשבונית ספק|חשבונית מס|receipt|domain renewal|hosting|security alert|login attempt|password reset|partnership|collaboration|seo service|guest post|backlink|webinar|newsletter|digest|weekly report|monthly report|billing notice)/i;
 const SUPPLIER_OR_OPERATIONS = /(?:sourcing|supplier|wholesale|private label|fulfillment quote|landed cost|shopify collective|mocra|\bsds\b|\bcoa\b|procurement|warehouse pre-stock|bundle fulfillment|shipping revolution|zendrop|cjdropshipping|hyperSKU)/i;
-const OPERATIONS_SENDER = /@(?:[a-z0-9-]+\.)*(?:namecheap\.com|privateemail\.com|cloudflare\.com|railway\.app|github\.com|openrouter\.ai)$/i;
+const OPERATIONS_SENDER = /@(?:[a-z0-9-]+\.)*(?:namecheap\.com|privateemail\.com|cloudflare\.com|railway\.app|github\.com|openrouter\.ai|chargeback\.io)$/i;
 const HUMAN_GREETING = /(?:היי|שלום|בוקר טוב|ערב טוב|צהריים טובים|hi|hello|good morning)/i;
 
 function languageOf(text: string): SupportTriageDecision["language"] {

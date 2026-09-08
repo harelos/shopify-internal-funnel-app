@@ -20,11 +20,67 @@ export const APPROVED_STORE_FACTS = [
   "The store offers a 60-day guarantee; any refund, cancellation or shade-change action still requires human review and verified eligibility.",
 ];
 
+export function ownerReviewHoldingDraft(policy: SupportPolicyDecision): string {
+  if (policy.topic === "PRODUCT_INFORMATION") {
+    return [
+      "היי,",
+      "",
+      "תודה על השאלה. חשוב לנו לתת לך מידע מדויק ומסודר.",
+      "",
+      "אני בודקת כעת את רשימת הרכיבים ואת פרטי האישור הרלוונטיים למוצר, ואחזור אלייך עם המידע המלא לאחר בדיקה.",
+      "",
+      "צוות Tiger Brands Global",
+    ].join("\n");
+  }
+  return [
+    "היי,",
+    "",
+    "תודה שכתבת לנו. קיבלנו את הפנייה ואנחנו בודקים את הפרטים כדי לתת לך מענה מדויק.",
+    "",
+    "נחזור אלייך לאחר בדיקה.",
+    "",
+    "צוות Tiger Brands Global",
+  ].join("\n");
+}
+
+function parsedDeliveryWindow(facts: string[]): { minimum: number; maximum: number; source: string } | null {
+  for (const fact of facts) {
+    if (!/(?:delivery|shipping|משלוח)/i.test(fact)) continue;
+    const match = fact.match(/(\d+)\s*[–—-]\s*(\d+)\s*(?:business\s+days|ימי\s+עסקים)/i);
+    if (!match) continue;
+    const minimum = Number(match[1]);
+    const maximum = Number(match[2]);
+    if (minimum > 0 && maximum >= minimum) return { minimum, maximum, source: fact };
+  }
+  return null;
+}
+
+function parsedFreeShippingThreshold(facts: string[]): { amount: number; source: string } | null {
+  for (const fact of facts) {
+    if (!/(?:shipping\s+is\s+free|free\s+shipping|משלוח\s+חינם)/i.test(fact)) continue;
+    const match = fact.match(/(?:above|over|מעל)\s*(?:ILS\s*|₪\s*)?(\d+(?:\.\d+)?)/i)
+      || fact.match(/(\d+(?:\.\d+)?)\s*(?:ILS|₪)/i);
+    if (!match) continue;
+    const amount = Number(match[1]);
+    if (amount > 0) return { amount, source: fact };
+  }
+  return null;
+}
+
+function formattedShekels(amount: number): string {
+  return Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
 export function deterministicLowRiskDecision(input: {
   orderContext: unknown;
   policy: SupportPolicyDecision;
+  approvedStoreFacts?: string[];
 }): DeterministicSupportDecision | null {
+  const approvedStoreFacts = input.approvedStoreFacts ?? APPROVED_STORE_FACTS;
+  const deliveryWindow = parsedDeliveryWindow(approvedStoreFacts);
+  const freeShipping = parsedFreeShippingThreshold(approvedStoreFacts);
   if (input.policy.topic === "GENERAL_SHIPPING") {
+    if (!deliveryWindow || !freeShipping) return null;
     return {
       decision: "REPLY",
       topic: input.policy.topic,
@@ -32,14 +88,14 @@ export function deterministicLowRiskDecision(input: {
       replyText: [
         "היי 🌷",
         "",
-        "המשלוח זמין לכל הארץ, וזמן המשלוח הרגיל הוא 5–12 ימי עסקים. המשלוח חינם בהזמנה מעל 199 ₪.",
+        `המשלוח זמין לכל הארץ, וזמן המשלוח הרגיל הוא ${deliveryWindow.minimum}–${deliveryWindow.maximum} ימי עסקים. המשלוח חינם בהזמנה מעל ${formattedShekels(freeShipping.amount)} ₪.`,
         "",
         "אם תרצי, כתבי לנו איזה מוצר את שוקלת להזמין ונעזור לך לבדוק את האפשרות המתאימה.",
         "",
         "צוות Tiger Brands Global",
       ].join("\n"),
       reason: "Rendered from approved store delivery facts.",
-      factsUsed: [APPROVED_STORE_FACTS[0], APPROVED_STORE_FACTS[1]],
+      factsUsed: [deliveryWindow.source, freeShipping.source],
       unverifiedClaims: [],
       model: "approved-facts-v1",
     };
@@ -61,13 +117,17 @@ export function deterministicLowRiskDecision(input: {
       "אפשר לראות את העדכונים כאן:",
       `https://tigerbrandsglobal.com/apps/17TRACK?nums=${encodeURIComponent(trackingNumber)}`,
       "",
-      "זמן המשלוח הרגיל הוא 5–12 ימי עסקים. ברגע שחברת המשלוחים תעדכן סריקה חדשה, היא תופיע בקישור.",
+      deliveryWindow
+        ? `זמן המשלוח הרגיל הוא ${deliveryWindow.minimum}–${deliveryWindow.maximum} ימי עסקים. ברגע שחברת המשלוחים תעדכן סריקה חדשה, היא תופיע בקישור.`
+        : "ברגע שחברת המשלוחים תעדכן סריקה חדשה, היא תופיע בקישור.",
     );
   } else if (/UNFULFILLED|IN_PROGRESS|ON_HOLD|SCHEDULED/i.test(String(order.displayFulfillmentStatus || ""))) {
     lines.push(
       `בדקתי את הזמנה ${orderName}. היא נקלטה אצלנו ונמצאת כעת בהכנה למשלוח.`,
       "",
-      "זמן המשלוח הרגיל הוא 5–12 ימי עסקים. ברגע שייווצר מספר מעקב, הוא יופיע בעדכון המשלוח.",
+      deliveryWindow
+        ? `זמן המשלוח הרגיל הוא ${deliveryWindow.minimum}–${deliveryWindow.maximum} ימי עסקים. ברגע שייווצר מספר מעקב, הוא יופיע בעדכון המשלוח.`
+        : "ברגע שייווצר מספר מעקב, הוא יופיע בעדכון המשלוח.",
     );
   } else {
     return null;
@@ -79,7 +139,7 @@ export function deterministicLowRiskDecision(input: {
     confidence: 0.99,
     replyText: lines.join("\n"),
     reason: "Rendered from a verified Shopify order and approved store delivery facts.",
-    factsUsed: ["Verified Shopify fulfillment status", trackingNumber ? "Verified Shopify tracking number" : "No tracking number is present yet", APPROVED_STORE_FACTS[0]],
+    factsUsed: ["Verified Shopify fulfillment status", trackingNumber ? "Verified Shopify tracking number" : "No tracking number is present yet", deliveryWindow?.source].filter(Boolean) as string[],
     unverifiedClaims: [],
     model: "verified-order-facts-v1",
   };
