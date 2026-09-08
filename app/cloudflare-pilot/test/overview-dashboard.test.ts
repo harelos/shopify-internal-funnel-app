@@ -13,7 +13,7 @@ test("Commerce OS overview keeps every primary product destination working", () 
   for (const [label, href] of [
     ["Overview", "index.html"],
     ["Insights", "growth-cockpit.html"],
-    ["Journeys", "analytics.html"],
+    ["Journeys", "journeys.html"],
     ["Experiences", "ai-concierge.html"],
     ["Experiments", "element-experiments.html"],
     ["Support", "support.html"],

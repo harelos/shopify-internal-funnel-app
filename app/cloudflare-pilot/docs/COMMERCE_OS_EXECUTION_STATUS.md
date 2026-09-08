@@ -18,7 +18,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 | --- | --- | --- |
 | Overview | `/admin/index.html` | Decision-ready revenue, experiment, Concierge, support, and system-health view |
 | Insights | `/admin/growth-cockpit.html` | Revenue, acquisition, contribution, and operational analysis |
-| Journeys | `/admin/analytics.html` | Funnel and channel behavior reporting; customer-level journey work remains ahead |
+| Journeys | `/admin/journeys.html` | Human-readable order paths joined to first-party visits, experiments, checkout, and Shopify purchases |
 | Experiences | `/admin/ai-concierge.html` | AI Concierge configuration and verified business impact |
 | Experiments | `/admin/element-experiments.html` | Element tests, deterministic allocation, preflight, and Shopify-paid-order results |
 | Support | `/admin/support.html` | AI support inbox, drafts, escalation, evidence, and agent health |
@@ -51,6 +51,14 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Added range controls aligned to the Asia/Jerusalem business calendar.
 - Desktop and embedded-mobile QA are required before this checkpoint is marked released.
 
+### 4. Customer journey ledger
+
+- Added a paid-order-first journey view backed by Shopify revenue, first-party visitor events, checkout identity, and experiment assignments.
+- Raw tracking names and visitor identifiers are translated into readable customer actions.
+- Historical orders without a provable browser identity remain visible as revenue but are labeled `UNATTRIBUTED`.
+- Journey queries are bounded to 90 days and 100 paid orders per request, with event caps to protect embedded-app performance.
+- Desktop and embedded-mobile QA are required before this checkpoint is marked released.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.
@@ -63,8 +71,7 @@ Snapshot date: 2026-09-08.
 
 1. Finish and release the unified shell, then apply it incrementally to existing modules without changing storefront runtimes.
 2. Normalize owner-facing labels into plain English while preserving raw identifiers behind drill-down details.
-3. Build the first customer-journey ledger view on the existing visitor, checkout, order, UTM, popup, and experiment identities.
-4. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
-5. Expand support automation with order/tracking context, documented escalation, delivery evidence, and mobile QA.
-6. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
-7. Add operations health and incident timelines before public app-store hardening.
+3. Consolidate experience eligibility so Exit Popup and AI Concierge can be enabled per page without colliding.
+4. Expand support automation with order/tracking context, documented escalation, delivery evidence, and mobile QA.
+5. Continue CJ feasibility work only from verified documentation and authenticated behavior; do not invent a connector when the account/API surface cannot support it.
+6. Add operations health and incident timelines before public app-store hardening.
