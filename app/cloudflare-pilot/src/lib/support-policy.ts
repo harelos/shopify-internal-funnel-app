@@ -10,12 +10,15 @@ export interface SupportPolicyDecision {
 
 const rules: Array<{ pattern: RegExp; flag: string; topic: string; risk: SupportRisk }> = [
   { pattern: /charge\s?back|הכחשת עסקה|חברת האשראי|ביטול עסקה דרך/i, flag: "CHARGEBACK_OR_DISPUTE", topic: "PAYMENT_DISPUTE", risk: "HIGH" },
-  { pattern: /עורך דין|תביעה|משטרה|משרד הבריאות|consumer protection|lawyer|legal action/i, flag: "LEGAL_THREAT", topic: "LEGAL", risk: "HIGH" },
+  { pattern: /עורך דין|תביעה|משטרה|consumer protection|lawyer|legal action/i, flag: "LEGAL_THREAT", topic: "LEGAL", risk: "HIGH" },
+  { pattern: /להסיר אותי|להוציא אותי|אל תשלחו|לא לשלוח|unsubscribe|opt[ -]?out|stop emailing/i, flag: "MARKETING_OPT_OUT", topic: "MARKETING_OPT_OUT", risk: "HIGH" },
+  { pattern: /מחיקת (?:מידע|נתונים)|פרטיות|delete my data|privacy request|data deletion/i, flag: "PRIVACY_REQUEST", topic: "PRIVACY", risk: "HIGH" },
   { pattern: /אלרג|פריחה|כוויה|נשרף|נשירה|פציע|רופא|בית חולים|allerg|rash|burn|injur/i, flag: "HEALTH_OR_SAFETY", topic: "PRODUCT_SAFETY", risk: "HIGH" },
   { pattern: /הונאה|רמאות|גנבתם|נוכל|scam|fraud/i, flag: "FRAUD_ALLEGATION", topic: "TRUST", risk: "HIGH" },
   { pattern: /החזר|זיכוי|refund|להחזיר את הכסף/i, flag: "REFUND_REQUEST", topic: "REFUND", risk: "HIGH" },
   { pattern: /לבטל|ביטול הזמנה|cancel (my )?order/i, flag: "CANCEL_REQUEST", topic: "CANCELLATION", risk: "HIGH" },
   { pattern: /שינוי כתובת|כתובת לא נכונה|wrong address|change.*address/i, flag: "ADDRESS_CHANGE", topic: "ADDRESS_CHANGE", risk: "HIGH" },
+  { pattern: /רשימת רכיבים|מה (?:יש|מכיל).*מוצר|אישור משרד הבריאות|משרד הבריאות|INCI|ingredients|regulatory approval/i, flag: "PRODUCT_OR_REGULATORY_INFORMATION", topic: "PRODUCT_INFORMATION", risk: "MEDIUM" },
   { pattern: /כמה (?:עולה )?(?:ה)?משלוח|עלות משלוח|תוך כמה זמן|כמה זמן (?:ה)?משלוח|ימי עסקים|shipping cost|delivery time|how long.*deliver/i, flag: "PRE_SALE_SHIPPING", topic: "GENERAL_SHIPPING", risk: "LOW" },
   { pattern: /מסומן(?:ת)? כנמסר|כתוב.*נמסר|לא קיבלתי.*(?:הזמנה|חבילה)|delivered.*(?:not|but)|marked.*delivered/i, flag: "DELIVERY_DISPUTE", topic: "DELIVERY_DISPUTE", risk: "MEDIUM" },
   { pattern: /איפה ההזמנה|איפה החבילה|מספר מעקב|לא הגיע|צפי.*(?:משלוח|לקבל)|מתי.*(?:יגיע|אקבל)|tracking|where is my order/i, flag: "ORDER_STATUS", topic: "ORDER_STATUS", risk: "LOW" },

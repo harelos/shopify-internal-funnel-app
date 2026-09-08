@@ -49,6 +49,12 @@ On 2026-09-08, live DNS had working Namecheap MX and DKIM plus DMARC in monitori
 - Rejected examples remain excluded from generation.
 - The embedded Support workspace shows the approved store facts and lets the owner approve or reject voice examples without exposing raw analytics identifiers.
 
+## Conversation classification integrity
+
+- Inbound customer messages own the conversation topic, language, risk, priority, and triage decision.
+- Outbound replies may move the thread to `WAITING_CUSTOMER`, but they must not replace those customer-derived fields.
+- The scheduled support job reclassifies bounded historic `OTHER` conversations from their latest inbound message so quality reporting reflects the customer's reason for contact.
+
 ## Quality reporting
 
 - Support Quality is calculated from inbound Namecheap messages, sent support drafts and the tamper-evident delivery ledger.

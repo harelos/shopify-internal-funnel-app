@@ -22,6 +22,18 @@ test("chargeback, legal, refund and safety messages always escalate", () => {
   }
 });
 
+test("marketing opt-out and privacy requests always escalate while product approval questions stay review-only", () => {
+  for (const text of ["בבקשה להוציא אותי מרשימת התפוצה", "I want you to delete my data"]) {
+    const result = evaluateSupportPolicy(text);
+    assert.equal(result.mustEscalate, true);
+    assert.equal(result.riskLevel, "HIGH");
+  }
+  const regulatory = evaluateSupportPolicy("אפשר לקבל רשימת רכיבים ואישור משרד הבריאות?");
+  assert.equal(regulatory.topic, "PRODUCT_INFORMATION");
+  assert.equal(regulatory.riskLevel, "MEDIUM");
+  assert.equal(regulatory.mustEscalate, false);
+});
+
 test("a simple tracking request is low risk but still needs verified order context", () => {
   const policy = evaluateSupportPolicy("היי, איפה החבילה שלי? יש מספר מעקב?");
   assert.equal(policy.topic, "ORDER_STATUS");
@@ -170,6 +182,8 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(route, /COMPLETE_FOR_RANGE/);
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);
+  assert.match(service, /reclassifyHistoricSupportTopics/);
+  assert.match(service, /"status" = 'WAITING_CUSTOMER', "lastAgentMessageAt"/);
   assert.match(html, /data-status="CLOSED"/);
   assert.doesNotMatch(html + js, /utm_|externalMessageId|policyFlagsJson/);
 });

@@ -149,9 +149,12 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
   }
   if (!customer) throw new Error("Support customer could not be created.");
   await db.prepare(`UPDATE "SupportCustomer" SET
-    "displayName" = COALESCE(?, "displayName"), "riskLevel" = ?, "riskReasonsJson" = ?, "updatedAt" = ?
+    "displayName" = COALESCE(?, "displayName"),
+    "riskLevel" = CASE WHEN ? = 'INBOUND' THEN ? ELSE "riskLevel" END,
+    "riskReasonsJson" = CASE WHEN ? = 'INBOUND' THEN ? ELSE "riskReasonsJson" END,
+    "updatedAt" = ?
     WHERE "id" = ?`)
-    .bind(input.customerName?.trim() || null, policy.riskLevel, safeJson(policy.flags), now, customer.id).run();
+    .bind(input.customerName?.trim() || null, input.direction, policy.riskLevel, input.direction, safeJson(policy.flags), now, customer.id).run();
 
   const externalThreadKey = threadKey(input);
   const triageNeedsReview = triage.classification === "REVIEW";
@@ -179,18 +182,23 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
     conversation = await db.prepare('SELECT * FROM "SupportConversation" WHERE "shopId" = ? AND "externalThreadKey" = ? LIMIT 1')
       .bind(shop.id, externalThreadKey).first<any>();
   } else {
-    await db.prepare(`UPDATE "SupportConversation" SET
-      "subject" = ?, "status" = ?, "priority" = ?, "topic" = ?, "audienceType" = ?,
-      "triageStatus" = ?, "triageReason" = ?, "language" = ?, "riskLevel" = ?, "escalationReason" = ?,
-      "lastCustomerMessageAt" = CASE WHEN ? = 'INBOUND' THEN ? ELSE "lastCustomerMessageAt" END,
-      "lastAgentMessageAt" = CASE WHEN ? = 'OUTBOUND' THEN ? ELSE "lastAgentMessageAt" END,
-      "nextActionAt" = ?, "updatedAt" = ? WHERE "id" = ?`)
-      .bind(
-        input.subject || "Customer support", status, policy.priority, policy.topic, audienceType,
-        triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED", triage.reasons.join(", ") || null,
-        triage.language, policy.riskLevel, policy.mustEscalate ? policy.flags.join(", ") : null,
-        input.direction, sentAt.toISOString(), input.direction, sentAt.toISOString(), nextActionAt, now, conversation.id,
-      ).run();
+    if (input.direction === "INBOUND") {
+      await db.prepare(`UPDATE "SupportConversation" SET
+        "subject" = ?, "status" = ?, "priority" = ?, "topic" = ?, "audienceType" = ?,
+        "triageStatus" = ?, "triageReason" = ?, "language" = ?, "riskLevel" = ?, "escalationReason" = ?,
+        "lastCustomerMessageAt" = ?, "nextActionAt" = ?, "updatedAt" = ? WHERE "id" = ?`)
+        .bind(
+          input.subject || "Customer support", status, policy.priority, policy.topic, audienceType,
+          triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED", triage.reasons.join(", ") || null,
+          triage.language, policy.riskLevel, policy.mustEscalate ? policy.flags.join(", ") : null,
+          sentAt.toISOString(), nextActionAt, now, conversation.id,
+        ).run();
+    } else {
+      await db.prepare(`UPDATE "SupportConversation" SET
+        "subject" = ?, "status" = 'WAITING_CUSTOMER', "lastAgentMessageAt" = ?,
+        "nextActionAt" = NULL, "updatedAt" = ? WHERE "id" = ?`)
+        .bind(input.subject || "Customer support", sentAt.toISOString(), now, conversation.id).run();
+    }
     conversation = { ...conversation, status };
   }
   if (!conversation) throw new Error("Support conversation could not be created.");
@@ -264,7 +272,11 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
   });
   const customer = await prisma.supportCustomer.upsert({
     where: { shopId_email: { shopId: shop.id, email } },
-    update: { displayName: input.customerName?.trim() || undefined, riskLevel: policy.riskLevel, riskReasonsJson: safeJson(policy.flags) },
+    update: {
+      displayName: input.customerName?.trim() || undefined,
+      riskLevel: input.direction === "INBOUND" ? policy.riskLevel : undefined,
+      riskReasonsJson: input.direction === "INBOUND" ? safeJson(policy.flags) : undefined,
+    },
     create: { shopId: shop.id, email, displayName: input.customerName?.trim() || null, riskLevel: policy.riskLevel, riskReasonsJson: safeJson(policy.flags) },
   });
   const externalThreadKey = threadKey(input);
@@ -276,14 +288,14 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
     update: {
       subject: input.subject || "Customer support",
       status: input.direction === "INBOUND" ? (policy.mustEscalate ? "ESCALATED" : triageNeedsReview ? "NEEDS_TRIAGE" : "OPEN") : "WAITING_CUSTOMER",
-      priority: policy.priority,
-      topic: policy.topic,
-      audienceType,
-      triageStatus: triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED",
-      triageReason: triage.reasons.join(", ") || null,
-      language: triage.language,
-      riskLevel: policy.riskLevel,
-      escalationReason: policy.mustEscalate ? policy.flags.join(", ") : null,
+      priority: input.direction === "INBOUND" ? policy.priority : undefined,
+      topic: input.direction === "INBOUND" ? policy.topic : undefined,
+      audienceType: input.direction === "INBOUND" ? audienceType : undefined,
+      triageStatus: input.direction === "INBOUND" ? (triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED") : undefined,
+      triageReason: input.direction === "INBOUND" ? (triage.reasons.join(", ") || null) : undefined,
+      language: input.direction === "INBOUND" ? triage.language : undefined,
+      riskLevel: input.direction === "INBOUND" ? policy.riskLevel : undefined,
+      escalationReason: input.direction === "INBOUND" ? (policy.mustEscalate ? policy.flags.join(", ") : null) : undefined,
       lastCustomerMessageAt: input.direction === "INBOUND" ? sentAt : undefined,
       lastAgentMessageAt: input.direction === "OUTBOUND" ? sentAt : undefined,
       nextActionAt: input.direction === "INBOUND" && !policy.mustEscalate && !triageNeedsReview ? new Date(sentAt.getTime() + delayMinutes * 60000) : null,
@@ -473,6 +485,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
 
 export async function processSupportDeskCron() {
   if (workerEnvValue("SUPPORT_AI_DRAFTS_ENABLED") !== "true") return { processed: 0, disabled: true };
+  const reclassified = await reclassifyHistoricSupportTopics();
   const due = await prisma.supportConversation.findMany({
     where: { status: "OPEN", nextActionAt: { lte: new Date() }, drafts: { none: { status: { in: ["PENDING_REVIEW", "QUEUED_TO_SEND"] } } } },
     orderBy: { nextActionAt: "asc" },
@@ -487,5 +500,31 @@ export async function processSupportDeskCron() {
       results.push({ id: item.id, ok: false, error: String(error?.message || error).slice(0, 200) });
     }
   }
-  return { processed: results.length, disabled: false, results };
+  return { processed: results.length, reclassified, disabled: false, results };
+}
+
+export async function reclassifyHistoricSupportTopics(limit = 100) {
+  const conversations = await prisma.supportConversation.findMany({
+    where: { topic: "OTHER", messages: { some: { direction: "INBOUND" } } },
+    orderBy: { updatedAt: "desc" },
+    take: Math.min(250, Math.max(1, limit)),
+    select: {
+      id: true,
+      subject: true,
+      messages: { where: { direction: "INBOUND" }, orderBy: { sentAt: "desc" }, take: 1, select: { textBody: true } },
+    },
+  });
+  let updated = 0;
+  for (const conversation of conversations) {
+    const latestInbound = conversation.messages[0];
+    if (!latestInbound) continue;
+    const policy = evaluateSupportPolicy(`${conversation.subject}\n${latestInbound.textBody}`);
+    if (policy.topic === "OTHER") continue;
+    await prisma.supportConversation.update({
+      where: { id: conversation.id },
+      data: { topic: policy.topic, priority: policy.priority, riskLevel: policy.riskLevel },
+    });
+    updated += 1;
+  }
+  return updated;
 }
