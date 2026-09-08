@@ -24,20 +24,28 @@ export default {
         reconcileGrowthCockpitShopifyFinancials,
       } = await import("./services/growth-cockpit-reconcile.js");
       const { processSupportDeskCron } = await import("./services/support-desk.js");
+      const { reconcileShopifyOrderAttribution } = await import("./services/shopify-order-reconcile.js");
       if (workerEnv?.DB) {
         // A rejection inside waitUntil settles after this try block has already
         // returned, so the catch below never sees it, and Promise.all would fail
         // the whole tick over a single bad task. Each task now reports its own
         // failure and settles, so one broken reconciler cannot mark every
         // minute's cron run as a Worker error.
-        const run = (label: string, task: Promise<unknown>) =>
-          task.catch(taskErr => console.error(`[CRON TASK FAILED] ${label}`, taskErr));
-        ctx.waitUntil(Promise.allSettled([
+        const run = (label: string, task: Promise<unknown>) => task.catch(taskErr => console.error(JSON.stringify({
+          message: "cron_task_failed",
+          task: label,
+          error: taskErr instanceof Error ? taskErr.message : String(taskErr),
+        })));
+        const tasks = [
           run("processPendingQueueCron", processPendingQueueCron(workerEnv.DB)),
           run("reconcileGrowthCockpitMetaSpend", reconcileGrowthCockpitMetaSpend()),
           run("reconcileGrowthCockpitShopifyFinancials", reconcileGrowthCockpitShopifyFinancials()),
           run("processSupportDeskCron", processSupportDeskCron()),
-        ]));
+        ];
+        if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 0) {
+          tasks.push(run("reconcileShopifyOrderAttribution", reconcileShopifyOrderAttribution()));
+        }
+        ctx.waitUntil(Promise.allSettled(tasks));
       }
     } catch (cronErr) {
       console.error("[CRON EXECUTION ERROR]", cronErr);

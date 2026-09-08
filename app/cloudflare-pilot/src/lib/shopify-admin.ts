@@ -1,4 +1,5 @@
 import { getShopifyConfig, isValidShopDomain, workerEnvValue } from "./shopify-config.js";
+import type { ShopifyOrderForAttributionReconciliation } from "./shopify-order-reconciliation.js";
 
 export class ShopifyConfigurationError extends Error {
   constructor(message: string) {
@@ -500,6 +501,54 @@ export class ShopifyAdminClient {
         })),
       truncated: hasNextPage,
     };
+  }
+
+  async ordersForAttributionReconciliation(input: {
+    from: string;
+    toExclusive: string;
+    maxPages?: number;
+  }): Promise<{ orders: ShopifyOrderForAttributionReconciliation[]; truncated: boolean }> {
+    type OrdersPage = {
+      orders: {
+        nodes: ShopifyOrderForAttributionReconciliation[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    };
+    const searchQuery = [
+      "test:false",
+      `processed_at:>='${input.from}'`,
+      `processed_at:<'${input.toExclusive}'`,
+    ].join(" ");
+    const maxPages = Math.max(1, Math.min(input.maxPages ?? 5, 20));
+    const orders: ShopifyOrderForAttributionReconciliation[] = [];
+    let cursor: string | null = null;
+    let hasNextPage = false;
+
+    for (let page = 0; page < maxPages; page += 1) {
+      const data: OrdersPage = await this.graphql<OrdersPage>(`query OrdersForAttributionReconciliation($query: String!, $after: String) {
+        orders(first: 100, after: $after, query: $query, sortKey: PROCESSED_AT) {
+          nodes {
+            id
+            processedAt
+            test
+            cancelledAt
+            displayFinancialStatus
+            discountCodes
+            currentTotalPriceSet { shopMoney { amount currencyCode } }
+            netPaymentSet { shopMoney { amount currencyCode } }
+            customAttributes { key value }
+            lineItems(first: 100) { nodes { customAttributes { key value } } }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }`, { after: cursor, query: searchQuery });
+      orders.push(...data.orders.nodes);
+      hasNextPage = data.orders.pageInfo.hasNextPage;
+      cursor = data.orders.pageInfo.endCursor;
+      if (!hasNextPage || !cursor) break;
+    }
+
+    return { orders, truncated: hasNextPage };
   }
 
   async supportOrderContext(input: {

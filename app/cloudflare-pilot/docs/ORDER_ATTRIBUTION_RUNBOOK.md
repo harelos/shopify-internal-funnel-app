@@ -40,6 +40,13 @@ unattributed rather than silently assigned to a popup, campaign or experiment.
 Experiment attribution is added only when a verified cart/checkout identity
 chain exists.
 
+The Worker also runs an idempotent Shopify Admin reconciliation every five
+minutes for the current `Asia/Jerusalem` day. It updates authoritative order
+financials and exact persisted popup markers, preserves richer existing
+attribution, and creates missing paid orders with `UNATTRIBUTED` confidence.
+It deliberately does not synthesize a purchase event, because the webhook is
+the event source and a second event would inflate conversion reporting.
+
 ## Failure response
 
 If Shopify has more paid orders than D1:
