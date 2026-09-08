@@ -16,8 +16,15 @@ Endpoints:
 - `/api/db-check` confirms the D1 binding is usable.
 
 Do not add Shopify secrets to this directory. The public Worker and D1 are deployed, and
-the existing Shopify App Proxy/webhooks remain in place. Web Pixel ingestion is still
-disabled intentionally.
+the existing Shopify App Proxy/webhooks remain in place. Shopify Web Pixel ingestion is
+enabled in production and accepts only the normalized checkout events documented in
+`docs/EVENT_REGISTRY.md`.
+
+## Operating knowledge base
+
+Start with `docs/COMMERCE_OS_KNOWLEDGE_BASE.md`. It links the current product map,
+event registry, identity/attribution contract, and operational runbooks. Documentation
+must describe verified runtime behavior only; planned behavior is labeled explicitly.
 
 ## Import a Shopify page into a variant
 
