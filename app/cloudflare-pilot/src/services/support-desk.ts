@@ -47,24 +47,19 @@ export async function appendSupportEvidence(input: {
   occurredAt: Date;
   payload: unknown;
 }) {
+  const db = supportD1();
   const payloadJson = safeJson(input.payload);
-  const previous = await prisma.supportEvidenceEvent.findFirst({
-    where: { conversationId: input.conversationId },
-    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-    select: { contentHash: true },
-  });
+  const previous = await db.prepare(`SELECT "contentHash" FROM "SupportEvidenceEvent"
+    WHERE "conversationId" = ? ORDER BY "occurredAt" DESC, "createdAt" DESC LIMIT 1`)
+    .bind(input.conversationId).first<{ contentHash: string }>();
   const previousHash = previous?.contentHash || null;
-  return prisma.supportEvidenceEvent.create({
-    data: {
-      conversationId: input.conversationId,
-      kind: input.kind,
-      source: input.source,
-      occurredAt: input.occurredAt,
-      payloadJson,
-      previousHash,
-      contentHash: await sha256(`${previousHash || "GENESIS"}\n${payloadJson}`),
-    },
-  });
+  const id = supportId("evidence");
+  const contentHash = await sha256(`${previousHash || "GENESIS"}\n${payloadJson}`);
+  await db.prepare(`INSERT INTO "SupportEvidenceEvent"
+    ("id", "conversationId", "kind", "source", "previousHash", "contentHash", "payloadJson", "occurredAt", "createdAt")
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, input.conversationId, input.kind, input.source, previousHash, contentHash, payloadJson, input.occurredAt.toISOString(), supportNow()).run();
+  return { id, conversationId: input.conversationId, kind: input.kind, source: input.source, previousHash, contentHash, payloadJson, occurredAt: input.occurredAt };
 }
 
 export interface SupportIngestInput {
@@ -90,6 +85,145 @@ export interface SupportIngestInput {
 }
 
 export async function ingestSupportMessage(input: SupportIngestInput) {
+  const db = supportD1();
+  const existingMessage = await db.prepare('SELECT "id", "conversationId" FROM "SupportMessage" WHERE "externalMessageId" = ? LIMIT 1')
+    .bind(input.externalMessageId).first<{ id: string; conversationId: string }>();
+  if (existingMessage) return { duplicate: true, conversationId: existingMessage.conversationId, messageId: existingMessage.id };
+
+  const shop = await configuredShop();
+  const email = canonicalEmail(input.customerEmail);
+  const sentAt = new Date(input.sentAt);
+  if (!email.includes("@") || Number.isNaN(sentAt.getTime())) throw new Error("A valid customer email and sentAt timestamp are required.");
+  const computedTriage = triageMailboxMessage({
+    direction: input.direction,
+    fromAddress: input.fromAddress,
+    subject: input.subject,
+    textBody: input.textBody,
+    automated: input.automated,
+  });
+  const triage = input.triageClass && input.triageClass !== "IGNORE"
+    ? {
+        classification: input.triageClass,
+        confidence: Math.max(0, Math.min(1, Number(input.triageScore ?? computedTriage.confidence))),
+        language: computedTriage.language,
+        reasons: Array.isArray(input.triageReasons) ? input.triageReasons.slice(0, 12) : computedTriage.reasons,
+      }
+    : computedTriage;
+  if (triage.classification === "IGNORE") return { duplicate: false, ignored: true, triage };
+
+  const policy = evaluateSupportPolicy(`${input.subject}\n${input.textBody}`);
+  const now = supportNow();
+  const mailboxAddress = canonicalEmail(input.mailboxAddress);
+  let mailbox = await db.prepare('SELECT * FROM "SupportMailbox" WHERE "shopId" = ? AND "address" = ? LIMIT 1')
+    .bind(shop.id, mailboxAddress).first<any>();
+  if (!mailbox) {
+    const mailboxId = supportId("mailbox");
+    await db.prepare(`INSERT OR IGNORE INTO "SupportMailbox"
+      ("id", "shopId", "address", "connectionStatus", "lastSyncAt", "createdAt", "updatedAt")
+      VALUES (?, ?, ?, 'CONNECTED', ?, ?, ?)`)
+      .bind(mailboxId, shop.id, mailboxAddress, now, now, now).run();
+    mailbox = await db.prepare('SELECT * FROM "SupportMailbox" WHERE "shopId" = ? AND "address" = ? LIMIT 1')
+      .bind(shop.id, mailboxAddress).first<any>();
+  }
+  if (!mailbox) throw new Error("Support mailbox could not be created.");
+  await db.prepare(`UPDATE "SupportMailbox" SET "connectionStatus" = 'CONNECTED', "lastSyncAt" = ?, "lastError" = NULL, "updatedAt" = ? WHERE "id" = ?`)
+    .bind(now, now, mailbox.id).run();
+
+  let customer = await db.prepare('SELECT * FROM "SupportCustomer" WHERE "shopId" = ? AND "email" = ? LIMIT 1')
+    .bind(shop.id, email).first<any>();
+  if (!customer) {
+    const customerId = supportId("customer");
+    await db.prepare(`INSERT OR IGNORE INTO "SupportCustomer"
+      ("id", "shopId", "email", "displayName", "riskLevel", "riskReasonsJson", "createdAt", "updatedAt")
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(customerId, shop.id, email, input.customerName?.trim() || null, policy.riskLevel, safeJson(policy.flags), now, now).run();
+    customer = await db.prepare('SELECT * FROM "SupportCustomer" WHERE "shopId" = ? AND "email" = ? LIMIT 1')
+      .bind(shop.id, email).first<any>();
+  }
+  if (!customer) throw new Error("Support customer could not be created.");
+  await db.prepare(`UPDATE "SupportCustomer" SET
+    "displayName" = COALESCE(?, "displayName"), "riskLevel" = ?, "riskReasonsJson" = ?, "updatedAt" = ?
+    WHERE "id" = ?`)
+    .bind(input.customerName?.trim() || null, policy.riskLevel, safeJson(policy.flags), now, customer.id).run();
+
+  const externalThreadKey = threadKey(input);
+  const triageNeedsReview = triage.classification === "REVIEW";
+  const audienceType = triage.classification === "SALES_QUESTION" ? "PROSPECT" : "UNVERIFIED_CUSTOMER";
+  const status = input.direction === "INBOUND" ? (policy.mustEscalate ? "ESCALATED" : triageNeedsReview ? "NEEDS_TRIAGE" : "OPEN") : "WAITING_CUSTOMER";
+  const nextActionAt = input.direction === "INBOUND" && !policy.mustEscalate && !triageNeedsReview
+    ? new Date(sentAt.getTime() + Number(mailbox.replyDelayMinutes || 5) * 60000).toISOString()
+    : null;
+  let conversation = await db.prepare('SELECT * FROM "SupportConversation" WHERE "shopId" = ? AND "externalThreadKey" = ? LIMIT 1')
+    .bind(shop.id, externalThreadKey).first<any>();
+  if (!conversation) {
+    const conversationId = supportId("conversation");
+    await db.prepare(`INSERT OR IGNORE INTO "SupportConversation"
+      ("id", "shopId", "mailboxId", "customerId", "externalThreadKey", "subject", "status", "priority", "topic", "audienceType", "triageStatus", "triageReason", "language", "riskLevel", "escalationReason", "nextActionAt", "lastCustomerMessageAt", "lastAgentMessageAt", "createdAt", "updatedAt")
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(
+        conversationId, shop.id, mailbox.id, customer.id, externalThreadKey, input.subject || "Customer support", status,
+        policy.priority, policy.topic, audienceType, triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED",
+        triage.reasons.join(", ") || null, triage.language, policy.riskLevel,
+        policy.mustEscalate ? policy.flags.join(", ") : null, nextActionAt,
+        input.direction === "INBOUND" ? sentAt.toISOString() : null,
+        input.direction === "OUTBOUND" ? sentAt.toISOString() : null,
+        now, now,
+      ).run();
+    conversation = await db.prepare('SELECT * FROM "SupportConversation" WHERE "shopId" = ? AND "externalThreadKey" = ? LIMIT 1')
+      .bind(shop.id, externalThreadKey).first<any>();
+  } else {
+    await db.prepare(`UPDATE "SupportConversation" SET
+      "subject" = ?, "status" = ?, "priority" = ?, "topic" = ?, "audienceType" = ?,
+      "triageStatus" = ?, "triageReason" = ?, "language" = ?, "riskLevel" = ?, "escalationReason" = ?,
+      "lastCustomerMessageAt" = CASE WHEN ? = 'INBOUND' THEN ? ELSE "lastCustomerMessageAt" END,
+      "lastAgentMessageAt" = CASE WHEN ? = 'OUTBOUND' THEN ? ELSE "lastAgentMessageAt" END,
+      "nextActionAt" = ?, "updatedAt" = ? WHERE "id" = ?`)
+      .bind(
+        input.subject || "Customer support", status, policy.priority, policy.topic, audienceType,
+        triageNeedsReview ? "NEEDS_REVIEW" : "ACCEPTED", triage.reasons.join(", ") || null,
+        triage.language, policy.riskLevel, policy.mustEscalate ? policy.flags.join(", ") : null,
+        input.direction, sentAt.toISOString(), input.direction, sentAt.toISOString(), nextActionAt, now, conversation.id,
+      ).run();
+    conversation = { ...conversation, status };
+  }
+  if (!conversation) throw new Error("Support conversation could not be created.");
+
+  const messageId = supportId("message");
+  await db.prepare(`INSERT INTO "SupportMessage"
+    ("id", "conversationId", "externalMessageId", "direction", "fromAddress", "toAddressesJson", "subject", "textBody", "sentAt", "source", "deliveryStatus", "aiGenerated", "triageClass", "triageScore", "triageReasonsJson", "inReplyTo", "referencesJson", "attachmentsJson", "createdAt")
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(
+      messageId, conversation.id, input.externalMessageId, input.direction, canonicalEmail(input.fromAddress),
+      safeJson(input.toAddresses.map(canonicalEmail)), input.subject || "Customer support", input.textBody.trim(), sentAt.toISOString(),
+      input.source || "IMAP", input.direction === "OUTBOUND" ? "SENT" : "RECEIVED", triage.classification,
+      triage.confidence, safeJson(triage.reasons), input.inReplyTo || null, safeJson(input.references || []),
+      safeJson(input.attachments || []), now,
+    ).run();
+  await appendSupportEvidence({
+    conversationId: conversation.id,
+    kind: input.direction === "INBOUND" ? "INBOUND_EMAIL" : "OUTBOUND_EMAIL",
+    source: input.source || "IMAP",
+    occurredAt: sentAt,
+    payload: { externalMessageId: input.externalMessageId, subject: input.subject, from: input.fromAddress, to: input.toAddresses, textBody: input.textBody, attachments: input.attachments || [] },
+  });
+
+  if (input.direction === "OUTBOUND") {
+    const inbound = await db.prepare(`SELECT "externalMessageId", "textBody" FROM "SupportMessage"
+      WHERE "conversationId" = ? AND "direction" = 'INBOUND' AND "sentAt" <= ? ORDER BY "sentAt" DESC LIMIT 1`)
+      .bind(conversation.id, sentAt.toISOString()).first<any>();
+    if (inbound) {
+      await db.prepare(`INSERT INTO "SupportVoiceExample"
+        ("id", "shopId", "inboundExternalId", "outboundExternalId", "topic", "customerMessage", "ownerReply", "qualityStatus", "createdAt")
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'LEARNED', ?)
+        ON CONFLICT("shopId", "inboundExternalId", "outboundExternalId") DO UPDATE SET
+          "ownerReply" = excluded."ownerReply", "topic" = excluded."topic"`)
+        .bind(supportId("voice"), shop.id, inbound.externalMessageId, input.externalMessageId, policy.topic, inbound.textBody, input.textBody.trim(), now).run();
+    }
+  }
+  return { duplicate: false, ignored: false, conversationId: conversation.id, messageId, status, triage };
+}
+
+async function ingestSupportMessagePrisma(input: SupportIngestInput) {
   const existing = await prisma.supportMessage.findUnique({ where: { externalMessageId: input.externalMessageId } });
   if (existing) return { duplicate: true, conversationId: existing.conversationId, messageId: existing.id };
 
