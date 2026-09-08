@@ -78,14 +78,30 @@ async function writeState(value) {
 }
 
 export async function supportBridgeFetch(route, options = {}) {
-  const response = await fetch(`${appUrl}${route}`, {
-    ...options,
-    headers: { Authorization: `Bearer ${connectorToken}`, "Content-Type": "application/json", ...(options.headers || {}) },
-    signal: AbortSignal.timeout(30000),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `Support bridge returned HTTP ${response.status}.`);
-  return payload;
+  const method = String(options.method || "GET").toUpperCase();
+  const retryable = method === "GET" || route.endsWith("/heartbeat") || route.endsWith("/ingest");
+  const maxAttempts = retryable ? 5 : 1;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(`${appUrl}${route}`, {
+        ...options,
+        headers: { Authorization: `Bearer ${connectorToken}`, "Content-Type": "application/json", ...(options.headers || {}) },
+        signal: AbortSignal.timeout(30000),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) return payload;
+      const error = new Error(payload.error || `Support bridge ${route} returned HTTP ${response.status}.`);
+      error.retryable = response.status >= 500;
+      if (!retryable || !error.retryable || attempt === maxAttempts) throw error;
+      lastError = error;
+    } catch (error) {
+      lastError = error;
+      if (!retryable || error?.retryable === false || attempt === maxAttempts) throw error;
+    }
+    await new Promise(resolve => setTimeout(resolve, Math.min(2000, 200 * (2 ** (attempt - 1)))));
+  }
+  throw lastError || new Error(`Support bridge ${route} failed.`);
 }
 
 async function attachmentManifest(attachments = []) {
@@ -172,7 +188,7 @@ export async function syncMailbox() {
     }
     const groups = [...threadGroups.values()];
     let groupIndex = 0;
-    const workers = Array.from({ length: Math.min(8, groups.length) }, async () => {
+    const workers = Array.from({ length: Math.min(2, groups.length) }, async () => {
       while (groupIndex < groups.length) {
         const currentIndex = groupIndex;
         groupIndex += 1;
