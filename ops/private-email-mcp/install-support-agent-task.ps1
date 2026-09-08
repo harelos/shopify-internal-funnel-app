@@ -4,13 +4,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $agentRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$runnerPath = Join-Path $agentRoot "start-support-agent.ps1"
+$watcherPath = Join-Path $agentRoot "src\support-sync.mjs"
 $nodePath = (Get-Command node -ErrorAction Stop).Source
-$powerShellPath = (Get-Command powershell.exe -ErrorAction Stop).Source
 $userId = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 
-$arguments = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$runnerPath`" -NodeExecutable `"$nodePath`""
-$action = New-ScheduledTaskAction -Execute $powerShellPath -Argument $arguments -WorkingDirectory $agentRoot
+$arguments = "`"$watcherPath`" --watch"
+$action = New-ScheduledTaskAction -Execute $nodePath -Argument $arguments -WorkingDirectory $agentRoot
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -RestartCount 10 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable

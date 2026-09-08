@@ -8,6 +8,7 @@ import nodemailer from "nodemailer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STATE_PATH = path.join(__dirname, "../.data/support-mail-state.json");
+const WATCH_LOCK_PATH = path.join(__dirname, "../.data/support-agent.lock");
 const mailboxAddress = (process.env.SUPPORT_MAILBOX_ADDRESS || process.env.NAMECHEAP_PRIVATE_EMAIL_USER || "").trim().toLowerCase();
 const password = process.env.NAMECHEAP_PRIVATE_EMAIL_PASSWORD || "";
 const appUrl = (process.env.SUPPORT_APP_URL || "").replace(/\/$/, "");
@@ -16,6 +17,35 @@ const imapHost = process.env.NAMECHEAP_IMAP_HOST || "mail.privateemail.com";
 const smtpHost = process.env.NAMECHEAP_SMTP_HOST || "mail.privateemail.com";
 const intervalMs = Math.max(60000, Number(process.env.SUPPORT_SYNC_INTERVAL_MS || 120000));
 let stopRequested = false;
+
+async function acquireWatchLock() {
+  await fs.mkdir(path.dirname(WATCH_LOCK_PATH), { recursive: true });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const handle = await fs.open(WATCH_LOCK_PATH, "wx");
+      await handle.writeFile(String(process.pid), "utf8");
+      return handle;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      const priorPid = Number(await fs.readFile(WATCH_LOCK_PATH, "utf8").catch(() => "0"));
+      let priorIsAlive = false;
+      if (priorPid > 0) {
+        try { process.kill(priorPid, 0); priorIsAlive = true; }
+        catch { priorIsAlive = false; }
+      }
+      if (priorIsAlive) return null;
+      await fs.unlink(WATCH_LOCK_PATH).catch(() => {});
+    }
+  }
+  return null;
+}
+
+async function releaseWatchLock(handle) {
+  if (!handle) return;
+  await handle.close().catch(() => {});
+  const ownerPid = Number(await fs.readFile(WATCH_LOCK_PATH, "utf8").catch(() => "0"));
+  if (ownerPid === process.pid) await fs.unlink(WATCH_LOCK_PATH).catch(() => {});
+}
 
 const HEBREW = /[\u0590-\u05ff]/;
 const SUPPORT_INTENT = /(?:הזמנ|חבילה|מעקב|משלוח|שליח|הגיע|החזר|זיכוי|ביטול|כתובת|בעיה|שימוש|צבע|גוון|שורש|מחיר|כמה עולה|כמה המשלוח|תוך כמה זמן|אחריות|order|tracking|shipment|delivery|refund|cancel|address|price|shipping|warranty)/i;
@@ -332,12 +362,22 @@ export async function runOnce() {
 }
 
 async function main() {
-  await runOnce();
-  if (!process.argv.includes("--watch")) return;
-  while (!stopRequested) {
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-    if (stopRequested) break;
-    await runOnce().catch(error => console.error(JSON.stringify({ ok: false, error: error.message, at: new Date().toISOString() })));
+  const watching = process.argv.includes("--watch");
+  const watchLock = watching ? await acquireWatchLock() : null;
+  if (watching && !watchLock) {
+    console.log(JSON.stringify({ ok: true, duplicateWatcherPrevented: true }));
+    return;
+  }
+  try {
+    await runOnce();
+    if (!watching) return;
+    while (!stopRequested) {
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      if (stopRequested) break;
+      await runOnce().catch(error => console.error(JSON.stringify({ ok: false, error: error.message, at: new Date().toISOString() })));
+    }
+  } finally {
+    await releaseWatchLock(watchLock);
   }
 }
 

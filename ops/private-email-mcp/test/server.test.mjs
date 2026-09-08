@@ -24,6 +24,8 @@ test("support sync filters mail and never starts a loop when imported by MCP", (
   assert.match(syncSource, /appendSentMessage\(rawMessage, sentAt\)/);
   assert.match(syncSource, /deterministicMessageId/);
   assert.match(syncSource, /providerMessageId:\s*result\.messageId/);
+  assert.match(syncSource, /duplicateWatcherPrevented/);
+  assert.match(syncSource, /acquireWatchLock/);
 });
 
 test("support sync removes quoted reply history before AI analysis", () => {
