@@ -3,6 +3,7 @@ query SupportOrderContext($query: String!) {
     nodes {
       id
       name
+      email
       createdAt
       cancelledAt
       displayFinancialStatus
@@ -15,6 +16,9 @@ query SupportOrderContext($query: String!) {
       }
       customer {
         id
+        defaultEmailAddress {
+          emailAddress
+        }
         firstName
         lastName
         numberOfOrders
