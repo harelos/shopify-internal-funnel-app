@@ -9,3 +9,4 @@ app/coverage/
 Thumbs.db
 local-*.png
 .chrome-preview-profile*/
+ops/private-email-mcp/.data/

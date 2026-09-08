@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>AI Support Inbox</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/support.css">
+</head>
+<body class="support-page">
+  <header class="support-header">
+    <div>
+      <a class="back-link" href="index.html">← Control Panel</a>
+      <h1>AI Support Inbox</h1>
+      <p>Customer conversations, verified order context and safe AI replies in one place.</p>
+    </div>
+    <button class="support-icon-button" id="refresh" aria-label="Refresh inbox">↻</button>
+  </header>
+
+  <main class="support-shell">
+    <section class="support-summary" aria-label="Support overview">
+      <article><span class="summary-value" id="count-open">—</span><span>Open</span></article>
+      <article><span class="summary-value" id="count-review">—</span><span>Needs review</span></article>
+      <article class="summary-alert"><span class="summary-value" id="count-escalated">—</span><span>Escalated</span></article>
+      <article><span class="summary-value" id="count-learned">—</span><span>Replies learned</span></article>
+    </section>
+
+    <section class="mailbox-strip" id="mailbox-strip">
+      <div><span class="connection-dot" id="agent-dot"></span><strong>Namecheap mailbox</strong><small id="mailbox-status">Checking connection…</small><small class="agent-detail" id="agent-detail">Mailbox agent has not checked in yet.</small></div>
+      <div class="mailbox-controls">
+        <label>Mode
+          <select id="automation-mode">
+            <option value="OFF">Off</option>
+            <option value="DRAFT_ONLY">Draft only</option>
+            <option value="AUTOSEND_LOW_RISK">Auto-send low-risk</option>
+          </select>
+        </label>
+        <label>Reply after
+          <select id="reply-delay">
+            <option value="3">3 min</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+          </select>
+        </label>
+        <button class="support-button support-button-secondary" id="save-settings">Save</button>
+      </div>
+    </section>
+
+    <nav class="support-filters" aria-label="Conversation filters">
+      <button class="active" data-status="ALL">All</button>
+      <button data-status="OPEN">Open</button>
+      <button data-status="ESCALATED">Escalated</button>
+      <button data-status="NEEDS_TRIAGE">Needs triage</button>
+      <button data-status="WAITING_CUSTOMER">Waiting</button>
+    </nav>
+
+    <section class="support-workspace">
+      <aside class="conversation-list" id="conversation-list" aria-label="Conversations">
+        <div class="support-empty">Loading conversations…</div>
+      </aside>
+
+      <article class="conversation-panel" id="conversation-panel">
+        <div class="support-empty support-empty-large">
+          <span class="empty-icon">✦</span>
+          <h2>Select a conversation</h2>
+          <p>You will see the customer history, order status, tracking and reply decision here.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="support-toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/api.js"></script>
+  <script src="js/support.js"></script>
+</body>
+</html>

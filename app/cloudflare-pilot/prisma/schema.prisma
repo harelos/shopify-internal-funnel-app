@@ -26,6 +26,10 @@ model Shop {
   elementExposures ElementExposure[]
   checkoutElementAttributions CheckoutElementAttribution[]
   orderElementAttributions OrderElementAttribution[]
+  supportMailboxes SupportMailbox[]
+  supportCustomers SupportCustomer[]
+  supportConversations SupportConversation[]
+  supportVoiceExamples SupportVoiceExample[]
 }
 
 model Funnel {
@@ -437,4 +441,166 @@ model ShopifyWebhookDelivery {
   shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId, topic, receivedAt])
+}
+
+model SupportMailbox {
+  id                    String   @id @default(uuid())
+  shopId                String
+  address               String
+  provider              String   @default("NAMECHEAP_PRIVATE_EMAIL")
+  connectionStatus      String   @default("CONFIGURED")
+  automationMode        String   @default("DRAFT_ONLY")
+  replyDelayMinutes     Int      @default(5)
+  lastSyncAt            DateTime?
+  lastAgentRunAt        DateTime?
+  nextAgentRunAt        DateTime?
+  lastAgentResult       String?
+  lastScanCount         Int      @default(0)
+  ignoredMessageCount   Int      @default(0)
+  lastError             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  conversations         SupportConversation[]
+
+  @@unique([shopId, address])
+  @@index([shopId, connectionStatus])
+}
+
+model SupportCustomer {
+  id                    String   @id @default(uuid())
+  shopId                String
+  email                 String
+  displayName           String?
+  shopifyCustomerGid    String?
+  lifetimeOrders        Int?
+  riskLevel             String   @default("UNKNOWN")
+  riskReasonsJson       String   @default("[]")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  conversations         SupportConversation[]
+
+  @@unique([shopId, email])
+  @@index([shopId, riskLevel])
+}
+
+model SupportConversation {
+  id                    String   @id @default(uuid())
+  shopId                String
+  mailboxId             String
+  customerId            String
+  externalThreadKey     String
+  subject               String
+  status                String   @default("OPEN")
+  priority              String   @default("NORMAL")
+  topic                 String   @default("OTHER")
+  audienceType          String   @default("UNKNOWN")
+  triageStatus          String   @default("ACCEPTED")
+  triageReason          String?
+  language              String   @default("UNKNOWN")
+  confidence            Float    @default(0)
+  riskLevel             String   @default("UNKNOWN")
+  assignedTo            String?
+  escalationReason      String?
+  summary               String?
+  shopifyOrderGid       String?
+  shopifyOrderName      String?
+  nextActionAt          DateTime?
+  lastCustomerMessageAt DateTime?
+  lastAgentMessageAt    DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  mailbox               SupportMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  customer              SupportCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages              SupportMessage[]
+  drafts                SupportDraft[]
+  evidence              SupportEvidenceEvent[]
+
+  @@unique([shopId, externalThreadKey])
+  @@index([shopId, status, updatedAt])
+  @@index([shopId, nextActionAt])
+}
+
+model SupportMessage {
+  id                String   @id @default(uuid())
+  conversationId    String
+  externalMessageId String   @unique
+  direction         String
+  fromAddress       String
+  toAddressesJson   String   @default("[]")
+  subject           String
+  textBody          String
+  sentAt            DateTime
+  source            String   @default("IMAP")
+  deliveryStatus    String   @default("RECEIVED")
+  aiGenerated       Boolean  @default(false)
+  triageClass       String   @default("REVIEW")
+  triageScore       Float    @default(0)
+  triageReasonsJson String   @default("[]")
+  inReplyTo         String?
+  referencesJson    String   @default("[]")
+  attachmentsJson   String   @default("[]")
+  createdAt         DateTime @default(now())
+  conversation      SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sentAt])
+  @@index([direction, sentAt])
+}
+
+model SupportDraft {
+  id                String   @id @default(uuid())
+  conversationId    String
+  status            String   @default("PENDING_REVIEW")
+  decision          String   @default("ESCALATE")
+  replyText         String
+  model             String?
+  confidence        Float    @default(0)
+  reason            String
+  verifiedFactsJson String   @default("{}")
+  policyFlagsJson   String   @default("[]")
+  sendAfter         DateTime?
+  claimedAt         DateTime?
+  attemptCount      Int      @default(0)
+  lastDeliveryError String?
+  sentAt            DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  conversation      SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, status, createdAt])
+  @@index([status, sendAfter])
+}
+
+model SupportEvidenceEvent {
+  id                String   @id @default(uuid())
+  conversationId    String
+  kind              String
+  source            String
+  previousHash      String?
+  contentHash       String
+  payloadJson       String
+  occurredAt        DateTime
+  createdAt         DateTime @default(now())
+  conversation      SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, occurredAt])
+  @@index([kind, occurredAt])
+}
+
+model SupportVoiceExample {
+  id                    String   @id @default(uuid())
+  shopId                String
+  inboundExternalId     String
+  outboundExternalId    String
+  topic                 String   @default("OTHER")
+  customerMessage       String
+  ownerReply            String
+  qualityStatus         String   @default("LEARNED")
+  createdAt             DateTime @default(now())
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, inboundExternalId, outboundExternalId])
+  @@index([shopId, topic, qualityStatus])
 }

@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { z } from 'zod';
+import { supportBridgeFetch, syncMailbox } from './support-sync.mjs';
 
 const CONFIG = {
   user: process.env.NAMECHEAP_PRIVATE_EMAIL_USER,
@@ -182,6 +183,77 @@ server.registerTool(
       }
     }
     return textResult({ folder, count: rows.length, messages: rows.reverse() });
+  })),
+);
+
+server.registerTool(
+  'support_sync',
+  {
+    description: 'Scan the Namecheap Inbox and Sent folders, filter unrelated mail, and persist accepted support/sales conversations. This does not send email.',
+    inputSchema: {},
+  },
+  async () => textResult({ ok: true, sync: await syncMailbox() }),
+);
+
+server.registerTool(
+  'support_agent_status',
+  {
+    description: 'Show whether the hosted inbox agent is running, its latest and next check, filtering counts, and open/escalated queue totals.',
+    inputSchema: {},
+  },
+  async () => textResult(await supportBridgeFetch('/support-bridge/status')),
+);
+
+server.registerTool(
+  'support_list',
+  {
+    description: 'List filtered support conversations for an agent. Technical mailbox noise is excluded before it reaches this queue.',
+    inputSchema: {
+      status: z.enum(['ALL', 'OPEN', 'NEEDS_TRIAGE', 'ESCALATED', 'WAITING_CUSTOMER', 'CLOSED']).default('ALL'),
+      limit: z.number().int().min(1).max(100).default(25),
+    },
+  },
+  async ({ status, limit }) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (status !== 'ALL') params.set('status', status);
+    return textResult(await supportBridgeFetch(`/support-bridge/conversations?${params}`));
+  },
+);
+
+server.registerTool(
+  'support_get',
+  {
+    description: 'Read one complete support thread with customer classification, Shopify context, drafts, and tamper-evident evidence history.',
+    inputSchema: { conversationId: z.string().uuid() },
+  },
+  async ({ conversationId }) => textResult(await supportBridgeFetch(`/support-bridge/conversations/${encodeURIComponent(conversationId)}`)),
+);
+
+server.registerTool(
+  'support_draft',
+  {
+    description: 'Generate or reuse an AI reply draft for one support conversation. This never sends email.',
+    inputSchema: { conversationId: z.string().uuid() },
+  },
+  async ({ conversationId }) => textResult(await supportBridgeFetch(`/support-bridge/conversations/${encodeURIComponent(conversationId)}/draft`, {
+    method: 'POST',
+    body: '{}',
+  })),
+);
+
+server.registerTool(
+  'support_approve',
+  {
+    description: 'Approve an exact reply and queue it for delivery by the hosted Namecheap connector. Requires explicit confirmSend=true and creates an evidence record.',
+    inputSchema: {
+      draftId: z.string().uuid(),
+      replyText: z.string().min(1).max(10000),
+      confirmSend: z.literal(true).describe('Must be true. This is the explicit authorization to send the external email.'),
+    },
+  },
+  async ({ draftId, replyText, confirmSend }) => textResult(await supportBridgeFetch(`/support-bridge/drafts/${encodeURIComponent(draftId)}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ replyText, confirmSend }),
   })),
 );
 

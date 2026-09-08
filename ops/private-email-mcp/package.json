@@ -8,12 +8,15 @@
   },
   "scripts": {
     "start": "node src/server.mjs",
+    "support:sync": "node src/support-sync.mjs --once",
+    "support:watch": "node src/support-sync.mjs --watch",
     "test": "node --test test/server.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "imapflow": "^1.7.6",
     "mailparser": "^3.9.16",
+    "nodemailer": "^9.0.5",
     "zod": "^3.25.76"
   }
 }
