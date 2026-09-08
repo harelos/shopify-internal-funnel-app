@@ -33,12 +33,17 @@ test("NovaHair preset uses all ten approved ready Shopify CDN images in order", 
   ]);
 });
 
-test("Worker-hosted element runtime stays byte-identical to the Shopify extension runtime", () => {
-  for (const filename of ["funnel-control-elements.js", "funnel-control-attribution.js", "funnel-control-elements.css"]) {
+test("Worker-hosted runtime includes the same Shopify extension code and its attribution companion", () => {
+  for (const filename of ["funnel-control-attribution.js", "funnel-control-elements.css"]) {
     const extension = readFileSync(`../extensions/funnel-control-elements/assets/${filename}`);
     const workerAsset = readFileSync(`public/assets/${filename}`);
     assert.deepEqual(workerAsset, extension);
   }
+  const extensionRuntime = readFileSync("../extensions/funnel-control-elements/assets/funnel-control-elements.js", "utf8").trim();
+  const attributionRuntime = readFileSync("../extensions/funnel-control-elements/assets/funnel-control-attribution.js", "utf8").trim();
+  const workerRuntime = readFileSync("public/assets/funnel-control-elements.js", "utf8");
+  assert.ok(workerRuntime.includes(extensionRuntime));
+  assert.ok(workerRuntime.includes(attributionRuntime));
 });
 
 test("element runtime persists attribution without mutating cart line items", () => {

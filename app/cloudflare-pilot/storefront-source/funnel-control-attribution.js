@@ -1,5 +1,6 @@
 !function() {
     "use strict";
+    if (window.FunnelControlAttribution && "function" == typeof window.FunnelControlAttribution.persist) return;
     var COOKIE = "_funnel_context", ATTRIBUTE = "__funnel_context__";
     function text(value, maxLength) {
         if ("string" != typeof value && "number" != typeof value) return "";

@@ -16,12 +16,19 @@ const compiled = await minify(source, { compress: { passes: 2 }, mangle: true, f
 if (!compiled.code) throw new Error("Element runtime minification produced no JavaScript.");
 const extensionRuntime = resolve(extensionAssets, "funnel-control-elements.js");
 await writeFile(extensionRuntime, `${compiled.code}\n`, "utf8");
-await copyFile(extensionRuntime, resolve(publicAssets, "funnel-control-elements.js"));
 const attributionCompiled = await minify(await readFile(attributionSource, "utf8"), { compress: { passes: 2 }, mangle: true, format: { comments: false } });
 if (!attributionCompiled.code) throw new Error("Attribution runtime minification produced no JavaScript.");
 const attributionRuntime = resolve(extensionAssets, "funnel-control-attribution.js");
 await writeFile(attributionRuntime, `${attributionCompiled.code}\n`, "utf8");
 await copyFile(attributionRuntime, resolve(publicAssets, "funnel-control-attribution.js"));
+// The live NovaHair page currently loads the Worker-hosted runtime directly.
+// Prepend the companion there so acquisition context cannot silently disappear;
+// Shopify theme blocks load the two size-bounded extension assets separately.
+await writeFile(
+  resolve(publicAssets, "funnel-control-elements.js"),
+  `${attributionCompiled.code}\n${compiled.code}\n`,
+  "utf8",
+);
 await copyFile(resolve(extensionAssets, "funnel-control-elements.css"), resolve(publicAssets, "funnel-control-elements.css"));
 
 console.log("Built and synced the page-scoped element runtime into Worker public assets.");
