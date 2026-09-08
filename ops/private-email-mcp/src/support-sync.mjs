@@ -144,6 +144,19 @@ export function cleanMessageText(value) {
     .trim();
 }
 
+export function parseShopifyContactForm(input) {
+  const fromAddress = String(input?.fromAddress || "").trim().toLowerCase();
+  const subject = String(input?.subject || "");
+  const textBody = String(input?.textBody || "").replace(/\r\n/g, "\n");
+  if (fromAddress !== "mailer@shopify.com" || !/(?:הודעת לקוח חדשה|new customer message)/i.test(subject)) return null;
+  const email = textBody.match(/(?:אימייל|email):\s*\n+\s*([^\s<>]+@[^\s<>]+)/i)?.[1]?.trim().toLowerCase() || "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  const name = textBody.match(/(?:שם|name):\s*\n+\s*([^\n]+)/i)?.[1]?.trim() || null;
+  const customerMessage = textBody.match(/(?:תוכן|body):\s*\n+([\s\S]+)$/i)?.[1]?.trim() || "";
+  if (!customerMessage) return null;
+  return { email, name, customerMessage };
+}
+
 async function attachmentManifest(attachments = []) {
   return Promise.all(attachments.map(async attachment => ({
     filename: attachment.filename || null,
@@ -165,16 +178,18 @@ async function collectMessages(client, folder, direction, since) {
       if (automated(parsed)) continue;
       const from = addresses(parsed.from);
       const to = addresses(parsed.to);
-      const customerEmail = direction === "INBOUND" ? from[0] : to.find(address => address !== mailboxAddress);
+      const rawTextBody = cleanMessageText(parsed.text);
+      const shopifyContact = direction === "INBOUND" ? parseShopifyContactForm({ fromAddress: from[0], subject: parsed.subject, textBody: rawTextBody }) : null;
+      const customerEmail = shopifyContact?.email || (direction === "INBOUND" ? from[0] : to.find(address => address !== mailboxAddress));
       if (!customerEmail || customerEmail === mailboxAddress) continue;
-      const textBody = cleanMessageText(parsed.text);
+      const textBody = shopifyContact?.customerMessage || rawTextBody;
       if (!textBody) continue;
       const messageId = parsed.messageId || `<${folder}-${message.uid}@local-import>`;
       const refs = references(parsed);
       rows.push({
         mailboxAddress,
         customerEmail,
-        customerName: direction === "INBOUND" ? parsed.from?.value?.[0]?.name || null : parsed.to?.value?.find(item => item.address?.toLowerCase() === customerEmail)?.name || null,
+        customerName: shopifyContact?.name || (direction === "INBOUND" ? parsed.from?.value?.[0]?.name || null : parsed.to?.value?.find(item => item.address?.toLowerCase() === customerEmail)?.name || null),
         externalMessageId: messageId,
         threadKey: refs[0] || parsed.inReplyTo || (direction === "INBOUND" ? messageId : null),
         direction,
