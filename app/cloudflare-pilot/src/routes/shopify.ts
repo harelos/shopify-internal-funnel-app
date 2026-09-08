@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ShopifyAdminClient, ShopifyConfigurationError } from "../lib/shopify-admin.js";
 import { publicShopifyStatus } from "../lib/shopify-config.js";
+import { publicShopifyPixelStatus } from "../lib/shopify-pixel-status.js";
 
 const router = Router();
 const adminClient = new ShopifyAdminClient();
@@ -22,6 +23,23 @@ router.get("/shopify/store", async (_req, res) => {
       return res.status(503).json({ ok: false, error: error.message });
     }
     res.status(502).json({ ok: false, error: "Shopify store probe failed." });
+  }
+});
+
+// Read-only production pixel probe. Returns health booleans only: the pixel
+// settings document and Shopify identifier never leave the authenticated API.
+router.get("/shopify/pixel-status", async (req, res) => {
+  try {
+    const authorization = req.get("authorization") ?? "";
+    const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
+    const data = await adminClient.webPixelConfiguration(sessionToken);
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, ...publicShopifyPixelStatus(data.webPixel) });
+  } catch (error) {
+    if (error instanceof ShopifyConfigurationError) {
+      return res.status(503).json({ ok: false, state: "UNKNOWN", error: error.message });
+    }
+    return res.status(502).json({ ok: false, state: "UNKNOWN", error: "Shopify pixel probe failed." });
   }
 });
 

@@ -503,6 +503,14 @@ export class ShopifyAdminClient {
     };
   }
 
+  async webPixelConfiguration(sessionToken?: string) {
+    return this.graphql<{
+      webPixel: { id: string; settings: unknown } | null;
+    }>(`query FunnelControlWebPixelStatus {
+      webPixel { id settings }
+    }`, {}, sessionToken);
+  }
+
   async ordersForAttributionReconciliation(input: {
     from: string;
     toExclusive: string;

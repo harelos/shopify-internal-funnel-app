@@ -35,6 +35,9 @@ test("Operations backend derives health from authoritative ledgers and fails att
   assert.match(route, /OrderAttribution/);
   assert.match(route, /will remain unattributed rather than guessed/);
   assert.match(route, /Meta cost coverage is stale/);
+  assert.match(route, /webPixelConfiguration/);
+  assert.match(route, /Shopify checkout pixel is not connected/);
+  assert.match(script, /Checkout tracking/);
   assert.match(route, /Cache-Control", "no-store/);
 });
 

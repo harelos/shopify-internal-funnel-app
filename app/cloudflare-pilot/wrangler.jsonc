@@ -25,7 +25,7 @@
     "ALLOWED_SHOP_DOMAIN": "jacobfelipe.myshopify.com",
     "SHOPIFY_DISTRIBUTION": "custom",
     "SHOPIFY_API_VERSION": "2026-07",
-    "SHOPIFY_SCOPES": "read_orders,read_customers,write_customers,read_products,read_discounts,write_discounts,read_reports,read_customer_events,write_app_proxy,write_pixels",
+    "SHOPIFY_SCOPES": "read_orders,read_customers,write_customers,read_products,read_discounts,write_discounts,read_reports,read_customer_events,read_pixels,write_app_proxy,write_pixels",
     "SHOPIFY_APP_PROXY_URL": "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/apps/funnels",
     "SHOPIFY_APP_PROXY_PATH": "/apps/funnels",
     "SHOPIFY_LIVE_CONNECT": "true",

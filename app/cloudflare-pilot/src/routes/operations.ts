@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { resolveGrowthCockpitRange } from "../lib/growth-cockpit-config.js";
 import { supportD1 } from "../lib/support-d1.js";
+import { ShopifyAdminClient } from "../lib/shopify-admin.js";
+import { publicShopifyPixelStatus } from "../lib/shopify-pixel-status.js";
 
 const router = Router();
+const shopify = new ShopifyAdminClient();
 
 type Row = Record<string, unknown>;
 
@@ -44,7 +47,7 @@ router.get("/operations/health", async (_req, res) => {
   const now = new Date();
   const todayIsrael = resolveGrowthCockpitRange({ preset: "today", timezone: "Asia/Jerusalem", now });
 
-  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor] = await Promise.all([
+  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel] = await Promise.all([
     db.prepare(`SELECT "connectionStatus", "automationMode", "replyDelayMinutes", "lastSyncAt",
       "lastAgentRunAt", "nextAgentRunAt", "lastAgentResult", "lastScanCount", "ignoredMessageCount", "lastError"
       FROM "SupportMailbox" ORDER BY "updatedAt" DESC LIMIT 1`).first<Row>(),
@@ -73,6 +76,9 @@ router.get("/operations/health", async (_req, res) => {
     db.prepare(`SELECT "releaseState", "passedCount", "failedCount", "circuitBreakerTriggered",
       "purchaseKillSwitchActive", "transformActive", "lastWebhookTimestamp", "lastCjSyncTimestamp", "updatedAt"
       FROM "NovaHairMonitorState" WHERE "id" = 'singleton' LIMIT 1`).first<Row>(),
+    shopify.webPixelConfiguration()
+      .then(result => ({ ok: true as const, ...publicShopifyPixelStatus(result.webPixel) }))
+      .catch(() => ({ ok: false as const, state: "UNKNOWN", configured: false, pixelIdPresent: false, endpointMatches: false, expectedEndpointHost: null })),
   ]);
 
   const financialRows = financial.results || [];
@@ -110,6 +116,11 @@ router.get("/operations/health", async (_req, res) => {
   }
   if (count(monitor?.circuitBreakerTriggered) > 0 || count(monitor?.purchaseKillSwitchActive) > 0 || count(monitor?.failedCount) > 0) {
     incidents.push({ severity: "CRITICAL", area: "Storefront", title: "NovaHair order monitor requires attention", action: "Review the monitor before changing the live purchase path." });
+  }
+  if (!pixel.ok) {
+    incidents.push({ severity: "WARNING", area: "Attribution", title: "Shopify checkout pixel health could not be verified", action: "Open the Shopify customer-events settings before relying on checkout attribution." });
+  } else if (!pixel.configured || !pixel.endpointMatches) {
+    incidents.push({ severity: "CRITICAL", area: "Attribution", title: "Shopify checkout pixel is not connected to the verified ingest endpoint", action: "Review the app pixel configuration. No storefront setting is changed from Operations." });
   }
 
   const latestSignalAt = [
@@ -179,6 +190,12 @@ router.get("/operations/health", async (_req, res) => {
         purchaseKillSwitchActive: count(monitor?.purchaseKillSwitchActive) > 0,
         lastWebhookAt: iso(monitor?.lastWebhookTimestamp) || iso(webhook?.receivedAt),
       },
+      checkoutTracking: {
+        state: pixel.state,
+        configured: pixel.configured,
+        endpointMatches: pixel.endpointMatches,
+        lastVerifiedAt: pixel.ok ? now.toISOString() : null,
+      },
     },
     incidents,
     sources: {
@@ -186,6 +203,7 @@ router.get("/operations/health", async (_req, res) => {
       support: "Namecheap mailbox agent and support evidence ledger",
       experiments: "First-party assignments, actual exposures and Shopify-paid outcomes",
       storefront: "NovaHair order monitor and Shopify webhook ledger",
+      checkoutTracking: "Authenticated Shopify Web Pixel configuration probe",
     },
   });
 });
