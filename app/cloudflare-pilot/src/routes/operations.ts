@@ -49,7 +49,7 @@ router.get("/operations/health", async (req, res) => {
   const authorization = req.get("authorization") ?? "";
   const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
 
-  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel] = await Promise.all([
+  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel, shipmentRun, shipmentCounts] = await Promise.all([
     db.prepare(`SELECT "connectionStatus", "automationMode", "replyDelayMinutes", "lastSyncAt",
       "lastAgentRunAt", "nextAgentRunAt", "lastAgentResult", "lastScanCount", "ignoredMessageCount", "lastError"
       FROM "SupportMailbox" ORDER BY "updatedAt" DESC LIMIT 1`).first<Row>(),
@@ -79,6 +79,13 @@ router.get("/operations/health", async (req, res) => {
       "purchaseKillSwitchActive", "transformActive", "lastWebhookTimestamp", "lastCjSyncTimestamp", "updatedAt"
       FROM "NovaHairMonitorState" WHERE "id" = 'singleton' LIMIT 1`).first<Row>(),
     probeShopifyPixelHealth(shopify, sessionToken),
+    db.prepare(`SELECT "receivedAt", "shopifyState", "cjState", "cjReadErrorCount", "duplicateCjOrderCount"
+      FROM "ShipmentMonitorRun" ORDER BY "receivedAt" DESC LIMIT 1`).first<Row>(),
+    db.prepare(`SELECT
+      SUM(CASE WHEN "isActionable" = 1 AND "workflowState" != 'RESOLVED' THEN 1 ELSE 0 END) AS "actionable",
+      SUM(CASE WHEN "isActionable" = 1 AND "workflowState" != 'RESOLVED' AND "severity" = 'CRITICAL' THEN 1 ELSE 0 END) AS "critical",
+      SUM(CASE WHEN "isActionable" = 1 AND "workflowState" != 'RESOLVED' AND "contactTarget" LIKE '%CJ%' THEN 1 ELSE 0 END) AS "contactCj"
+      FROM "ShipmentOrderState" WHERE "active" = 1`).first<Row>(),
   ]);
 
   const financialRows = financial.results || [];
@@ -122,6 +129,17 @@ router.get("/operations/health", async (req, res) => {
   } else if (!pixel.configured || !pixel.endpointMatches) {
     incidents.push({ severity: "CRITICAL", area: "Attribution", title: "Shopify checkout pixel is not connected to the verified ingest endpoint", action: "Review the app pixel configuration. No storefront setting is changed from Operations." });
   }
+  const shipmentLastRunAt = iso(shipmentRun?.receivedAt);
+  if (!shipmentRun) {
+    incidents.push({ severity: "WARNING", area: "Fulfillment", title: "Shipment control has not received its first Shopify + CJ snapshot", action: "Open Shipment Control after the next worker checkpoint." });
+  } else if (stateFromAge(shipmentLastRunAt, now, 8 * 60) === "ATTENTION") {
+    incidents.push({ severity: "CRITICAL", area: "Fulfillment", title: "Shipment evidence is stale", action: "Verify the Railway fulfillment worker before relying on the shipment queue." });
+  } else if (count(shipmentRun.cjReadErrorCount) > 0 || text(shipmentRun.cjState) !== "CURRENT") {
+    incidents.push({ severity: "WARNING", area: "Fulfillment", title: "CJ returned partial shipment evidence", action: "Open Shipment Control and work only from orders with verified source agreement." });
+  }
+  if (count(shipmentCounts?.critical) > 0) {
+    incidents.push({ severity: "CRITICAL", area: "Fulfillment", title: `${count(shipmentCounts?.critical)} critical ${count(shipmentCounts?.critical) === 1 ? "shipment needs" : "shipments need"} action`, action: "Open Shipment Control and start with the first order." });
+  }
 
   const latestSignalAt = [
     agentLastRunAt,
@@ -130,6 +148,7 @@ router.get("/operations/health", async (req, res) => {
     iso(webhook?.receivedAt),
     iso(exposure?.occurredAt),
     iso(orders?.lastUpdatedAt),
+    shipmentLastRunAt,
   ].filter(Boolean).sort().at(-1) || null;
 
   res.setHeader("Cache-Control", "no-store");
@@ -198,6 +217,14 @@ router.get("/operations/health", async (req, res) => {
         reason: pixel.reason,
         lastVerifiedAt: pixel.ok ? now.toISOString() : null,
       },
+      shipments: {
+        state: !shipmentRun ? "UNKNOWN" : stateFromAge(shipmentLastRunAt, now, 8 * 60) === "ATTENTION" || text(shipmentRun.cjState) !== "CURRENT" ? "ATTENTION" : count(shipmentCounts?.critical) > 0 ? "CRITICAL" : "CURRENT",
+        actionable: count(shipmentCounts?.actionable),
+        critical: count(shipmentCounts?.critical),
+        contactCj: count(shipmentCounts?.contactCj),
+        lastReconciledAt: shipmentLastRunAt,
+        duplicateCjOrderCount: count(shipmentRun?.duplicateCjOrderCount),
+      },
     },
     incidents,
     sources: {
@@ -206,6 +233,7 @@ router.get("/operations/health", async (req, res) => {
       experiments: "First-party assignments, actual exposures and Shopify-paid outcomes",
       storefront: "NovaHair order monitor and Shopify webhook ledger",
       checkoutTracking: "Authenticated Shopify Web Pixel configuration probe",
+      shipments: "Authenticated CJ order and tracking evidence reconciled with Shopify orders",
     },
   });
 });

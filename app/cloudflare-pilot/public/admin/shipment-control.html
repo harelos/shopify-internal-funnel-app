@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Shipment Control — Commerce OS</title>
+  <link rel="stylesheet" href="css/overview.css">
+  <link rel="stylesheet" href="css/shipment-control.css">
+</head>
+<body>
+  <div class="os-shell">
+    <header class="os-header">
+      <a class="os-brand" href="index.html" aria-label="Commerce OS overview">
+        <span class="os-mark" aria-hidden="true">CO</span>
+        <div><strong>Commerce OS</strong><span>by Funnel Builder</span></div>
+      </a>
+      <div class="connection-pill" id="shipment-source-pill" role="status">
+        <span class="status-dot" aria-hidden="true"></span>
+        Connecting Shopify + CJ
+      </div>
+    </header>
+
+    <nav class="os-nav" aria-label="Commerce OS sections">
+      <a href="index.html">Overview</a>
+      <a href="growth-cockpit.html">Insights</a>
+      <a href="journeys.html">Journeys</a>
+      <a href="ai-concierge.html">Experiences</a>
+      <a href="element-experiments.html">Experiments</a>
+      <a href="support.html">Support</a>
+      <a class="active" href="operations.html">Operations</a>
+    </nav>
+
+    <main class="os-main shipment-main">
+      <section class="page-intro shipment-intro">
+        <div>
+          <p class="eyebrow">SHIPMENT CONTROL</p>
+          <h1>What needs action today?</h1>
+          <p class="intro-copy">Shopify payment and risk, reconciled with authenticated CJ order and tracking evidence. No customer message, refund, cancellation, or CJ payment happens from this screen.</p>
+        </div>
+        <div class="intro-actions">
+          <a class="button secondary" href="operations.html">System health</a>
+          <button class="button" id="refresh-shipments" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section class="shipment-hero" id="shipment-hero" aria-live="polite">
+        <div>
+          <span class="hero-kicker" id="hero-kicker">Checking the latest run</span>
+          <h2 id="hero-title">Reconciling every active shipment…</h2>
+          <p id="hero-copy">The action queue will stay empty until both source and timing evidence are available.</p>
+        </div>
+        <div class="hero-sync">
+          <strong id="hero-sync-time">—</strong>
+          <span>Latest verified sync</span>
+        </div>
+      </section>
+
+      <section class="shipment-kpis" aria-label="Shipment priorities">
+        <button class="shipment-kpi critical" type="button" data-filter="CRITICAL">
+          <span>Act now</span><strong id="count-critical">—</strong><small>Critical orders</small>
+        </button>
+        <button class="shipment-kpi cj" type="button" data-contact="CJ">
+          <span>Supplier</span><strong id="count-cj">—</strong><small>Contact CJ</small>
+        </button>
+        <button class="shipment-kpi customer" type="button" data-contact="Customer">
+          <span>Trust</span><strong id="count-customer">—</strong><small>Update customer</small>
+        </button>
+        <button class="shipment-kpi monitoring" type="button" data-filter="MONITORING">
+          <span>Healthy flow</span><strong id="count-monitoring">—</strong><small>Monitoring normally</small>
+        </button>
+      </section>
+
+      <section class="daily-rhythm" aria-label="Daily operating rhythm">
+        <div class="rhythm-title"><p class="eyebrow">TODAY'S RHYTHM</p><strong>Three short control points</strong></div>
+        <div class="rhythm-steps">
+          <div><time>09:00</time><span>Open CJ cases and review urgent risk</span></div>
+          <div><time>15:00</time><span>Chase evidence and keep promises</span></div>
+          <div><time>21:00</time><span>Close progress and prepare tomorrow</span></div>
+        </div>
+      </section>
+
+      <section class="shipment-workspace surface">
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">ACTION QUEUE</p>
+            <h2>One decision per order</h2>
+            <p id="queue-description">Sorted by urgency, then newest order.</p>
+          </div>
+          <div class="shipment-search">
+            <label for="shipment-search">Find order</label>
+            <input id="shipment-search" type="search" inputmode="numeric" placeholder="#4414">
+          </div>
+        </div>
+
+        <div class="filter-row" role="group" aria-label="Filter shipment orders">
+          <button class="filter-chip active" type="button" data-view="ACTIONABLE">Needs action <span id="filter-actionable-count">0</span></button>
+          <button class="filter-chip" type="button" data-view="ALL">All active</button>
+          <button class="filter-chip" type="button" data-view="RESOLVED">Resolved</button>
+          <select id="severity-filter" aria-label="Filter by priority">
+            <option value="">Every priority</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="MONITORING">Monitoring</option>
+          </select>
+        </div>
+
+        <div class="shipment-list" id="shipment-list" aria-live="polite">
+          <article class="shipment-card loading-card"><span class="skeleton-line"></span><span class="skeleton-line short"></span></article>
+          <article class="shipment-card loading-card"><span class="skeleton-line"></span><span class="skeleton-line short"></span></article>
+        </div>
+      </section>
+
+      <p class="shipment-footnote">Reporting calendar: Asia/Jerusalem · Business days: Sunday–Thursday · Customer and financial actions require approval</p>
+    </main>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/shipment-control.js"></script>
+</body>
+</html>
+

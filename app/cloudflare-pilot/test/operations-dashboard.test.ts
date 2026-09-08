@@ -13,7 +13,7 @@ const route = fs.readFileSync(path.join(root, "src/routes/operations.ts"), "utf8
 test("Operations is a read-only owner view with direct routes to each system owner", () => {
   assert.match(html, /Is anything broken\?/);
   assert.match(html, /No storefront settings are changed from this screen/);
-  for (const href of ["support.html", "element-experiments.html", "growth-cockpit.html", "cart-offers.html"]) {
+  for (const href of ["support.html", "shipment-control.html", "element-experiments.html", "growth-cockpit.html", "cart-offers.html"]) {
     assert.match(html, new RegExp(`href="${href}"`));
   }
   assert.doesNotMatch(script, /API\.(?:post|put|patch|del)\(/);
@@ -37,6 +37,9 @@ test("Operations backend derives health from authoritative ledgers and fails att
   assert.match(route, /Meta cost coverage is stale/);
   assert.match(route, /probeShopifyPixelHealth\(shopify, sessionToken\)/);
   assert.match(route, /Shopify checkout pixel is not connected/);
+  assert.match(route, /ShipmentMonitorRun/);
+  assert.match(route, /ShipmentOrderState/);
+  assert.match(script, /Shipment control/);
   assert.match(script, /Checkout tracking/);
   assert.match(route, /Cache-Control", "no-store/);
 });

@@ -20,8 +20,8 @@ function clean(value: string | undefined): string {
 }
 
 export function workerEnvValue(name: string): string {
-  const envObj = (cloudflareEnv as any) ?? (globalThis as any).__SHOPIFY_WORKER_ENV__;
-  return clean(envObj?.[name] ?? process.env[name]);
+  const requestEnv = (globalThis as any).__SHOPIFY_WORKER_ENV__;
+  return clean(requestEnv?.[name] ?? (cloudflareEnv as any)?.[name] ?? process.env[name]);
 }
 
 export function normalizeShopDomain(value: string | undefined): string {
@@ -35,9 +35,10 @@ export function isValidShopDomain(value: string | undefined): boolean {
 import { env as cloudflareEnv } from "cloudflare:workers";
 
 export function getShopifyConfig(): ShopifyRuntimeConfig {
-  const envObj = (cloudflareEnv as any) ?? (globalThis as any).__SHOPIFY_WORKER_ENV__;
-  const shopDomain = normalizeShopDomain(envObj?.SHOP_DOMAIN ?? envObj?.ALLOWED_SHOP_DOMAIN ?? process.env.SHOP_DOMAIN ?? process.env.ALLOWED_SHOP_DOMAIN);
-  const distributionValue = clean(envObj?.SHOPIFY_DISTRIBUTION ?? process.env.SHOPIFY_DISTRIBUTION).toLowerCase();
+  const requestEnv = (globalThis as any).__SHOPIFY_WORKER_ENV__;
+  const runtimeValue = (name: string) => requestEnv?.[name] ?? (cloudflareEnv as any)?.[name] ?? process.env[name];
+  const shopDomain = normalizeShopDomain(runtimeValue("SHOP_DOMAIN") ?? runtimeValue("ALLOWED_SHOP_DOMAIN"));
+  const distributionValue = clean(runtimeValue("SHOPIFY_DISTRIBUTION")).toLowerCase();
   const distribution: ShopifyDistribution = distributionValue === "custom"
     ? "custom"
     : distributionValue === "shopify-admin"
@@ -46,20 +47,19 @@ export function getShopifyConfig(): ShopifyRuntimeConfig {
 
   return {
     shopDomain,
-    appUrl: clean(envObj?.APP_URL ?? envObj?.APPLICATION_URL ?? process.env.APP_URL ?? process.env.APPLICATION_URL),
-    clientId: clean(envObj?.SHOPIFY_CLIENT_ID ?? envObj?.SHOPIFY_API_KEY ?? process.env.SHOPIFY_CLIENT_ID ?? process.env.SHOPIFY_API_KEY),
-    apiVersion: clean(envObj?.SHOPIFY_API_VERSION ?? process.env.SHOPIFY_API_VERSION) || "2026-07",
-    scopes: clean(envObj?.SHOPIFY_SCOPES ?? process.env.SHOPIFY_SCOPES)
+    appUrl: clean(runtimeValue("APP_URL") ?? runtimeValue("APPLICATION_URL")),
+    clientId: clean(runtimeValue("SHOPIFY_CLIENT_ID") ?? runtimeValue("SHOPIFY_API_KEY")),
+    apiVersion: clean(runtimeValue("SHOPIFY_API_VERSION")) || "2026-07",
+    scopes: clean(runtimeValue("SHOPIFY_SCOPES"))
       .split(",")
       .map(scope => scope.trim())
       .filter(Boolean),
-    liveConnect: (envObj?.SHOPIFY_LIVE_CONNECT ?? process.env.SHOPIFY_LIVE_CONNECT) === "true",
-    requireEmbeddedAuth: (envObj?.SHOPIFY_REQUIRE_AUTH ?? process.env.SHOPIFY_REQUIRE_AUTH) === "true",
+    liveConnect: runtimeValue("SHOPIFY_LIVE_CONNECT") === "true",
+    requireEmbeddedAuth: runtimeValue("SHOPIFY_REQUIRE_AUTH") === "true",
     distribution,
-    hasClientSecret: Boolean(clean(envObj?.SHOPIFY_CLIENT_SECRET ?? process.env.SHOPIFY_CLIENT_SECRET)),
+    hasClientSecret: Boolean(clean(runtimeValue("SHOPIFY_CLIENT_SECRET"))),
     hasAccessToken: Boolean(clean(
-      envObj?.SHOPIFY_ADMIN_ACCESS_TOKEN ?? envObj?.SHOPIFY_ACCESS_TOKEN
-      ?? process.env.SHOPIFY_ADMIN_ACCESS_TOKEN ?? process.env.SHOPIFY_ACCESS_TOKEN,
+      runtimeValue("SHOPIFY_ADMIN_ACCESS_TOKEN") ?? runtimeValue("SHOPIFY_ACCESS_TOKEN"),
     )),
   };
 }

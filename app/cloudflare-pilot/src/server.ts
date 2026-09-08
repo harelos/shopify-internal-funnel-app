@@ -12,6 +12,7 @@ import popupAnalyticsRoutes from "./routes/popup-analytics.js";
 import growthCockpitRoutes from "./routes/growth-cockpit.js";
 import journeyRoutes from "./routes/journeys.js";
 import operationsRoutes from "./routes/operations.js";
+import { shipmentAdminRouter, shipmentBridgeRouter } from "./routes/shipment-control.js";
 import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
@@ -116,6 +117,7 @@ app.use("/", authRoutes);
 // token. Keep this outside Shopify Admin session middleware so the background
 // service can sync and deliver mail without a browser session.
 app.use("/support-bridge", supportBridgeRouter);
+app.use("/shipment-bridge", shipmentBridgeRouter);
 
 import novahairRoutes from "./routes/novahair.js";
 
@@ -159,6 +161,7 @@ app.use("/api", growthCockpitRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", journeyRoutes);
 app.use("/api", operationsRoutes);
+app.use("/api", shipmentAdminRouter);
 app.use("/api", shopifyRoutes);
 // Admin-only: per-step AI funnel with shopper free text. Never on the proxy path.
 app.use("/api", aiConciergeAdmin);

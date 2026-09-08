@@ -11,6 +11,7 @@ checkpoint as every behavior change.
 3. `IDENTITY_AND_ATTRIBUTION_CONTRACT.md` — how a visit becomes a verified Shopify sale.
 4. `ORDER_ATTRIBUTION_RUNBOOK.md` — paid-order release and incident procedure.
 5. `SUPPORT_DELIVERY_RUNBOOK.md` — support mailbox, AI safety, send, and delivery evidence.
+6. `SHIPMENT_CONTROL_RUNBOOK.md` — reconciled Shopify/CJ risk, action queue, and approval boundaries.
 
 ## Non-negotiable contracts
 
@@ -51,7 +52,9 @@ For every meaningful checkpoint:
 | Experiences | `/admin/ai-concierge.html` | On-site assistant events and Shopify-attributed outcomes |
 | Experiments | `/admin/element-experiments.html` | Deterministic assignments and Shopify-paid-order outcomes |
 | Support | `/admin/support.html` | Namecheap mailbox, Shopify order context, AI decisions, delivery evidence |
-| Operations | `/admin/cart-offers.html` | Storefront offer operations; broader fulfillment work is incomplete |
+| Operations | `/admin/operations.html` | Cross-system health and verified incident queue |
+| Shipment Control | `/admin/shipment-control.html` | Shopify payment/risk plus authenticated CJ order and tracking evidence |
+
 
 ## Documentation safety
 

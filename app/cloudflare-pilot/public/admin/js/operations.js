@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const acquisition = systems.acquisition || {};
     const storefront = systems.storefront || {};
     const checkoutTracking = systems.checkoutTracking || {};
+    const shipments = systems.shipments || {};
     const cards = [
       healthCard({ name: "Customer support", state: support.state, value: support.deliveryAttention ? `${support.deliveryAttention} need attention` : `${support.open || 0} open`, label: `${support.escalated || 0} escalated · ${support.queued || 0} queued`, metaLeft: displayTime(support.lastAgentRunAt), metaRight: support.automationMode === "AUTOSEND_LOW_RISK" ? "Low-risk automation" : readableState(support.automationMode) }),
       healthCard({ name: "Revenue ledger", state: revenue.state, value: `${integer.format(revenue.paidOrdersToday || 0)} paid orders`, label: "Today in Israel time", metaLeft: displayTime(revenue.lastReconciledAt), metaRight: "Shopify source" }),
@@ -64,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
       healthCard({ name: "Acquisition costs", state: acquisition.state, value: readableState(acquisition.quality), label: "Meta cost coverage", metaLeft: displayTime(acquisition.lastReconciledAt), metaRight: "Scheduled sync" }),
       healthCard({ name: "Storefront safeguards", state: storefront.state, value: storefront.failedChecks ? `${storefront.failedChecks} failed` : `${storefront.passedChecks || 0} passed`, label: "NovaHair order monitor", metaLeft: displayTime(storefront.lastWebhookAt), metaRight: storefront.purchaseKillSwitchActive ? "Purchase protection active" : "Purchase path open" }),
       healthCard({ name: "Checkout tracking", state: checkoutTracking.state, value: checkoutTracking.configured && checkoutTracking.endpointMatches ? "Pixel connected" : "Verification needed", label: "Shopify checkout events → first-party ledger", metaLeft: displayTime(checkoutTracking.lastVerifiedAt), metaRight: checkoutTrackingDetail(checkoutTracking) }),
+      healthCard({ name: "Shipment control", state: shipments.state, value: shipments.critical ? `${shipments.critical} critical` : `${shipments.actionable || 0} need action`, label: `${shipments.contactCj || 0} require CJ contact`, metaLeft: displayTime(shipments.lastReconciledAt), metaRight: shipments.duplicateCjOrderCount ? `${shipments.duplicateCjOrderCount} source conflict` : "Shopify + CJ" }),
     ];
     byId("health-grid").innerHTML = cards.join("");
   }
