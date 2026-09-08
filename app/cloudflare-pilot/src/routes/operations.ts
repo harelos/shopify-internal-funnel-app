@@ -2,7 +2,7 @@ import { Router } from "express";
 import { resolveGrowthCockpitRange } from "../lib/growth-cockpit-config.js";
 import { supportD1 } from "../lib/support-d1.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
-import { publicShopifyPixelStatus } from "../lib/shopify-pixel-status.js";
+import { probeShopifyPixelHealth } from "../services/shopify-pixel-health.js";
 
 const router = Router();
 const shopify = new ShopifyAdminClient();
@@ -78,9 +78,7 @@ router.get("/operations/health", async (req, res) => {
     db.prepare(`SELECT "releaseState", "passedCount", "failedCount", "circuitBreakerTriggered",
       "purchaseKillSwitchActive", "transformActive", "lastWebhookTimestamp", "lastCjSyncTimestamp", "updatedAt"
       FROM "NovaHairMonitorState" WHERE "id" = 'singleton' LIMIT 1`).first<Row>(),
-    shopify.webPixelConfiguration(sessionToken)
-      .then(result => ({ ok: true as const, ...publicShopifyPixelStatus(result.webPixel) }))
-      .catch(() => ({ ok: false as const, state: "UNKNOWN", configured: false, pixelIdPresent: false, endpointMatches: false, expectedEndpointHost: null })),
+    probeShopifyPixelHealth(shopify, sessionToken),
   ]);
 
   const financialRows = financial.results || [];
@@ -196,6 +194,8 @@ router.get("/operations/health", async (req, res) => {
         state: pixel.state,
         configured: pixel.configured,
         endpointMatches: pixel.endpointMatches,
+        pixelReadScopeGranted: pixel.pixelReadScopeGranted,
+        reason: pixel.reason,
         lastVerifiedAt: pixel.ok ? now.toISOString() : null,
       },
     },

@@ -511,6 +511,14 @@ export class ShopifyAdminClient {
     }`, {}, sessionToken);
   }
 
+  async appAccessScopes(sessionToken?: string) {
+    return this.graphql<{
+      currentAppInstallation: { accessScopes: Array<{ handle: string }> };
+    }>(`query FunnelControlAccessScopes {
+      currentAppInstallation { accessScopes { handle } }
+    }`, {}, sessionToken);
+  }
+
   async ordersForAttributionReconciliation(input: {
     from: string;
     toExclusive: string;

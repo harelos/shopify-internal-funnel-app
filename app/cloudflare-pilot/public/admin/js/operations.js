@@ -35,6 +35,19 @@ document.addEventListener("DOMContentLoaded", () => {
     return labels[value] || String(value || "Unknown").replaceAll("_", " ");
   }
 
+  function checkoutTrackingDetail(tracking) {
+    const labels = {
+      VERIFIED: "Endpoint verified",
+      READ_PIXELS_SCOPE_NOT_GRANTED: "Permission update needed",
+      TOKEN_EXCHANGE_FAILED: "Reconnect app",
+      SHOPIFY_ACCESS_DENIED: "Permission check failed",
+      PIXEL_NOT_CONFIGURED: "Pixel not found",
+      ENDPOINT_MISMATCH: "Endpoint mismatch",
+      SHOPIFY_QUERY_FAILED: "Shopify check unavailable",
+    };
+    return labels[tracking.reason] || "Check configuration";
+  }
+
   function renderSystems(systems) {
     const support = systems.support || {};
     const revenue = systems.revenue || {};
@@ -50,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
       healthCard({ name: "Experiments", state: experiments.state, value: `${integer.format(experiments.active || 0)} active`, label: "Tests using actual rendered exposure", metaLeft: displayTime(experiments.lastExposureAt), metaRight: "Paid outcomes" }),
       healthCard({ name: "Acquisition costs", state: acquisition.state, value: readableState(acquisition.quality), label: "Meta cost coverage", metaLeft: displayTime(acquisition.lastReconciledAt), metaRight: "Scheduled sync" }),
       healthCard({ name: "Storefront safeguards", state: storefront.state, value: storefront.failedChecks ? `${storefront.failedChecks} failed` : `${storefront.passedChecks || 0} passed`, label: "NovaHair order monitor", metaLeft: displayTime(storefront.lastWebhookAt), metaRight: storefront.purchaseKillSwitchActive ? "Purchase protection active" : "Purchase path open" }),
-      healthCard({ name: "Checkout tracking", state: checkoutTracking.state, value: checkoutTracking.configured && checkoutTracking.endpointMatches ? "Pixel connected" : "Verification needed", label: "Shopify checkout events → first-party ledger", metaLeft: displayTime(checkoutTracking.lastVerifiedAt), metaRight: checkoutTracking.endpointMatches ? "Endpoint verified" : "Check configuration" }),
+      healthCard({ name: "Checkout tracking", state: checkoutTracking.state, value: checkoutTracking.configured && checkoutTracking.endpointMatches ? "Pixel connected" : "Verification needed", label: "Shopify checkout events → first-party ledger", metaLeft: displayTime(checkoutTracking.lastVerifiedAt), metaRight: checkoutTrackingDetail(checkoutTracking) }),
     ];
     byId("health-grid").innerHTML = cards.join("");
   }
