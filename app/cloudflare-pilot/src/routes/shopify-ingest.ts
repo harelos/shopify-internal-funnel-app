@@ -9,10 +9,10 @@ import { extractDiscountCodes, extractPopupAttribution } from "../lib/popup-attr
 import { capturePostHogServerEvent } from "../lib/posthog-server.js";
 import {
   normalizePaidOrderWebhook,
+  normalizeFunnelContext,
   normalizeShopifyPixelEvent,
   verifyShopifyWebhookHmac,
   type ShopifyIntegrationEvent,
-  type FunnelContext,
 } from "../lib/shopify-integration.js";
 import {
   normalizeElementAssignmentContexts,
@@ -410,13 +410,7 @@ router.post("/api/shopify/pixel", async (req, res) => {
   const shopDomain = normalizeShopDomain(textValue(rawContext.shopDomain) ?? config.shopDomain);
   if (shopDomain !== normalizeShopDomain(config.shopDomain)) return res.status(400).json({ accepted: false, error: "Shop is not allowlisted." });
 
-  const context: FunnelContext = {
-    shopDomain,
-    visitorId: textValue(rawContext.visitorId),
-    funnelId: textValue(rawContext.funnelId),
-    stepId: textValue(rawContext.stepId),
-    variantId: textValue(rawContext.variantId),
-  };
+  const context = normalizeFunnelContext(rawContext, shopDomain);
   const normalized = normalizeShopifyPixelEvent({
     id: eventInput?.id,
     name: eventInput?.name,
@@ -440,8 +434,11 @@ router.post("/api/shopify/pixel", async (req, res) => {
       stepId: context.stepId ?? null,
       variantId: context.variantId ?? null,
       checkoutToken: normalized.value.checkoutToken ?? null,
+      utmSource: normalized.value.utmSource ?? null,
+      utmMedium: normalized.value.utmMedium ?? null,
+      utmCampaign: normalized.value.utmCampaign ?? null,
       payload: JSON.stringify(normalized.value.payload),
-      isTest: false,
+      isTest: Boolean(normalized.value.isInternal),
     });
 
     if (eventResult.duplicate) return res.json({ accepted: true, duplicate: true });
@@ -470,6 +467,53 @@ router.post("/api/shopify/pixel", async (req, res) => {
     }
     if (normalized.value.checkoutToken && normalized.value.name === "CHECKOUT_COMPLETED_OBSERVED") {
       await prisma.checkoutAttribution.updateMany({ where: { checkoutToken: normalized.value.checkoutToken }, data: { completedAt: normalized.value.occurredAt ?? new Date() } });
+    }
+
+    if (!normalized.value.isInternal && normalized.value.posthogDistinctId) {
+      const posthogProperties: Record<string, string | number | boolean | null> = {
+        event_schema_version: 1,
+        event_id: normalized.value.eventKey,
+        "$insert_id": normalized.value.eventKey,
+        source: "shopify_web_pixel",
+        checkout_token: normalized.value.checkoutToken ?? null,
+        utm_source: normalized.value.utmSource ?? null,
+        utm_medium: normalized.value.utmMedium ?? null,
+        utm_campaign: normalized.value.utmCampaign ?? null,
+        is_internal: false,
+      };
+      for (const [sourceKey, destinationKey] of [
+        ["firstTouchUtmContent", "utm_content"],
+        ["firstTouchCampaignId", "campaign_id"],
+        ["firstTouchAdsetId", "adset_id"],
+        ["firstTouchAdId", "ad_id"],
+        ["firstTouchFbclid", "fbclid"],
+        ["firstTouchGclid", "gclid"],
+        ["firstTouchLandingPath", "landing_path"],
+        ["firstTouchReferrerHost", "referrer_host"],
+        ["lastTouchUtmSource", "last_touch_utm_source"],
+        ["lastTouchUtmMedium", "last_touch_utm_medium"],
+        ["lastTouchUtmCampaign", "last_touch_utm_campaign"],
+      ] as const) {
+        const value = normalized.value.payload[sourceKey];
+        if (typeof value === "string" && value) posthogProperties[destinationKey] = value;
+      }
+      if (normalized.value.posthogSessionId) posthogProperties.$session_id = normalized.value.posthogSessionId;
+      let posthogDistinctId = normalized.value.posthogDistinctId;
+      if (normalized.value.shopifyCustomerId) {
+        await capturePostHogServerEvent("$identify", normalized.value.shopifyCustomerId, {
+          event_id: `${normalized.value.eventKey}:identify`,
+          "$insert_id": `${normalized.value.eventKey}:identify`,
+          "$anon_distinct_id": normalized.value.posthogDistinctId,
+          shopify_customer_id: normalized.value.shopifyCustomerId,
+          ...(normalized.value.posthogSessionId ? { $session_id: normalized.value.posthogSessionId } : {}),
+        });
+        posthogDistinctId = normalized.value.shopifyCustomerId;
+      }
+      await capturePostHogServerEvent(
+        normalized.value.name === "CART_CHECKOUT_STARTED" ? "checkout_started" : "checkout_completed",
+        posthogDistinctId,
+        posthogProperties,
+      );
     }
     return res.json({ accepted: true, duplicate: false });
   } catch {

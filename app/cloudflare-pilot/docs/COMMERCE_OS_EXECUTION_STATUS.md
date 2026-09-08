@@ -113,6 +113,24 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Every future dependency requires a pinned version, license verification, security review, tests, and Commerce OS visual-token adaptation before release.
 - Catalog: `docs/OPEN_SOURCE_IMPLEMENTATION_CATALOG.md`.
 
+### 11. Checkout identity and acquisition bridge
+
+- The NovaHair element runtime now persists a bounded first/current acquisition envelope
+  and the active PostHog anonymous/session IDs before checkout.
+- A private Shopify cart attribute provides the cross-domain fallback. It cannot mutate
+  cart lines, quantities, prices, discounts, notes, or visible checkout content.
+- The Funnel Control Web Pixel reduces Shopify checkout events before network transit;
+  customer contact data, addresses, line items, and foreign attributes are discarded.
+- Worker ingestion revalidates the allow-list, length caps, shop domain, and QA markers;
+  Shopify's pixel event ID remains the D1 and PostHog dedupe key.
+- `checkout_completed` now reads the order from Shopify's documented
+  `data.checkout.order` location. When a Shopify customer GID is available, PostHog links
+  the prior anonymous distinct ID and preserves the session without using email or phone.
+- Local verification: Worker TypeScript build passed; 153 Worker tests and 11 app tests
+  passed. Production release and consenting-checkout evidence are still required before
+  this checkpoint is marked live.
+- Runbook: `docs/CHECKOUT_ATTRIBUTION_RUNBOOK.md`.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.

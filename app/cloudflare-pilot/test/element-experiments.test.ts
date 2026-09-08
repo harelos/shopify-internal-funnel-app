@@ -34,23 +34,29 @@ test("NovaHair preset uses all ten approved ready Shopify CDN images in order", 
 });
 
 test("Worker-hosted element runtime stays byte-identical to the Shopify extension runtime", () => {
-  for (const filename of ["funnel-control-elements.js", "funnel-control-elements.css"]) {
+  for (const filename of ["funnel-control-elements.js", "funnel-control-attribution.js", "funnel-control-elements.css"]) {
     const extension = readFileSync(`../extensions/funnel-control-elements/assets/${filename}`);
     const workerAsset = readFileSync(`public/assets/${filename}`);
     assert.deepEqual(workerAsset, extension);
   }
 });
 
-test("element runtime persists assignment against the Shopify cart without mutating cart contents", () => {
-  const source = readFileSync("public/assets/funnel-control-elements.js", "utf8");
-  assert.match(source, /cart\.js/);
-  assert.match(source, /element-cart-attribution/);
-  assert.match(source, /elementAssignments/);
-  assert.doesNotMatch(source, /cart\/update\.js|cart\/add\.js/);
+test("element runtime persists attribution without mutating cart line items", () => {
+  const experimentRuntime = readFileSync("public/assets/funnel-control-elements.js", "utf8");
+  const attributionRuntime = readFileSync("public/assets/funnel-control-attribution.js", "utf8");
+  assert.match(experimentRuntime, /cart\.js/);
+  assert.match(experimentRuntime, /element-cart-attribution/);
+  assert.match(attributionRuntime, /cart\.js/);
+  assert.match(attributionRuntime, /cart\/update\.js/);
+  assert.match(attributionRuntime, /__funnel_context__/);
+  assert.match(attributionRuntime, /elementAssignments/);
+  assert.doesNotMatch(experimentRuntime + attributionRuntime, /cart\/add\.js|cart\/change\.js/);
+  assert.doesNotMatch(attributionRuntime, /["']updates["']\s*:|["']note["']\s*:/);
 });
 
 test("element runtime prevents control-to-challenger flicker and fails open safely", () => {
   const runtime = readFileSync("public/assets/funnel-control-elements.js", "utf8");
+  const attributionRuntime = readFileSync("public/assets/funnel-control-attribution.js", "utf8");
   const liquid = readFileSync("../extensions/funnel-control-elements/blocks/experiment-runtime.liquid", "utf8");
   const stylesheet = readFileSync("../extensions/funnel-control-elements/assets/funnel-control-elements.css", "utf8");
   assert.match(liquid, /"target": "body"/);
@@ -60,7 +66,7 @@ test("element runtime prevents control-to-challenger flicker and fails open safe
   assert.match(runtime, /Control revealed after runtime timeout/);
   assert.match(runtime, /image_error/);
   assert.match(runtime, /new Image/);
-  assert.match(runtime, /_funnel_context/);
+  assert.match(attributionRuntime, /_funnel_context/);
   assert.match(runtime, /element-cart-attribution/);
   assert.match(runtime, /fceReady/);
   assert.match(runtime, /\/apps\/funnels\/public/);

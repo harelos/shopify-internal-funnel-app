@@ -1,4 +1,5 @@
 <div data-funnel-control-root {{ block.shopify_attributes }}></div>
+<script src="{{ 'funnel-control-attribution.js' | asset_url }}" defer></script>
 <script type="application/json" data-funnel-control-config>
   {
     "endpoint": {{ block.settings.endpoint | json }},

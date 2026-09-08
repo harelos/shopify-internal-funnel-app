@@ -42,7 +42,21 @@ The pixel adapter intentionally accepts only:
 | `checkout_completed` | `CHECKOUT_COMPLETED_OBSERVED` | `shopify:pixel:{pixel_event_id}` | Observe completion; never own revenue |
 
 Unknown pixel events are rejected from funnel reporting. The adapter stores reduced
-metadata, not the arbitrary raw browser payload.
+metadata, not the arbitrary raw browser payload. `checkout_started` and
+`checkout_completed` may include the allow-listed first/current campaign context,
+anonymous visitor ID, PostHog distinct/session IDs, checkout token, and Shopify order or
+customer GIDs where Shopify supplies them. Email, phone, address, line items, and
+unrecognized checkout attributes are removed in the pixel before network transit.
+
+The private `__funnel_context__` cart attribute is a checkout-domain fallback. It is
+bounded, visually hidden, and contains no customer PII. It cannot change cart contents,
+prices, discounts, or checkout navigation. Explicit internal flags and QA/test/canary
+campaign markers set `isTest`; those events never fan out to production PostHog reporting.
+
+On a verified `checkout_completed` event with a Shopify customer GID, PostHog receives an
+anonymous-to-Shopify `$identify` link followed by the checkout event under the Shopify
+customer ID. The original PostHog session ID is preserved. Email and phone are forbidden
+as `distinct_id`.
 
 ## Shopify order events
 

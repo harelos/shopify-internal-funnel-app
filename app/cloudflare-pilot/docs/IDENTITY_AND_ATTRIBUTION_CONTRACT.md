@@ -72,9 +72,16 @@ of truth for owner reporting.
 - Persist first-touch landing context and current-touch context before leaving the
   storefront.
 - Carry UTM/click identifiers through cart and checkout only in approved bounded fields.
+- The storefront writes a private `__funnel_context__` cart attribute as a cross-domain
+  fallback. It contains only pseudonymous IDs and allow-listed acquisition fields; it
+  never changes items, quantities, prices, discounts, or visible checkout content.
+- The Web Pixel reduces Shopify's event inside the strict sandbox before sending it. Raw
+  checkout data, customer contact details, addresses, line items, and foreign cart
+  attributes never cross into the app ingestion request.
 - Preserve the anonymous visitor/session key through checkout where Shopify permits it.
 - Once a Shopify customer is known, analytics systems may identify using the Shopify
-  customer ID. Never use email or phone as analytics identity.
+  customer ID. PostHog receives the explicit anonymous-to-Shopify link and retains the
+  active session ID. Never use email or phone as analytics identity.
 - Later events enrich an identity chain; they do not rewrite earlier truth.
 
 ## Test and internal traffic

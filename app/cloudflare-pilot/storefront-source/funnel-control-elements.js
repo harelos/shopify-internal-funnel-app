@@ -78,24 +78,18 @@
             };
         }
         function M(e, t) {
-            var a = {};
-            try {
-                a = JSON.parse(k("_funnel_context") || "{}");
-            } catch (i) {}
-            var n = Array.isArray(a.elementAssignments) ? a.elementAssignments : [];
-            (n = n.filter(function(i) {
-                return i && i.experimentId !== e.experimentId;
-            })).push({
+            var a = {
+                visitorId: t,
+                isInternal: !!l.isInternal,
+                assignment: {
                 assignmentId: e.assignmentId,
                 experimentId: e.experimentId,
                 variantId: e.variantId,
                 slotId: e.slotId
-            }), a.visitorId = t, a.elementAssignments = n.slice(-20);
-            try {
-                document.cookie = "_funnel_context=" + encodeURIComponent(JSON.stringify(a)) + "; Path=/; Max-Age=2592000; SameSite=Lax; Secure";
-            } catch (i) {
-                m("Checkout context cookie unavailable");
-            }
+                }
+            };
+            window.FunnelControlAttribution && "function" == typeof window.FunnelControlAttribution.persist ? window.FunnelControlAttribution.persist(a) : (window.__funnelControlAttributionQueue = window.__funnelControlAttributionQueue || [],
+            window.__funnelControlAttributionQueue.push(a));
         }
         function Q(e, t) {
             if (l.isInternal) return Promise.resolve();
@@ -169,7 +163,7 @@
                 if (!N()) return void ((a || 0) < 40 && window.setTimeout(function() {
                     b(e, t, (a || 0) + 1);
                 }, 250));
-                I(sessionStorage, o, "1"), e.posthogFlagKey && window.posthog.capture("$feature_flag_called", Object.assign({
+                M(e, t), I(sessionStorage, o, "1"), e.posthogFlagKey && window.posthog.capture("$feature_flag_called", Object.assign({
                     $feature_flag: e.posthogFlagKey,
                     $feature_flag_response: e.variantKey
                 }, n)), K("experiment_exposed", n), window.dispatchEvent(new CustomEvent("funnel-control:experiment-exposed", {

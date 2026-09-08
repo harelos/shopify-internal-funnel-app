@@ -1,10 +1,14 @@
 import {register} from '@shopify/web-pixels-extension';
-import {resolvePixelEndpoint} from './runtime.js';
+import {
+  cartContextFromEvent,
+  reduceCheckoutEvent,
+  resolvePixelEndpoint,
+} from './runtime.js';
 
 register(({analytics, browser, settings}) => {
   const endpoint = resolvePixelEndpoint(settings.endpoint);
 
-  async function context() {
+  async function cookieContext() {
     let raw = '';
     try { raw = await browser.cookie.get('_funnel_context'); } catch (_) {}
     if (!raw) return {};
@@ -12,9 +16,11 @@ register(({analytics, browser, settings}) => {
   }
 
   async function forward(event) {
-    const eventContext = await context();
+    const cartContext = cartContextFromEvent(event);
+    const storedContext = await cookieContext();
+    const eventContext = {...cartContext, ...storedContext};
     const body = JSON.stringify({
-      event: { id: event.id, name: event.name, timestamp: event.timestamp, data: event.data },
+      event: reduceCheckoutEvent(event),
       context: eventContext,
     });
     try {
