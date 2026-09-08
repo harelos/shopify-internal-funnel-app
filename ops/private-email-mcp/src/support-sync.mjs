@@ -36,7 +36,7 @@ function triageMessage(message) {
   if (noise && !support && !sales) return { triageClass: "IGNORE", triageScore: 0.96, triageReasons: reasons };
   if (sales) return { triageClass: "SALES_QUESTION", triageScore: 0.96, triageReasons: reasons };
   if (support) return { triageClass: "CUSTOMER_SUPPORT", triageScore: hebrew ? 0.96 : 0.9, triageReasons: reasons };
-  if (hebrew || message.direction === "OUTBOUND") return { triageClass: "REVIEW", triageScore: hebrew ? 0.78 : 0.6, triageReasons: reasons.length ? reasons : ["THREAD_NEEDS_CONTEXT"] };
+  if (hebrew) return { triageClass: "REVIEW", triageScore: 0.78, triageReasons: reasons.length ? reasons : ["THREAD_NEEDS_CONTEXT"] };
   return { triageClass: "IGNORE", triageScore: 0.9, triageReasons: ["NO_CUSTOMER_SUPPORT_SIGNAL"] };
 }
 
@@ -164,11 +164,29 @@ export async function syncMailbox() {
     const ignored = classified.length - messages.length;
     let imported = 0;
     let duplicates = 0;
+    const threadGroups = new Map();
     for (const message of messages) {
-      const result = await supportBridgeFetch("/support-bridge/ingest", { method: "POST", body: JSON.stringify(message) });
-      if (result.result?.duplicate) duplicates += 1;
-      else imported += 1;
+      const group = threadGroups.get(message.threadKey) || [];
+      group.push(message);
+      threadGroups.set(message.threadKey, group);
     }
+    const groups = [...threadGroups.values()];
+    let groupIndex = 0;
+    const workers = Array.from({ length: Math.min(8, groups.length) }, async () => {
+      while (groupIndex < groups.length) {
+        const currentIndex = groupIndex;
+        groupIndex += 1;
+        // Preserve message order inside a conversation so owner replies can be
+        // learned from the preceding customer message, while independent
+        // conversations import concurrently during the initial backfill.
+        for (const message of groups[currentIndex]) {
+          const result = await supportBridgeFetch("/support-bridge/ingest", { method: "POST", body: JSON.stringify(message) });
+          if (result.result?.duplicate) duplicates += 1;
+          else imported += 1;
+        }
+      }
+    });
+    await Promise.all(workers);
     await writeState({ lastSuccessfulSyncAt: new Date().toISOString(), scanned: candidates.length, imported, duplicates, ignored });
     return { scanned: candidates.length, accepted: messages.length, ignored, imported, duplicates, inbox, sent };
   } finally {
