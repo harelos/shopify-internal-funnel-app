@@ -10,7 +10,7 @@ The Growth Cockpit is an embedded admin dashboard in the deployed Cloudflare Wor
 - Reporting timezone: `REPORTING_TIMEZONE`, default `Asia/Jerusalem`
 - Reporting currency: `REPORTING_CURRENCY=USD`, based on the verified shop-money and Meta account currency artifacts
 - Meta credential: `META_ACCESS_TOKEN`, stored only as a Cloudflare Worker secret
-- Meta account: `META_AD_ACCOUNT_ID=act_8852331774866389`; the account ID is public configuration, not a credential
+- Meta account: `META_AD_ACCOUNT_ID=act_676516688178386`; this is the account that owns the active NovaHair campaign. The account ID is public configuration, not a credential.
 
 The API uses local calendar dates and returns a half-open UTC range: `from` is inclusive and `toExclusive` is exclusive.
 
@@ -36,6 +36,8 @@ The API uses local calendar dates and returns a half-open UTC range: `from` is i
 `Order.netPaymentSet` is the amount received minus refunds. It includes collected tax and shipping and must not be labelled ShopifyQL net sales.
 
 `META_ACCESS_TOKEN` is read only inside `src/lib/meta-ads.ts`; it is never returned by an API, placed in a URL, logged, or written to Git. Successful Meta reads persist daily rows and an exact-range reconciliation watermark in D1. Historical completeness still has to be verified against Meta before release sign-off.
+
+The account binding must be checked against the campaign owner, not copied from an older audit. On 2026-09-08, production was corrected from an inactive historical account after the scheduled reconciler returned an authenticated empty dataset while current NovaHair campaigns belonged to the account above. Historical rows remain account-keyed and must not be combined across accounts.
 
 ## Financial ledger
 

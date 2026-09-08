@@ -85,6 +85,13 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Incidents are derived from existing authoritative ledgers. The view does not mutate storefront configuration, resend mail, reconcile orders, or launch experiments.
 - The page refreshes once per minute and links each issue to the workspace that owns it. Existing Cart Offers remains available as a separate Operations workspace.
 
+### 7. Meta cost-source correction
+
+- The Operations view exposed that the scheduled Meta source had not produced a current row since 2026-08-30.
+- Live Worker logs proved the credentialed API request succeeded but the configured account returned an empty current-period dataset; this was not a scheduler failure.
+- The production account binding was corrected to the account that owns the active NovaHair campaign. The access token remains a Worker secret and was not moved into code or GitHub.
+- Meta ledger keys include the account ID. Historical rows from a prior account must never be aggregated with the current account when account-scoped reporting is added.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.

@@ -10,6 +10,7 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
   const database = readFileSync(new URL("../src/lib/db.ts", import.meta.url), "utf8");
   const route = readFileSync(new URL("../src/routes/growth-cockpit.ts", import.meta.url), "utf8");
+  const workerConfig = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
   const ledgerMigration = readFileSync(new URL("../migrations/0006_growth_cockpit_financial_ledger.sql", import.meta.url), "utf8");
   assert.match(html, /noindex,nofollow,noarchive/);
   assert.match(html, /Verified financial inputs/i);
@@ -35,6 +36,7 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   assert.match(route, /growth-cockpit\/cj-reconcile/);
   assert.match(route, /growth-cockpit\/cj-paid-costs/);
   assert.match(route, /testCjReadConnection/);
+  assert.match(workerConfig, /"META_AD_ACCOUNT_ID": "act_676516688178386"/);
   assert.match(ledgerMigration, /FinancialLedgerEntry/);
   assert.match(ledgerMigration, /FinancialLedgerCoverage/);
   assert.match(script, /renderPopup/);
