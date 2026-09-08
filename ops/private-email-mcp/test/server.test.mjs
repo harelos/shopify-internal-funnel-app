@@ -26,6 +26,8 @@ test("support sync filters mail and never starts a loop when imported by MCP", (
   assert.match(syncSource, /providerMessageId:\s*result\.messageId/);
   assert.match(syncSource, /OUTBOUND_DELIVERY_VERIFIED|pending-verification|verify-sent-copy/);
   assert.match(syncSource, /sentFolderCopy:\s*true/);
+  assert.match(syncSource, /inboundAcceptedThreads/);
+  assert.match(syncSource, /message\.direction === "INBOUND"/);
   assert.match(syncSource, /duplicateWatcherPrevented/);
   assert.match(syncSource, /acquireWatchLock/);
 });

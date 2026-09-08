@@ -35,6 +35,13 @@ The Support Inbox performs a cached, read-only DNS check for:
 
 On 2026-09-08, live DNS had working Namecheap MX and DKIM plus DMARC in monitoring mode, but no apex SPF TXT record. This is a deliverability risk. Do not add a Namecheap-only SPF record until every legitimate sending service for the domain is inventoried; multiple SPF records are invalid and all authorized senders must be consolidated into one record.
 
+## Inbox scope
+
+- A visible support conversation must contain an inbound customer message, Hebrew or mixed-language service history, or verified Shopify-order context.
+- Outbound-only English vendor, finance, infrastructure, and account-operation threads stay preserved in the mailbox but are excluded from the Support workspace.
+- The mailbox connector applies the same rule before ingestion: outbound mail is imported only when it belongs to an accepted inbound thread or is itself Hebrew customer-service content.
+- The filter is non-destructive. It changes product scope and future ingestion; it does not delete mailbox evidence.
+
 ## Safe deployment order
 
 1. Run the Worker tests and TypeScript build.

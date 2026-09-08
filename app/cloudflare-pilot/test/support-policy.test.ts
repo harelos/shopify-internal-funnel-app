@@ -156,6 +156,9 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(js, /SMTP accepted · Sent-folder copy verified/);
   assert.match(js, /Retry sending/);
   assert.match(html, /Email delivery health/);
+  const route = fs.readFileSync(path.join(appRoot, "src/routes/support-desk.ts"), "utf8");
+  assert.match(route, /customerSupportConversationWhere/);
+  assert.match(route, /messages:\s*\{\s*some:\s*\{\s*direction:\s*"INBOUND"/);
   assert.match(html, /data-status="CLOSED"/);
   assert.doesNotMatch(html + js, /utm_|externalMessageId|policyFlagsJson/);
 });

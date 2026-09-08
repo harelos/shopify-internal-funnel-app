@@ -230,8 +230,14 @@ export async function syncMailbox() {
       ...(await collectMessages(client, sent, "OUTBOUND", since)),
     ].sort((left, right) => new Date(left.sentAt) - new Date(right.sentAt));
     const classified = candidates.map(message => ({ ...message, ...triageMessage(message) }));
-    const acceptedThreads = new Set(classified.filter(message => message.triageClass !== "IGNORE").map(message => message.threadKey));
-    const messages = classified.filter(message => message.triageClass !== "IGNORE" || acceptedThreads.has(message.threadKey));
+    const inboundAcceptedThreads = new Set(classified
+      .filter(message => message.direction === "INBOUND" && message.triageClass !== "IGNORE")
+      .map(message => message.threadKey));
+    const messages = classified.filter(message => {
+      if (message.direction === "INBOUND") return message.triageClass !== "IGNORE";
+      if (inboundAcceptedThreads.has(message.threadKey)) return true;
+      return message.triageClass !== "IGNORE" && HEBREW.test(`${message.subject}\n${message.textBody}`);
+    });
     const ignored = classified.length - messages.length;
     let imported = 0;
     let duplicates = 0;

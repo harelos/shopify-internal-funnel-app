@@ -10,6 +10,21 @@ export const supportBridgeRouter = Router();
 
 let deliverabilityCache: { domain: string; expiresAt: number; value: unknown } | null = null;
 
+function customerSupportConversationWhere(status?: string) {
+  return {
+    AND: [
+      status ? { status } : { status: { not: "CLOSED" } },
+      {
+        OR: [
+          { messages: { some: { direction: "INBOUND" } } },
+          { language: { in: ["HEBREW", "MIXED"] } },
+          { shopifyOrderGid: { not: null } },
+        ],
+      },
+    ],
+  };
+}
+
 function bearer(req: any): string {
   const header = String(req.get("authorization") || "");
   return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
@@ -140,7 +155,7 @@ supportBridgeRouter.get("/conversations", async (req, res) => {
   const status = allowedStatuses.has(requestedStatus) ? requestedStatus : undefined;
   const limit = Math.min(100, Math.max(1, Number(req.query.limit || 25)));
   const rows = await prisma.supportConversation.findMany({
-    where: status ? { status } : { status: { not: "CLOSED" } },
+    where: customerSupportConversationWhere(status),
     orderBy: { updatedAt: "desc" },
     take: limit,
     include: {
@@ -298,8 +313,8 @@ supportBridgeRouter.post("/outbox/:id/failed", async (req, res) => {
 supportAdminRouter.get("/support/overview", async (_req, res) => {
   const [mailboxes, open, escalated, pendingReview, learnedReplies, queuedReplies, sentReplies, failedReplies, verifiedSentCopies] = await Promise.all([
     prisma.supportMailbox.findMany({ orderBy: { updatedAt: "desc" } }),
-    prisma.supportConversation.count({ where: { status: "OPEN" } }),
-    prisma.supportConversation.count({ where: { status: "ESCALATED" } }),
+    prisma.supportConversation.count({ where: customerSupportConversationWhere("OPEN") }),
+    prisma.supportConversation.count({ where: customerSupportConversationWhere("ESCALATED") }),
     prisma.supportDraft.count({ where: { status: "PENDING_REVIEW" } }),
     prisma.supportVoiceExample.count({ where: { qualityStatus: { in: ["LEARNED", "APPROVED"] } } }),
     prisma.supportDraft.count({ where: { status: { in: ["QUEUED_TO_SEND", "SENDING"] } } }),
@@ -329,7 +344,7 @@ supportAdminRouter.get("/support/deliverability", async (_req, res) => {
 supportAdminRouter.get("/support/conversations", async (req, res) => {
   const status = typeof req.query.status === "string" && req.query.status !== "ALL" ? req.query.status : undefined;
   const rows = await prisma.supportConversation.findMany({
-    where: status ? { status } : { status: { not: "CLOSED" } },
+    where: customerSupportConversationWhere(status),
     orderBy: { updatedAt: "desc" },
     take: 100,
     include: {
