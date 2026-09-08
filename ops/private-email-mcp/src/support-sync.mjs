@@ -20,7 +20,7 @@ let stopRequested = false;
 const HEBREW = /[\u0590-\u05ff]/;
 const SUPPORT_INTENT = /(?:הזמנ|חבילה|מעקב|משלוח|שליח|הגיע|החזר|זיכוי|ביטול|כתובת|בעיה|שימוש|צבע|גוון|שורש|מחיר|כמה עולה|כמה המשלוח|תוך כמה זמן|אחריות|order|tracking|shipment|delivery|refund|cancel|address|price|shipping|warranty)/i;
 const SALES_INTENT = /(?:כמה (?:עולה|המשלוח|זמן המשלוח)|מחיר|איך מזמינים|איפה קונים|איזה גוון|מתאים לי|יש במלאי|תוך כמה זמן|מבצע|אחריות|how much|shipping cost|delivery time|which shade|in stock)/i;
-const BUSINESS_NOISE = /(?:invoice|domain renewal|hosting|security alert|login attempt|password reset|partnership|collaboration|seo service|guest post|backlink|webinar|newsletter|digest|weekly report|monthly report|billing notice)/i;
+const BUSINESS_NOISE = /(?:invoice|domain renewal|hosting|security alert|login attempt|password reset|partnership|collaboration|seo service|guest post|backlink|webinar|newsletter|digest|weekly report|monthly report|billing notice|sourcing|supplier|wholesale|private label|fulfillment quote|landed cost|shopify collective|mocra|\bsds\b|\bcoa\b|procurement|warehouse pre-stock|bundle fulfillment|shipping revolution|zendrop|cjdropshipping|hypersku)/i;
 
 function triageMessage(message) {
   const text = `${message.subject}\n${message.textBody}`;
@@ -33,7 +33,7 @@ function triageMessage(message) {
   if (sales) reasons.push("PRE_SALE_INTENT");
   if (hebrew) reasons.push("HEBREW_CUSTOMER_SIGNAL");
   if (noise) reasons.push("BUSINESS_OR_SYSTEM_MAIL_SIGNAL");
-  if (noise && !support && !sales) return { triageClass: "IGNORE", triageScore: 0.96, triageReasons: reasons };
+  if (noise && (!hebrew || (!support && !sales))) return { triageClass: "IGNORE", triageScore: 0.96, triageReasons: reasons };
   if (sales) return { triageClass: "SALES_QUESTION", triageScore: 0.96, triageReasons: reasons };
   if (support) return { triageClass: "CUSTOMER_SUPPORT", triageScore: hebrew ? 0.96 : 0.9, triageReasons: reasons };
   if (hebrew) return { triageClass: "REVIEW", triageScore: 0.78, triageReasons: reasons.length ? reasons : ["THREAD_NEEDS_CONTEXT"] };

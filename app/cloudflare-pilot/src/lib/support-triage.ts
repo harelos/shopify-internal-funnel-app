@@ -13,6 +13,7 @@ const CUSTOMER_SUPPORT = /(?:הזמנ|חבילה|מעקב|משלוח|שליח|ה
 const SALES_QUESTION = /(?:כמה (?:עולה|המשלוח|זמן המשלוח)|מחיר|עלות|איך מזמינים|איפה קונים|איזה גוון|איזה צבע|מתאים לי|יש במלאי|תוך כמה זמן|ימי עסקים|מבצע|אחריות|price|how much|shipping cost|delivery time|which shade|in stock|warranty)/i;
 const AUTOMATED = /(?:mailer-daemon|postmaster|no-?reply|do-?not-?reply|notification|newsletter|unsubscribe|list-unsubscribe|delivery status notification|undeliverable)/i;
 const BUSINESS_NOISE = /(?:invoice|חשבונית ספק|חשבונית מס|receipt|domain renewal|hosting|security alert|login attempt|password reset|partnership|collaboration|seo service|guest post|backlink|webinar|newsletter|digest|weekly report|monthly report|billing notice)/i;
+const SUPPLIER_OR_OPERATIONS = /(?:sourcing|supplier|wholesale|private label|fulfillment quote|landed cost|shopify collective|mocra|\bsds\b|\bcoa\b|procurement|warehouse pre-stock|bundle fulfillment|shipping revolution|zendrop|cjdropshipping|hyperSKU)/i;
 const HUMAN_GREETING = /(?:היי|שלום|בוקר טוב|ערב טוב|צהריים טובים|hi|hello|good morning)/i;
 
 function languageOf(text: string): SupportTriageDecision["language"] {
@@ -42,13 +43,15 @@ export function triageMailboxMessage(input: {
   const support = CUSTOMER_SUPPORT.test(text);
   const sales = SALES_QUESTION.test(text);
   const businessNoise = BUSINESS_NOISE.test(text);
+  const supplierOrOperations = SUPPLIER_OR_OPERATIONS.test(text);
   if (support) reasons.push("SUPPORT_INTENT");
   if (sales) reasons.push("PRE_SALE_INTENT");
   if (language === "HEBREW" || language === "MIXED") reasons.push("HEBREW_CUSTOMER_SIGNAL");
   if (HUMAN_GREETING.test(text)) reasons.push("HUMAN_MESSAGE_SIGNAL");
   if (businessNoise) reasons.push("BUSINESS_OR_SYSTEM_MAIL_SIGNAL");
+  if (supplierOrOperations) reasons.push("SUPPLIER_OR_OPERATIONS_SIGNAL");
 
-  if (businessNoise && !support && !sales) {
+  if ((businessNoise && !support && !sales) || (supplierOrOperations && language === "ENGLISH")) {
     return { classification: "IGNORE", confidence: 0.96, language, reasons };
   }
   if (sales) return { classification: "SALES_QUESTION", confidence: 0.96, language, reasons };

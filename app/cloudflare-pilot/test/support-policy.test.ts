@@ -112,6 +112,22 @@ test("mailbox triage accepts a Hebrew shipping prospect and rejects unrelated sy
   assert.equal(unrelated.classification, "IGNORE");
 });
 
+test("supplier and sourcing conversations are filtered even when they mention shipping", () => {
+  const result = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "support@zendrop.com",
+    subject: "Re: Product Sourcing Request — Bundle Fulfillment Quote",
+    textBody: "Our supplier can provide the shipping cost, private label MOQ and fulfillment details.",
+  });
+  assert.equal(result.classification, "IGNORE");
+  assert.ok(result.reasons.includes("SUPPLIER_OR_OPERATIONS_SIGNAL"));
+});
+
+test("English operational mail cannot auto-send even if a shipping phrase matches", () => {
+  const policy = evaluateSupportPolicy("What is the shipping cost?");
+  assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: false, hasUnverifiedClaims: false, language: "ENGLISH" }), false);
+});
+
 test("ambiguous Hebrew personal mail is held for triage rather than auto-processed", () => {
   const result = triageMailboxMessage({
     direction: "INBOUND",

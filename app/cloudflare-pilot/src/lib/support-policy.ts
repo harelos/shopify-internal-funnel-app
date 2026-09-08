@@ -47,9 +47,11 @@ export function mayAutoSend(input: {
   hasUnverifiedClaims: boolean;
   messageAgeMinutes?: number;
   latestMessageIsInbound?: boolean;
+  language?: string;
 }): boolean {
   const canAnswerWithoutOrder = input.policy.topic === "GENERAL_SHIPPING";
   const recentEnough = input.messageAgeMinutes === undefined || input.messageAgeMinutes <= 72 * 60;
+  const supportedLanguage = input.language === undefined || input.language === "HEBREW" || input.language === "MIXED";
   return input.automationMode === "AUTOSEND_LOW_RISK"
     && input.policy.riskLevel === "LOW"
     && !input.policy.mustEscalate
@@ -57,5 +59,6 @@ export function mayAutoSend(input: {
     && (input.hasVerifiedOrder || canAnswerWithoutOrder)
     && !input.hasUnverifiedClaims
     && recentEnough
-    && input.latestMessageIsInbound !== false;
+    && input.latestMessageIsInbound !== false
+    && supportedLanguage;
 }

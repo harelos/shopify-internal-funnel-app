@@ -108,7 +108,7 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
     textBody: input.textBody,
     automated: input.automated,
   });
-  const triage = input.triageClass && input.triageClass !== "IGNORE"
+  const triage = computedTriage.classification !== "IGNORE" && input.triageClass && input.triageClass !== "IGNORE"
     ? {
         classification: input.triageClass,
         confidence: Math.max(0, Math.min(1, Number(input.triageScore ?? computedTriage.confidence))),
@@ -435,6 +435,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     hasUnverifiedClaims: decision.unverifiedClaims.length > 0,
     messageAgeMinutes: Math.max(0, (Date.now() - latestInbound.sentAt.getTime()) / 60000),
     latestMessageIsInbound: latestMessage.direction === "INBOUND",
+    language: conversation.language,
   });
   const status = decision.decision === "ESCALATE" || policy.mustEscalate
     ? "ESCALATED"
