@@ -71,6 +71,8 @@ New CJ orders wait at least 10 minutes from Shopify `created_at`, then follow th
 
 The code is hard-locked to `CJ_RECONCILE_MODE=report`. It contains no deletion or replacement path. Gate B has not been approved or implemented. See [`../docs/CJ_SYNC_ADDON_RECONCILIATION_PLAN_2026-09-08.md`](../docs/CJ_SYNC_ADDON_RECONCILIATION_PLAN_2026-09-08.md).
 
+Gate A was deployed successfully to production on 2026-09-08 as Railway deployment `a27ea4e9-46fd-4d6e-ab7c-7af5a60df348`. The first cycle reported five drifts and performed no CJ replacement. See [`../docs/CJ_SYNC_GATE_A_PRODUCTION_REPORT_2026-09-08.md`](../docs/CJ_SYNC_GATE_A_PRODUCTION_REPORT_2026-09-08.md).
+
 ## Safe local inspection
 
 Run the existing tests:

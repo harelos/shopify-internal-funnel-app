@@ -1,6 +1,6 @@
 # NovaHair CJ add-on reconciliation plan
 
-Status: **Gate A approved; report-only implementation prepared; Gate B not approved**
+Status: **Gate A deployed and verified in report-only mode; Gate B not approved**
 
 Audit date: 2026-09-08
 
@@ -183,6 +183,6 @@ Add tests before deployment for:
 
 ## Approval gates
 
-Gate A was approved. It authorizes implementation, unit tests, and a Railway deployment in `report` mode only. Gate A does **not** authorize deleting or recreating any CJ order.
+Gate A was approved and completed in Railway deployment `a27ea4e9-46fd-4d6e-ab7c-7af5a60df348`. It authorized implementation, unit tests, and a Railway deployment in `report` mode only. Gate A did **not** authorize deleting or recreating any CJ order, and none was deleted or recreated.
 
 Gate B will be requested separately after the report-mode output is reviewed.
