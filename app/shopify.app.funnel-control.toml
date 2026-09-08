@@ -17,6 +17,10 @@ redirect_urls = [ ]
 [webhooks]
 api_version = "2026-07"
 
+[[webhooks.subscriptions]]
+topics = ["orders/paid", "orders/updated"]
+uri = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/webhooks/shopify"
+
 [app_proxy]
 url = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/apps/funnels"
 subpath = "funnels"
