@@ -13,6 +13,7 @@ import {
   buildElementExposureProperties,
   buildElementPurchaseProperties,
 } from "../src/services/element-posthog.js";
+import { normalizeShopifyCartToken } from "../src/lib/shopify-cart-token.js";
 
 test("NovaHair preset uses all ten approved ready Shopify CDN images in order", () => {
   const source = readFileSync("public/admin/js/element-experiments.js", "utf8");
@@ -38,6 +39,20 @@ test("Worker-hosted element runtime stays byte-identical to the Shopify extensio
     const workerAsset = readFileSync(`public/assets/${filename}`);
     assert.deepEqual(workerAsset, extension);
   }
+});
+
+test("element runtime persists assignment against the Shopify cart without mutating cart contents", () => {
+  const source = readFileSync("public/assets/funnel-control-elements.js", "utf8");
+  assert.match(source, /cart\.js/);
+  assert.match(source, /element-cart-attribution/);
+  assert.match(source, /elementAssignments/);
+  assert.doesNotMatch(source, /cart\/update\.js|cart\/add\.js/);
+});
+
+test("Shopify cart tokens are normalized consistently between Ajax cart and order webhooks", () => {
+  assert.equal(normalizeShopifyCartToken("hWNGZwzghba0PrMBxF0L3g3f?key=secret"), "hWNGZwzghba0PrMBxF0L3g3f");
+  assert.equal(normalizeShopifyCartToken(" hWNGa6uRtc3k2QREIVMkeXel "), "hWNGa6uRtc3k2QREIVMkeXel");
+  assert.equal(normalizeShopifyCartToken("bad token"), "");
 });
 
 test("PostHog element events carry the same flag variant from exposure through paid order", () => {

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import prisma from "../lib/db.js";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
+import { normalizeShopifyCartToken } from "../lib/shopify-cart-token.js";
 import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
 import {
   GALLERY_TEMPLATE_KEY,
@@ -17,6 +18,11 @@ import {
 } from "../services/element-ab-engine.js";
 import { buildElementExperimentResults } from "../services/element-results.js";
 import { captureElementExposureToPostHog } from "../services/element-posthog.js";
+import {
+  normalizeElementAssignmentContexts,
+  resolveBrowserVisitor,
+  snapshotCartElementAssignments,
+} from "../services/element-attribution.js";
 
 export const elementAdminRouter = Router();
 export const elementRuntimeRouter = Router();
@@ -666,5 +672,34 @@ elementRuntimeRouter.post("/element-exposure", async (req, res) => {
     return res.status(201).json({ accepted: true, duplicate: false });
   } catch (error: any) {
     return res.status(400).json({ error: error.message || "Failed to record element exposure." });
+  }
+});
+
+elementRuntimeRouter.post("/element-cart-attribution", async (req, res) => {
+  try {
+    const config = getShopifyConfig();
+    if (config.liveConnect && !verifyShopifyAppProxyRequest(req)) {
+      return res.status(401).json({ error: "Signed Shopify App Proxy request required." });
+    }
+    const visitorKey = String(req.body.visitorId ?? "").trim();
+    const cartToken = normalizeShopifyCartToken(req.body.cartToken);
+    const contexts = normalizeElementAssignmentContexts(req.body.elementAssignments);
+    if (visitorKey.length < 8 || visitorKey.length > 200 || !cartToken || contexts.length === 0) {
+      return res.status(400).json({ error: "A valid cart, visitor, and element assignment are required." });
+    }
+    const shop = await prisma.shop.findUnique({ where: { domain: configuredShopDomain() } });
+    if (!shop) return res.status(404).json({ error: "Shop is not configured." });
+    const visitor = await resolveBrowserVisitor(shop.id, visitorKey);
+    if (!visitor) return res.status(400).json({ error: "A valid visitor is required." });
+    const captured = await snapshotCartElementAssignments({
+      shopId: shop.id,
+      cartToken,
+      visitorId: visitor.id,
+      contexts,
+    });
+    if (captured === 0) return res.status(400).json({ error: "No matching element assignment was found." });
+    return res.status(201).json({ accepted: true, captured });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Failed to record cart attribution." });
   }
 });

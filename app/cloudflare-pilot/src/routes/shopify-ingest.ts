@@ -1,6 +1,7 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { Router } from "express";
 import { getShopifyConfig, normalizeShopDomain, workerEnvValue } from "../lib/shopify-config.js";
+import { normalizeShopifyCartToken } from "../lib/shopify-cart-token.js";
 import prisma from "../lib/db.js";
 import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
@@ -15,6 +16,7 @@ import {
 } from "../lib/shopify-integration.js";
 import {
   normalizeElementAssignmentContexts,
+  promoteCartElementAssignmentsToCheckout,
   reconcileOrdersForCheckout,
   resolveBrowserVisitor,
   snapshotCheckoutElementAssignments,
@@ -112,7 +114,12 @@ async function ensureCheckoutAttribution(shopId: string, checkoutToken: string |
 
 async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, orderPayload: Record<string, unknown>) {
   const checkout = await ensureCheckoutAttribution(shopId, event.checkoutToken, event.occurredAt ?? new Date());
-  const confidence = checkout?.visitorId || checkout?.funnelId ? "HIGH" : "UNATTRIBUTED";
+  const promotedAssignments = await promoteCartElementAssignmentsToCheckout({
+    shopId,
+    cartToken: normalizeShopifyCartToken(orderPayload.cart_token),
+    checkoutToken: checkout?.checkoutToken,
+  });
+  const confidence = checkout?.visitorId || checkout?.funnelId || promotedAssignments > 0 ? "HIGH" : "UNATTRIBUTED";
   const popup = extractPopupAttribution(orderPayload);
   const discountCodes = extractDiscountCodes(orderPayload);
   const popupFields = {
@@ -238,6 +245,11 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
     checkoutToken,
     dateValue(payload.processed_at) ?? dateValue(payload.created_at) ?? new Date(),
   );
+  const promotedAssignments = await promoteCartElementAssignmentsToCheckout({
+    shopId,
+    cartToken: normalizeShopifyCartToken(payload.cart_token),
+    checkoutToken: checkout?.checkoutToken,
+  });
   const status = safeOrderStatus(payload);
   const existing = await prisma.orderAttribution.findUnique({ where: { shopifyOrderGid: gid } });
   const popup = extractPopupAttribution(payload);
@@ -265,6 +277,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       netRevenueAmount: status.netRevenue,
       refundedAmount: Math.max(0, (existing?.grossAmount ?? amount) - status.netRevenue),
       status: status.status,
+      confidence: promotedAssignments > 0 ? "HIGH" : existing?.confidence ?? "UNATTRIBUTED",
       cancelledAt: status.cancelledAt,
       isTest: false,
       discountCodes: JSON.stringify(discountCodes),
@@ -281,7 +294,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       netRevenueAmount: status.netRevenue,
       refundedAmount: Math.max(0, amount - status.netRevenue),
       status: status.status,
-      confidence: checkout?.visitorId || checkout?.funnelId ? "HIGH" : "UNATTRIBUTED",
+      confidence: checkout?.visitorId || checkout?.funnelId || promotedAssignments > 0 ? "HIGH" : "UNATTRIBUTED",
       isTest: false,
       discountCodes: JSON.stringify(discountCodes),
       popupAttributed: Boolean(popup),

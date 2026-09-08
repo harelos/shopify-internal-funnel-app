@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+<title>NovaHair · לוח בקרה</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #F7F1E8;
+    color: #2F241E;
+    font-family: 'Assistant','Open Sans',Arial,sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 22px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #E5DBCF; margin-bottom: 20px; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 10px 16px; font: inherit; font-size: 15px; color: #8A7A6E; cursor: pointer;
+  }
+  .tab-btn.active { color: #2F241E; border-bottom-color: #D8753D; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: #FFFFFF; border: 1px solid #E5DBCF; border-radius: 14px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 0 0 10px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 2px; }
+  .field .hint { font-size: 12px; color: #8A7A6E; margin-top: 2px; }
+  input[type="number"], input[type="text"] {
+    font: inherit; padding: 6px 8px; border: 1px solid #E5DBCF;
+    border-radius: 8px; background: #FFFFFF; color: #2F241E; width: 140px;
+  }
+  input[type="text"] { width: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  button {
+    font: inherit; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #E5DBCF; background: #FFFFFF; color: #2F241E;
+  }
+  button.primary { background: #D8753D; border-color: #D8753D; color: #FFFFFF; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .muted { color: #8A7A6E; font-size: 12px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; margin-bottom: 10px; }
+  .stat-row .lbl { color: #8A7A6E; }
+  .bar-track { background: #F7F1E8; border: 1px solid #E5DBCF; border-radius: 6px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #8A7A6E; }
+  .bar-fill.accent { background: #D8753D; }
+  .choice-row { font-size: 14px; padding: 3px 0; }
+  details { margin-top: 10px; }
+  details summary { cursor: pointer; font-size: 14px; }
+  details ul { margin: 8px 0 0; padding-inline-start: 20px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: right; padding: 8px 6px; border-bottom: 1px solid #E5DBCF; font-size: 14px; }
+  .share-cell { display: flex; align-items: center; gap: 6px; }
+  .total-line { margin-top: 10px; font-size: 14px; }
+  .total-line.bad { color: #D8753D; }
+  .error-msg { color: #D8753D; font-size: 14px; margin-top: 10px; }
+  .ok-msg { color: #2F241E; font-size: 14px; margin-top: 10px; }
+  .control-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .control-row p { margin: 4px 0 0; }
+  .toggle-label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; }
+  .toggle-label input { width: 20px; height: 20px; accent-color: #D8753D; }
+  .trigger-list { display: grid; gap: 0; }
+  .trigger-row {
+    display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 16px;
+    align-items: center; padding: 13px 0; border-bottom: 1px solid #E5DBCF;
+  }
+  .trigger-row:last-child { border-bottom: 0; }
+  .trigger-row h3 { margin-bottom: 3px; }
+  .trigger-score { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+  .trigger-score input { width: 74px; }
+  .trigger-scores { display: grid; gap: 7px; }
+  .status-line { min-height: 20px; margin: 10px 0 0; }
+  .analytics-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+  .analytics-controls label { display: grid; gap: 4px; min-width: 150px; font-size: 13px; }
+  .analytics-controls select { min-height: 38px; border: 1px solid #E5DBCF; border-radius: 6px; background: #FFFFFF; font: inherit; padding: 6px 9px; }
+  .analytics-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0; }
+  .analytics-metric { padding: 8px 14px; border-inline-start: 1px solid #E5DBCF; }
+  .analytics-metric:first-child { border-inline-start: 0; }
+  .analytics-metric strong { display: block; font-size: 24px; margin-top: 3px; }
+  .breakdown-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+  .breakdown-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 7px 0; border-bottom: 1px solid #E5DBCF; font-size: 13px; }
+  .breakdown-row span:first-child { overflow-wrap: anywhere; }
+  .sales-table { overflow-x: auto; }
+  @media (max-width: 640px) {
+    .wrap { padding: 14px; }
+    .tabs { overflow-x: auto; }
+    .tab-btn { white-space: nowrap; }
+    .control-row { align-items: flex-start; }
+    .trigger-row { grid-template-columns: 1fr auto; gap: 10px; }
+    .trigger-score { grid-column: 1 / -1; justify-content: space-between; }
+    .actions { flex-wrap: wrap; }
+    .analytics-controls label, .analytics-controls button { width: 100%; }
+    .analytics-summary { grid-template-columns: 1fr 1fr; }
+    .analytics-metric:nth-child(odd) { border-inline-start: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NovaHair · לוח בקרה</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="triggers" type="button">טריגרים</button>
+    <button class="tab-btn" data-tab="analytics" type="button">השפעה ומכירות</button>
+    <button class="tab-btn" data-tab="steps" type="button">שלבי שיחה</button>
+    <button class="tab-btn" data-tab="models" type="button">מודלים</button>
+  </div>
+
+  <section class="panel active" id="panel-triggers">
+    <div class="card">
+      <div class="control-row">
+        <div>
+          <h2>מצב הפופאפ</h2>
+          <p class="muted">המתג הראשי עוצר את כל הטריגרים בלי לשנות את הקוד באתר.</p>
+        </div>
+        <label class="toggle-label"><input id="global-enabled" type="checkbox"> פעיל</label>
+      </div>
+      <p class="muted" id="config-meta">טוען את ההגדרות הפעילות...</p>
+    </div>
+    <div class="card">
+      <h2>שערי כניסה</h2>
+      <div class="grid" id="gates-grid"></div>
+    </div>
+    <div class="card">
+      <h2>זיהוי נטישה</h2>
+      <div class="grid" id="abandon-grid"></div>
+    </div>
+    <div class="card">
+      <h2>תדירות</h2>
+      <div class="grid" id="frequency-grid"></div>
+    </div>
+    <div class="card">
+      <h2>מדידה וניסוי</h2>
+      <div class="control-row">
+        <div>
+          <h3>תיעוד אותות יציאה</h3>
+          <p class="muted">מתעד את רגעי הנטישה ב־PostHog גם כשהפופאפ לא נפתח.</p>
+        </div>
+        <label class="toggle-label"><input id="signal-tracking" type="checkbox"> פעיל</label>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div class="field">
+          <label><span>מזהה ניסוי</span><input id="experiment-id" type="text" maxlength="80" required></label>
+          <div class="hint">מזהה קבוע שמאפשר להשוות תוצאות לאורך זמן.</div>
+        </div>
+        <div class="field">
+          <label><span>קבוצת ביקורת</span><input id="holdout-percent" type="number" min="0" max="50" step="1" required></label>
+          <div class="hint">אחוז הזכאיות שלא יראו פופאפ. 0 משאיר את האתר במצב מדידה בלבד.</div>
+        </div>
+      </div>
+      <p class="muted" style="margin-bottom:0">קבוצת ביקורת מעל 0 משנה חשיפה בפועל. השתמשי בה רק כשיש מספיק תנועה למדידת השפעה על רכישות.</p>
+    </div>
+    <div class="card">
+      <h2>טריגרים פעילים</h2>
+      <div class="trigger-list" id="triggers-list"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="save-btn" type="button">שמירה והחלה באתר</button>
+      <button id="reload-btn" type="button">טעינה מחדש</button>
+      <button id="reset-btn" type="button">החזרת ברירת מחדל</button>
+      <button id="export-btn" type="button">ייצוא גיבוי</button>
+    </div>
+    <p id="config-status" class="status-line muted" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" id="panel-analytics">
+    <div class="card">
+      <div class="analytics-controls">
+        <label>טווח
+          <select id="analytics-days"><option value="7">7 ימים</option><option value="14" selected>14 ימים</option><option value="30">30 ימים</option></select>
+        </label>
+        <label>מקור
+          <select id="analytics-source"><option value="">הכל</option></select>
+        </label>
+        <label>אמצעי הגעה
+          <select id="analytics-medium"><option value="">הכל</option></select>
+        </label>
+        <label>קמפיין
+          <select id="analytics-campaign"><option value="">הכל</option></select>
+        </label>
+        <button class="primary" id="analytics-refresh" type="button">רענון</button>
+      </div>
+      <p class="muted" id="analytics-status" role="status" aria-live="polite">טוען נתונים מאומתים...</p>
+    </div>
+    <div class="card">
+      <h2>השפעה על העסק</h2>
+      <div class="analytics-summary" id="analytics-summary"></div>
+    </div>
+    <div class="card">
+      <h2>השפעה לפי UTM</h2>
+      <div class="breakdown-grid" id="analytics-breakdowns"></div>
+    </div>
+    <div class="card">
+      <h2>לידים שנשמרו ב־Shopify</h2>
+      <div class="sales-table"><table><thead><tr><th>לקוחה</th><th>מקור</th><th>מה ביקשה</th><th>UTM</th><th>הסכמה</th><th>תאריך</th></tr></thead><tbody id="analytics-leads"></tbody></table></div>
+      <p class="muted" id="analytics-leads-status"></p>
+    </div>
+    <div class="card">
+      <h2>מכירות שיוחסו ל־Concierge</h2>
+      <div class="sales-table"><table><thead><tr><th>הזמנה</th><th>תאריך</th><th>מקור</th><th>קמפיין</th><th>הכנסה נטו</th></tr></thead><tbody id="analytics-orders"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>שימושי NOVA10 ללא שיוך ודאי</h2>
+      <p class="muted">הזמנות עם הקוד המשותף, אך בלי חותמת Concierge בעגלה. הן אינן נספרות כמכירת Concierge.</p>
+      <div class="sales-table"><table><thead><tr><th>הזמנה</th><th>תאריך</th><th>קוד</th><th>הכנסה נטו</th></tr></thead><tbody id="analytics-coupon-only"></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-steps">
+    <div class="card">
+      <div class="stat-row">
+        <span><span class="lbl">שיחות בסך הכל: </span><span id="conversations-total">0</span></span>
+        <span>
+          <span class="lbl">טווח: </span>
+          <select id="days-select">
+            <option value="7">7 ימים</option>
+            <option value="14" selected>14 ימים</option>
+            <option value="30">30 ימים</option>
+          </select>
+        </span>
+      </div>
+      <div id="steps-error" class="error-msg" hidden></div>
+      <div id="steps-list"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-models">
+    <div class="card">
+      <h2>תצורת מודלים פעילה</h2>
+      <p id="models-status" class="muted">טוען תצורה מאובטחת מהשרת...</p>
+      <ol id="models-list"></ol>
+      <p class="muted" style="margin-bottom:0">התצורה היא לקריאה בלבד. מפתח ה-API והבחירה במודל מנוהלים בצד השרת.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DEFAULT_CONFIG = {
+    enabled: true,
+    gates: {
+      minEngagedSeconds: 30,
+      minTimeOnPage: 20,
+      minScrollDepth: 0.35,
+      minEngagementScore: 3
+    },
+    abandon: {
+      fastScrollUp: { minVelocity: 900, settleMs: 450 },
+      returnToTop: { deepAt: 0.60, backTo: 0.15 },
+      idle: { idleSeconds: 20 },
+      idleAfterPrice: { idleSeconds: 12 }
+    },
+    frequency: {
+      maxImpressionsPerSession: 1,
+      maxImpressionsPerVisitor: 3,
+      dismissCooldownDays: 7
+    },
+    measurement: {
+      signalTracking: true,
+      experimentId: 'novahair_exit_timing_v1',
+      holdoutPercent: 0
+    },
+    triggers: {
+      return_to_top: { enabled: true, minAbandonScore: 3 },
+      fast_scroll_up: { enabled: true, minAbandonScore: 3 },
+      idle_after_price: { enabled: true, minAbandonScore: 2 },
+      desktop_exit: { enabled: true, minAbandonScore: 4 },
+      bundle_hesitation: { enabled: true, minAbandonScore: 2 },
+      engaged_drift: { enabled: true, minAbandonScore: 5, minEngagementScore: 6 }
+    }
+  };
+
+  var FIELD_META = [
+    { section: 'gates', path: ['minEngagedSeconds'], label: 'שניות מעורבות מינימליות', hint: 'כמה שניות פעילות נדרשות לפני שהפופאפ מותר להיפתח.', step: 1, min: 0, max: 600 },
+    { section: 'gates', path: ['minTimeOnPage'], label: 'זמן מינימלי בעמוד', hint: 'מספר השניות מאז טעינת העמוד לפני הצגה אפשרית.', step: 1, min: 0, max: 600 },
+    { section: 'gates', path: ['minScrollDepth'], label: 'עומק גלילה מינימלי', hint: 'חלק יחסי מהעמוד שצריך לגלול, בין 0 ל-1.', step: 0.05, min: 0, max: 1 },
+    { section: 'gates', path: ['minEngagementScore'], label: 'ציון מעורבות מינימלי', hint: 'סכום פעולות המשתמש הנדרש כדי להיחשב מעורב.', step: 1, min: 0, max: 50 },
+    { section: 'abandon', path: ['fastScrollUp', 'minVelocity'], label: 'מהירות גלילה למעלה', hint: 'מהירות גלילה למעלה בפיקסלים לשנייה.', step: 1, min: 100, max: 5000 },
+    { section: 'abandon', path: ['fastScrollUp', 'settleMs'], label: 'זמן התייצבות', hint: 'כמה מילישניות לחכות אחרי גלילה מהירה.', step: 1, min: 0, max: 5000 },
+    { section: 'abandon', path: ['returnToTop', 'deepAt'], label: 'עומק נחשב עמוק', hint: 'חלק מהעמוד שמעליו הגלילה נחשבת עמוקה.', step: 0.05, min: 0, max: 1 },
+    { section: 'abandon', path: ['returnToTop', 'backTo'], label: 'חזרה למעלה', hint: 'חלק מהעמוד שמתחתיו נחשבת חזרה לראש.', step: 0.05, min: 0, max: 1 },
+    { section: 'abandon', path: ['idle', 'idleSeconds'], label: 'שניות חוסר פעילות', hint: 'כמה שניות של אי פעילות מזהות משתמש מוסח.', step: 1, min: 0, max: 600 },
+    { section: 'abandon', path: ['idleAfterPrice', 'idleSeconds'], label: 'חוסר פעילות אחרי מחיר', hint: 'שניות אי פעילות אחרי צפייה במחיר.', step: 1, min: 0, max: 600 },
+    { section: 'frequency', path: ['maxImpressionsPerSession'], label: 'הצגות מקסימליות בסשן', hint: 'מספר ההצגות המרבי בסשן אחד.', step: 1, min: 0, max: 20 },
+    { section: 'frequency', path: ['maxImpressionsPerVisitor'], label: 'הצגות מקסימליות למבקר', hint: 'מספר ההצגות המרבי לכל מבקר.', step: 1, min: 0, max: 100 },
+    { section: 'frequency', path: ['dismissCooldownDays'], label: 'ימי צינון אחרי סגירה', hint: 'כמה ימים לחכות אחרי סגירה.', step: 1, min: 0, max: 365 }
+  ];
+
+  var TRIGGER_META = [
+    { id: 'return_to_top', label: 'חזרה לראש העמוד', hint: 'הגיעה לעומק משמעותי ואז חזרה במהירות למעלה.' },
+    { id: 'fast_scroll_up', label: 'גלילה מהירה למעלה', hint: 'אות נטישה מרכזי במובייל ובדפדפני Instagram ו-Facebook.' },
+    { id: 'idle_after_price', label: 'עצירה אחרי צפייה במחיר', hint: 'ראתה את אזור המחיר ולא המשיכה לפעול.' },
+    { id: 'desktop_exit', label: 'יציאת עכבר בדסקטופ', hint: 'הסמן יוצא דרך החלק העליון של המסך.' },
+    { id: 'bundle_hesitation', label: 'התלבטות באזור המארזים', hint: 'שהתה ליד המארזים בלי לבחור מארז או גוון.' },
+    { id: 'engaged_drift', label: 'מעורבת אבל לא מתקדמת', hint: 'רמת עניין גבוהה לצד אותות נטישה מצטברים.' }
+  ];
+
+  var configInputs = {};
+  var triggerInputs = {};
+  var currentRevision = 0;
+
+  function getPath(obj, path) {
+    return path.reduce(function (o, k) { return o[k]; }, obj);
+  }
+
+  function setPath(obj, path, value) {
+    var o = obj;
+    for (var i = 0; i < path.length - 1; i++) {
+      if (!o[path[i]]) o[path[i]] = {};
+      o = o[path[i]];
+    }
+    o[path[path.length - 1]] = value;
+  }
+
+  function buildTriggerForms() {
+    var grids = {
+      gates: document.getElementById('gates-grid'),
+      abandon: document.getElementById('abandon-grid'),
+      frequency: document.getElementById('frequency-grid')
+    };
+    FIELD_META.forEach(function (meta) {
+      var field = document.createElement('div');
+      field.className = 'field';
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.min = String(meta.min);
+      input.max = String(meta.max);
+      input.step = String(meta.step);
+      input.required = true;
+      var key = meta.section + '.' + meta.path.join('.');
+      input.dataset.key = key;
+      label.appendChild(input);
+      var labelText = document.createElement('span');
+      labelText.textContent = meta.label;
+      label.insertBefore(labelText, input);
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = meta.hint;
+      field.appendChild(label);
+      field.appendChild(hint);
+      grids[meta.section].appendChild(field);
+      configInputs[key] = input;
+    });
+  }
+
+  function buildTriggerControls() {
+    var list = document.getElementById('triggers-list');
+    TRIGGER_META.forEach(function (meta) {
+      var row = document.createElement('div');
+      row.className = 'trigger-row';
+
+      var copy = document.createElement('div');
+      var title = document.createElement('h3');
+      title.textContent = meta.label;
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = meta.hint;
+      copy.appendChild(title);
+      copy.appendChild(hint);
+
+      var enabledLabel = document.createElement('label');
+      enabledLabel.className = 'toggle-label';
+      var enabled = document.createElement('input');
+      enabled.type = 'checkbox';
+      enabledLabel.appendChild(enabled);
+      enabledLabel.appendChild(document.createTextNode(' פעיל'));
+
+      var score = document.createElement('label');
+      score.className = 'trigger-score';
+      score.appendChild(document.createTextNode('ציון נטישה מינימלי'));
+      var abandon = document.createElement('input');
+      abandon.type = 'number';
+      abandon.min = '0';
+      abandon.max = '50';
+      abandon.step = '1';
+      abandon.required = true;
+      score.appendChild(abandon);
+      var scoreWrap = document.createElement('div');
+      scoreWrap.className = 'trigger-scores';
+      scoreWrap.appendChild(score);
+
+      row.appendChild(copy);
+      row.appendChild(enabledLabel);
+      row.appendChild(scoreWrap);
+      list.appendChild(row);
+      triggerInputs[meta.id] = { enabled: enabled, minAbandonScore: abandon };
+
+      if (meta.id === 'engaged_drift') {
+        var engagement = document.createElement('input');
+        engagement.type = 'number';
+        engagement.min = '0';
+        engagement.max = '50';
+        engagement.step = '1';
+        engagement.required = true;
+        var engagementLabel = document.createElement('label');
+        engagementLabel.className = 'trigger-score';
+        engagementLabel.appendChild(document.createTextNode('ציון מעורבות מינימלי'));
+        engagementLabel.appendChild(engagement);
+        scoreWrap.appendChild(engagementLabel);
+        triggerInputs[meta.id].minEngagementScore = engagement;
+      }
+    });
+  }
+
+  // meta.path is relative to meta.section, so it must be resolved against the
+  // section and not the root. Without this prefix, fill threw on the first
+  // nested field, and read silently wrote values to the top level, exporting
+  // a config file the engine would quietly ignore.
+  function fullPath(meta) {
+    return [meta.section].concat(meta.path);
+  }
+
+  function fillTriggerForms(config) {
+    document.getElementById('global-enabled').checked = config.enabled === true;
+    var measurement = config.measurement || DEFAULT_CONFIG.measurement;
+    document.getElementById('signal-tracking').checked = measurement.signalTracking === true;
+    document.getElementById('experiment-id').value = measurement.experimentId || DEFAULT_CONFIG.measurement.experimentId;
+    document.getElementById('holdout-percent').value = String(measurement.holdoutPercent || 0);
+    FIELD_META.forEach(function (meta) {
+      var key = meta.section + '.' + meta.path.join('.');
+      configInputs[key].value = String(getPath(config, fullPath(meta)));
+    });
+    TRIGGER_META.forEach(function (meta) {
+      var value = config.triggers[meta.id];
+      var inputs = triggerInputs[meta.id];
+      inputs.enabled.checked = value.enabled === true;
+      inputs.minAbandonScore.value = String(value.minAbandonScore);
+      if (inputs.minEngagementScore) inputs.minEngagementScore.value = String(value.minEngagementScore);
+    });
+  }
+
+  function readTriggerForms() {
+    var config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    config.enabled = document.getElementById('global-enabled').checked;
+    config.measurement.signalTracking = document.getElementById('signal-tracking').checked;
+    var experimentId = document.getElementById('experiment-id').value.trim();
+    if (!/^[a-z0-9_-]{3,80}$/i.test(experimentId)) throw new Error('מזהה הניסוי חייב להכיל 3-80 אותיות, ספרות, קו או מקף.');
+    config.measurement.experimentId = experimentId;
+    var holdoutPercent = Number(document.getElementById('holdout-percent').value);
+    if (!Number.isInteger(holdoutPercent) || holdoutPercent < 0 || holdoutPercent > 50) throw new Error('קבוצת הביקורת חייבת להיות מספר שלם בין 0 ל־50.');
+    config.measurement.holdoutPercent = holdoutPercent;
+    FIELD_META.forEach(function (meta) {
+      var key = meta.section + '.' + meta.path.join('.');
+      var raw = configInputs[key].value;
+      var num = raw === '' ? 0 : Number(raw);
+      if (!isFinite(num) || num < meta.min || num > meta.max) throw new Error('ערך לא תקין בשדה: ' + meta.label);
+      setPath(config, fullPath(meta), num);
+    });
+    if (config.abandon.returnToTop.backTo >= config.abandon.returnToTop.deepAt) {
+      throw new Error('ערך החזרה למעלה חייב להיות נמוך מעומק הגלילה העמוק.');
+    }
+    TRIGGER_META.forEach(function (meta) {
+      var inputs = triggerInputs[meta.id];
+      var score = Number(inputs.minAbandonScore.value);
+      if (!Number.isInteger(score) || score < 0 || score > 50) throw new Error('ציון לא תקין בטריגר: ' + meta.label);
+      config.triggers[meta.id].enabled = inputs.enabled.checked;
+      config.triggers[meta.id].minAbandonScore = score;
+      if (inputs.minEngagementScore) {
+        var engagement = Number(inputs.minEngagementScore.value);
+        if (!Number.isInteger(engagement) || engagement < 0 || engagement > 50) throw new Error('ציון מעורבות לא תקין.');
+        config.triggers[meta.id].minEngagementScore = engagement;
+      }
+    });
+    return config;
+  }
+
+  function exportConfig() {
+    var text = JSON.stringify(readTriggerForms(), null, 2) + '\n';
+    var blob = new Blob([text], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'novahair-popup-trigger-control.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Tab switching
+
+  var stepsLoaded = false;
+  var modelsLoaded = false;
+  var analyticsLoaded = false;
+
+  function apiRequest(path, options) {
+    options = options || {};
+    var headers = Object.assign({}, options.headers || {});
+    var tokenPromise = window.shopify && typeof window.shopify.idToken === 'function'
+      ? window.shopify.idToken()
+      : Promise.resolve('');
+    return tokenPromise.then(function (token) {
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetch(path, Object.assign({}, options, { headers: headers }));
+    });
+  }
+
+  function setConfigStatus(message, isError) {
+    var status = document.getElementById('config-status');
+    status.textContent = message;
+    status.className = 'status-line ' + (isError ? 'error-msg' : 'ok-msg');
+  }
+
+  function readJsonResponse(response) {
+    return response.json().catch(function () { return {}; }).then(function (data) {
+      if (!response.ok) {
+        var detail = Array.isArray(data.errors) ? data.errors.join(' · ') : (data.error || 'HTTP ' + response.status);
+        throw new Error(detail);
+      }
+      return data;
+    });
+  }
+
+  function updateConfigMeta(data) {
+    currentRevision = Number(data.revision) || 0;
+    var source = data.source === 'database' ? 'הגדרה שמורה' : 'ברירת מחדל';
+    var updated = data.updatedAt ? ' · עודכן ' + new Date(data.updatedAt + (/[zZ]|[+-]\d\d:?\d\d$/.test(data.updatedAt) ? '' : 'Z')).toLocaleString('he-IL') : '';
+    document.getElementById('config-meta').textContent = source + ' · גרסה ' + currentRevision + updated;
+  }
+
+  function fetchTriggerConfig() {
+    var reload = document.getElementById('reload-btn');
+    reload.disabled = true;
+    setConfigStatus('טוען את ההגדרות הפעילות...', false);
+    return apiRequest('/api/popup-trigger-config')
+      .then(readJsonResponse)
+      .then(function (data) {
+        fillTriggerForms(data.config);
+        updateConfigMeta(data);
+        setConfigStatus('ההגדרות הפעילות נטענו.', false);
+      })
+      .catch(function (error) {
+        setConfigStatus('לא ניתן לטעון את ההגדרות: ' + error.message, true);
+      })
+      .finally(function () { reload.disabled = false; });
+  }
+
+  function saveTriggerConfig() {
+    var save = document.getElementById('save-btn');
+    var config;
+    try {
+      config = readTriggerForms();
+    } catch (error) {
+      setConfigStatus(error.message, true);
+      return;
+    }
+
+    save.disabled = true;
+    setConfigStatus('שומר ומחיל את ההגדרות...', false);
+    apiRequest('/api/popup-trigger-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: config, revision: currentRevision })
+    })
+      .then(readJsonResponse)
+      .then(function (data) {
+        fillTriggerForms(data.config);
+        updateConfigMeta(data);
+        setConfigStatus('נשמר. ההגדרה תחול בטעינה הבאה של עמוד המכירה.', false);
+      })
+      .catch(function (error) {
+        setConfigStatus('השמירה נכשלה: ' + error.message, true);
+      })
+      .finally(function () { save.disabled = false; });
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.tab === name);
+    });
+    document.querySelectorAll('.panel').forEach(function (panel) {
+      panel.classList.toggle('active', panel.id === 'panel-' + name);
+    });
+    if (name === 'steps' && !stepsLoaded) {
+      stepsLoaded = true;
+      fetchSteps(document.getElementById('days-select').value);
+    }
+    if (name === 'analytics' && !analyticsLoaded) {
+      analyticsLoaded = true;
+      fetchAnalytics();
+    }
+    if (name === 'models' && !modelsLoaded) {
+      modelsLoaded = true;
+      fetchModels();
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+    });
+  }
+
+  function money(value, currency) {
+    if (value == null || !currency) return '—';
+    try { return new Intl.NumberFormat('he-IL', { style: 'currency', currency: currency }).format(Number(value)); }
+    catch (_) { return Number(value).toFixed(2) + ' ' + currency; }
+  }
+
+  function analyticsQuery() {
+    var days = Number(document.getElementById('analytics-days').value) || 14;
+    var query = new URLSearchParams({ from: new Date(Date.now() - days * 86400000).toISOString() });
+    ['source', 'medium', 'campaign'].forEach(function (key) {
+      var value = document.getElementById('analytics-' + key).value;
+      if (value) query.set(key, value);
+    });
+    return query.toString();
+  }
+
+  function fillAnalyticsFilter(id, values) {
+    var select = document.getElementById(id);
+    var selected = select.value;
+    select.innerHTML = '<option value="">הכל</option>' + (values || []).map(function (value) {
+      return '<option value="' + escapeHtml(value) + '">' + escapeHtml(value) + '</option>';
+    }).join('');
+    if (Array.from(select.options).some(function (option) { return option.value === selected; })) select.value = selected;
+  }
+
+  function renderAnalytics(data) {
+    var metric = data.metrics || {};
+    var revenue = (metric.popupAttributedRevenueByCurrency || []).map(function (row) { return money(row.revenue, row.currency); }).join(' + ') || money(metric.popupAttributedRevenue, metric.popupRevenueCurrency);
+    var items = [
+      ['אותות יציאה', metric.exitSignals || 0],
+      ['זכאיות להצגה', metric.eligibleSessions || 0],
+      ['פתיחות', metric.popupViews || 0],
+      ['לידים שנשמרו', metric.successfulLeads || 0],
+      ['מכירות מיוחסות בוודאות', metric.popupAttributedOrders || 0],
+      ['הזמנות עם NOVA10', metric.couponOrders || 0],
+      ['הכנסה נטו', revenue],
+      ['המרה מפתיחה לליד', Number(metric.leadConversionRate || 0).toFixed(1) + '%'],
+      ['הכנסה לפתיחה', money(metric.popupRevenuePerView, metric.popupRevenueCurrency)]
+    ];
+    document.getElementById('analytics-summary').innerHTML = items.map(function (item) {
+      return '<div class="analytics-metric"><span class="muted">' + escapeHtml(item[0]) + '</span><strong>' + escapeHtml(item[1]) + '</strong></div>';
+    }).join('');
+
+    var titles = { source: 'מקור', medium: 'אמצעי הגעה', campaign: 'קמפיין' };
+    document.getElementById('analytics-breakdowns').innerHTML = ['source', 'medium', 'campaign'].map(function (key) {
+      var rows = (data.breakdowns && data.breakdowns[key] || []).slice(0, 10);
+      return '<div><h3>' + titles[key] + '</h3>' + (rows.length ? rows.map(function (row) {
+        var result = row.views + ' פתיחות · ' + row.leads + ' לידים · ' + row.orders + ' מכירות';
+        if (row.currency && row.revenue != null) result += ' · ' + money(row.revenue, row.currency);
+        return '<div class="breakdown-row"><span>' + escapeHtml(row.value) + '</span><strong>' + escapeHtml(result) + '</strong></div>';
+      }).join('') : '<p class="muted">אין נתונים בטווח הזה.</p>') + '</div>';
+    }).join('');
+
+    var orders = data.recentAttributedOrders || [];
+    document.getElementById('analytics-orders').innerHTML = orders.length ? orders.map(function (order) {
+      return '<tr><td>#' + escapeHtml(order.orderId) + '</td><td>' + escapeHtml(new Date(order.paidAt).toLocaleString('he-IL')) + '</td><td>' + escapeHtml(order.source + ' / ' + order.medium) + '</td><td>' + escapeHtml(order.campaign) + '</td><td>' + escapeHtml(money(order.revenue, order.currency)) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="muted">אין עדיין מכירות מיוחסות בטווח הזה.</td></tr>';
+
+    var couponOnly = data.recentCouponOnlyOrders || [];
+    document.getElementById('analytics-coupon-only').innerHTML = couponOnly.length ? couponOnly.map(function (order) {
+      return '<tr><td>#' + escapeHtml(order.orderId) + '</td><td>' + escapeHtml(new Date(order.paidAt).toLocaleString('he-IL')) + '</td><td>' + escapeHtml(order.code) + '</td><td>' + escapeHtml(money(order.revenue, order.currency)) + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" class="muted">אין הזמנות לא־מיוחסות עם הקוד בטווח הזה.</td></tr>';
+
+    var leads = data.recentLeads || [];
+    document.getElementById('analytics-leads').innerHTML = leads.length ? leads.map(function (lead) {
+      var customer = '<a href="' + escapeHtml(lead.customerAdminUrl) + '" target="_blank" rel="noopener">' + escapeHtml(lead.email || lead.displayName || 'לקוחה') + '</a>';
+      var concern = [lead.intent, lead.mainConcern, lead.recommendedShade, lead.recommendedBundle].filter(Boolean).join(' · ') || 'לא נאסף פירוט';
+      var utm = [lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ') || 'ללא UTM';
+      return '<tr><td>' + customer + '</td><td>' + escapeHtml(lead.source) + '</td><td>' + escapeHtml(concern) + '</td><td>' + escapeHtml(utm) + '</td><td>' + escapeHtml(lead.marketingState) + '</td><td>' + escapeHtml(new Date(lead.capturedAt).toLocaleString('he-IL')) + '</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="muted">אין לידים אמיתיים בטווח הזה.</td></tr>';
+    document.getElementById('analytics-leads-status').textContent = data.leadLookupError || 'הפרטים מגיעים ישירות מ־Shopify Customer; בדיקות QA אינן נספרות כלידים.';
+
+    fillAnalyticsFilter('analytics-source', data.filterOptions && data.filterOptions.source);
+    fillAnalyticsFilter('analytics-medium', data.filterOptions && data.filterOptions.medium);
+    fillAnalyticsFilter('analytics-campaign', data.filterOptions && data.filterOptions.campaign);
+    document.getElementById('analytics-status').className = 'muted';
+    document.getElementById('analytics-status').textContent = 'Shopify הוא מקור האמת למכירות ולהכנסה. עודכן ' + new Date(data.generatedAt).toLocaleString('he-IL') + '.';
+  }
+
+  function fetchAnalytics() {
+    var status = document.getElementById('analytics-status');
+    status.className = 'muted';
+    status.textContent = 'טוען נתונים מאומתים...';
+    return apiRequest('/api/analytics/popup?' + analyticsQuery())
+      .then(readJsonResponse)
+      .then(renderAnalytics)
+      .catch(function (error) { status.textContent = 'טעינת הנתונים נכשלה: ' + error.message; status.className = 'error-msg'; });
+  }
+
+  // Tab 2: steps
+
+  function fetchSteps(days) {
+    var errBox = document.getElementById('steps-error');
+    var list = document.getElementById('steps-list');
+    errBox.hidden = true;
+    list.textContent = '';
+    apiRequest('/api/ai-steps?days=' + encodeURIComponent(days))
+      .then(function (res) {
+        if (!res.ok) throw new Error('http ' + res.status);
+        return res.json();
+      })
+      .then(renderSteps)
+      .catch(function () {
+        errBox.textContent = 'לא ניתן לטעון את הנתונים. ייתכן שהפרוקסי של האפליקציה אינו מוגדר.';
+        errBox.hidden = false;
+      });
+  }
+
+  function renderSteps(data) {
+    document.getElementById('conversations-total').textContent = String(data.conversations || 0);
+    var list = document.getElementById('steps-list');
+    list.textContent = '';
+    (data.steps || []).forEach(function (step) {
+      list.appendChild(buildStepCard(step));
+    });
+  }
+
+  function buildStepCard(step) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    var h = document.createElement('h3');
+    h.textContent = step.stepId;
+    card.appendChild(h);
+
+    var row = document.createElement('div');
+    row.className = 'stat-row';
+    [
+      ['הוצג', step.shown],
+      ['נענה', step.answered],
+      ['יציאות', step.exits],
+      ['שיעור נטישה', step.dropOffRate + '%'],
+      ['זמן שהייה ממוצע', step.avgDwellSeconds + ' שניות']
+    ].forEach(function (pair) {
+      var span = document.createElement('span');
+      var lbl = document.createElement('span');
+      lbl.className = 'lbl';
+      lbl.textContent = pair[0] + ': ';
+      span.appendChild(lbl);
+      span.appendChild(document.createTextNode(String(pair[1])));
+      row.appendChild(span);
+    });
+    card.appendChild(row);
+
+    var track = document.createElement('div');
+    track.className = 'bar-track';
+    var fill = document.createElement('div');
+    fill.className = 'bar-fill' + (step.dropOffRate >= 40 ? ' accent' : '');
+    fill.style.width = Math.max(0, Math.min(100, step.dropOffRate)) + '%';
+    track.appendChild(fill);
+    card.appendChild(track);
+
+    var sorted = (step.choices || []).slice().sort(function (a, b) { return b.count - a.count; });
+    sorted.forEach(function (choice) {
+      var line = document.createElement('div');
+      line.className = 'choice-row';
+      line.textContent = choice.label + ' - ' + choice.count;
+      card.appendChild(line);
+    });
+
+    var details = document.createElement('details');
+    var summary = document.createElement('summary');
+    summary.textContent = 'מה הן כתבו';
+    details.appendChild(summary);
+    var ul = document.createElement('ul');
+    (step.freeTexts || []).forEach(function (text) {
+      var li = document.createElement('li');
+      li.textContent = text;
+      ul.appendChild(li);
+    });
+    details.appendChild(ul);
+    card.appendChild(details);
+    return card;
+  }
+
+  // Tab 3: active server-side model configuration
+
+  function fetchModels() {
+    var status = document.getElementById('models-status');
+    var list = document.getElementById('models-list');
+    apiRequest('/api/ai-models')
+      .then(function (res) {
+        if (!res.ok) throw new Error('http ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        list.textContent = '';
+        (data.models || []).forEach(function (model) {
+          var item = document.createElement('li');
+          item.textContent = model;
+          list.appendChild(item);
+        });
+        status.textContent = data.mode === 'pinned'
+          ? 'מודל קבוע. זמן מרבי לבקשה: ' + data.deadlineMs + ' מילישניות.'
+          : 'סולם גיבוי פעיל לפי הסדר המוצג. זמן מרבי לשיחה: ' + data.deadlineMs + ' מילישניות.';
+      })
+      .catch(function () {
+        status.textContent = 'לא ניתן לטעון את תצורת המודלים.';
+        status.className = 'error-msg';
+      });
+  }
+
+  // Wiring
+
+  buildTriggerForms();
+  buildTriggerControls();
+  fillTriggerForms(DEFAULT_CONFIG);
+  fetchTriggerConfig();
+
+  document.getElementById('save-btn').addEventListener('click', saveTriggerConfig);
+  document.getElementById('reload-btn').addEventListener('click', fetchTriggerConfig);
+  document.getElementById('export-btn').addEventListener('click', exportConfig);
+  document.getElementById('reset-btn').addEventListener('click', function () {
+    fillTriggerForms(DEFAULT_CONFIG);
+    setConfigStatus('ברירת המחדל נטענה לטופס. לחצי על שמירה כדי להחיל אותה באתר.', false);
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { switchTab(btn.dataset.tab); });
+  });
+  document.getElementById('days-select').addEventListener('change', function () {
+    fetchSteps(this.value);
+  });
+  document.getElementById('analytics-refresh').addEventListener('click', fetchAnalytics);
+  document.getElementById('analytics-days').addEventListener('change', fetchAnalytics);
+
+})();
+</script>
+</body>
+</html>
+
+

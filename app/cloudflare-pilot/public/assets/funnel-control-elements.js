@@ -76,6 +76,36 @@
       m("Checkout context cookie unavailable");
     }
   }
+  function Q(e, t) {
+    if (l.isInternal) return Promise.resolve();
+    var a = window.Shopify && window.Shopify.routes && window.Shopify.routes.root || "/";
+    var n = String(l.endpoint || "/apps/funnels").replace(/\/$/, "") + "/element-cart-attribution";
+    return fetch(a + "cart.js", { credentials: "same-origin", headers: { Accept: "application/json" } }).then(function(i) {
+      if (!i.ok) throw new Error("cart_" + i.status);
+      return i.json();
+    }).then(function(i) {
+      var o = String(i && i.token || "").split("?")[0];
+      if (!o) return;
+      var g = "_fce_cart:" + o + ":" + e.experimentId + ":" + e.assignmentId;
+      if (w(sessionStorage, g)) return;
+      return fetch(n, {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          cartToken: o,
+          visitorId: t,
+          elementAssignments: [{ assignmentId: e.assignmentId, experimentId: e.experimentId, variantId: e.variantId, slotId: e.slotId }]
+        })
+      }).then(function(v) {
+        if (!v.ok) throw new Error("cart_attribution_" + v.status);
+        I(sessionStorage, g, "1");
+      });
+    }).catch(function(i) {
+      m("Cart attribution persistence failed", i.message);
+    });
+  }
   function j(e, t, a) {
     var n = String(l.endpoint || "/apps/funnels").replace(/\/$/, "") + "/element-exposure";
     fetch(n, { method: "POST", credentials: "same-origin", keepalive: true, headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ eventId: a, visitorId: t, assignmentId: e.assignmentId, experimentId: e.experimentId, variantId: e.variantId, slotId: e.slotId, isInternal: !!l.isInternal }) }).catch(function(i) {
@@ -168,7 +198,7 @@
         m("Inactive slot", t, o.reason);
         return;
       }
-      M(o, n), o.templateType === "GALLERY" && D(e, o, n);
+      M(o, n), Q(o, n), o.templateType === "GALLERY" && D(e, o, n);
     }).catch(function(o) {
       m("Control preserved after runtime failure", t, o.message), e.dataset.fceError = "true";
     });

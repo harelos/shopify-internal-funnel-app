@@ -1,4 +1,5 @@
 import prisma from "../lib/db.js";
+import { normalizeShopifyCartToken } from "../lib/shopify-cart-token.js";
 import { hashAnonymousKey } from "./element-ab-engine.js";
 import { captureElementPurchaseToPostHog } from "./element-posthog.js";
 
@@ -89,6 +90,95 @@ export async function snapshotCheckoutElementAssignments(input: {
     captured += 1;
   }
   return captured;
+}
+
+export async function snapshotCartElementAssignments(input: {
+  shopId: string;
+  cartToken: string;
+  visitorId: string;
+  contexts: ElementAssignmentContext[];
+}) {
+  const cartToken = normalizeShopifyCartToken(input.cartToken);
+  if (!cartToken || !input.contexts.length) return 0;
+  const requestedIds = input.contexts.map(context => context.assignmentId);
+  const assignments = await prisma.elementAssignment.findMany({
+    where: {
+      id: { in: requestedIds },
+      visitorId: input.visitorId,
+      experiment: { slot: { shopId: input.shopId } },
+    },
+    include: { experiment: true },
+  });
+  const requested = new Map(input.contexts.map(context => [context.assignmentId, context]));
+  let captured = 0;
+  for (const assignment of assignments) {
+    const context = requested.get(assignment.id);
+    if (!context || context.experimentId !== assignment.experimentId || context.variantId !== assignment.variantId || context.slotId !== assignment.experiment.slotId) continue;
+    await prisma.cartElementAttribution.upsert({
+      where: { cartToken_experimentId: { cartToken, experimentId: assignment.experimentId } },
+      update: {
+        visitorId: input.visitorId,
+        assignmentId: assignment.id,
+        variantId: assignment.variantId,
+        slotId: assignment.experiment.slotId,
+        capturedAt: new Date(),
+      },
+      create: {
+        shopId: input.shopId,
+        cartToken,
+        visitorId: input.visitorId,
+        assignmentId: assignment.id,
+        experimentId: assignment.experimentId,
+        variantId: assignment.variantId,
+        slotId: assignment.experiment.slotId,
+      },
+    });
+    captured += 1;
+  }
+  return captured;
+}
+
+export async function promoteCartElementAssignmentsToCheckout(input: {
+  shopId: string;
+  cartToken: string | null | undefined;
+  checkoutToken: string | null | undefined;
+}) {
+  const cartToken = normalizeShopifyCartToken(input.cartToken);
+  const checkoutToken = String(input.checkoutToken ?? "").trim();
+  if (!cartToken || !checkoutToken) return 0;
+  const checkout = await prisma.checkoutAttribution.findUnique({ where: { checkoutToken } });
+  if (!checkout || checkout.shopId !== input.shopId) return 0;
+  const cartAssignments = await prisma.cartElementAttribution.findMany({
+    where: { shopId: input.shopId, cartToken },
+  });
+  for (const attribution of cartAssignments) {
+    await prisma.checkoutElementAttribution.upsert({
+      where: { checkoutToken_experimentId: { checkoutToken, experimentId: attribution.experimentId } },
+      update: {
+        visitorId: attribution.visitorId,
+        assignmentId: attribution.assignmentId,
+        variantId: attribution.variantId,
+        slotId: attribution.slotId,
+        capturedAt: new Date(),
+      },
+      create: {
+        shopId: input.shopId,
+        checkoutToken,
+        visitorId: attribution.visitorId,
+        assignmentId: attribution.assignmentId,
+        experimentId: attribution.experimentId,
+        variantId: attribution.variantId,
+        slotId: attribution.slotId,
+      },
+    });
+  }
+  if (cartAssignments.length > 0) {
+    await prisma.checkoutAttribution.update({
+      where: { checkoutToken },
+      data: { visitorId: cartAssignments[0].visitorId, confidence: "HIGH" },
+    });
+  }
+  return cartAssignments.length;
 }
 
 export async function snapshotOrderElementAssignments(orderAttributionId: string, checkoutToken: string | null) {

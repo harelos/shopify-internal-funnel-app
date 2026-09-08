@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>NovaHair · ניהול הצעות בסל</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cart-offers.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a class="brand-name" href="index.html">Shopify Funnel Control</a>
+        <span class="badge badge-active" id="published-badge">גרסה מפורסמת</span>
+      </div>
+      <nav class="top-actions" aria-label="ניווט באפליקציה">
+        <a class="btn" href="ai-concierge.html">NovaHair AI</a>
+        <a class="btn" href="popup-analytics.html">Popup Analytics</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main offer-admin">
+    <div class="offer-heading">
+      <div>
+        <p class="eyebrow">NovaHair side cart</p>
+        <h1>הצעות משלימות בסל</h1>
+        <p class="muted" id="revision-copy">טוען את הגרסה השמורה...</p>
+      </div>
+      <div class="heading-actions">
+        <button class="btn" id="save-draft" type="button">שמירת טיוטה</button>
+        <button class="btn btn-primary" id="publish" type="button">פרסום לחנות</button>
+      </div>
+    </div>
+
+    <div class="publish-status" id="status" role="status" aria-live="polite"></div>
+
+    <section class="offer-section" aria-labelledby="carousel-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="carousel-heading">קרוסלת מוצרים משלימים</h2>
+          <label class="wide-field">כותרת הקרוסלה
+            <input class="input" id="carousel-title" maxlength="90" autocomplete="off">
+          </label>
+        </div>
+        <button class="btn" id="add-carousel" type="button">הוספת מוצר</button>
+      </div>
+      <div class="offer-list" id="carousel-list"></div>
+    </section>
+
+    <section class="offer-section" aria-labelledby="bumps-heading">
+      <div class="section-heading">
+        <div>
+          <h2 id="bumps-heading">Bumps מעל הסכום הכולל</h2>
+          <p class="muted">מופיעים לפני שורת סה״כ לתשלום. כל מוצר מתווסף פעם אחת בלבד.</p>
+        </div>
+        <button class="btn" id="add-bump" type="button">הוספת bump</button>
+      </div>
+      <div class="offer-list" id="bump-list"></div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="product-picker" hidden>
+    <div class="modal product-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <div class="picker-heading">
+        <h2 id="picker-title">בחירת מוצר מהחנות</h2>
+        <button class="icon-button" id="close-picker" type="button" aria-label="סגירה">×</button>
+      </div>
+      <label>חיפוש לפי שם מוצר
+        <input class="input" id="product-search" type="search" autocomplete="off" placeholder="לדוגמה: מסכת שיער">
+      </label>
+      <div class="picker-results" id="picker-results" role="list"></div>
+    </div>
+  </div>
+
+  <template id="offer-item-template">
+    <article class="offer-item">
+      <div class="offer-product">
+        <img class="offer-image" alt="" width="76" height="76">
+        <div class="offer-product-copy">
+          <strong class="selected-product">לא נבחר מוצר</strong>
+          <span class="selected-variant muted"></span>
+          <button class="btn btn-sm choose-product" type="button">בחירת מוצר</button>
+        </div>
+        <label class="enabled-control"><input type="checkbox" data-field="enabled"> פעיל</label>
+      </div>
+      <div class="offer-fields">
+        <label>כותרת ללקוחה<input class="input" data-field="title" maxlength="90"></label>
+        <label>מחיר מבצע
+          <span class="money-input"><bdi>₪</bdi><input class="input" data-field="priceIls" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?"></span>
+        </label>
+        <label>מחיר עוגן
+          <span class="money-input"><bdi>₪</bdi><input class="input" data-field="compareAtIls" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?"></span>
+        </label>
+        <label>טקסט מתחת למחיר<input class="input" data-field="anchorText" maxlength="70"></label>
+        <label>טקסט כפתור<input class="input" data-field="buttonText" maxlength="30"></label>
+        <label>טקסט חלופי לתמונה<input class="input" data-field="imageAlt" maxlength="140"></label>
+      </div>
+      <div class="offer-item-actions">
+        <span class="shopify-price muted"></span>
+        <button class="icon-button move-up" type="button" aria-label="הזזה למעלה" title="הזזה למעלה">↑</button>
+        <button class="icon-button move-down" type="button" aria-label="הזזה למטה" title="הזזה למטה">↓</button>
+        <button class="icon-button remove-item" type="button" aria-label="מחיקה" title="מחיקה">×</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="js/api.js"></script>
+  <script src="js/cart-offers.js"></script>
+</body>
+</html>
+
+

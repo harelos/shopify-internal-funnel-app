@@ -24,6 +24,7 @@ model Shop {
   elementTemplates ElementTemplate[]
   elementSlots ElementSlot[]
   elementExposures ElementExposure[]
+  cartElementAttributions CartElementAttribution[]
   checkoutElementAttributions CheckoutElementAttribution[]
   orderElementAttributions OrderElementAttribution[]
   supportMailboxes SupportMailbox[]
@@ -135,6 +136,7 @@ model Visitor {
   checkouts        CheckoutAttribution[]
   elementAssignments ElementAssignment[]
   elementExposures ElementExposure[]
+  cartElementAttributions CartElementAttribution[]
   checkoutElementAttributions CheckoutElementAttribution[]
 
   @@unique([shopId, anonymousKeyHash])
@@ -173,6 +175,7 @@ model ElementSlot {
   variants       ElementVariant[]
   experiment     ElementExperiment?
   exposures      ElementExposure[]
+  cartAttributions CartElementAttribution[]
   checkoutAttributions CheckoutElementAttribution[]
   orderAttributions OrderElementAttribution[]
 
@@ -194,6 +197,7 @@ model ElementVariant {
   allocations        ElementExperimentAllocation[]
   assignments        ElementAssignment[]
   exposures          ElementExposure[]
+  cartAttributions   CartElementAttribution[]
   checkoutAttributions CheckoutElementAttribution[]
   orderAttributions  OrderElementAttribution[]
 
@@ -230,6 +234,7 @@ model ElementExperiment {
   allocations       ElementExperimentAllocation[]
   assignments       ElementAssignment[]
   exposures         ElementExposure[]
+  cartAttributions CartElementAttribution[]
   checkoutAttributions CheckoutElementAttribution[]
   orderAttributions OrderElementAttribution[]
 }
@@ -257,6 +262,7 @@ model ElementAssignment {
   experiment        ElementExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
   variant           ElementVariant    @relation(fields: [variantId], references: [id])
   exposures         ElementExposure[]
+  cartAttributions  CartElementAttribution[]
   checkoutAttributions CheckoutElementAttribution[]
   orderAttributions OrderElementAttribution[]
 
@@ -284,6 +290,28 @@ model ElementExposure {
 
   @@index([experimentId, variantId, occurredAt])
   @@index([visitorId, occurredAt])
+}
+
+model CartElementAttribution {
+  id            String            @id @default(uuid())
+  shopId        String
+  cartToken     String
+  visitorId     String
+  assignmentId  String
+  experimentId  String
+  variantId     String
+  slotId        String
+  capturedAt    DateTime          @default(now())
+  shop          Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  visitor       Visitor           @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  assignment    ElementAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  experiment    ElementExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant       ElementVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  slot          ElementSlot       @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([cartToken, experimentId])
+  @@index([experimentId, variantId, capturedAt])
+  @@index([shopId, cartToken])
 }
 
 model CheckoutElementAttribution {
