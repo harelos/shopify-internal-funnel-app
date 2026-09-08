@@ -1,6 +1,7 @@
 node_modules/
 .wrangler/
 coverage/
+.support-deploy-dry-run/
 *.log
 src/generated/
 admin/

@@ -64,6 +64,17 @@ Run continuously (two-minute interval by default):
 npm run support:watch
 ```
 
+On Windows, install the persistent hidden watcher for the current user:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install-support-agent-task.ps1
+```
+
+The task starts immediately, restarts the watcher after a process failure and
+runs again at sign-in. Its operational log is written to
+`.data/support-agent.log`; mailbox credentials and connector tokens are never
+written to that log.
+
 Outbound delivery is disabled by default. Set `SUPPORT_MAIL_SEND_ENABLED=true`
 only after the app is in the desired `DRAFT_ONLY` or `AUTOSEND_LOW_RISK` mode.
 Approving a draft queues it; the bridge sends it through the existing Namecheap
