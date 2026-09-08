@@ -239,6 +239,20 @@ async function alreadySentMessage(messageId) {
   }
 }
 
+async function appendSentMessage(rawMessage, sentAt) {
+  const client = new ImapFlow({ host: imapHost, port: Number(process.env.NAMECHEAP_IMAP_PORT || 993), secure: true, auth: { user: mailboxAddress, pass: password }, logger: false });
+  await client.connect();
+  try {
+    const folders = await client.list();
+    const sent = folders.find(folder => folder.specialUse === "\\Sent")?.path || folders.find(folder => /sent/i.test(folder.path))?.path;
+    if (!sent) throw new Error("The Namecheap Sent folder could not be resolved.");
+    const appended = await client.append(sent, rawMessage, ["\\Seen"], sentAt);
+    if (!appended) throw new Error("Namecheap accepted the SMTP message but did not confirm the Sent-folder copy.");
+  } finally {
+    if (client.usable) await client.logout().catch(() => {});
+  }
+}
+
 export async function sendOutbox() {
   if (process.env.SUPPORT_MAIL_SEND_ENABLED !== "true") return { disabled: true, sent: 0 };
   const transporter = nodemailer.createTransport({
@@ -247,6 +261,7 @@ export async function sendOutbox() {
     secure: true,
     auth: { user: mailboxAddress, pass: password },
   });
+  const messageBuilder = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: "windows" });
   let sent = 0;
   for (let index = 0; index < 20; index += 1) {
     const payload = await supportBridgeFetch("/support-bridge/outbox/claim", { method: "POST", body: "{}" });
@@ -261,7 +276,8 @@ export async function sendOutbox() {
         sent += 1;
         continue;
       }
-      const result = await transporter.sendMail({
+      const sentAt = new Date();
+      const compiled = await messageBuilder.sendMail({
         from: draft.from,
         to: draft.to,
         subject: draft.subject,
@@ -269,10 +285,21 @@ export async function sendOutbox() {
         messageId: draft.deterministicMessageId,
         inReplyTo: draft.inReplyTo || undefined,
         references: draft.inReplyTo ? [draft.inReplyTo] : undefined,
+        date: sentAt,
       });
+      const rawMessage = compiled.message;
+      if (!Buffer.isBuffer(rawMessage)) throw new Error("Could not build the RFC 5322 support message.");
+      const result = await transporter.sendMail({
+        envelope: { from: draft.from, to: draft.to },
+        raw: rawMessage,
+      });
+      // SMTP servers do not guarantee that programmatic sends appear in the
+      // webmail Sent folder. Append the exact transmitted message before
+      // acknowledging delivery so both the owner and the retry guard can see it.
+      await appendSentMessage(rawMessage, sentAt);
       await supportBridgeFetch(`/support-bridge/outbox/${encodeURIComponent(draft.id)}/sent`, {
         method: "POST",
-        body: JSON.stringify({ externalMessageId: result.messageId || draft.deterministicMessageId, sentAt: new Date().toISOString() }),
+        body: JSON.stringify({ externalMessageId: result.messageId || draft.deterministicMessageId, sentAt: sentAt.toISOString() }),
       });
       sent += 1;
     } catch (error) {
