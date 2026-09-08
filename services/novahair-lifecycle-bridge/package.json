@@ -1,0 +1,30 @@
+{
+  "name": "novahair-lifecycle-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.core.json --noEmit",
+    "build:worker": "node scripts/build-worker.mjs",
+    "test": "tsx --test test/*.test.ts",
+    "render:templates": "node scripts/render-templates.mjs",
+    "generate:resend": "node scripts/generate-resend-blueprints.mjs",
+    "provision:resend": "node scripts/provision-resend.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "esbuild": "^0.28.1",
+    "miniflare": "^5.20260820.0-alpha",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-email": "^6.0.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.2"
+  }
+}

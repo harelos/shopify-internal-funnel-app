@@ -1,0 +1,35 @@
+{
+  "name": "novahair-lifecycle-bridge",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [
+    { "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": false }
+  ],
+  "vars": {
+    "APP_URL": "https://novahair-lifecycle-bridge.example.workers.dev",
+    "SHOP_DOMAIN": "your-store.myshopify.com",
+    "SHOPIFY_STOREFRONT_DOMAIN": "example.com",
+    "SHOPIFY_API_VERSION": "2026-07",
+    "RESEND_FROM": "NovaHair <hello@email.example.com>",
+    "RESEND_REPLY_TO": "support@example.com",
+    "LIFECYCLE_MODE": "disabled",
+    "LIFECYCLE_ENABLED": "false",
+    "LIFECYCLE_TEST_EMAIL": "merchant-test@example.com",
+    "LIFECYCLE_ALERT_EMAIL": "owner@example.com",
+    "LIFECYCLE_ACTIVATED_AT": "2026-01-01T00:00:00.000Z",
+    "LIFECYCLE_SYNC_INTERVAL_MINUTES": "10",
+    "LIFECYCLE_SYNC_OVERLAP_MINUTES": "30",
+    "LIFECYCLE_MAX_PAGES": "10"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "your-d1-database",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "triggers": {
+    "crons": ["*/10 * * * *"]
+  }
+}
