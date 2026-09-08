@@ -299,7 +299,11 @@ export async function sendOutbox() {
       await appendSentMessage(rawMessage, sentAt);
       await supportBridgeFetch(`/support-bridge/outbox/${encodeURIComponent(draft.id)}/sent`, {
         method: "POST",
-        body: JSON.stringify({ externalMessageId: result.messageId || draft.deterministicMessageId, sentAt: sentAt.toISOString() }),
+        body: JSON.stringify({
+          externalMessageId: draft.deterministicMessageId,
+          providerMessageId: result.messageId || null,
+          sentAt: sentAt.toISOString(),
+        }),
       });
       sent += 1;
     } catch (error) {

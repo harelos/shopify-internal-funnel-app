@@ -194,6 +194,7 @@ supportBridgeRouter.post("/outbox/:id/sent", async (req, res) => {
   const draft = await prisma.supportDraft.findUnique({ where: { id: req.params.id }, include: { conversation: { include: { customer: true, mailbox: true } } } });
   if (!draft || !["SENDING", "QUEUED_TO_SEND"].includes(draft.status)) return res.status(404).json({ ok: false, error: "Claimed support draft not found." });
   const externalMessageId = String(req.body?.externalMessageId || "").trim();
+  const providerMessageId = String(req.body?.providerMessageId || "").trim() || null;
   const sentAt = new Date(req.body?.sentAt || Date.now());
   if (!externalMessageId || Number.isNaN(sentAt.getTime())) return res.status(400).json({ ok: false, error: "externalMessageId and a valid sentAt are required." });
   await prisma.$transaction([
@@ -218,7 +219,7 @@ supportBridgeRouter.post("/outbox/:id/sent", async (req, res) => {
     kind: "OUTBOUND_EMAIL",
     source: "NAMECHEAP_SMTP",
     occurredAt: sentAt,
-    payload: { externalMessageId, draftId: draft.id, subject: draft.conversation.subject, to: draft.conversation.customer.email, textBody: draft.replyText },
+    payload: { externalMessageId, providerMessageId, draftId: draft.id, subject: draft.conversation.subject, to: draft.conversation.customer.email, textBody: draft.replyText },
   });
   return res.json({ ok: true });
 });
