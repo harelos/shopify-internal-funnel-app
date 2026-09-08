@@ -526,9 +526,9 @@ export class ShopifyAdminClient {
     };
     type SupportOrders = { orders: { nodes: SupportOrder[] } };
     const escapedEmail = input.customerEmail.trim().toLowerCase().replace(/["\\]/g, "");
-    const orderName = input.orderName?.trim().replace(/[^#A-Za-z0-9_-]/g, "") || "";
+    const orderName = input.orderName?.trim().replace(/[^#A-Za-z0-9_-]/g, "").replace(/^#/, "") || "";
     const clauses = [`email:\"${escapedEmail}\"`];
-    if (orderName) clauses.push(`name:${orderName.startsWith("#") ? orderName : `#${orderName}`}`);
+    if (orderName) clauses.push(`name:${orderName}`);
 
     const data = await this.graphql<SupportOrders>(`query SupportOrderContext($query: String!) {
       orders(first: 10, query: $query, sortKey: CREATED_AT, reverse: true) {
