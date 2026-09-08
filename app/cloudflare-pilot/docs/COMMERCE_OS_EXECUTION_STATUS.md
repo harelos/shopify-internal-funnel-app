@@ -68,6 +68,7 @@ This document is the repository-safe operating record for the Funnel Builder →
 - A guarded retry is available for failed drafts; sent drafts are displayed as receipts instead of appearing to have no draft.
 - The Support workspace is scoped to conversations with inbound customer activity, Hebrew or mixed-language service history, or verified Shopify-order context. Unrelated outbound operational mail remains preserved in the source mailbox but is not presented as customer support.
 - Support voice learning is approval-gated: historic replies are review candidates, and only explicitly approved examples may influence future AI drafts.
+- The Support Quality view reports verified inbound volume, median first-response time, escalations, repeat contacts, AI-assisted sends, Sent-folder verification and top contact reasons for 7-, 30- and 90-day ranges. It does not claim an automation rate until automatic and owner-approved sends are recorded separately.
 - Live DNS verification on 2026-09-08 found Namecheap MX and DKIM, DMARC monitoring, and a missing SPF record. DNS was not changed because all legitimate domain senders must be inventoried before a single consolidated SPF record is published.
 - Operational details: `docs/SUPPORT_DELIVERY_RUNBOOK.md`.
 

@@ -51,6 +51,19 @@
     document.getElementById("reply-delay").value = String(state.mailbox.replyDelayMinutes);
   }
 
+  function percent(value) {
+    return `${Math.round(Number(value || 0) * 100)}%`;
+  }
+
+  function durationMinutes(value) {
+    if (value == null) return "Not enough data";
+    const minutes = Math.max(0, Math.round(Number(value)));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+  }
+
   function renderPolicy(policy) {
     const groups = [
       ["Automatic", "Only after factual checks pass", policy.automatic || [], "safe"],
@@ -87,6 +100,23 @@
     renderVoiceExamples();
   }
 
+  async function quality() {
+    const days = document.getElementById("quality-range").value;
+    const data = await API.get(`/api/support/analytics?days=${encodeURIComponent(days)}`);
+    const metrics = data.metrics;
+    document.getElementById("quality-conversations").textContent = metrics.conversations;
+    document.getElementById("quality-response").textContent = durationMinutes(metrics.medianFirstResponseMinutes);
+    document.getElementById("quality-escalation").textContent = percent(metrics.escalationRate);
+    document.getElementById("quality-repeat").textContent = metrics.repeatCustomers;
+    document.getElementById("quality-ai-sent").textContent = metrics.aiRepliesSent;
+    document.getElementById("quality-delivery").textContent = metrics.verifiedSentCopies;
+    document.getElementById("quality-coverage").textContent = data.quality.coverage === "COMPLETE_FOR_RANGE" ? "Complete range" : "First 500 threads";
+    document.getElementById("quality-source").textContent = data.quality.source;
+    document.getElementById("quality-note").textContent = data.quality.note;
+    const topics = document.getElementById("quality-topics");
+    topics.innerHTML = data.topTopics.length ? data.topTopics.map(row => `<div class="topic-row"><strong>${esc(row.topic.replaceAll("_", " "))}</strong><div class="topic-bar" aria-label="${esc(percent(row.share))} of conversations"><span style="width:${Math.max(4, Math.round(row.share * 100))}%"></span></div><small>${row.count}</small></div>`).join("") : '<div class="support-empty">No inbound support topics were recorded in this range.</div>';
+  }
+
   async function reviewVoiceExample(id, qualityStatus) {
     await API.patch(`/api/support/voice-examples/${encodeURIComponent(id)}`, { qualityStatus });
     state.voiceExamples = state.voiceExamples.filter(example => example.id !== id);
@@ -101,7 +131,9 @@
     document.querySelectorAll(".support-view-tabs button").forEach(button => button.classList.toggle("active", button.dataset.view === view));
     document.getElementById("inbox-view").hidden = view !== "inbox";
     document.getElementById("learning-view").hidden = view !== "learning";
+    document.getElementById("quality-view").hidden = view !== "quality";
     if (view === "learning") await learning();
+    if (view === "quality") await quality();
   }
 
   async function deliverability() {
@@ -230,7 +262,8 @@
     action.disabled = true;
     reviewVoiceExample(row.dataset.exampleId, action.dataset.voiceAction).catch(error => { action.disabled = false; notify(error.message); });
   });
-  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations(), deliverability(), state.view === "learning" ? learning() : Promise.resolve()]); notify("Support workspace refreshed"); });
+  document.getElementById("quality-range").addEventListener("change", () => quality().catch(error => notify(error.message)));
+  document.getElementById("refresh").addEventListener("click", async () => { await Promise.all([overview(), conversations(), deliverability(), state.view === "learning" ? learning() : Promise.resolve(), state.view === "quality" ? quality() : Promise.resolve()]); notify("Support workspace refreshed"); });
   document.getElementById("save-settings").addEventListener("click", async () => {
     if (!state.mailbox) return;
     await API.patch(`/api/support/mailboxes/${encodeURIComponent(state.mailbox.id)}`, { automationMode: document.getElementById("automation-mode").value, replyDelayMinutes: Number(document.getElementById("reply-delay").value) });

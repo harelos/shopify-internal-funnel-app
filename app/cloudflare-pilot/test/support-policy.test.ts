@@ -157,13 +157,17 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(js, /Retry sending/);
   assert.match(html, /Email delivery health/);
   assert.match(html, /Teach the AI/);
+  assert.match(html, /Service quality/);
   assert.match(html, /Historic replies are suggestions only/);
   assert.match(js, /Approve as an example/);
+  assert.match(js, /medianFirstResponseMinutes/);
   const route = fs.readFileSync(path.join(appRoot, "src/routes/support-desk.ts"), "utf8");
   const service = fs.readFileSync(path.join(appRoot, "src/services/support-desk.ts"), "utf8");
   assert.match(route, /customerSupportConversationWhere/);
   assert.match(route, /messages:\s*\{\s*some:\s*\{\s*direction:\s*"INBOUND"/);
   assert.match(route, /\/support\/voice-examples/);
+  assert.match(route, /\/support\/analytics/);
+  assert.match(route, /COMPLETE_FOR_RANGE/);
   assert.match(service, /qualityStatus:\s*"APPROVED"/);
   assert.match(service, /'PENDING_REVIEW'/);
   assert.match(html, /data-status="CLOSED"/);

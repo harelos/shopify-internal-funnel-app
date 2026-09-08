@@ -49,6 +49,13 @@ On 2026-09-08, live DNS had working Namecheap MX and DKIM plus DMARC in monitori
 - Rejected examples remain excluded from generation.
 - The embedded Support workspace shows the approved store facts and lets the owner approve or reject voice examples without exposing raw analytics identifiers.
 
+## Quality reporting
+
+- Support Quality is calculated from inbound Namecheap messages, sent support drafts and the tamper-evident delivery ledger.
+- Median first response is measured from the first inbound message in the selected range to the first later outbound message in that conversation.
+- Top contact reasons and escalation rate are observational service metrics.
+- AI-assisted replies include both automatic and owner-approved sends until the send-approval actor is stored explicitly. The product must not label this number as an automation rate.
+
 ## Safe deployment order
 
 1. Run the Worker tests and TypeScript build.

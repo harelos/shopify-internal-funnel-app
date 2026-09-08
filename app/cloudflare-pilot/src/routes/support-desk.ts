@@ -11,19 +11,30 @@ export const supportBridgeRouter = Router();
 
 let deliverabilityCache: { domain: string; expiresAt: number; value: unknown } | null = null;
 
+function customerSupportScope() {
+  return {
+    OR: [
+      { messages: { some: { direction: "INBOUND" } } },
+      { language: { in: ["HEBREW", "MIXED"] } },
+      { shopifyOrderGid: { not: null } },
+    ],
+  };
+}
+
 function customerSupportConversationWhere(status?: string) {
   return {
     AND: [
       status ? { status } : { status: { not: "CLOSED" } },
-      {
-        OR: [
-          { messages: { some: { direction: "INBOUND" } } },
-          { language: { in: ["HEBREW", "MIXED"] } },
-          { shopifyOrderGid: { not: null } },
-        ],
-      },
+      customerSupportScope(),
     ],
   };
+}
+
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 function bearer(req: any): string {
@@ -357,6 +368,82 @@ supportAdminRouter.get("/support/knowledge", async (_req, res) => {
       automatic: ["General delivery questions", "Verified order-status questions"],
       reviewRequired: ["Product use or result questions", "Delivery disputes", "Uncertain customer or order identity"],
       alwaysEscalate: ["Refunds or cancellations", "Address changes", "Chargebacks", "Legal, safety, fraud or privacy concerns"],
+    },
+  });
+});
+
+supportAdminRouter.get("/support/analytics", async (req, res) => {
+  const days = Math.min(90, Math.max(1, Number.parseInt(String(req.query.days || "7"), 10) || 7));
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const conversations = await prisma.supportConversation.findMany({
+    where: {
+      AND: [
+        customerSupportScope(),
+        { messages: { some: { direction: "INBOUND", sentAt: { gte: since } } } },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 500,
+    include: {
+      messages: { orderBy: { sentAt: "asc" }, take: 100 },
+      drafts: { where: { createdAt: { gte: since } }, orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  const responseMinutes: number[] = [];
+  const topicCounts = new Map<string, number>();
+  const customerCounts = new Map<string, number>();
+  let answered = 0;
+  let escalated = 0;
+  let waiting = 0;
+  let aiRepliesSent = 0;
+  let deliveryFailures = 0;
+
+  for (const conversation of conversations) {
+    const firstInbound = conversation.messages.find(message => message.direction === "INBOUND" && message.sentAt >= since);
+    const firstOutbound = firstInbound && conversation.messages.find(message => message.direction === "OUTBOUND" && message.sentAt > firstInbound.sentAt);
+    if (firstInbound && firstOutbound) {
+      answered += 1;
+      responseMinutes.push(Math.max(0, (firstOutbound.sentAt.getTime() - firstInbound.sentAt.getTime()) / 60000));
+    }
+    if (conversation.status === "ESCALATED") escalated += 1;
+    if (conversation.status === "WAITING_CUSTOMER") waiting += 1;
+    aiRepliesSent += conversation.drafts.filter(draft => draft.status === "SENT" && draft.sentAt && draft.sentAt >= since).length;
+    deliveryFailures += conversation.drafts.filter(draft => draft.status === "FAILED").length;
+    topicCounts.set(conversation.topic, (topicCounts.get(conversation.topic) || 0) + 1);
+    customerCounts.set(conversation.customerId, (customerCounts.get(conversation.customerId) || 0) + 1);
+  }
+
+  const verifiedSentCopies = await prisma.supportEvidenceEvent.count({
+    where: { kind: "OUTBOUND_DELIVERY_VERIFIED", occurredAt: { gte: since } },
+  });
+  const repeatCustomers = [...customerCounts.values()].filter(count => count > 1).length;
+  const topTopics = [...topicCounts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .map(([topic, count]) => ({ topic, count, share: conversations.length ? count / conversations.length : 0 }));
+
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({
+    ok: true,
+    range: { days, from: since.toISOString(), to: new Date().toISOString(), timeZone: "Asia/Jerusalem" },
+    metrics: {
+      conversations: conversations.length,
+      answered,
+      waiting,
+      escalated,
+      escalationRate: conversations.length ? escalated / conversations.length : 0,
+      medianFirstResponseMinutes: median(responseMinutes),
+      aiRepliesSent,
+      deliveryFailures,
+      verifiedSentCopies,
+      repeatCustomers,
+    },
+    topTopics,
+    quality: {
+      source: "Namecheap messages, Shopify-backed support context and the internal support evidence ledger",
+      coverage: conversations.length >= 500 ? "CAPPED" : "COMPLETE_FOR_RANGE",
+      note: "AI-assisted replies are counted from sent support drafts. Automatic and owner-approved sends are not separated yet, so no automation-rate claim is made.",
     },
   });
 });

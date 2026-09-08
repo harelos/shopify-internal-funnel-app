@@ -32,6 +32,7 @@
     <nav class="support-view-tabs" aria-label="Support workspace">
       <button class="active" data-view="inbox">Inbox</button>
       <button data-view="learning">Teach the AI <span class="tab-count" id="voice-tab-count">—</span></button>
+      <button data-view="quality">Quality</button>
     </nav>
 
     <div class="support-view active" id="inbox-view">
@@ -127,6 +128,34 @@
         <div class="section-heading"><div><span class="delivery-health-kicker">Safety contract</span><h3>What the agent may do</h3></div></div>
         <div class="policy-grid" id="support-policy-grid"></div>
       </section>
+    </section>
+
+    <section class="support-view quality-view" id="quality-view" hidden>
+      <header class="quality-header">
+        <div><span class="delivery-health-kicker">Support intelligence</span><h2>Service quality</h2><p>Response speed, escalations and recurring contact reasons from verified mailbox activity.</p></div>
+        <label>Range
+          <select id="quality-range"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
+        </label>
+      </header>
+      <section class="quality-metrics" aria-label="Support quality metrics">
+        <article><span class="quality-value" id="quality-conversations">—</span><strong>Customer conversations</strong><small>Inbound support threads</small></article>
+        <article><span class="quality-value" id="quality-response">—</span><strong>Median first response</strong><small>Answered conversations</small></article>
+        <article><span class="quality-value" id="quality-escalation">—</span><strong>Escalation rate</strong><small>Human decision required</small></article>
+        <article><span class="quality-value" id="quality-repeat">—</span><strong>Repeat contacts</strong><small>Customers with multiple threads</small></article>
+        <article><span class="quality-value" id="quality-ai-sent">—</span><strong>AI replies sent</strong><small>Automatic or owner-approved</small></article>
+        <article><span class="quality-value" id="quality-delivery">—</span><strong>Sent copies verified</strong><small>Namecheap evidence</small></article>
+      </section>
+      <div class="quality-grid">
+        <section class="knowledge-card">
+          <div class="section-heading"><div><span class="delivery-health-kicker">Voice of customer</span><h3>Top contact reasons</h3></div></div>
+          <div class="topic-list" id="quality-topics"><div class="support-empty">Loading topics…</div></div>
+        </section>
+        <section class="knowledge-card data-trust-card">
+          <div class="section-heading"><div><span class="delivery-health-kicker">Data trust</span><h3>How to read this report</h3></div><span class="human-badge" id="quality-coverage">—</span></div>
+          <p id="quality-source">Loading source coverage…</p>
+          <p id="quality-note"></p>
+        </section>
+      </div>
     </section>
   </main>
 
