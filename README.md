@@ -12,6 +12,10 @@ Source repository:
 
 https://github.com/harelos/shopify-internal-funnel-app
 
+Developer runbook for the repository's free-capable OpenRouter integration:
+
+[`docs/OPENROUTER_FREE_API_DEVELOPER_GUIDE.md`](docs/OPENROUTER_FREE_API_DEVELOPER_GUIDE.md)
+
 The local source file is:
 
 `preview/index.html`
