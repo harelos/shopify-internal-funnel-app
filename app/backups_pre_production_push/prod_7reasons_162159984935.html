@@ -1,0 +1,298 @@
+<body>
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  NOVA HAIR — 7 REASONS (PRESELL)  ·  Hebrew RTL  ·  Funnelish-ready
+  Role: warms reader with 7 DISTINCT reasons + proof, hands off to sales page.
+  Coherent with sales-page.html (same angle/design) but NO repeated offer block.
+  CTA target: search  data-next  → point to your sales page URL.
+  Font: Open Sans
+  ════════════════════════════════════════════════════════════════════════
+-->
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7 סיבות שאלפי ישראליות עברו ל-Nova Hair — וזרקו את הצבע מהמספרה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&amp;display=swap&amp;subset=hebrew" rel="stylesheet">
+<style>
+.nova,.nova *,.nova *::before,.nova *::after{box-sizing:border-box;font-family:'Open Sans','Arial Hebrew',Arial,system-ui,sans-serif !important;direction:rtl}
+.nova{--ink:#2B2420;--ink-soft:#5C5048;--ink-mute:#8B7E73;--cream:#F7F1EA;--cream-2:#EFE5D8;--cream-3:#E4D6C4;
+  --bronze:#B26A45;--bronze-dk:#8F4F30;--bronze-lt:#D89A77;--bronze-soft:#F6E3D4;--gold:#C29A4A;--green:#5BAA51;--green-dk:#41863a;--red:#C0392B;--blue-verify:#1DA1F2;
+  margin:0;background:var(--cream);color:var(--ink);font-size:17px;line-height:1.65;overflow-x:hidden}
+.nova img{max-width:100%;display:block}
+.nova .wrap{max-width:760px;margin:0 auto;padding:0 18px}
+.nova h1,.nova h2,.nova h3{margin:0 0 .5em;line-height:1.2;font-weight:800}
+.nova h1{font-size:clamp(1.55rem,5.2vw,2.2rem)}
+.nova h2{font-size:clamp(1.35rem,4.4vw,1.8rem)}
+.nova p{margin:0 0 1em}
+.nova em{font-style:normal;font-weight:800;background:linear-gradient(180deg,transparent 62%,var(--bronze-soft) 62%);padding:0 3px}
+.nova .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:linear-gradient(180deg,var(--bronze),var(--bronze-dk));
+  color:#fff !important;font-weight:800;font-size:1.08rem;text-decoration:none;padding:18px 26px;border:none;border-radius:60px;cursor:pointer;
+  box-shadow:0 7px 0 #6f3c22,0 12px 26px rgba(143,79,48,.34);transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
+.nova .btn:hover{transform:translateY(2px);box-shadow:0 5px 0 #6f3c22}
+.nova .btn small{display:block;font-weight:600;font-size:.78rem;opacity:.92;margin-top:2px}
+.nova .btn::after{content:"";position:absolute;top:0;inset-inline-start:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:sh 4.5s ease-in-out infinite}
+@keyframes sh{0%,55%{inset-inline-start:-60%}100%{inset-inline-start:160%}}
+.nova .rev{opacity:0;transform:translateY(24px);transition:.7s}.nova .rev.in{opacity:1;transform:none}
+.nova .imgph{background:repeating-linear-gradient(45deg,var(--cream-2),var(--cream-2) 14px,#e9dccb 14px,#e9dccb 28px);
+  border:2px dashed var(--bronze-lt);border-radius:16px;min-height:220px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--bronze-dk);font-weight:700;font-size:.85rem;padding:18px}
+
+/* topbar / exposé strip */
+.nova .strip{background:var(--red);color:#fff;text-align:center;font-size:.82rem;font-weight:700;padding:9px 14px}
+.nova .head{background:#fff;border-bottom:1px solid var(--cream-3);position:sticky;top:0;z-index:50}
+.nova .head .wrap{display:flex;align-items:center;justify-content:space-between;padding:10px 18px}
+.nova .brand{font-weight:800;font-size:1.05rem;letter-spacing:.02em}
+.nova .brand b{color:var(--bronze)}
+.nova .tags{font-size:.74rem;color:var(--ink-mute);font-weight:600}
+
+/* hero */
+.nova .hero{padding:30px 0 10px;text-align:center}
+.nova .eyebrow{display:inline-block;font-size:.8rem;font-weight:700;color:var(--bronze-dk);background:var(--bronze-soft);padding:6px 14px;border-radius:30px;margin-bottom:14px}
+.nova .byline{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0;text-align:right}
+.nova .byline .av{width:40px;height:40px;border-radius:50%;background:var(--cream-3);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--bronze-dk)}
+.nova .byline small{display:block;color:var(--ink-mute);font-size:.78rem}
+.nova .meta-rate{display:flex;align-items:center;justify-content:center;gap:10px;font-size:.85rem;color:var(--ink-soft);font-weight:600;margin-bottom:18px}
+.nova .stars{color:var(--gold);letter-spacing:1px}
+.nova .live{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--green-dk);font-weight:700}
+.nova .live i{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;animation:pd 1.5s infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* lead */
+.nova .lead{background:#fff;border:1px solid var(--cream-3);border-radius:16px;padding:22px;margin:8px 0 6px;font-size:1.05rem}
+.nova .lead p:last-child{margin:0}
+
+/* reason */
+.nova .reason{padding:30px 0;border-bottom:1px solid var(--cream-3)}
+.nova .reason .num{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;
+  background:var(--bronze);color:#fff;font-weight:800;font-size:1.25rem;margin-bottom:14px}
+.nova .reason h2 em{background:linear-gradient(180deg,transparent 60%,var(--bronze-soft) 60%)}
+.nova .reason .imgph{margin:16px 0;min-height:240px}
+.nova .sci{display:inline-block;font-size:.74rem;font-weight:700;color:var(--bronze-dk);background:var(--bronze-soft);padding:4px 10px;border-radius:20px;margin-top:6px}
+
+/* inline testimonial */
+.nova .qt{background:var(--cream-2);border-inline-start:4px solid var(--bronze);border-radius:10px;padding:14px 16px;margin:16px 0;font-size:.93rem}
+.nova .qt b{color:var(--ink)}
+.nova .qt .who{display:block;margin-top:8px;font-size:.8rem;color:var(--ink-mute);font-weight:700}
+
+/* mid CTA */
+.nova .midcta{background:#fff;border:2px solid var(--bronze);border-radius:18px;padding:22px;text-align:center;margin:8px 0}
+.nova .midcta h3{margin:0 0 6px}
+.nova .midcta p{font-size:.9rem;color:var(--ink-soft);margin:0 0 14px}
+
+/* comments */
+.nova .comments{background:#fff;border:1px solid var(--cream-3);border-radius:16px;padding:18px;margin:24px 0}
+.nova .comment{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--cream-2)}
+.nova .comment:last-child{border:none}
+.nova .comment .av{width:36px;height:36px;border-radius:50%;background:var(--cream-3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--bronze-dk);font-size:.85rem}
+.nova .comment .c b{font-size:.86rem}.nova .comment .c .vbadge{color:var(--blue-verify);font-size:.72rem;font-weight:700}
+.nova .comment .c p{margin:3px 0 4px;font-size:.9rem}
+.nova .comment .c small{color:var(--ink-mute);font-size:.74rem}
+
+/* guarantee strip */
+.nova .gstrip{background:#EAF6E8;border:1px solid #BFE3B8;border-radius:14px;padding:18px;text-align:center;margin:22px 0}
+.nova .gstrip b{color:var(--green-dk)}
+.nova .verified{display:inline-flex;align-items:center;gap:7px;background:#EAF3FF;border:1px solid #BBD9FF;color:#1769c4;font-weight:800;font-size:.78rem;padding:6px 12px;border-radius:30px}
+.nova .verified .vchk{width:16px;height:16px;border-radius:50%;background:#1DA1F2;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.6rem}
+.nova .authentic{display:flex;gap:12px;align-items:flex-start;background:var(--ink);color:var(--cream);border-radius:14px;padding:16px;margin:22px 0}
+.nova .authentic .ic{font-size:1.4rem;flex-shrink:0}
+.nova .authentic b{color:#fff}
+.nova .authentic p{margin:4px 0 0;font-size:.85rem;color:#E7DBCD;line-height:1.55}
+
+.nova .foot{background:var(--ink);color:#bbab9c;text-align:center;font-size:.76rem;padding:24px 18px;line-height:1.7}
+
+@media(min-width:760px){.nova .reason .imgph{min-height:300px}}
+@media (prefers-reduced-motion:reduce){.nova .btn::after,.nova .rev{animation:none;opacity:1;transform:none}}
+</style>
+
+
+<div class="nova">
+
+  <div class="strip">כתבת תוכן · למה צביעת שיער "רגילה" עולה לך פי 2 — בכסף ובשיער</div>
+
+  <header class="head"><div class="wrap">
+    <div class="brand">Nova<b>Hair</b>
+</div>
+    <div class="tags">שיער · טיפוח · השוואה</div>
+  </div></header>
+
+  <!-- HERO -->
+  <section class="hero"><div class="wrap">
+    <span class="eyebrow">מדריך קצר · קריאה 3 דקות</span>
+    <h1>7 סיבות שבגללן אלפי ישראליות <em>זרקו את הצבע מהמספרה</em> ועברו ל-Nova Hair</h1>
+    <div class="byline">
+      <div class="av">נ</div>
+      <div>
+<b>נעמה לוי · מומחית טיפוח שיער</b><small>נכתב למערכת Nova Hair · עודכן יוני 2026</small>
+</div>
+    </div>
+    <div class="meta-rate">
+      <span class="stars">★★★★★</span><span>4.8 · 9,232 דירוגים</span>
+      <span class="live"><i></i>247 קוראות עכשיו</span>
+    </div>
+    <div style="margin-bottom:16px"><span class="verified"><span class="vchk">✓</span> החנות הרשמית של Nova Hair בישראל</span></div>
+    <div class="lead rev">
+      <p>אם את צובעת שיער כבר שנים, כנראה קרו לך שני דברים: <b>השיבה חוזרת מהר מדי</b>,
+        <b>והשיער כבר לא מה שהיה</b> — יבש יותר, שביר יותר, פחות נפח.</p>
+      <p>רוב הנשים מאשימות את עצמן ("יש לי שיער בעייתי"). האמת? זו לא את — <em>זו האמוניה</em>.
+        כי Nova Hair הוא <b>לא עוד צבע לשיער — הוא טיפול שמחזיר אותו לחיים</b>.
+        והנה 7 סיבות שבגללן הוא הפך לפתרון שמחליף גם את המספרה וגם את הצבע מהסופר.</p>
+    </div>
+  </div></section>
+
+  <div class="wrap">
+
+    <!-- REASON 1 -->
+    <section class="reason rev">
+      <div class="num">1</div>
+      <h2>הוא <em>צובע ומתקן</em> בו-זמנית — אף צבע אחר לא עושה את זה</h2>
+      <p>צבע רגיל פותח את השערה בכוח עם אמוניה כדי להכניס פיגמנט, ומשאיר אותה פתוחה ויבשה.
+        Nova עובד הפוך: כדוריות Micro-Color Sphere™ מתיישבות על השערה, ופו-טי, ג'ינסנג ושומן שומשום
+        <b>מזינים אותה וסוגרים אותה בחזרה</b>. את יוצאת עם שיבה מכוסה — ושיער בריא יותר.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/35e092f6-c23c-446b-b056-ccb5b7b5132e.webp?v=1786913184" alt="המחשה: שערה פתוחה מול שערה סגורה ומוזנת" width="1448" height="1086" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+      <span class="sci">pH מאוזן 5.5 · 0% אמוניה</span>
+    </section>
+
+    <!-- REASON 2 -->
+    <section class="reason rev">
+      <div class="num">2</div>
+      <h2>מראה טבעי לחלוטין — <em>בלי "אפקט הפאה"</em>
+</h2>
+      <p>הבעיה עם צבע מהסופר היא שכולם מזהים אותו: שטוח, אחיד מדי, כהה מדי. Nova מתמזג עם הגוון
+        הטבעי של השיער שלך ומשאיר עומק ותנועה. אף אחד לא יחשוב "היא צבעה" — רק "איזה שיער יפה יש לה".</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/1ea2dc5f-8e9b-40b9-89ef-09578b432f5c.webp?v=1786913183" alt="מראה שיער טבעי ומבריק, תקריב" width="1122" height="1402" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+    </section>
+
+    <!-- REASON 3 -->
+    <section class="reason rev">
+      <div class="num">3</div>
+      <h2>10 דקות במקלחת — <em>לא 45 דקות במספרה</em>
+</h2>
+      <p>חופפים, ממתינים 10 דקות, שוטפים. זהו. בלי לקבוע תור שבועיים מראש, בלי לשבת עם כפפות וקלקר על הראש,
+        בלי בלאגן בכיור. את עושה את זה לבד, מתי שנוח לך, וזה נראה כאילו יצאת מהמספרה.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/c5c5abd1-264a-4b54-ad1e-b30dc95b6076.webp?v=1786913190" alt="אישה חופפת במקלחת, אווירה רגועה" width="1448" height="1086" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+    </section>
+
+    <div class="midcta rev">
+      <h3>סקרנית לראות את ההצעה?</h3>
+      <p>מבצע ההשקה כולל עד 50% הנחה + משלוח חינם + 60 יום אחריות.</p>
+      <a class="btn" data-next href="https://tigerbrandsglobal.com/pages/novahair-sales">לצפייה בהצעה ובמחירים ‹<small>3 ערכות לבחירה · משלוח חינם</small></a>
+    </div>
+
+    <!-- REASON 4 -->
+    <section class="reason rev">
+      <div class="num">4</div>
+      <h2>בלי אמוניה, בלי סולפטים, <em>בלי הצריבה הזו בקרקפת</em>
+</h2>
+      <p>אם אי פעם דמעו לך העיניים מהריח, או צרבה לך הקרקפת אחרי צביעה — זו האמוניה. Nova בנוי בלעדיה.
+        בטוח לשיער צבוע, מוחלק או חלש, ועדין מספיק לשימוש קבוע בלי לייבש.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/5eeabc46-549a-4be1-b535-c4e59e809523.webp?v=1786913189" alt="מרכיבים טבעיים על רקע קרם" width="1448" height="1086" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+      <div class="qt">"בפעם הראשונה צבעתי בלי שהעיניים דומעות והקרקפת צורבת. <b>לא חזרתי למספרה מאז.</b>"
+        <span class="who">— שירה כ., בת 38, ראשון לציון ✓ מאומתת</span>
+</div>
+    </section>
+
+    <!-- REASON 5 -->
+    <section class="reason rev">
+      <div class="num">5</div>
+      <h2>עובד מצוין גם על זקן ושפם — <em>פתרון לכל הבית</em>
+</h2>
+      <p>אותה נוסחה מכסה שיבה גם בזקן ובשפם תוך כ-5 דקות, עם מראה טבעי בלי "אפקט הצבע" הכהה והמלאכותי.
+        הרבה זוגות קונים ערכה אחת ומשתמשים שניהם.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/a16176e3-356b-4b90-bd7b-907f3fd036ce.webp?v=1786916381" alt="גבר מול המראה — כיסוי שיבה בזקן ושפם" width="1448" height="1086" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+    </section>
+
+    <!-- REASON 6 -->
+    <section class="reason rev">
+      <div class="num">6</div>
+      <h2>פחות מ-₪7 לטיפול — <em>מול ₪150 ומעלה במספרה</em>
+</h2>
+      <p>בקבוק אחד מספיק לעד 30 שימושים. תעשי את החשבון: מי שצובעת במספרה כל שלושה שבועות מוציאה
+        אלפי שקלים בשנה. Nova חוסך עד 70% מההוצאה — ונותן תוצאה טובה יותר לשיער.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/b057e0a2-a225-4286-b0ba-ded19f2d5b56.webp?v=1786916383" alt="המחשת חיסכון: Nova מול מספרה" width="1448" height="1086" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+      <span class="sci">עד 30 שימושים לבקבוק</span>
+    </section>
+
+    <!-- REASON 7 -->
+    <section class="reason rev">
+      <div class="num">7</div>
+      <h2>הסיכון כולו עלינו — <em>60 יום אחריות מלאה</em>
+</h2>
+      <p>נסי את Nova במשך 60 יום. אם השיער שלך לא מרגיש בריא ומכוסה יותר — כל שקל חוזר אלייך,
+        בלי שאלות ובלי טפסים. זו הסיבה ש-98% מהלקוחות נשארות אחרי השימוש הראשון.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/46e42ce7-038b-4930-9108-81f48093f1eb.webp?v=1786916373" alt="Nova Hair — מוצר אמיתי עם 60 יום אחריות" width="1254" height="1254" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:16px;margin:16px 0">
+      <div class="gstrip">🛡️ <b>60 יום אחריות מלאה.</b> לא מרוצה? מקבלת את כל הכסף בחזרה. בלי שאלות.</div>
+    </section>
+
+    <!-- COMMENTS -->
+    <div class="comments rev">
+      <b style="display:block;margin-bottom:6px">💬 מה כותבות עליו</b>
+      <div class="comment">
+<div class="av">ר</div>
+<div class="c">
+<b>רונית ל.</b> <span class="vbadge">✓</span>
+        <p>חיכיתי לראות אם השיבה חוזרת מהר כמו תמיד — עברו 3 שבועות והשורשים עדיין נקיים. מרוצה!</p>
+<small>לפני 2 ימים · 👍 84</small>
+</div>
+</div>
+      <div class="comment">
+<div class="av">ד</div>
+<div class="c">
+<b>דנה פ.</b> <span class="vbadge">✓</span>
+        <p>קניתי לאמא שלי וגנבתי לה 😂 השיער יוצא רך ומבריק, לא יבש כמו מצבע רגיל.</p>
+<small>לפני 5 ימים · 👍 121</small>
+</div>
+</div>
+      <div class="comment">
+<div class="av">א</div>
+<div class="c">
+<b>אבי ט.</b> <span class="vbadge">✓</span>
+        <p>אשתי קנתה לעצמה ובסוף אני משתמש בזה לזקן. נראה טבעי לגמרי, לא "צבוע".</p>
+<small>לפני שבוע · 👍 67</small>
+</div>
+</div>
+    </div>
+
+    <!-- AUTHENTICITY / ANTI-IMITATION -->
+    <div class="authentic rev">
+      <div class="ic">🛡️</div>
+      <div>
+<b>שימי לב — יש מוכרים שמתחזים ל-Nova Hair.</b>
+        <p>המקור נמכר רק דרך החנות הרשמית, עם אחריות יצרן מלאה ל-60 יום ושירות לקוחות ישראלי בוואטסאפ.
+        חיקויים זולים, ללא אחריות וללא שירות, עלולים לפגוע בשיער. ודאי שאת קונה את המקור.</p>
+</div>
+    </div>
+
+    <!-- FINAL CTA -->
+    <div class="midcta rev" style="margin-bottom:30px">
+      <h3>מוכנה לראות איך זה נראה עלייך?</h3>
+      <p>בחרי את הערכה שלך — מבצע ההשקה תקף עד גמר המלאי.</p>
+      <a class="btn" data-next href="https://tigerbrandsglobal.com/pages/novahair-sales">להצעה ולבחירת גוון ‹<small>50% הנחה · משלוח חינם · 60 יום אחריות</small></a>
+    </div>
+
+  </div>
+
+  <div class="foot">Nova Hair · משלוח חינם לכל הארץ · 60 יום אחריות מלאה<br>
+    *תוכן שיווקי. התוצאות משתנות מאדם לאדם ואינן תחליף לייעוץ מקצועי.</div>
+
+</div>
+<script>
+(function(){var r=document.querySelector('.nova');
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+r.querySelectorAll('.rev').forEach(function(el){io.observe(el);});})();
+</script>
+<!--
+  AI IMAGE PROMPTS (data-img) — same warm cream/bronze editorial style, realistic:
+  r1-color-repair: "Macro hair-strand diagram: damaged open cuticle vs smooth sealed nourished cuticle, elegant cream/bronze infographic, premium beauty --ar 4:3"
+  r2-natural: "Close-up of healthy natural brown hair with depth and movement, warm light, realistic, not over-retouched --ar 4:3"
+  r3-shower: "Relaxed woman ~45 washing hair in a bright modern shower, soft natural light, calm spa mood --ar 4:3"
+  r4-gentle: "Natural ingredients (ginseng root, black sesame, fo-ti) beside a dollop of cream shampoo on cream stone, macro --ar 4:3"
+  r5-beard: "Before/after of a man's gray beard becoming natural dark brown, close crop, realistic --ar 4:3"
+  r6-cost: "Clean minimal money-saving visual: small ₪7 coin vs stack of bills ₪150, cream backdrop, editorial --ar 4:3"
+  Avatars are CSS initials — no AI faces needed.
+-->
+
+
+</body>

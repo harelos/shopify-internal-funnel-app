@@ -13,6 +13,7 @@ import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
+import { requireAdminBasicAuth } from "./middleware/basic-auth.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -57,7 +58,7 @@ function serveAdminHtml(req: express.Request, res: express.Response, next: expre
 
 // Serve admin UI static files. The HTML middleware keeps App Bridge usable in
 // Shopify while leaving the local preview fully functional with an empty key.
-app.use("/admin", serveAdminHtml, express.static(adminRoot));
+app.use("/admin", requireAdminBasicAuth, serveAdminHtml, express.static(adminRoot));
 
 // Serve standalone preview static files
 app.use("/preview", express.static(path.join(__dirname, "../../preview")));
@@ -77,6 +78,9 @@ app.get("/api/health", (_req, res) => {
 
 // All admin API routes are protected in hosted mode. Local preview remains
 // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
+// Interim owner gate for the hosted dashboard. /api/health stays public above
+// so the platform health check keeps working.
+app.use("/api", requireAdminBasicAuth);
 app.use("/api", requireShopifySession);
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
@@ -91,7 +95,7 @@ app.get("/", (_req, res) => {
 
 export default app;
 
-const port = Number(process.env.APP_PORT ?? 3000);
+const port = Number(process.env.PORT ?? process.env.APP_PORT ?? 3000);
 app.listen(port, async () => {
   console.log(`\n  Shopify Funnel Builder running at http://localhost:${port}/admin/\n`);
   // Demo data is destructive during a partial seed, so it must be explicitly

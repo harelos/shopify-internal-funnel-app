@@ -9,3 +9,13 @@ app/coverage/
 Thumbs.db
 local-*.png
 .chrome-preview-profile*/
+.codex-tmp/
+**/.codex-tmp/
+live-popup-audit/
+theme-release-worktree/
+theme-sidecart-speed-worktree/
+outputs/
+qa_artifacts/
+app/qa_artifacts/
+app/logs/
+app/__pycache__/

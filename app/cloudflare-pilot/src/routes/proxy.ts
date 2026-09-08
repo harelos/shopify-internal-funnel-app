@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import prisma from "../lib/db.js";
 import { renderSandboxDocument } from "../lib/portability.js";
+import { resolveVisitorId } from "../lib/visitor-identity.js";
 import { selectVariant } from "../services/ab-engine.js";
 
 const router = Router();
@@ -88,8 +89,9 @@ async function serveFunnelPage(req: Request, res: Response) {
       `);
     }
 
-    // Generate/retrieve pseudonymous visitor ID
-    const visitorId = (req.headers["x-visitor-id"] as string) || req.query.vid as string || "v_" + Math.random().toString(36).substring(2, 10);
+    // Durable pseudonymous visitor ID, stable across page loads and steps.
+    // A fresh random token per request re-bucketed the split test every view.
+    const visitorId = resolveVisitorId(req, res);
 
     // Run A/B variant selection algorithm
     const variantId = await selectVariant(step.id, visitorId);
@@ -152,7 +154,10 @@ async function serveFunnelPage(req: Request, res: Response) {
             utm_campaign: utm_campaign
           };
 
-          var vid = localStorage.getItem("_fv") || "${visitorId}";
+          // The server already resolved the durable token and bucketed the
+          // variant with it. Preferring a stale localStorage value here would
+          // report events under a different identity than the one tested.
+          var vid = "${visitorId}";
           localStorage.setItem("_fv", vid);
           document.cookie = "_fv=" + encodeURIComponent(vid) + "; Path=/; SameSite=Lax";
           document.cookie = "_funnel_context=" + encodeURIComponent(JSON.stringify({

@@ -1,7 +1,11 @@
 node_modules/
 .wrangler/
+.codex-tmp/
 coverage/
 *.log
+.env
+.env.*
+!.env.example
 src/generated/
 admin/
 preview/

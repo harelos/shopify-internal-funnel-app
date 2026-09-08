@@ -2,7 +2,10 @@ import { env as cloudflareEnv } from "cloudflare:workers";
 import { Router } from "express";
 import { getShopifyConfig, normalizeShopDomain } from "../lib/shopify-config.js";
 import prisma from "../lib/db.js";
+import { createEventOnce } from "../lib/event-store.js";
+import { findOrCreateVisitor } from "../lib/visitor-store.js";
 import { extractDiscountCodes, extractPopupAttribution } from "../lib/popup-attribution.js";
+import { capturePostHogServerEvent } from "../lib/posthog-server.js";
 import {
   normalizePaidOrderWebhook,
   normalizeShopifyPixelEvent,
@@ -105,7 +108,7 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
     popupUtmSource: popup?.utmSource ?? null,
     popupUtmMedium: popup?.utmMedium ?? null,
     popupUtmCampaign: popup?.utmCampaign ?? null,
-    popupAttributionMethod: popup ? "LINE_ITEM_PROPERTIES" : null,
+    popupAttributionMethod: popup?.method ?? null,
   };
   const order = await prisma.orderAttribution.upsert({
     where: { shopifyOrderGid: event.orderGid! },
@@ -141,10 +144,7 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
     },
   });
 
-  await prisma.event.upsert({
-    where: { eventKey: event.eventKey },
-    update: {},
-    create: {
+  await createEventOnce(event.eventKey, {
       shopId,
       eventKey: event.eventKey,
       name: "purchase",
@@ -155,23 +155,16 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
       checkoutToken: checkout?.checkoutToken ?? null,
       payload: JSON.stringify(event.payload),
       isTest: false,
-    },
   });
 
   if (popup) {
     const popupVisitor = popup.visitorId
-      ? await prisma.visitor.upsert({
-        where: { shopId_anonymousKeyHash: { shopId, anonymousKeyHash: popup.visitorId } },
-        update: {},
-        create: { shopId, anonymousKeyHash: popup.visitorId },
-      })
+      ? await findOrCreateVisitor(shopId, popup.visitorId)
       : null;
-    await prisma.event.upsert({
-      where: { eventKey: `shopify:popup_purchase:${event.orderGid}` },
-      update: {},
-      create: {
+    const popupEventKey = `shopify:popup_purchase:${event.orderGid}`;
+    await createEventOnce(popupEventKey, {
         shopId,
-        eventKey: `shopify:popup_purchase:${event.orderGid}`,
+        eventKey: popupEventKey,
         name: "popup_purchase",
         source: "WEBHOOK",
         occurredAt: event.occurredAt ?? new Date(),
@@ -185,13 +178,29 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
           couponCode: popup.code ?? null,
           hasVisitorAttribution: Boolean(popupVisitor),
           sessionId: popup.sessionId ?? null,
+          conversationId: popup.conversationId ?? null,
+          agent: popup.agent ?? null,
+          trigger: popup.trigger ?? null,
           popupVersion: popup.version ?? null,
           path: popup.page ?? null,
           currency: event.currency,
           revenue: event.grossAmount,
         }),
         isTest: false,
-      },
+    });
+    await capturePostHogServerEvent("popup_purchase", popup.visitorId || event.orderGid!, {
+      source: "novahair_ai_concierge",
+      event_schema_version: 1,
+      event_id: popupEventKey,
+      "$insert_id": popupEventKey,
+      order_id: event.orderGid!,
+      revenue: event.grossAmount!,
+      currency: event.currency!,
+      popupVersion: popup.version || "",
+      trigger: popup.trigger || "",
+      utm_source: popup.utmSource || "",
+      utm_medium: popup.utmMedium || "",
+      utm_campaign: popup.utmCampaign || "",
     });
   }
   return order;
@@ -222,7 +231,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
     popupUtmSource: popup.utmSource ?? existing?.popupUtmSource ?? null,
     popupUtmMedium: popup.utmMedium ?? existing?.popupUtmMedium ?? null,
     popupUtmCampaign: popup.utmCampaign ?? existing?.popupUtmCampaign ?? null,
-    popupAttributionMethod: "LINE_ITEM_PROPERTIES",
+    popupAttributionMethod: popup.method,
   } : {};
   await prisma.orderAttribution.upsert({
     where: { shopifyOrderGid: gid },
@@ -263,7 +272,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       popupUtmSource: popup?.utmSource ?? null,
       popupUtmMedium: popup?.utmMedium ?? null,
       popupUtmCampaign: popup?.utmCampaign ?? null,
-      popupAttributionMethod: popup ? "LINE_ITEM_PROPERTIES" : null,
+      popupAttributionMethod: popup?.method ?? null,
       paidAt: dateValue(payload.processed_at) ?? dateValue(payload.created_at) ?? new Date(),
       cancelledAt: status.cancelledAt,
     },
@@ -383,19 +392,11 @@ router.post("/api/shopify/pixel", async (req, res) => {
   try {
     const shop = await configuredShop();
     if (!shop) return res.status(503).json({ accepted: false, error: "Shopify domain is not configured." });
-    const existing = await prisma.event.findUnique({ where: { eventKey: normalized.value.eventKey } });
-    if (existing) return res.json({ accepted: true, duplicate: true });
-
     let visitor = null;
     if (context.visitorId) {
-      visitor = await prisma.visitor.upsert({
-        where: { shopId_anonymousKeyHash: { shopId: shop.id, anonymousKeyHash: context.visitorId } },
-        update: {},
-        create: { shopId: shop.id, anonymousKeyHash: context.visitorId },
-      });
+      visitor = await findOrCreateVisitor(shop.id, context.visitorId);
     }
-    await prisma.event.create({
-      data: {
+    const eventResult = await createEventOnce(normalized.value.eventKey, {
         shopId: shop.id,
         eventKey: normalized.value.eventKey,
         name: normalized.value.name === "CART_CHECKOUT_STARTED" ? "checkout_started" : "checkout_completed",
@@ -408,8 +409,9 @@ router.post("/api/shopify/pixel", async (req, res) => {
         checkoutToken: normalized.value.checkoutToken ?? null,
         payload: JSON.stringify(normalized.value.payload),
         isTest: false,
-      },
     });
+
+    if (eventResult.duplicate) return res.json({ accepted: true, duplicate: true });
 
     if (normalized.value.checkoutToken && normalized.value.name === "CART_CHECKOUT_STARTED") {
       await prisma.checkoutAttribution.upsert({

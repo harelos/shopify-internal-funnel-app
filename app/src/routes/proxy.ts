@@ -1,9 +1,31 @@
 import { Router } from "express";
+import type { NextFunction, Request, Response } from "express";
 import prisma from "../lib/db.js";
 import { renderSandboxDocument } from "../lib/portability.js";
 import { selectVariant } from "../services/ab-engine.js";
 
 const router = Router();
+
+function routeBasePath(req: Request): string {
+  const configuredProxyPath = String(req.query.path_prefix ?? process.env.SHOPIFY_APP_PROXY_PATH ?? "").replace(/\/+$/, "");
+  if (configuredProxyPath) return configuredProxyPath.startsWith("/") ? configuredProxyPath : `/${configuredProxyPath}`;
+  if (req.path.startsWith("/apps/funnels")) return "/apps/funnels";
+  if (req.path.startsWith("/funnels")) return "/funnels";
+  return "/f";
+}
+
+async function serveFunnelIndex(req: Request, res: Response, next: NextFunction) {
+  if (!req.query.path_prefix && !req.query.signature && req.path === "/") return next();
+
+  const funnel = await prisma.funnel.findFirst({
+    where: { status: "PUBLISHED" },
+    include: { steps: { orderBy: { position: "asc" }, take: 1 } },
+    orderBy: { updatedAt: "desc" },
+  });
+  const firstStep = funnel?.steps[0];
+  if (!funnel || !firstStep) return res.status(404).send("No published funnel found");
+  return res.redirect(`${routeBasePath(req)}/${funnel.slug}/${firstStep.position}`);
+}
 
 // GET /preview/:versionId — Sandboxed HTML preview for variant content editor
 router.get("/preview/:versionId", async (req, res) => {
@@ -26,9 +48,10 @@ router.get("/preview/:versionId", async (req, res) => {
 });
 
 // GET /f/:funnelSlug/:stepPosition — Live Funnel Page Serving with A/B Traffic Splitter & Path Attribution Telemetry
-router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
+async function serveFunnelPage(req: Request, res: Response) {
   try {
-    const { funnelSlug, stepPosition } = req.params;
+    const funnelSlug = String(req.params.funnelSlug ?? "");
+    const stepPosition = String(req.params.stepPosition ?? "");
     const pos = parseInt(stepPosition, 10);
 
     const funnel = await prisma.funnel.findFirst({
@@ -89,11 +112,12 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
 
     // Next step navigation target
     const nextStep = funnel.steps.find(s => s.position === pos + 1);
-    const nextStepUrl = nextStep ? `/f/${funnel.slug}/${nextStep.position}` : `/f/${funnel.slug}/${pos}`;
+    const basePath = routeBasePath(req);
+    const nextStepUrl = nextStep ? `${basePath}/${funnel.slug}/${nextStep.position}` : `${basePath}/${funnel.slug}/${pos}`;
 
     // Downsell / decline step target (#down, #decline-upsell)
     const downsellStep = funnel.steps.find(s => s.position === pos + 2) || nextStep;
-    const downsellUrl = downsellStep ? `/f/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
+    const downsellUrl = downsellStep ? `${basePath}/${funnel.slug}/${downsellStep.position}` : nextStepUrl;
 
     const variantLabel = `${step.name} (${variant?.name || 'Main'})`;
     const trackingEndpoint = JSON.stringify(`${process.env.SHOPIFY_APP_PROXY_PATH || ""}/api/track`.replace(/^\/\/api/, "/api"));
@@ -198,6 +222,13 @@ router.get("/f/:funnelSlug/:stepPosition", async (req, res) => {
   } catch (err: any) {
     res.status(500).send("Proxy Error: " + err.message);
   }
-});
+}
+
+router.get("/", serveFunnelIndex);
+router.get("/funnels", serveFunnelIndex);
+router.get("/apps/funnels", serveFunnelIndex);
+router.get("/f/:funnelSlug/:stepPosition", serveFunnelPage);
+router.get("/funnels/:funnelSlug/:stepPosition", serveFunnelPage);
+router.get("/apps/funnels/:funnelSlug/:stepPosition", serveFunnelPage);
 
 export default router;

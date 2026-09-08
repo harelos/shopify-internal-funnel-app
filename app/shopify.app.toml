@@ -1,30 +1,32 @@
-# Custom Distribution configuration. Fill the client_id and public HTTPS URL
-# in the Shopify Dev Dashboard before deploying. An Admin-created custom app
-# cannot be embedded with App Bridge.
-client_id = "REPLACE_WITH_DEV_DASHBOARD_CLIENT_ID"
-name = "Funnel Control Internal"
-application_url = "https://REPLACE_WITH_PUBLIC_APP_HOST"
-embedded = true
+# Function-only app. It exists purely to host the NovaHair cart-transform
+# extension, so there is no embedded admin UI, no app proxy, and no webhooks.
+# The old template's REPLACE_WITH_PUBLIC_APP_HOST placeholders were not valid
+# URLs and failed CLI validation.
+client_id = "39867daa4a13db67ffcb0a590fca6711"
+name = "NovaHair Fulfillment"
+application_url = "https://oauth-helper-production-90b4.up.railway.app"
+embedded = false
 
 [build]
-automatically_update_urls_on_dev = false
-include_config_on_deploy = false
+# `shopify app dev` creates a temporary tunnel and must be allowed to point the
+# app at it, otherwise the OAuth install fails against the .invalid placeholder.
+automatically_update_urls_on_dev = true
 
 [access_scopes]
-scopes = "read_orders,read_reports,read_pixels,write_app_proxy,write_pixels,read_customer_events"
+# The cart-transform plan was abandoned: CJ's createOrderV2 accepts raw
+# {vid, quantity} components, so we decode the bundle SKU ourselves and never
+# need Shopify to split lines. What we DO need from this app is protected
+# customer data - a store-admin custom app cannot read a customer's name,
+# address or phone on Basic, but a Partner Dashboard custom app can.
+scopes = "read_orders,read_customers,read_products,read_fulfillments,write_merchant_managed_fulfillment_orders,read_cart_transforms,write_cart_transforms"
+# Legacy OAuth is deliberate. Shopify-managed install DOES install the app, but
+# it never hands us an access token we can read, and cartTransformCreate must be
+# called by the app that owns the function. The Railway helper at
+# application_url exists solely to complete this callback and surface that token.
+use_legacy_install_flow = true
 
-[app_proxy]
-url = "https://REPLACE_WITH_PUBLIC_APP_HOST"
-subpath = "funnels"
-prefix = "apps"
+[auth]
+redirect_urls = [ "https://oauth-helper-production-90b4.up.railway.app/auth/callback" ]
 
 [webhooks]
-api_version = "2026-07"
-
-[[webhooks.subscriptions]]
-topics = ["orders/paid", "orders/updated"]
-uri = "https://REPLACE_WITH_PUBLIC_APP_HOST/webhooks/shopify"
-
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "https://REPLACE_WITH_PUBLIC_APP_HOST/webhooks/shopify"
+api_version = "2025-07"

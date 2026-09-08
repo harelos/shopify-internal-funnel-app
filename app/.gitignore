@@ -1,6 +1,10 @@
 node_modules/
 dist/
 .env
+.cj_token_cache.json
+recipient_supplement.json
+cj_rescue_batch_*.json
+preflight_report_*.json
 *.db
 coverage/
 cloudflared.exe

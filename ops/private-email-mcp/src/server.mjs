@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
+import nodemailer from 'nodemailer';
 import { z } from 'zod';
 
 const CONFIG = {
@@ -9,6 +10,8 @@ const CONFIG = {
   password: process.env.NAMECHEAP_PRIVATE_EMAIL_PASSWORD,
   host: process.env.NAMECHEAP_IMAP_HOST || 'mail.privateemail.com',
   port: Number(process.env.NAMECHEAP_IMAP_PORT || 993),
+  smtpHost: process.env.NAMECHEAP_SMTP_HOST || 'mail.privateemail.com',
+  smtpPort: Number(process.env.NAMECHEAP_SMTP_PORT || 465),
 };
 
 function requireConfig() {
@@ -25,6 +28,17 @@ function createClient() {
     secure: true,
     auth: { user: CONFIG.user, pass: CONFIG.password },
     logger: false,
+  });
+}
+
+function createSmtpTransport() {
+  requireConfig();
+  return nodemailer.createTransport({
+    host: CONFIG.smtpHost,
+    port: CONFIG.smtpPort,
+    secure: CONFIG.smtpPort === 465,
+    requireTLS: CONFIG.smtpPort === 587,
+    auth: { user: CONFIG.user, pass: CONFIG.password },
   });
 }
 
@@ -101,6 +115,69 @@ server.registerTool(
 );
 
 server.registerTool(
+  'email_smtp_profile',
+  {
+    description: 'Verify the configured Namecheap Private Email SMTP connection without sending a message.',
+    inputSchema: {},
+  },
+  async () => {
+    const transport = createSmtpTransport();
+    await transport.verify();
+    transport.close();
+    return textResult({
+      connected: true,
+      provider: 'Namecheap Private Email',
+      username: CONFIG.user,
+      smtpHost: CONFIG.smtpHost,
+      smtpPort: CONFIG.smtpPort,
+      secure: CONFIG.smtpPort === 465,
+      messageSent: false,
+    });
+  },
+);
+
+server.registerTool(
+  'email_send',
+  {
+    description: 'Send one email through Namecheap Private Email SMTP. Requires an explicit confirmation flag for every call.',
+    inputSchema: {
+      to: z.string().email(),
+      subject: z.string().min(1),
+      text: z.string().min(1),
+      html: z.string().optional(),
+      replyTo: z.string().email().optional(),
+      inReplyTo: z.string().optional().describe('Original RFC Message-ID when replying inside an existing thread.'),
+      references: z.array(z.string()).optional().describe('RFC Message-IDs to preserve the original thread.'),
+      confirmSend: z.literal(true).describe('Must be true to authorize this individual send.'),
+    },
+  },
+  async ({ to, subject, text, html, replyTo, inReplyTo, references }) => {
+    const transport = createSmtpTransport();
+    try {
+      const info = await transport.sendMail({
+        from: CONFIG.user,
+        to,
+        subject,
+        text,
+        ...(html ? { html } : {}),
+        ...(replyTo ? { replyTo } : {}),
+        ...(inReplyTo ? { inReplyTo } : {}),
+        ...(references?.length ? { references } : {}),
+      });
+      return textResult({
+        sent: true,
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        response: info.response,
+      });
+    } finally {
+      transport.close();
+    }
+  },
+);
+
+server.registerTool(
   'email_folders',
   {
     description: 'List available mail folders in the connected Namecheap mailbox.',
@@ -129,7 +206,7 @@ server.registerTool(
       ...(dateFrom ? { since: new Date(dateFrom) } : {}),
       ...(dateTo ? { before: new Date(dateTo) } : {}),
     };
-    const uids = await client.search(criteria, { uid: true });
+    const uids = (await client.search(criteria, { uid: true })) || [];
     const selected = uids.slice(-limit).reverse();
     const rows = [];
     for await (const message of client.fetch(selected, { envelope: true, flags: true, internalDate: true, size: true }, { uid: true })) {

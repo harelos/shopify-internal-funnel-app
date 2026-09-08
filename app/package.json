@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "npx prisma db push --skip-generate && npx prisma generate && tsx watch src/server.ts",
+    "start": "node --import tsx src/server.ts",
     "db:push": "prisma db push",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
@@ -16,16 +17,17 @@
     "test": "node --import tsx --test test/shopify-config.test.ts test/shopify-integration.test.ts test/analytics-contract.test.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "6.12.0",
+    "@shopify/shopify_function": "~2.0.0",
     "dotenv": "^16.6.1",
-    "express": "^5.0.1"
+    "express": "^5.0.1",
+    "prisma": "6.12.0",
+    "tsx": "4.23.12"
   },
   "devDependencies": {
     "@shopify/web-pixels-extension": "^2.18.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
-    "prisma": "^6.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
 }

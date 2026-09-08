@@ -1,0 +1,882 @@
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800;900&amp;display=swap&amp;subset=hebrew" rel="stylesheet"><style>
+.nova, .nova *, .nova *::before, .nova *::after {
+  box-sizing: border-box;
+  font-family: 'Open Sans', 'Arial Hebrew', Arial, system-ui, -apple-system, sans-serif !important;
+  direction: rtl;
+}
+.nova {
+  --ink: #2B2420;
+  --ink-soft: #5C5048;
+  --ink-mute: #8B7E73;
+  --cream: #F7F1EA;
+  --cream-2: #EFE5D8;
+  --cream-3: #E4D6C4;
+  --bronze: #D36D37;
+  --bronze-dk: #B85F24;
+  --bronze-soft: #F6E3D4;
+  --gold: #C29A4A;
+  --green: #54856C;
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+.nova img { max-width: 100%; display: block; height: auto; }
+.nova .wrap { max-width: 740px; margin: 0 auto; padding: 0 18px; }
+.nova h1, .nova h2, .nova h3 { margin: 0 0 .5em; line-height: 1.25; font-weight: 800; text-align: right; color: #171717; }
+.nova p { margin: 0 0 1.1em; text-align: right; line-height: 1.75; color: #3D3631; }
+
+/* Editorial Masthead */
+.nova .editorial-masthead {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E8DFD5;
+  padding: 16px 18px;
+  text-align: center;
+}
+.nova .editorial-masthead__brand {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #1A1A1A;
+  text-transform: uppercase;
+  margin: 0;
+}
+.nova .editorial-masthead__sub {
+  font-size: 12px;
+  color: #8A776A;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Article Sub-nav & Disclosure */
+.nova .article-meta-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 18px;
+  border-bottom: 1px solid #EADFD4;
+  margin-bottom: 24px;
+}
+.nova .article-breadcrumb {
+  font-size: 12px;
+  color: #6B625B;
+  font-weight: 500;
+  text-align: right;
+}
+.nova .article-disclosure {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8A776A;
+  text-align: left;
+}
+
+/* H1 Headline */
+.nova .article-title {
+  text-align: right;
+  color: #171717;
+  font-weight: 800;
+  font-size: clamp(28px, 4.5vw, 42px);
+  line-height: 1.22;
+  margin: 0 0 20px;
+}
+
+/* Author / Metadata Row */
+.nova .article-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  direction: rtl;
+  text-align: right;
+  padding: 14px 18px;
+  background: #FFFFFF;
+  border: 1px solid #E8DFD5;
+  border-radius: 12px;
+  margin-bottom: 22px;
+}
+.nova .article-author__avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 46px;
+  border: 2px solid #E8DFD5;
+  background: #EFE5D8;
+}
+.nova .article-author__avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 48% 30%;
+}
+.nova .article-author__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.nova .article-author__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.nova .article-author__date {
+  font-size: 12px;
+  color: #7A6F66;
+}
+.nova .article-author__rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2B2420;
+  margin-top: 2px;
+}
+
+/* Main Hero Image (Batch 8 / Asset 9) */
+.nova .article-hero {
+  width: 100%;
+  max-width: 880px;
+  margin: 22px auto 28px;
+  padding: 0;
+}
+.nova .article-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(43,36,32,.06);
+}
+.nova .article-hero figcaption {
+  margin-top: 8px;
+  color: #7A6F67;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: right;
+  direction: rtl;
+}
+
+/* Reusable Editorial Article Visual & Captions */
+.nova .article-visual {
+  width: 100%;
+  max-width: 760px;
+  margin: 18px auto 24px;
+  padding: 0;
+}
+.nova .article-visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(43,36,32,.04);
+}
+.nova .article-visual figcaption {
+  margin-top: 8px;
+  color: #7A6F67;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: right;
+  direction: rtl;
+}
+
+/* Opening Lead with Orange Accent */
+.nova .article-lead {
+  margin: 24px 0 32px;
+  padding-right: 18px;
+  border-right: 4px solid var(--bronze);
+  color: #36312E;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.75;
+  text-align: right;
+}
+.nova .article-lead p:last-child { margin-bottom: 0; }
+
+/* Reason Sections */
+.nova .reason {
+  background: #FFFFFF;
+  border: 1px solid var(--cream-3);
+  border-radius: 16px;
+  padding: 26px 24px;
+  margin: 0 0 28px;
+  box-shadow: 0 4px 16px rgba(43,36,32,.03);
+}
+.nova .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bronze);
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+.nova .badge-bonus {
+  width: auto;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  background: var(--ink);
+}
+.nova .sci {
+  display: block;
+  font-size: 0.84rem;
+  color: #7A6F66;
+  border-top: 1px solid #EFE5D8;
+  padding-top: 10px;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   PROGRESSIVE EDITORIAL CTAS (CENTERED + WARM-DARK PALETTE)
+   ============================================================ */
+
+.nova .editorial-cta {
+  text-align: center;
+  margin-inline: auto;
+}
+
+/* CTA 1: Soft Centered Editorial Text Link */
+.nova .editorial-cta--soft {
+  max-width: 620px;
+  margin: 28px auto 36px;
+  text-align: center;
+}
+.nova .editorial-cta--soft .editorial-cta__intro {
+  margin: 0 0 7px;
+  color: #574B43;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  text-align: center;
+}
+.nova .editorial-cta--soft .editorial-cta__link {
+  display: inline-block;
+  padding: 5px 2px;
+  color: #C9652F;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 160ms ease;
+}
+.nova .editorial-cta--soft .editorial-cta__link:hover {
+  color: #A95025;
+}
+
+/* Summary Section (Clean Editorial List) */
+.nova .editorial-summary-section {
+  margin: 32px 0 36px;
+  text-align: right;
+}
+.nova .editorial-summary__title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #171717;
+  margin: 0 0 4px;
+  text-align: right;
+}
+.nova .editorial-summary__subtitle {
+  color: #7A6F66;
+  font-size: 0.95rem;
+  margin: 0 0 14px;
+  text-align: right;
+}
+.nova .article-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 22px;
+  padding: 0;
+  list-style: none;
+}
+.nova .article-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #2F2925;
+  line-height: 1.5;
+}
+.nova .article-summary-item svg {
+  width: 18px;
+  height: 18px;
+  color: #54856C;
+  flex-shrink: 0;
+}
+
+/* CTA 2: Centered Warm-Dark Editorial Button with Subtle Accent Border */
+.nova .editorial-cta--mid {
+  text-align: center;
+  margin: 26px auto 38px;
+}
+.nova .editorial-cta--mid .editorial-cta__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 1px solid rgba(224, 122, 40, .55);
+  border-radius: 7px;
+  background: #332720;
+  color: #FFFFFF !important;
+  text-decoration: none !important;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0,0,0,.07);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.nova .editorial-cta--mid .editorial-cta__button:hover {
+  background: #261D18;
+  border-color: #D8753D;
+  transform: translateY(-1px);
+}
+
+/* Final Concluding Section & CTA 3: Centered Strong Warm-Dark Button with Brand Orange Border */
+.nova .editorial-final-close {
+  margin: 32px 0 38px;
+  text-align: right;
+}
+.nova .editorial-final-close__title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #171717;
+  line-height: 1.35;
+  margin: 0 0 10px;
+  text-align: right;
+}
+.nova .editorial-final-close__text {
+  font-size: 16px;
+  color: #3D3631;
+  line-height: 1.75;
+  margin: 0 0 20px;
+  text-align: right;
+}
+.nova .editorial-cta--final {
+  max-width: 620px;
+  margin: 28px auto 36px;
+  text-align: center;
+}
+.nova .editorial-cta--final .editorial-cta__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 14px 30px;
+  border: 1px solid #D8753D;
+  border-radius: 7px;
+  background: #2F241E;
+  color: #FFFFFF !important;
+  text-decoration: none !important;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 5px 14px rgba(0,0,0,.09);
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.nova .editorial-cta--final .editorial-cta__button:hover {
+  background: #201C19;
+  border-color: #F07A32;
+  transform: translateY(-1px);
+}
+.nova .editorial-cta__microcopy {
+  margin-top: 8px;
+  color: #7A6F67;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Inline Quote Card */
+.nova .quote {
+  background: #FAF7F2;
+  border-right: 4px solid var(--bronze);
+  border-radius: 0 12px 12px 0;
+  padding: 16px 18px;
+  margin: 20px 0;
+  font-size: 0.95rem;
+}
+.nova .quote p { margin: 0 0 8px; font-style: italic; color: #36312E; }
+.nova .quote-author {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nova .quote-verified {
+  color: var(--green);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Standalone Editorial Proof Break (Asset 2) */
+.nova .article-proof-break {
+  margin: 38px auto 34px;
+}
+.nova .article-proof-break__title {
+  max-width: 760px;
+  margin: 0 auto 12px;
+  color: #2F2A26;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: right;
+}
+
+/* Testimonials in Reason 6 / Section 15 */
+.nova .testim-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+.nova .testim-card {
+  background: #FFFFFF;
+  border: 1px solid var(--cream-3);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 12px rgba(43,36,32,.03);
+}
+.nova .testim-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.nova .testimonial-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 48px;
+  border: 2px solid #E8DFD5;
+}
+.nova .testim-user-info {
+  display: flex;
+  flex-direction: column;
+}
+.nova .testim-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nova .testim-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+.nova .testim-verified {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.nova .testim-meta {
+  font-size: 11px;
+  color: #8A776A;
+  margin-top: 2px;
+}
+.nova .testim-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #3D3631;
+  margin: 0;
+}
+
+/* Official-Site Trust Box (Dark Brown - High Contrast) */
+.nova .authentic {
+  background: #2F241E !important;
+  border-radius: 16px !important;
+  padding: 24px 26px !important;
+  margin: 28px 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+}
+.nova .authentic .ic-svg {
+  width: 32px !important;
+  height: 32px !important;
+  color: #F28A4B !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+}
+.nova .official-site-trust-box__title {
+  font-size: 1.1rem !important;
+  font-weight: 800 !important;
+  color: #FFFFFF !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+}
+.nova .official-site-trust-box__text {
+  font-size: 0.94rem !important;
+  color: #F5EEE8 !important;
+  margin: 0 0 10px !important;
+  line-height: 1.7 !important;
+}
+.nova .official-site-trust-box__verified {
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  color: #F07A32 !important;
+  display: inline-block !important;
+}
+
+/* Footer */
+.nova .foot {
+  border-top: 1px solid #E8DFD5;
+  padding: 28px 18px 40px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #7A6F66;
+  line-height: 1.6;
+}
+
+/* Fade-in Animation */
+.nova .rev {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.nova .rev.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Mobile Rules */
+@media (max-width: 749px) {
+  .nova .wrap { padding: 0 16px; }
+  .nova .article-title { font-size: 30px; line-height: 1.22; }
+  .nova .article-hero { width: 100%; margin: 16px auto 20px; }
+  .nova .article-visual { width: 100%; margin: 14px auto 20px; }
+  .nova .article-hero img, .nova .article-visual img { border-radius: 10px; }
+  .nova .article-hero figcaption, .nova .article-visual figcaption { margin-top: 6px; font-size: 12px; line-height: 1.5; }
+  .nova .article-author__avatar { width: 44px; height: 44px; flex-basis: 44px; }
+  .nova .article-author__avatar img { object-position: 48% 30%; }
+  .nova .reason { padding: 20px 16px; }
+  .nova .reason h2 { font-size: 22px; line-height: 1.3; }
+  .nova .article-lead { font-size: 17px; line-height: 1.7; padding-right: 14px; }
+  .nova .official-site-trust-box { padding: 20px 18px !important; }
+  .nova .official-site-trust-box__text { font-size: 14px !important; line-height: 1.75 !important; }
+  
+  /* Mobile CTAs */
+  .nova .editorial-cta { width: 100%; text-align: center; }
+  .nova .editorial-cta--soft { margin: 24px auto 30px; }
+  .nova .editorial-cta--soft .editorial-cta__intro { font-size: 14px; text-align: center; }
+  .nova .editorial-cta--soft .editorial-cta__link { font-size: 15px; line-height: 1.5; text-align: center; }
+  .nova .editorial-cta--mid .editorial-cta__button { width: 100%; min-height: 52px; padding-inline: 16px; font-size: 16px; }
+  .nova .editorial-cta--final .editorial-cta__button { width: 100%; min-height: 54px; padding-inline: 16px; font-size: 16px; }
+  .nova .editorial-cta__microcopy { text-align: center; }
+  .nova .editorial-final-close__title { font-size: 22px; }
+}
+</style><div class="nova">
+
+  <!-- 1. Editorial Masthead -->
+  <header class="editorial-masthead">
+    <div class="editorial-masthead__brand">THE BEAUTY DESK</div>
+    <div class="editorial-masthead__sub">מגזין טיפוח ויופי</div>
+  </header>
+
+  <div class="wrap">
+
+    <!-- 2. Breadcrumb & Sponsored Disclosure -->
+    <div class="article-meta-nav">
+      <div class="article-breadcrumb">ראשי › טיפוח ויופי › מדריך לשיער לבן</div>
+      <div class="article-disclosure">תוכן שיווקי בשיתוף NovaHair</div>
+    </div>
+
+    <!-- 3. Main H1 Headline -->
+    <h1 class="article-title">7 סיבות שנשים עם שורשים לבנים עוברות ל-NovaHair במקום לשרוף כסף במספרה</h1>
+
+    <!-- 4. Author & Meta Row (profiles of the news reporter / 5) -->
+    <div class="article-author">
+      <div class="article-author__avatar">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/reporter_naama_levy.png?v=1787201561" alt="נעמה לוי" width="1672" height="941" loading="lazy" decoding="async">
+      </div>
+      <div class="article-author__info">
+        <div class="article-author__name">מאת: נעמה לוי</div>
+        <div class="article-author__date">עודכן לאחרונה: היום · זמן קריאה: כ־3 דקות</div>
+        <div class="article-author__rating">
+          <div class="stars-wrap" style="display:inline-flex;gap:2px;align-items:center;">
+<svg viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+          <span>4.8 · 9,232 דירוגים</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Main Hero Image (Batch 8 / Asset 9) -->
+    <figure class="article-hero">
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_9.png?v=1787202358" alt="אישה מול המראה בודקת שורשים לבנים" width="1672" height="941" loading="eager" fetchpriority="high" decoding="async">
+      <figcaption>
+        הרגע המוכר מול המראה: השיער עוד נראה מצוין, אבל הפס בשורש כבר מתחיל לחזור.
+      </figcaption>
+    </figure>
+
+    <!-- 6. Opening Lead -->
+    <div class="article-lead">
+      <p>השיער הלבן תמיד חוזר מהר מדי. לפעמים עוד לפני שהספקת ליהנות מהצבע, כבר מציץ פס לבן מעצבן בשביל, ברקות או בקו המצח.</p>
+      <p>NovaHair פותח בדיוק לרגע הזה: כיסוי מהיר ומדויק של השורשים בבית, עם תוצאה טבעית בטיפול של כ־10 דקות בלבד.</p>
+      <p>אז למה יותר ויותר נשים בוחרות בו בין צביעה לצביעה? הנה 7 הסיבות המרכזיות.</p>
+    </div>
+
+    <!-- 7. REASON 1 (Batch 8 / Asset 8) -->
+    <section class="reason rev">
+      <span class="badge">1</span>
+      <h2>נמנע מ"אפקט הקסדה": נטמע בשיער במקום להיראות כמו גוש צבע</h2>
+      <p>בצביעת שורשים ביתית, החשש הגדול הוא לא רק אם הלבן ייעלם. הפחד האמיתי הוא שהתוצאה תצא כהה, כבדה וחסרת חיים. NovaHair פותח כדי להשתלב ישירות עם צבע הבסיס של השיער, כך שהגוון נשאר עשיר, בעל עומק ונראה טבעי לחלוטין.</p>
+      <span class="sci">כיסוי שורשים מדויק · השתלבות מושלמת עם גוון הבסיס</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_8.png?v=1787202355" alt="תוצאה טבעית של חידוש שורשים" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          המטרה היא לא רק לכסות את הלבן — אלא שהשורש החדש ישתלב בשיער שכבר יש לך.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 8. REASON 2 (Batch 8 / Asset 7) -->
+    <section class="reason rev">
+      <span class="badge">2</span>
+      <h2>10 דקות במקלחת במקום לתכנן יום שלם סביב תור למספרה</h2>
+      <p>בלי לחפש תור שבועות מראש, להיתקע בפקקים, לחפש חניה ולשבת שעות בהמתנה. פשוט מורחים על האזורים שצריכים כיסוי, ממתינים 10 דקות בלבד ושוטפים. זה הופך את תחזוקת השורשים ממבצע מעייף לפעולה פשוטה שלוקחת כמה דקות בשגרה.</p>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_7.png?v=1787202352" alt="חידוש שורשים בבית כחלק משגרת הבוקר" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          חידוש השורשים נכנס לשגרת הבוקר, במקום להפוך לעוד משימה של חצי יום.
+        </figcaption>
+      </figure>
+
+      <!-- Inline Testimonial -->
+      <div class="quote">
+        <p>"פעם ראשונה שצבעתי בבית בלי שהעיניים שורפות ובלי ריח מחניק. הגוון יצא כל כך טבעי שהספרית שלי הייתה בטוחה שעשיתי טיפול מקצועי."</p>
+        <div class="quote-author">
+          <span>שירה כ., בת 38, ראשון לציון</span>
+          <span class="quote-verified">✓ קונה מאומתת</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. CTA 1 (SOFT CENTERED EDITORIAL TEXT LINK) -->
+    <div class="editorial-cta editorial-cta--soft rev">
+      <p class="editorial-cta__intro">רוצה לראות איזה גוון מתאים לך?</p>
+      <a class="editorial-cta__link" data-placement="mid1" href="https://tigerbrandsglobal.com/pages/novahair-sales">
+        לצפייה בגוונים ובמארזים בעמוד הרשמי ›
+      </a>
+    </div>
+
+    <!-- 10. REASON 3 (Batch 8 / Asset 6) -->
+    <section class="reason rev">
+      <span class="badge">3</span>
+      <h2>Micro-Color Sphere™: פיגמנט שעוטף את השערה, לא אוטם אותה</h2>
+      <p>כאן טמון הסוד לתוצאה הטבעית. טכנולוגיית Micro-Color Sphere™ מפזרת מיקרו-חלקיקי צבע לאורך מעטפת השערה, כך שהכיסוי נבנה בשכבה דקה שמתמזגת עם צבע השיער הקיים במקום לאטום אותו בצבע גס. התוצאה היא ברק, רכות ומראה שלא מסגיר צביעה ביתית.</p>
+      <span class="sci">ננו-פיגמנטציה מדויקת · שמירה מלאה על סיב השערה</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_6.png?v=1787202350" alt="הדמיית Micro-Color Sphere על סיב השערה" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          הרעיון: לבנות כיסוי לאורך השערה, במקום מראה כהה ושטוח שיושב מעליה.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 11. REASON 4 (Batch 8 / Asset 5) -->
+    <section class="reason rev">
+      <span class="badge">4</span>
+      <h2>הרבה מעבר לצבע: פורמולה צמחית שמזינה ומרככת את השיער</h2>
+      <p>NovaHair לא רק מעניק צבע עמוק. הפורמולה נטולת האמוניה מועשרת בתמציות Fo-Ti, ג'ינסנג קוריאני ושומשום שחור, כדי להעניק בוסט של לחות, ברק ומגע משי כבר בזמן הטיפול. כך שהתחזוקה השוטפת לא מייבשת את השיער ולא פוגעת בקרקפת.</p>
+      <span class="sci">רמת חומציות מאוזנת pH 5.5 · ללא תחושת גירוי</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_5.png?v=1787202347" alt="רכיבים בוטניים בפורמולת NovaHair" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          שמנים ותמציות בוטניות משלימים את פעולת הצביעה בתחושת טיפוח, רכות וברק.
+        </figcaption>
+      </figure>
+      <p style="margin-top:14px;margin-bottom:0;">וזה בדיוק מה שהופך את NovaHair לפתרון אידיאלי שמשתלב בקלות בשגרה, בלי בלגן ובלי נזקים.</p>
+    </section>
+
+    <!-- 12. CLEAN EDITORIAL SUMMARY & CTA 2 (CENTERED WARM-DARK BUTTON) -->
+    <div class="editorial-summary-section rev">
+      <h3 class="editorial-summary__title">בשורה התחתונה</h3>
+      <p class="editorial-summary__subtitle">NovaHair בקצרה:</p>
+      <ul class="article-summary-list">
+        <li class="article-summary-item">
+          <svg viewbox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+          <span><strong>כ־10 דקות בלבד:</strong> טיפול קל ומהיר בבית</span>
+        </li>
+        <li class="article-summary-item">
+          <svg viewbox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+          <span><strong>5 גוונים:</strong> להתאמה מדויקת לצבע שלך</span>
+        </li>
+        <li class="article-summary-item">
+          <svg viewbox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+          <span><strong>עד 30 טיפולים:</strong> בבקבוק אחד מרוכז</span>
+        </li>
+        <li class="article-summary-item">
+          <svg viewbox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+          <span><strong>60 יום:</strong> אחריות מלאה ללא סיכון</span>
+        </li>
+      </ul>
+      <div class="editorial-cta editorial-cta--mid">
+        <a class="editorial-cta__button" data-placement="mid2" href="https://tigerbrandsglobal.com/pages/novahair-sales">
+          לבדיקת הגוון והחבילות בעמוד הרשמי ›
+        </a>
+      </div>
+    </div>
+
+    <!-- 13. REASON 5 (Batch 8 / Asset 4) -->
+    <section class="reason rev">
+      <span class="badge">5</span>
+      <h2>5 גוונים מותאמים, כדי שהכיסוי ייראה בדיוק כמו הצבע המקורי שלך</h2>
+      <p>שורשים לבנים דורשים דיוק ולא גוון "ליד". NovaHair מגיע ב־5 גוונים שפותחו במיוחד להשתלבות חלקה עם צבע הבסיס: שחור, חום כהה, חום בהיר, אדום וסגול. בוחרים את הגוון הקרוב ביותר לשיער שלך, ומחדשים בדיוק את האזורים שצריכים רענון.</p>
+      <span class="sci">שחור · חום כהה · חום בהיר · אדום · סגול</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_4.png?v=1787202344" alt="מבחר גווני שיער של NovaHair" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          לא כל חום נראה אותו דבר — התאמת הגוון לצבע הבסיס היא חלק מההבדל בתוצאה.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 14. BEARD BONUS -->
+    <section class="reason rev" style="border-right: 4px solid var(--ink);">
+      <span class="badge badge-bonus">בונוס קטן:</span>
+      <h2>מתאים בצורה מושלמת גם לזקן ולשפם</h2>
+      <p>יש בבית מישהו עם שיער לבן בזקן או בשפם? אותו NovaHair עובד מצוין גם שם. אין צורך לרכוש מוצר צבע נוסף ונפרד רק בשביל כמה נגיעות לבנות.</p>
+      <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/a16176e3-356b-4b90-bd7b-907f3fd036ce.webp?v=1786916381" alt="כיסוי שערות שיבה בזקן ובשפם" class="reason-img" loading="lazy">
+      <span class="sci">כיסוי מדויק לזקן ולשפם · ללא מריחות וללא כתמים על העור</span>
+    </section>
+
+    <!-- 15. REASON 6 (Batch 8 / Asset 3) -->
+    <section class="reason rev">
+      <span class="badge">6</span>
+      <h2>הלבן יחזור, אבל אין שום סיבה לשלם מאות שקלים בכל פעם מחדש</h2>
+      <p>עוד תור, עוד נסיעה ועוד חשבון שנפתח ב-₪150 ומעלה במספרה. ההוצאה הזו מצטברת לאלפי שקלים בשנה. בקבוק NovaHair מספק עד 30 טיפולי שורשים מלאים, כך שאפשר לרענן את הצבע בדיוק כשצריך, בזמן שלך, ובשבריר מהמחיר של ביקור במספרה.</p>
+      <span class="sci">עד 30 טיפולי שורשים לבקבוק · חבילות החל מ־₪189 · משלוח חינם</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_3.png?v=1787202341" alt="NovaHair לשימוש ביתי וחיסכון בביקורים במספרה" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          כשחידוש השורשים עובר הביתה, לא כל הופעה של הלבן דורשת תור חדש.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 16. TESTIMONIALS (3 UPGRADED PROFILE CARDS) -->
+    <section class="reason rev" style="background:#FAF7F2;">
+      <span class="sci" style="border:0;padding:0;margin:0 0 6px;color:var(--bronze);font-size:0.85rem;">מה אומרים אחרי שמנסים בבית?</span>
+      <h2>בסופו של דבר, התוצאה צריכה לעבור את מבחן המראה</h2>
+      <p style="color:var(--ink-soft);font-size:0.95rem;">לא הבטחות גדולות. פשוט החוויה של לקוחות שכבר הכניסו את NovaHair לשגרה שלהן.</p>
+
+      <div class="testim-grid">
+        <!-- Testimonial 1: Ronit (Image 2) -->
+        <article class="testim-card">
+          <div class="testim-header">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/testimonial_avatar_ronit.png?v=1787199413" alt="רונית ל." class="testimonial-avatar" width="48" height="48" loading="lazy">
+            <div class="testim-user-info">
+              <div class="testim-name-row">
+                <span class="testim-name">רונית ל.</span>
+                <span class="testim-verified">✓ קונה מאומתת</span>
+              </div>
+              <span class="testim-meta">לפני יומיים · 84 לייקים</span>
+            </div>
+          </div>
+          <p class="testim-text">"חיכיתי לראות תוך כמה זמן השורשים יציצו שוב. עברו כמעט חודש והשיער עדיין נראה מעולה ומכוסה לגמרי. פשוט תענוג!"</p>
+        </article>
+
+        <!-- Testimonial 2: Dana (Image 3) -->
+        <article class="testim-card">
+          <div class="testim-header">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/testimonial_avatar_dana.png?v=1787199416" alt="דנה פ." class="testimonial-avatar" width="48" height="48" loading="lazy">
+            <div class="testim-user-info">
+              <div class="testim-name-row">
+                <span class="testim-name">דנה פ.</span>
+                <span class="testim-verified">✓ קונה מאומתת</span>
+              </div>
+              <span class="testim-meta">לפני 5 ימים · 121 לייקים</span>
+            </div>
+          </div>
+          <p class="testim-text">"הזמנתי לאמא וניסיתי בעצמי על השביל. השיער יצא סופר רך ומבריק, בלי היובש והקשיחות של צבע רגיל."</p>
+        </article>
+
+        <!-- Testimonial 3: Avi (Image 1 - Masculine קונה מאומת) -->
+        <article class="testim-card">
+          <div class="testim-header">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/testimonial_avatar_avi.png?v=1787199411" alt="אבי ט." class="testimonial-avatar" width="48" height="48" loading="lazy">
+            <div class="testim-user-info">
+              <div class="testim-name-row">
+                <span class="testim-name">אבי ט.</span>
+                <span class="testim-verified">✓ קונה מאומת</span>
+              </div>
+              <span class="testim-meta">לפני שבוע · 67 לייקים</span>
+            </div>
+          </div>
+          <p class="testim-text">"אשתי הזמינה לעצמה ולקחתי קצת לזקן. כיסה את כל הלבן תוך כמה דקות ובלי להשאיר כתמי צבע על הפנים."</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 17. STANDALONE EDITORIAL PROOF / AFTER BREAK (Batch 8 / Asset 2) -->
+    <section class="article-proof-break rev">
+      <h3 class="article-proof-break__title">איך זה נראה אחרי?</h3>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_2.png?v=1787202339" alt="תוצאה לאחר חידוש שורשים מול המראה" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          החלק שמרגישים במראה: השורש חוזר להיראות חלק מהשיער, ולא הדבר הראשון שרואים.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 18. REASON 7 (Batch 8 / Asset 1) -->
+    <section class="reason rev">
+      <span class="badge">7</span>
+      <h2>60 ימי התנסות ללא סיכון: תראי את התוצאה מול המראה שלך</h2>
+      <p>צבע לשיער לא בוחרים רק לפי תמונות במסך – צריך לראות אותו בפועל על השיער שלך. לכן כל הזמנה מגיעה עם 60 ימי אחריות מלאה. נסי את NovaHair בבית, בדקי את התאמת הגוון ואיך הוא משתלב בשגרה שלך. אם לא אהבת את התוצאה, פשוט פונים לשירות הלקוחות ומקבלים החזר.</p>
+      <span class="sci">60 ימי אחריות · משלוח חינם לכל הארץ · שירות לקוחות ישראלי</span>
+      <figure class="article-visual">
+        <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch8_1.png?v=1787202336" alt="חבילת NovaHair בבית כחלק מהתנסות של 60 יום" width="1672" height="941" loading="lazy" decoding="async">
+        <figcaption>
+          60 יום לבדוק איך NovaHair משתלב בשגרה שלך.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 19. OFFICIAL-SITE TRUST BLOCK (FIXED HIGH CONTRAST) -->
+    <div class="authentic official-site-trust-box rev">
+      <svg class="ic-svg" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <div>
+        <span class="official-site-trust-box__title">ביטחון מלא בכל הזמנה</span>
+        <p class="official-site-trust-box__text">ברכישה דרך האתר הרשמי של NovaHair בישראל, את מקבלת את המוצר המקורי עם האחריות והשירות המלאים שלנו. כך יש לך כתובת ישירה ומענה אנושי לכל שאלה.</p>
+        <span class="official-site-trust-box__verified">✓ האתר הרשמי בישראל</span>
+      </div>
+    </div>
+
+    <!-- 20. FINAL NARRATIVE CLOSE & CTA 3 (CENTERED STRONG WARM-DARK BUTTON) -->
+    <div class="editorial-final-close rev">
+      <h3 class="editorial-final-close__title">השיער הלבן ימשיך לגדול – אבל הטיפול בו ממש לא חייב להיות כאב ראש יקר.</h3>
+      <p class="editorial-final-close__text">אם את מחפשת דרך קלה, מהירה וחסכונית לשמור על שורשים מטופחים, לחצי כאן כדי לראות את 5 הגוונים והמארזים שבמבצע.</p>
+      <div class="editorial-cta editorial-cta--final">
+        <a class="editorial-cta__button" data-placement="final" href="https://tigerbrandsglobal.com/pages/novahair-sales">
+          לצפייה בגוונים ובמארזים של NovaHair ›
+        </a>
+        <div class="editorial-cta__microcopy">5 גוונים · 3 חבילות · משלוח חינם · 60 יום אחריות</div>
+      </div>
+    </div>
+
+    <!-- 21. FOOTER -->
+    <div class="foot">
+      Nova Hair · משלוח חינם לכל הארץ · 60 יום אחריות מלאה<br>
+      *תוכן שיווקי. התוצאות עשויות להשתנות מאדם לאדם ואינן מהוות תחליף לייעוץ מקצועי.*
+    </div>
+
+  </div>
+
+</div>

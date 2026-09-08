@@ -1,0 +1,1850 @@
+
+<style id="cart-drawer-fixed-css">
+  body.overflow-hidden {
+    overflow: hidden !important;
+  }
+  cart-drawer, cart-drawer.drawer {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: 0 !important;
+    width: 440px !important;
+    max-width: 90vw !important;
+    height: 100vh !important;
+    z-index: 9999999 !important;
+    background: #FFFFFF !important;
+    box-shadow: 6px 0 30px rgba(0, 0, 0, 0.25) !important;
+    direction: rtl !important;
+    text-align: right !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.18s !important;
+    will-change: transform;
+    visibility: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  cart-drawer.active,
+  cart-drawer.is-active {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+  }
+  .drawer__inner {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: #FFFFFF !important;
+  }
+  .drawer__contents {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  /* Mobile only: host spans the full viewport so the 100vw inner sheet aligns (no side clipping) */
+  @media (max-width: 749px) {
+    cart-drawer.drawer,
+    cart-drawer {
+      max-width: 100vw !important;
+      width: 100vw !important;
+    }
+  }
+  cart-drawer .drawer__inner,
+  cart-drawer .drawer__inner.gradient {
+    overflow: hidden !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: #FFFFFF !important;
+    padding: 0 !important;
+  }
+  cart-drawer.is-empty .drawer__inner {
+    display: flex !important;
+    align-items: stretch !important;
+    background: #FFFFFF !important;
+    padding: 0 !important;
+  }
+  /* Scroll region holds items + shipping bar + bumps; footer stays pinned at bottom */
+  cart-drawer .drawer__scroll {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    padding: 0 16px !important;
+  }
+  cart-drawer.is-empty .drawer__scroll {
+    display: none !important;
+  }
+  cart-drawer cart-drawer-items,
+  cart-drawer #CartDrawer-Form,
+  cart-drawer .drawer__contents,
+  cart-drawer #CartDrawer-CartItems {
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  cart-drawer [data-ship-fill] {
+    display: block !important;
+  }
+  cart-drawer.is-empty .drawer__header {
+    display: flex !important;
+  }
+  cart-drawer .drawer__inner-empty,
+  cart-drawer.is-empty .drawer__inner-empty {
+    flex: 1 1 auto !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 32px 24px !important;
+    margin: 0 !important;
+  }
+  cart-drawer .cart-drawer__warnings,
+  cart-drawer .cart-drawer__empty-content {
+    background: #FFFFFF !important;
+  }
+  cart-drawer .drawer__header {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    background: #FFFFFF !important;
+  }
+  cart-drawer .drawer__close,
+  cart-drawer .drawer__header .drawer__close {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    inset: auto !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    z-index: 2 !important;
+  }
+  cart-drawer .drawer__inner-empty .drawer__close {
+    display: none !important;
+  }
+  cart-drawer-items,
+  cart-drawer .cart-drawer__form {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  cart-drawer.is-empty cart-drawer-items {
+    display: none !important;
+  }
+  cart-drawer.is-empty .cart-drawer-cro-panel,
+  cart-drawer.is-empty .drawer__footer {
+    display: none !important;
+  }
+  cart-drawer .cart-drawer-cro-panel {
+    flex-shrink: 0 !important;
+  }
+  cart-drawer .drawer__footer {
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    background: #FFFFFF !important;
+    border-top: 1px solid #EDE6DB !important;
+    box-shadow: 0 -10px 24px rgba(23, 35, 30, 0.07) !important;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    position: relative !important;
+    z-index: 5 !important;
+  }
+  cart-drawer .cart__ctas {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  cart-drawer .cart__checkout-button {
+    width: 100% !important;
+    min-height: 52px !important;
+    border-radius: 12px !important;
+    background: #17231E !important;
+    color: #FFFFFF !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    font-family: 'Open Sans', sans-serif !important;
+    letter-spacing: 0.2px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 6px 16px rgba(23, 35, 30, 0.22) !important;
+  }
+  cart-drawer .cart__checkout-button:hover {
+    background: #0F1A15 !important;
+  }
+  [data-ship-fill] {
+    transition: width 0.45s ease, background 0.35s ease !important;
+  }
+  .price.price--end {
+    color: #17231E !important;
+  }
+  .cart-drawer-bumps label {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+  .cart-drawer-bumps label:hover {
+    border-color: #C5A059 !important;
+    box-shadow: 0 2px 10px rgba(23, 35, 30, 0.07) !important;
+  }
+  .totals__total-value {
+    letter-spacing: 0.3px;
+  }
+  /* Compact, aesthetic quantity + remove row */
+  cart-drawer .cart-item__quantity {
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+  cart-drawer quantity-input.quantity {
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+  cart-drawer .quantity__button {
+    width: 28px !important;
+    height: 34px !important;
+  }
+  cart-drawer .quantity__button .svg-wrapper,
+  cart-drawer .quantity__button svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  cart-drawer .quantity__input {
+    width: 30px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 0 !important;
+  }
+  cart-drawer cart-remove-button .cart-remove-button {
+    width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    border-radius: 8px !important;
+  }
+  cart-drawer cart-remove-button .svg-wrapper,
+  cart-drawer cart-remove-button svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  cart-drawer .cart-item__price-wrapper .price--end {
+    font-size: 16px !important;
+  }
+  cart-drawer .cart-item__image {
+    border-radius: 10px !important;
+  }
+  /* Mobile: compact item rows — nothing clipped, price always visible */
+  @media (max-width: 749px) {
+    cart-drawer table.cart-items,
+    cart-drawer table.cart-items tbody {
+      display: block !important;
+      width: 100% !important;
+    }
+    cart-drawer tr.cart-item {
+      display: grid !important;
+      grid-template-columns: 58px minmax(0, 1fr) auto !important;
+      grid-template-rows: auto auto !important;
+      column-gap: 10px !important;
+      align-items: start;
+      padding: 12px 0 !important;
+      border-bottom: 1px solid #F1ECE4;
+    }
+    cart-drawer .cart-item__media { grid-row: 1 / 3 !important; grid-column: 1 !important; padding: 0 !important; }
+    cart-drawer .cart-item__details { grid-row: 1 !important; grid-column: 2 !important; min-width: 0 !important; padding: 0 !important; }
+    cart-drawer .cart-item__totals { grid-row: 1 !important; grid-column: 3 !important; padding: 2px 0 0 !important; white-space: nowrap; }
+    cart-drawer .cart-item__quantity { grid-row: 2 !important; grid-column: 2 / 4 !important; margin-top: 10px !important; padding: 0 !important; justify-content: flex-start; }
+    cart-drawer .cart-item__image { width: 58px !important; height: 58px !important; }
+    cart-drawer .cart-item__name { font-size: 13.5px !important; }
+    cart-drawer .cart-item__price-wrapper .price--end { font-size: 15px !important; }
+    cart-drawer .drawer__header { padding: 12px 16px !important; }
+    cart-drawer .drawer__heading { font-size: 17px !important; }
+    cart-drawer .cart-drawer-cro-panel { margin: 12px 0 !important; }
+    cart-drawer .cart-drawer-bumps { margin: 12px 0 !important; }
+  }
+</style>
+
+<style>
+  .cart-item__quantity {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-top: 10px !important;
+  }
+  .quantity.cart-quantity {
+    border: 1px solid #D3C9BC !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 105px !important;
+    min-width: 105px !important;
+    background: #FFFFFF !important;
+    box-shadow: none !important;
+  }
+  .quantity__button {
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #FAF8F5 !important;
+    border: none !important;
+    cursor: pointer !important;
+  }
+  .quantity__input {
+    width: 40px !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  cart-remove-button {
+    margin: 0 !important;
+    display: inline-flex !important;
+  }
+  cart-remove-button .button {
+    min-width: 34px !important;
+    min-height: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    background: #FFF5F5 !important;
+    color: #B42318 !important;
+    border: 1px solid #FECDCA !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+  }
+  cart-remove-button .button:hover {
+    background: #FEE4E2 !important;
+  }
+</style>
+
+<style>
+  cart-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 999999;
+    display: flex;
+    justify-content: flex-start; /* RTL: drawer comes from right/left */
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+  }
+  cart-drawer:not(.active) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  cart-drawer.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .cart-drawer__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(23, 35, 30, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .drawer__inner {
+    position: relative;
+    width: 440px;
+    max-width: 90vw;
+    height: 100%;
+    background: #FFFFFF !important;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    direction: rtl;
+    text-align: right;
+  }
+  @media (max-width: 749px) {
+    .drawer__inner { width: 100vw !important; max-width: 100vw !important; }
+    .cart-drawer__overlay {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+  }
+  .drawer__header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #E7E1D7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .drawer__heading {
+    font-size: 18px;
+    font-weight: 800;
+    color: #17231E;
+    margin: 0;
+  }
+  .drawer__close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #17231E;
+  }
+  .drawer__body {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+  .drawer__footer {
+    padding: 16px 20px;
+    border-top: 1px solid #E7E1D7;
+    background: #FAF8F5;
+  }
+</style>
+{% comment %}
+  Renders cart drawer
+
+  Usage:
+  {% render 'cart-drawer' %}
+{% endcomment %}
+
+{{ 'quantity-popover.css' | asset_url | stylesheet_tag }}
+{{ 'component-card.css' | asset_url | stylesheet_tag }}
+
+<script src="{{ 'cart.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'quantity-popover.js' | asset_url }}" defer="defer"></script>
+
+<style>
+  .drawer {
+    visibility: hidden;
+  }
+</style>
+
+
+<style id="novafunnel-cart-polish-css">
+  .novafunnel-cart-drawer,
+  .novafunnel-cart-drawer * { font-family:'Open Sans',sans-serif !important; }
+  .novafunnel-cart-drawer .visually-hidden {
+    position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;
+    margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;
+    white-space:nowrap !important;border:0 !important;
+  }
+  .novafunnel-cart-drawer [hidden],
+  .novafunnel-cart-drawer .hidden,
+  .novafunnel-cart-drawer .loading__spinner.hidden { display:none !important; }
+  .novafunnel-cart-drawer #CartDrawer,
+  .novafunnel-cart-drawer .drawer__inner { height:100vh !important;height:100dvh !important;max-height:100dvh !important;min-height:0 !important;display:flex !important;flex-direction:column !important;overflow:hidden !important; }
+  .novafunnel-cart-drawer .drawer__scroll { flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important; overscroll-behavior:contain; scrollbar-gutter:stable; }
+  .novafunnel-cart-drawer > #CartDrawer > .drawer__inner > .drawer__footer { position:relative !important;bottom:auto !important;flex:0 0 auto !important;z-index:12 !important;background:#fff !important; }
+  .novafunnel-cart-drawer .drawer__cart-items-wrapper,
+  .novafunnel-cart-drawer table.cart-items,
+  .novafunnel-cart-drawer tbody { min-height:0 !important;height:auto !important; }
+  .novafunnel-cart-drawer cart-drawer-items,
+  .novafunnel-cart-drawer #CartDrawer-Form,
+  .novafunnel-cart-drawer .drawer__contents,
+  .novafunnel-cart-drawer #CartDrawer-CartItems,
+  .novafunnel-cart-drawer .drawer__cart-items-wrapper { display:block !important;flex:none !important;height:auto !important;min-height:0 !important;margin:0 !important;padding-bottom:0 !important;overflow:visible !important; }
+  .novafunnel-cart-drawer table.cart-items,
+  .novafunnel-cart-drawer table.cart-items tbody { margin:0 !important;padding-bottom:0 !important; }
+  .novafunnel-cart-drawer tr.cart-item:last-child { margin-bottom:0 !important;padding-bottom:0 !important;border-bottom:0 !important; }
+  .novafunnel-cart-drawer .cart-item { border-bottom:1px solid #EEE8DF !important; padding-block:16px !important; }
+  .novafunnel-cart-drawer .cart-item__name,
+  .novafunnel-cart-drawer .cart-item__name:visited,
+  .novafunnel-cart-drawer .novafunnel-cart-title { color:#17231F !important; text-decoration:none !important; font-weight:800 !important; }
+  .novafunnel-cart-drawer .cart-item__image { width:72px !important; height:72px !important; object-fit:cover !important; border-radius:12px !important; border:1px solid #EAE4DA !important; background:#FAF8F5 !important; }
+  .novafunnel-cart-drawer .novafunnel-config { margin-top:7px; }
+  .novafunnel-cart-drawer .novafunnel-config-head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px; }
+  .novafunnel-cart-drawer .novafunnel-config-label { color:#6C756F;font-size:11.5px;font-weight:700; }
+  .novafunnel-cart-drawer .novafunnel-change { appearance:none;border:0;background:transparent;color:#8C5C36;font-size:11.5px;font-weight:800;padding:3px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px; }
+  .novafunnel-cart-drawer .novafunnel-config-chips { display:flex;flex-wrap:wrap;gap:5px; }
+  .novafunnel-cart-drawer .novafunnel-config-chip { display:inline-flex;align-items:center;min-height:26px;padding:4px 8px;border-radius:999px;background:#F7F2EA;border:1px solid #E7DED1;color:#28342F;font-size:11.5px;font-weight:700;line-height:1.25; }
+  .novafunnel-cart-drawer .cart-item__quantity-wrapper,
+  .novafunnel-cart-drawer .quantity-popover-container { display:flex !important;align-items:center !important;gap:8px !important;min-width:0 !important; }
+  .novafunnel-cart-drawer quantity-input.quantity { display:flex !important;align-items:center !important;width:122px !important;min-width:122px !important;max-width:122px !important;min-height:40px !important;height:40px !important;overflow:hidden !important;border:1px solid #E1D8CD !important;border-radius:9px !important;background:#fff !important; }
+  .novafunnel-cart-drawer .quantity__button { display:flex !important;align-items:center !important;justify-content:center !important;flex:0 0 40px !important;width:40px !important;min-width:40px !important;height:40px !important;padding:0 !important;overflow:hidden !important;font-size:0 !important;border:0 !important;background:#FAF8F5 !important; }
+  .novafunnel-cart-drawer .quantity__button .svg-wrapper { display:flex !important;width:14px !important;height:14px !important; }
+  .novafunnel-cart-drawer .quantity__input { flex:0 0 40px !important;width:40px !important;min-width:40px !important;max-width:40px !important;min-height:40px !important;height:40px !important;margin:0 !important;padding:0 !important;text-align:center !important;border:0 !important;background:#fff !important; }
+  .novafunnel-cart-drawer cart-remove-button .cart-remove-button { width:40px !important;min-width:40px !important;height:40px !important;min-height:40px !important;border:1px solid #E7E1D7 !important;background:#fff !important;color:#6A716D !important; }
+  .novafunnel-cart-drawer .cart-drawer-bumps { margin:12px 0 !important;padding:12px !important;background:#FAF8F5 !important; }
+  .novafunnel-included { margin:0 0 8px;padding:10px 12px;border:1px solid #E7DED1;border-radius:12px;background:#FCF8F2;direction:rtl; }
+  .novafunnel-included__heading { margin:0 0 7px;color:#17231F;font-size:13px;font-weight:800; }
+  .novafunnel-included__row { display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:10px; }
+  .novafunnel-included__row img { width:58px;height:46px;object-fit:cover;border-radius:8px;background:#fff; }
+  .novafunnel-included__name { color:#17231F;font-size:12.5px;font-weight:800;line-height:1.3; }
+  .novafunnel-included__meta { color:#6C756F;font-size:10.5px;line-height:1.35;margin-top:2px; }
+  .novafunnel-included__free { color:#027A48;font-size:12px;font-weight:900;white-space:nowrap; }
+  .novafunnel-savings { display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 5px;color:#027A48;font-size:12.5px;font-weight:800; }
+  .novafunnel-mobile-upsells { display:block; margin:12px 0 2px; direction:rtl;font-family:'Open Sans',Arial,sans-serif; }
+  .novafunnel-mobile-upsells[hidden] { display:none !important; }
+  .novafunnel-mobile-upsells__head { display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:9px; }
+  .novafunnel-mobile-upsells__eyebrow { margin:0 0 2px;color:#9A623D;font-size:10.5px;font-weight:800;letter-spacing:.04em; }
+  .novafunnel-mobile-upsells__title { margin:0;color:#17231F;font-size:14px;font-weight:800; }
+  .novafunnel-mobile-upsells__nav { display:flex;align-items:center;gap:6px;direction:ltr; }
+  .novafunnel-mobile-upsells__arrow { appearance:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #E3DACE;border-radius:999px;background:#fff;color:#17231F;font:800 17px/1 'Open Sans',sans-serif;cursor:pointer; }
+  .novafunnel-mobile-upsells__arrow:disabled { opacity:.32;cursor:default; }
+  .novafunnel-mobile-upsells__rail { display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,44%);align-items:stretch;gap:9px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;padding:1px 1px 9px;scrollbar-width:none; }
+  .novafunnel-mobile-upsells__rail::-webkit-scrollbar { display:none; }
+  .novafunnel-mobile-upsells__card { box-sizing:border-box;scroll-snap-align:start;display:flex;flex-direction:column;align-items:stretch;min-width:0;min-height:0;height:auto;overflow:hidden;background:#fff;border:1px solid #E8DFD2;border-radius:13px;padding:10px;font-family:'Open Sans',Arial,sans-serif;text-align:center; }
+  .novafunnel-mobile-upsells__image { display:flex;align-items:center;justify-content:center;height:78px;min-height:78px;margin:0 0 8px;border-radius:9px;background:#F7F2EA;overflow:hidden; }
+  .novafunnel-mobile-upsells__image img { display:block;width:78px;height:78px;max-width:100%;object-fit:contain;border:0; }
+  .novafunnel-mobile-upsells__name { display:-webkit-box;min-height:34px;margin:0;color:#17231F;font-family:'Open Sans',Arial,sans-serif;font-size:12px;font-weight:750;line-height:1.4;text-align:center;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden; }
+  .novafunnel-mobile-upsells__meta { display:flex;min-height:0;margin:4px 0 0;padding:0;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center; }
+  .novafunnel-mobile-upsells__price-row { display:flex;align-items:baseline;justify-content:center;gap:6px;direction:ltr;unicode-bidi:isolate;white-space:nowrap; }
+  .novafunnel-mobile-upsells__price { color:#C9652D;font-family:'Open Sans',Arial,sans-serif;font-size:16px;font-weight:800;line-height:1.25;white-space:nowrap; }
+  .novafunnel-mobile-upsells__compare { color:#9A938D;font-family:'Open Sans',Arial,sans-serif;font-size:11px;font-weight:400;line-height:1.25;text-decoration:line-through;white-space:nowrap; }
+  .novafunnel-mobile-upsells__offer { width:100%;margin-top:3px;color:#8F4F30;font-family:'Open Sans',Arial,sans-serif;font-size:10.5px;font-weight:700;line-height:1.3;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .novafunnel-mobile-upsells__add { display:block;width:100%;min-height:38px;margin-top:6px;padding:8px 10px;flex:0 0 auto;border:0;border-radius:999px;background:#B26A45;color:#fff;font-family:'Open Sans',Arial,sans-serif;font-size:11.5px;font-weight:800;line-height:1;white-space:nowrap; }
+  .novafunnel-mobile-upsells__add:disabled { background:#C9BBA6; }
+  .novafunnel-cart-status { min-height:16px;margin:5px 0 0;color:#027A48;font-size:11px;font-weight:800; }
+  .novafunnel-cart-status.is-error { color:#B42318; }
+  .cs-eyebrow{font-size:10.5px;font-weight:800;color:#9A623D;text-align:center;margin:0 0 2px;letter-spacing:.04em}
+  .novafunnel-cart-drawer tr.novafunnel-bump-item { display:none !important; }
+  .novafunnel-selected-additions { display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0;padding:9px 12px;border:1px solid #E7DED1;border-radius:10px;background:#FFFDF9;color:#17231F;font-size:12.5px;font-weight:800;direction:rtl; }
+  .novafunnel-selected-additions__meta { color:#6C756F;font-size:11px;font-weight:700;margin-inline-start:5px; }
+  .novafunnel-selected-additions__price { color:#8F4F30;white-space:nowrap; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) { grid-template-columns:54px minmax(0,1fr) auto 40px !important;grid-template-rows:auto !important;column-gap:9px !important;min-height:64px !important;padding-block:9px !important;transition:opacity .12s ease; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item),
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) * { font-family:'Open Sans',Arial,sans-serif; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item).is-updating { opacity:.52;pointer-events:none; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__media { display:block !important;grid-column:1 !important;grid-row:1 !important;align-self:center !important;padding:0 !important; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__image { display:block !important;width:54px !important;height:54px !important;object-fit:contain !important;border-radius:9px !important;border:1px solid #EFE9E1 !important;background:#FAF8F5 !important; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__details { grid-column:2 !important;grid-row:1 !important;align-self:center !important; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__totals { grid-column:3 !important;grid-row:1 !important;align-self:center !important; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__quantity { grid-column:4 !important;grid-row:1 !important;margin:0 !important;align-self:center !important; }
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) quantity-input.quantity,
+  .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .product-option { display:none !important; }
+  @media (min-width:750px){
+    .novafunnel-cart-drawer tr.cart-item { display:grid !important;grid-template-columns:72px minmax(0,1fr) auto !important;grid-template-rows:auto auto !important;column-gap:12px !important;align-items:start !important; }
+    .novafunnel-cart-drawer .cart-item__media { grid-column:1 !important;grid-row:1 / 3 !important;padding:0 !important; }
+    .novafunnel-cart-drawer .cart-item__details { grid-column:2 !important;grid-row:1 !important;min-width:0 !important;padding:0 !important; }
+    .novafunnel-cart-drawer .cart-item__totals { grid-column:3 !important;grid-row:1 !important;padding:2px 0 0 !important;white-space:nowrap; }
+    .novafunnel-cart-drawer .cart-item__quantity { grid-column:2 / 4 !important;grid-row:2 !important;padding:0 !important;margin-top:10px !important; }
+  }
+  @media (max-width:749px){
+    .novafunnel-cart-drawer .drawer__scroll { padding:0 14px !important; }
+    .novafunnel-cart-drawer { align-items:flex-end !important; }
+    .novafunnel-cart-drawer .drawer__inner { height:calc(100dvh - 32px) !important;max-height:calc(100dvh - 32px) !important; }
+    .novafunnel-cart-drawer cart-drawer-items { margin-bottom:-8px !important; }
+    .novafunnel-cart-drawer tr.cart-item { grid-template-columns:64px minmax(0,1fr) auto !important;grid-template-rows:auto auto !important;column-gap:9px !important;row-gap:8px !important;padding-block:14px !important;height:auto !important;min-height:0 !important; }
+    .novafunnel-cart-drawer .cart-item__media { grid-column:1 !important; }
+    .novafunnel-cart-drawer .cart-item__details { grid-column:2 !important; }
+    .novafunnel-cart-drawer .cart-item__totals { grid-column:3 !important; }
+    .novafunnel-cart-drawer .cart-item__quantity { grid-column:2 / 4 !important;min-width:0 !important;height:auto !important;overflow:visible !important; }
+    .novafunnel-cart-drawer .cart-item__image { width:64px !important;height:64px !important; }
+    .novafunnel-cart-drawer quantity-input.quantity { min-height:44px !important;height:44px !important; }
+    .novafunnel-cart-drawer .quantity__button { width:44px !important;min-width:44px !important;height:44px !important; }
+    .novafunnel-cart-drawer .quantity__input { min-height:44px !important; }
+    .novafunnel-cart-drawer cart-remove-button .cart-remove-button { width:44px !important;min-width:44px !important;height:44px !important;min-height:44px !important; }
+    .novafunnel-cart-drawer > #CartDrawer > .drawer__inner > .drawer__footer { padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px)) !important;box-shadow:0 -5px 18px rgba(23,35,30,.06) !important; }
+    .novafunnel-cart-drawer .drawer__footer .tax-note { margin-bottom:5px !important;line-height:1.25 !important; }
+    .novafunnel-cart-drawer .cart__checkout-button { min-height:48px !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) { grid-template-columns:50px minmax(0,1fr) auto 44px !important;grid-template-rows:auto !important;column-gap:8px !important;min-height:60px !important;padding-block:8px !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__media { display:block !important;grid-column:1 !important;grid-row:1 !important;align-self:center !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__image { width:50px !important;height:50px !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__details { grid-column:2 !important;grid-row:1 !important;align-self:center !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__totals { grid-column:3 !important;grid-row:1 !important;align-self:center !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item:not(.novafunnel-bump-item) .cart-item__quantity { grid-column:4 !important;grid-row:1 !important;margin:0 !important;align-self:center !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item quantity-input.quantity { display:none !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item .product-option { display:none !important; }
+    .novafunnel-cart-drawer tr.novafunnel-addon-item .cart-item__name { font-size:12.5px !important;line-height:1.25 !important; }
+    .novafunnel-cart-drawer .cart-drawer-cro-panel { margin:8px 0 2px !important;padding:9px 11px !important; }
+    .novafunnel-cart-drawer .cart-drawer-cro-panel > div:last-child { display:none !important; }
+    .novafunnel-cart-drawer .cart-drawer-bumps { margin:8px 0 2px !important;padding:10px !important; }
+    .novafunnel-included { margin:0 0 6px !important;padding:8px 10px !important; }
+    .novafunnel-mobile-upsells { margin:8px 0 2px !important; }
+    .novafunnel-mobile-upsells__rail { grid-auto-columns:clamp(150px,42vw,175px);align-items:start !important; }
+    .novafunnel-cart-drawer tr.cart-item:last-child { margin-bottom:0 !important;padding-bottom:0 !important;border-bottom:0 !important;row-gap:0 !important; }
+    .novafunnel-cart-drawer tr.cart-item:last-child .cart-item__quantity { margin-top:0 !important;margin-bottom:0 !important;padding-bottom:0 !important; }
+    .novafunnel-cart-drawer .drawer__cart-items-wrapper,
+    .novafunnel-cart-drawer table.cart-items,
+    .novafunnel-cart-drawer table.cart-items tbody { margin-bottom:0 !important;padding-bottom:0 !important; }
+    .novafunnel-mobile-upsells__card { min-height:0 !important;height:auto !important; }
+    .novafunnel-mobile-upsells__name { min-height:0 !important; }
+    .novafunnel-mobile-upsells__meta { min-height:0 !important;margin-top:4px !important; }
+    .novafunnel-mobile-upsells__add { margin-top:6px !important; }
+  }
+</style>
+
+<cart-drawer class="drawer novafunnel-cart-drawer{% if cart == empty %} is-empty{% endif %}">
+  <div id="CartDrawer" class="cart-drawer">
+    <div id="CartDrawer-Overlay" class="cart-drawer__overlay"></div>
+    <div
+      class="drawer__inner"
+      role="dialog"
+      aria-modal="true"
+      aria-label="{{ 'sections.cart.title' | t }}"
+      tabindex="-1"
+    >
+      {%- if cart == empty -%}
+        <div class="drawer__inner-empty">
+          <div class="cart-drawer__warnings center" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;">
+            <div class="cart-drawer__empty-content" style="text-align:center;max-width:300px;">
+              <div style="width:72px;height:72px;margin:0 auto 18px;border-radius:50%;background:#FAF8F5;border:1px solid #E7E1D7;display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C5A059" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 7H6"/></svg>
+              </div>
+              <h2 class="cart__empty-text" style="font-size:20px;font-weight:800;color:#17231E;margin:0 0 8px;">הסל שלך עדיין ריקה</h2>
+              <p style="font-size:13.5px;color:#55625D;line-height:1.6;margin:0 0 20px;">כל מארז כולל ערכת צביעה מקצועית במתנה — ומשלוח חינם מעל ₪199.</p>
+              <a href="/products/novahair-%D7%A9%D7%9E%D7%A4%D7%95-%D7%9C%D7%A6%D7%91%D7%99%D7%A2%D7%AA-%D7%A9%D7%99%D7%A2%D7%A8-%D7%94%D7%A6%D7%A2%D7%94-%D7%97%D7%93%D7%A9%D7%94" class="button" style="display:block;background:#17231E;color:#FFFFFF;text-align:center;font-size:14px;font-weight:700;padding:13px 20px;border-radius:10px;text-decoration:none;margin-bottom:10px;">
+                לערכת הצביעה NOVAHAIR — מבצע 24 שעות
+              </a>
+              <a href="/products/%D7%9E%D7%A1%D7%99%D7%9B%D7%AA-%D7%A7%D7%95%D7%9C%D7%92%D7%9F-%D7%9C%D7%99%D7%9C%D7%94-elasticdream" style="display:block;background:#FAF8F5;color:#17231E;text-align:center;font-size:13px;font-weight:700;padding:12px 20px;border-radius:10px;text-decoration:none;border:1px solid #E7E1D7;">
+                למסיכת הקולגן ElasticDream
+              </a>
+            </div>
+          </div>
+        </div>
+      {%- endif -%}
+      
+
+<div class="drawer__header" style="padding: 18px 20px; border-bottom: 1px solid #E7E1D7; display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; position: sticky; top: 0; z-index: 10; direction: rtl;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <h2 class="drawer__heading" style="font-size: 20px; font-weight: 800; color: #17231E; margin: 0; font-family: 'Open Sans', sans-serif;">סל הקניות שלך</h2>
+    <span style="font-size: 12px; font-weight: 700; background: #FAF8F5; color: #8C6D2B; padding: 2px 8px; border-radius: 10px; border: 1px solid #E7E1D7;">({{ cart.item_count }} פריטים)</span>
+  </div>
+  
+  <button
+    class="drawer__close"
+    type="button"
+    onclick="this.closest('cart-drawer').close()"
+    aria-label="סגור סל"
+    style="width: 34px; height: 34px; border-radius: 50%; background: #FAF8F5; border: 1px solid #E7E1D7; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; padding: 0;"
+  >
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#17231E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="1" y1="1" x2="13" y2="13"></line>
+      <line x1="1" y1="13" x2="13" y2="1"></line>
+    </svg>
+  </button>
+</div>
+
+
+      <div class="drawer__scroll">
+      <cart-drawer-items
+        {% if cart == empty %}
+          class=" is-empty"
+        {% endif %}
+      >
+        <form
+          action="{{ routes.cart_url }}"
+          id="CartDrawer-Form"
+          class="cart__contents cart-drawer__form"
+          method="post"
+        >
+          <div id="CartDrawer-CartItems" class="drawer__contents js-contents">
+            {%- if cart != empty -%}
+              <div class="drawer__cart-items-wrapper">
+                <table class="cart-items" role="table">
+                  <thead role="rowgroup" style="display: none;">
+                    <tr role="row">
+                      <th id="CartDrawer-ColumnProductImage" role="columnheader">
+                        <span class="visually-hidden">{{ 'sections.cart.headings.image' | t }}</span>
+                      </th>
+                      <th
+                        id="CartDrawer-ColumnProduct"
+                        class="caption-with-letter-spacing"
+                        scope="col"
+                        role="columnheader"
+                      >
+                        {{ 'sections.cart.headings.product' | t }}
+                      </th>
+                      <th
+                        id="CartDrawer-ColumnTotal"
+                        class="right caption-with-letter-spacing"
+                        scope="col"
+                        role="columnheader"
+                      >
+                        {{ 'sections.cart.headings.total' | t }}
+                      </th>
+                      <th id="CartDrawer-ColumnQuantity" role="columnheader">
+                        <span class="visually-hidden">{{ 'sections.cart.headings.quantity' | t }}</span>
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody role="rowgroup" data-novafunnel-cart-rows>
+                    {%- for item in cart.items -%}
+                      <tr
+                        id="CartDrawer-Item-{{ item.index | plus: 1 }}"
+                        class="cart-item{% if item.parent_relationship.parent != null %} cart-item__nested-line{% endif %}{% if item.variant.id == 51878069535015 or item.variant.id == 51880636875047 or item.variant.id == 51880681472295 or item.variant.id == 50459892580647 or item.variant.id == 51885840072999 or item.variant.id == 51885840138535 or item.variant.id == 51885840400679 %} novafunnel-addon-item{% endif %}{% if item.variant.id == 51878069535015 or item.variant.id == 51880636875047 or item.variant.id == 51880681472295 %} novafunnel-bump-item{% endif %}"
+                        data-line-key="{{ item.key }}"
+                        data-product-id="{{ item.product.id }}"
+                        data-variant-id="{{ item.variant.id }}"
+                        data-novafunnel-order="{% if item.product.handle == 'novahair-funnel-internal' %}0{% elsif item.properties['_NOVAFUNNEL_ROLE'] == 'CROSS_SELL' or item.variant.id == 50459892580647 or item.variant.id == 51885840072999 or item.variant.id == 51885840138535 or item.variant.id == 51885840400679 %}1{% else %}2{% endif %}"
+                        role="row"
+                        {% if item.parent_relationship.parent != null %}
+                          aria-label="{{- 'products.product.nested_label' | t: title: item.product.title, parent_title: item.parent_relationship.parent.title | escape -}}"
+                        {% endif %}
+                      >
+                        {%- liquid
+                          assign is_novahair_bundle = false
+                          assign is_novahair_sales_bundle = false
+                          assign is_elastic_bundle = false
+                          assign customer_display_title = item.properties['_CART_DISPLAY_TITLE'] | default: ''
+                          if item.product.handle == 'tigera-color-internal-bundle'
+                            assign is_novahair_bundle = true
+                          endif
+                          if item.product.handle == 'novahair-funnel-internal'
+                            assign is_novahair_sales_bundle = true
+                            assign nh_sales_cfg = item.properties['_NOVASALE_CONFIG'] | default: item.variant.sku
+                            assign nh_sales_parts = nh_sales_cfg | split: '-'
+                            assign nh_sales_qty = item.properties['_BUNDLE_SIZE']
+                            if nh_sales_qty == blank
+                              assign nh_sales_qty = nh_sales_parts[1]
+                            endif
+                          endif
+                          if item.product.handle == 'elastic-dream-internal-bundles'
+                            assign is_elastic_bundle = true
+                          endif
+                          assign novafunnel_cross_sell_image = ''
+                          case item.variant.id
+                            when 50459892580647
+                              assign novafunnel_cross_sell_image = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/859a4808-129b-4821-8588-67ecfaefd97d.jpg?v=1758896863'
+                            when 51885840072999
+                              assign novafunnel_cross_sell_image = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/3c8c2338-1207-454e-a4d7-dfd7743f28c6.jpg?v=1786967692'
+                            when 51885840138535
+                              assign novafunnel_cross_sell_image = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/d08ade7c-b095-4092-b83d-dc9b6b5784c1.jpg?v=1786967695'
+                            when 51885840400679
+                              assign novafunnel_cross_sell_image = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/d0e60057-38b4-4066-a555-8a5f6b4c6609.jpg?v=1786967702'
+                          endcase
+                          assign customer_aria_title = item.product.title
+                          if is_novahair_sales_bundle
+                            if customer_display_title != blank
+                              assign customer_aria_title = customer_display_title
+                            else
+                              capture customer_aria_title
+                                echo 'NovaHair — מארז '
+                                echo nh_sales_qty
+                                echo ' בקבוקים'
+                              endcapture
+                            endif
+                          endif
+                        -%}
+                        <td
+                          class="cart-item__media"
+                          role="cell"
+                          headers="CartDrawer-ColumnProductImage"
+                        >
+                          {%- if novafunnel_cross_sell_image != blank -%}
+                            <img
+                              class="cart-item__image"
+                              src="{{ novafunnel_cross_sell_image }}"
+                              alt="{{ item.product.title | escape }}"
+                              loading="eager"
+                              decoding="async"
+                              width="54"
+                              height="54"
+                            >
+                          {%- elsif is_novahair_sales_bundle -%}
+                            {%- assign nh_sales_img = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_1.png?v=1787166128' -%}
+                            {%- if nh_sales_qty == '2' -%}
+                              {%- assign nh_sales_img = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_2.png?v=1787166132' -%}
+                            {%- elsif nh_sales_qty == '6' -%}
+                              {%- assign nh_sales_img = 'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_3.png?v=1787166137' -%}
+                            {%- endif -%}
+                            <img
+                              class="cart-item__image"
+                              src="{{ nh_sales_img }}"
+                              alt="NovaHair — מארז {{ nh_sales_qty }} בקבוקים"
+                              loading="lazy"
+                              decoding="async"
+                              width="72"
+                              height="72"
+                            >
+                          {%- elsif is_novahair_bundle -%}
+                            {%- assign nh_cfg = item.properties['_TIGERA_CONFIG'] | default: '' -%}
+                            {%- assign nh_tier = nh_cfg | split: '-' | first -%}
+                            {%- if nh_tier == '1' or nh_tier == '2' or nh_tier == '3' -%}
+                              {%- assign nh_img = 'novahair-bundle-' | append: nh_tier | append: '.png' -%}
+                              <img
+                                class="cart-item__image"
+                                src="{{ nh_img | asset_url }}"
+                                alt="NOVAHAIR מארז {{ nh_tier }}"
+                                loading="eager" fetchpriority="high"
+                                width="64"
+                                height="64"
+                                style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #EFE9E1;background:#FAF8F5;"
+                              >
+                            {%- endif -%}
+                          {%- elsif is_elastic_bundle -%}
+                            {%- assign ed_img = 'carousel-08-bundle-3pack.jpg' -%}
+                            {%- if item.variant_id == 51878034538791 -%}
+                              {%- assign ed_img = 'carousel-07-bundle-single.jpg' -%}
+                            {%- endif -%}
+                            <img
+                              class="cart-item__image"
+                              src="{{ ed_img | asset_url }}"
+                              alt="ElasticDream מארז"
+                              loading="eager" fetchpriority="high"
+                              width="64"
+                              height="64"
+                              style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #EFE9E1;background:#FAF8F5;"
+                            >
+                          {%- elsif item.image -%}
+                            {% comment %} Leave empty space due to a:empty CSS display: none rule {% endcomment %}
+                            <a href="{{ item.url }}" class="cart-item__link" tabindex="-1" aria-hidden="true"> </a>
+                            <img
+                              class="cart-item__image"
+                              src="{{ item.image | image_url: width: 150 }}"
+                              alt="{{ item.image.alt | escape }}"
+                              loading="eager"
+                              width="64"
+                              height="64"
+                              style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid #EFE9E1;background:#FAF8F5;"
+                            >
+                          {% endif %}
+                        </td>
+
+                        <td class="cart-item__details" role="cell" headers="CartDrawer-ColumnProduct">
+                          {%- if settings.show_vendor -%}
+                            <p class="caption-with-letter-spacing light">{{ item.product.vendor }}</p>
+                          {%- endif -%}
+
+                          {%- if is_novahair_sales_bundle -%}
+                            <div class="cart-item__name h4 break novafunnel-cart-title" style="font-size:14px;line-height:1.35;font-weight:800;">
+                              {%- if customer_display_title != blank -%}
+                                {{ customer_display_title | escape }}
+                              {%- else -%}
+                                NovaHair — מארז {{ nh_sales_qty }} בקבוקים
+                              {%- endif -%}
+                            </div>
+                            {%- assign nh_shade_summary = item.properties['בחירת גוונים'] | default: '' -%}
+                            {%- assign nh_shade_parts = nh_shade_summary | split: ' + ' -%}
+                            {%- if nh_shade_summary != blank -%}
+                              <div class="novafunnel-config">
+                                <div class="novafunnel-config-head">
+                                  <span class="novafunnel-config-label">הרכב גוונים</span>
+                                  <button type="button" class="novafunnel-change" data-novafunnel-edit-selection>שינוי</button>
+                                </div>
+                                <div class="novafunnel-config-chips" aria-label="הרכב הגוונים שנבחר">
+                                  {%- for shade_part in nh_shade_parts -%}
+                                    <span class="novafunnel-config-chip">{{ shade_part | strip | escape }}</span>
+                                  {%- endfor -%}
+                                </div>
+                              </div>
+                            {%- endif -%}
+                          {%- else -%}
+                            <a href="{{ item.url }}" class="cart-item__name h4 break" style="font-size:14px;line-height:1.35;font-weight:800;">
+                              {%- if is_novahair_bundle -%}
+                                NOVAHAIR™ — ערכת צביעה ביתית לשיער
+                              {%- elsif is_elastic_bundle -%}
+                                מסיכת קולגן לילה ElasticDream™
+                              {%- else -%}
+                                {{- item.product.title | escape -}}
+                              {%- endif -%}
+                            </a>
+                          {%- endif -%}
+
+                          {%- comment -%} Clean variant line — no internal SKUs exposed {%- endcomment -%}
+                          {%- if is_elastic_bundle -%}
+                            <div class="product-option" style="font-size:12.5px;color:#55625D;margin-top:2px;line-height:1.4;">
+                              {{ item.variant.title }}
+                            </div>
+                          {%- endif -%}
+
+                          {%- if item.product.has_only_default_variant == false
+                            and is_novahair_bundle == false
+                            and is_novahair_sales_bundle == false
+                            and is_elastic_bundle == false
+                            or item.properties.size != 0
+                            or item.selling_plan_allocation != null
+                          -%}
+                            <dl style="margin:4px 0 0;">
+                              {%- if item.product.has_only_default_variant == false
+                                and is_novahair_bundle == false
+                                and is_novahair_sales_bundle == false
+                                and is_elastic_bundle == false
+                              -%}
+                                {%- for option in item.options_with_values -%}
+                                  <div class="product-option" style="font-size:12.5px;color:#55625D;line-height:1.4;">
+                                    <dt style="display:inline;">{{ option.name }}:</dt>
+                                    <dd style="display:inline;margin:0;">
+                                      {{ option.value -}}
+                                      {%- unless forloop.last %}, {% endunless %}
+                                    </dd>
+                                  </div>
+                                {%- endfor -%}
+                              {%- endif -%}
+
+{%- for property in item.properties -%}
+  {%- assign property_first_char = property.first | slice: 0 -%}
+  {%- assign hide_public_property = false -%}
+  {%- if property.first contains 'TIGERA' or property.first contains 'הרכב החבילה' -%}
+    {%- assign hide_public_property = true -%}
+  {%- endif -%}
+  {%- if is_novahair_sales_bundle and property.first == 'בחירת גוונים' -%}
+    {%- assign hide_public_property = true -%}
+  {%- endif -%}
+  {%- if property.last != blank and property_first_char != '_' and hide_public_property == false -%}
+    <div class="product-option" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;background:#FFFDF9;padding:6px 10px;border-radius:8px;border:1px solid #F0EAE0;margin-top:5px;line-height:1.45;">
+      <span style="font-weight:700;color:#8C6D2B;flex-shrink:0;">{{ property.first }}</span>
+      <span style="color:#17231E;font-weight:600;text-align:left;word-break:break-word;">{{ property.last }}</span>
+    </div>
+  {%- endif -%}
+{%- endfor -%}
+
+                            </dl>
+
+                            <p class="product-option">{{ item.selling_plan_allocation.selling_plan.name }}</p>
+                          {%- endif -%}
+
+                          {%- unless is_novahair_sales_bundle or novafunnel_cross_sell_image != blank -%}
+                            <ul
+                              class="discounts list-unstyled"
+                              role="list"
+                              aria-label="{{ 'customer.order.discount' | t }}"
+                            >
+                              {%- for discount in item.line_level_discount_allocations -%}
+                                <li class="discounts__discount">
+                                  {{- 'icon-discount.svg' | inline_asset_content -}}
+                                  {{ discount.discount_application.title }}
+                                </li>
+                              {%- endfor -%}
+                            </ul>
+                          {%- endunless -%}
+                        </td>
+
+                        <td class="cart-item__totals right" role="cell" headers="CartDrawer-ColumnTotal">
+                          {%- render 'loading-spinner' -%}
+                          <div class="cart-item__price-wrapper">
+                            {%- liquid
+                              assign line_discount_total = 0
+                              for allocation in item.discount_allocations
+                                assign line_discount_total = line_discount_total | plus: allocation.amount
+                              endfor
+                              assign line_pay = item.original_line_price | minus: line_discount_total
+                              if line_pay < 0 or line_discount_total == 0
+                                assign line_pay = item.final_line_price
+                              endif
+                              if cart.items.size == 1 and cart.total_discount > 0
+                                assign line_pay = cart.total_price
+                              endif
+                            -%}
+                            {%- if item.original_line_price > line_pay -%}
+                              <div class="cart-item__discounted-prices" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+                                <s class="cart-item__old-price" style="font-size:13px;font-weight:600;color:#8A8A8A;">₪{{ item.original_line_price | money_without_currency }}</s>
+                                <span class="price price--end" style="font-size:18px;font-weight:800;color:#17231E;">₪{{ line_pay | money_without_currency }}</span>
+                              </div>
+                            {%- else -%}
+                              <span class="price price--end" style="font-size:18px;font-weight:800;color:#17231E;">₪{{ line_pay | money_without_currency }}</span>
+                            {%- endif -%}
+
+                            {%- if item.variant.available and item.unit_price_measurement -%}
+                              {% render 'unit-price', price: item.unit_price, measurement: item.unit_price_measurement %}
+                            {%- endif -%}
+                          </div>
+                        </td>
+                        {%- liquid
+                          assign has_qty_rules = false
+                          if item.variant.quantity_rule.increment > 1 or item.variant.quantity_rule.min > 1 or item.variant.quantity_rule.max != null
+                            assign has_qty_rules = true
+                          endif
+
+                          assign has_vol_pricing = false
+                          if item.variant.quantity_price_breaks.size > 0
+                            assign has_vol_pricing = true
+                          endif
+                        -%}
+                        <td
+                          class="cart-item__quantity {% if has_qty_rules or has_vol_pricing %} cart-item__quantity--info{% endif %}"
+                          role="cell"
+                          headers="CartDrawer-ColumnQuantity"
+                        >
+                          <quantity-popover>
+                            <div class="cart-item__quantity-wrapper quantity-popover-wrapper">
+                              <div class="quantity-popover-container{% if has_qty_rules or has_vol_pricing %} quantity-popover-container--hover{% endif %}">
+                                <quantity-input class="quantity cart-quantity">
+                                  <button
+                                    class="quantity__button"
+                                    name="minus"
+                                    type="button"
+                                    {% if item.instructions and item.instructions.can_update_quantity == false %}
+                                      disabled
+                                    {% endif %}
+                                  >
+                                    <span class="visually-hidden">
+                                      {{-
+                                        'products.product.quantity.decrease'
+                                        | t: product: customer_aria_title
+                                        | escape
+                                      -}}
+                                    </span>
+                                    <span class="svg-wrapper">
+                                      {{- 'icon-minus.svg' | inline_asset_content -}}
+                                    </span>
+                                  </button>
+                                  <input
+                                    class="quantity__input"
+                                    type="number"
+                                    data-quantity-variant-id="{{ item.variant.id }}"
+                                    name="updates[{{ item.key }}]"
+                                    value="{{ item.quantity }}"
+                                    {% # theme-check-disable %}
+                                    data-cart-quantity="{{ cart | item_count_for_variant: item.variant.id }}"
+                                    min="0"
+                                    data-min="0"
+                                    {% if item.variant.quantity_rule.max != null %}
+                                      max="{{ item.variant.quantity_rule.max }}"
+                                    {% endif %}
+                                    step="{{ item.variant.quantity_rule.increment }}"
+                                    {% # theme-check-enable %}
+                                    aria-label="{{ 'products.product.quantity.input_label' | t: product: customer_aria_title | escape }}"
+                                    id="Drawer-quantity-{{ item.index | plus: 1 }}"
+                                    data-index="{{ item.index | plus: 1 }}"
+                                    {% if item.instructions and item.instructions.can_update_quantity == false %}
+                                      disabled
+                                    {% endif %}
+                                  >
+                                  <button
+                                    class="quantity__button"
+                                    name="plus"
+                                    type="button"
+                                    {% if item.instructions and item.instructions.can_update_quantity == false %}
+                                      disabled
+                                    {% endif %}
+                                  >
+                                    <span class="visually-hidden">
+                                      {{-
+                                        'products.product.quantity.increase'
+                                        | t: product: customer_aria_title
+                                        | escape
+                                      -}}
+                                    </span>
+                                    <span class="svg-wrapper">
+                                      {{- 'icon-plus.svg' | inline_asset_content -}}
+                                    </span>
+                                  </button>
+                                </quantity-input>
+                              </div>
+                              <cart-remove-button
+                                id="CartDrawer-Remove-{{ item.index | plus: 1 }}"
+                                data-index="{{ item.index | plus: 1 }}"
+                              >
+                                <button
+                                  type="button"
+                                  class="button button--tertiary cart-remove-button"
+                                  aria-label="{{ 'sections.cart.remove_title' | t: title: customer_aria_title | escape }}"
+                                  data-variant-id="{{ item.variant.id }}"
+                                  {% if item.instructions and item.instructions.can_remove == false %}
+                                    class="hidden"
+                                  {% endif %}
+                                >
+                                  <span class="svg-wrapper">
+                                    {{- 'icon-remove.svg' | inline_asset_content -}}
+                                  </span>
+                                </button>
+                              </cart-remove-button>
+                            </div>
+                            {%- if has_qty_rules or has_vol_pricing -%}
+                              <button
+                                type="button"
+                                class="quantity-popover__info-button quantity-popover__info-button--icon-with-label button button--tertiary"
+                                aria-expanded="false"
+                              >
+                                <span class="svg-wrapper">
+                                  {{- 'icon-info.svg' | inline_asset_content -}}
+                                </span>
+                                <span>
+                                  {%- if has_vol_pricing -%}
+                                    {{ 'products.product.volume_pricing.note' | t }}
+                                  {%- elsif has_qty_rules -%}
+                                    {{ 'products.product.quantity.note' | t }}
+                                  {%- endif -%}
+                                </span>
+                              </button>
+                            {%- endif -%}
+                            {%- if has_vol_pricing or has_qty_rules -%}
+                              <div
+                                class="cart-items__info global-settings-popup quantity-popover__info"
+                                tabindex="-1"
+                                hidden
+                              >
+                                {%- if has_qty_rules == false -%}
+                                  <span class="volume-pricing-label caption">
+                                    {{- 'products.product.volume_pricing.title' | t -}}
+                                  </span>
+                                {%- endif -%}
+                                <div class="quantity__rules caption">
+                                  {%- if item.variant.quantity_rule.increment > 1 -%}
+                                    <span class="divider">
+                                      {{-
+                                        'products.product.quantity.multiples_of'
+                                        | t: quantity: item.variant.quantity_rule.increment
+                                      -}}
+                                    </span>
+                                  {%- endif -%}
+                                  {%- if item.variant.quantity_rule.min > 1 -%}
+                                    <span class="divider">
+                                      {{-
+                                        'products.product.quantity.min_of'
+                                        | t: quantity: item.variant.quantity_rule.min
+                                      -}}
+                                    </span>
+                                  {%- endif -%}
+                                  {%- if item.variant.quantity_rule.max != null -%}
+                                    <span class="divider">
+                                      {{-
+                                        'products.product.quantity.max_of'
+                                        | t: quantity: item.variant.quantity_rule.max
+                                      -}}
+                                    </span>
+                                  {%- endif -%}
+                                </div>
+                                <button
+                                  class="button-close button button--tertiary"
+                                  type="button"
+                                  aria-label="{{ 'accessibility.close' | t }}"
+                                >
+                                  <span class="svg-wrapper">
+                                    {{- 'icon-close.svg' | inline_asset_content -}}
+                                  </span>
+                                </button>
+                                {%- if item.variant.quantity_price_breaks.size > 0 -%}
+                                  <volume-pricing class="parent-display">
+                                    <ul class="list-unstyled">
+                                      <li>
+                                        <span>{{ item.variant.quantity_rule.min }}+</span>
+                                        <span>₪{{ item.variant.price | money_without_currency }}/ea</span>
+                                      </li>
+                                      {%- for price_break in item.variant.quantity_price_breaks -%}
+                                        <li>
+                                          <span>
+                                            {{- price_break.minimum_quantity -}}
+                                            <span aria-hidden="true">+</span></span
+                                          >
+                                          <span>₪{{ price_break.price | money_without_currency }}/ea</span>
+                                        </li>
+                                      {%- endfor -%}
+                                    </ul>
+                                  </volume-pricing>
+                                {%- endif -%}
+                              </div>
+                            {%- endif -%}
+                            <div
+                              id="CartDrawer-LineItemError-{{ item.index | plus: 1 }}"
+                              class="cart-item__error"
+                              role="alert"
+                            >
+                              <small class="cart-item__error-text"></small>
+                              <span class="svg-wrapper">
+                                {{- 'icon-error.svg' | inline_asset_content -}}
+                              </span>
+                            </div>
+                          </quantity-popover>
+                        </td>
+                      </tr>
+                    {%- endfor -%}
+                  </tbody>
+                </table>
+              </div>
+            {%- endif -%}
+            <p id="CartDrawer-LiveRegionText" class="visually-hidden" role="status"></p>
+            <p id="CartDrawer-LineItemStatus" class="visually-hidden" aria-hidden="true" role="status">
+              {{ 'accessibility.loading' | t }}
+            </p>
+          </div>
+          <div id="CartDrawer-CartErrors" role="alert"></div>
+        </form>
+      </cart-drawer-items>
+
+{%- assign novafunnel_has_sales_bundle = false -%}
+{%- assign novafunnel_bump_count = 0 -%}
+{%- assign novafunnel_bump_total = 0 -%}
+{%- for drawer_item in cart.items -%}
+  {%- if drawer_item.product.handle == 'novahair-funnel-internal' -%}
+    {%- assign novafunnel_has_sales_bundle = true -%}
+  {%- endif -%}
+  {%- if drawer_item.variant_id == 51878069535015 or drawer_item.variant_id == 51880636875047 or drawer_item.variant_id == 51880681472295 -%}
+    {%- assign novafunnel_bump_count = novafunnel_bump_count | plus: drawer_item.quantity -%}
+    {%- assign novafunnel_bump_total = novafunnel_bump_total | plus: drawer_item.final_line_price -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if novafunnel_has_sales_bundle -%}
+  <section class="novafunnel-included" aria-labelledby="novafunnelIncludedHeading">
+    <h3 class="novafunnel-included__heading" id="novafunnelIncludedHeading">מה כלול בהזמנה</h3>
+    <div class="novafunnel-included__row">
+      <img src="{{ 'novahair-coloring-kit-480.webp' | asset_url }}" alt="ערכת צביעה מלאה" loading="lazy" decoding="async" width="58" height="46">
+      <div>
+        <div class="novafunnel-included__name">ערכת צביעה מלאה</div>
+        <div class="novafunnel-included__meta">מסרק · קערה · מברשות וקליפסים · שווי ₪79</div>
+      </div>
+      <div class="novafunnel-included__free">חינם</div>
+    </div>
+  </section>
+{%- endif -%}
+{%- if novafunnel_bump_count > 0 -%}
+  <div class="novafunnel-selected-additions" role="status" aria-label="תוספות שנבחרו">
+    <span>תוספות שבחרת <span class="novafunnel-selected-additions__meta">{{ novafunnel_bump_count }} תוספות</span></span>
+    <span class="novafunnel-selected-additions__price">+₪{{ novafunnel_bump_total | money_without_currency }}</span>
+  </div>
+{%- endif -%}
+
+
+<div class="novafunnel-mobile-upsells" id="csMobilePanel" hidden aria-label="תוספות להזמנה">
+  <div class="novafunnel-mobile-upsells__head">
+    <div>
+      <p class="novafunnel-mobile-upsells__title" id="csMobileTitle">מוצרים משלימים במחיר מיוחד</p>
+    </div>
+    <div class="novafunnel-mobile-upsells__nav" aria-label="ניווט בין מוצרים משלימים">
+      <button type="button" class="novafunnel-mobile-upsells__arrow" data-cs-next aria-label="למוצרים הבאים">←</button>
+      <button type="button" class="novafunnel-mobile-upsells__arrow" data-cs-previous aria-label="למוצרים הקודמים">→</button>
+    </div>
+  </div>
+  <div class="novafunnel-mobile-upsells__rail" id="csMobileItems"></div>
+</div>
+
+{% if cart != empty %}
+{%- liquid
+  if cart.currency.iso_code == 'USD'
+    assign ship_threshold = 5500
+  else
+    assign ship_threshold = 19900
+  endif
+  assign current_total = cart.total_price | default: 0
+  if current_total >= ship_threshold
+    assign ship_pct = 100
+    assign ship_unlocked = true
+  else
+    assign ship_unlocked = false
+    assign ship_diff = ship_threshold | minus: current_total
+    assign ship_pct = current_total | times: 100 | divided_by: ship_threshold
+    if ship_pct < 4 and current_total > 0
+      assign ship_pct = 4
+    endif
+  endif
+-%}
+<div
+  class="cart-drawer-cro-panel"
+  data-free-ship-panel
+  data-ship-threshold="{{ ship_threshold }}"
+  data-ship-currency="{{ cart.currency.iso_code }}"
+  style="margin: 12px 16px; padding: 14px; background: #FFFFFF; border: 1px solid #E7E1D7; border-radius: 14px; direction: rtl; text-align: right;"
+>
+  <div data-ship-copy style="font-size: 13px; font-weight: 800; color: {% if ship_unlocked %}#027A48{% else %}#17231E{% endif %}; margin-bottom: 8px; line-height: 1.4;">
+    {%- if ship_unlocked -%}
+      זכאית למשלוח חינם!
+    {%- else -%}
+      חסרים לך עוד ₪{{ ship_diff | money_without_currency }} למשלוח חינם
+    {%- endif -%}
+  </div>
+  <div style="width: 100%; height: 10px; background: #E7E1D7; border-radius: 999px; overflow: hidden;">
+    <div data-ship-fill style="width: {{ ship_pct }}%; height: 100%; background: {% if ship_unlocked %}#027A48{% else %}#C5A059{% endif %}; border-radius: 999px;"></div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #F4EFEA; font-size: 11px; font-weight: 700; color: #555; line-height: 1.35;">
+    <span>5-14 ימי עסקים</span>
+    <span>סליקה מאובטחת</span>
+    <span>מוצר מקורי</span>
+    <span>שירות לקוחות בעברית</span>
+  </div>
+</div>
+{% endif %}
+
+
+</div>
+<!-- /.drawer__scroll -->
+<div class="drawer__footer">
+        {%- if settings.show_cart_note -%}
+          <details id="Details-CartDrawer">
+            <summary>
+              <span class="summary__title">
+                {{ 'sections.cart.note' | t }}
+                {{- 'icon-caret.svg' | inline_asset_content -}}
+              </span>
+            </summary>
+            <cart-note class="cart__note field">
+              <label class="visually-hidden" for="CartDrawer-Note">{{ 'sections.cart.note' | t }}</label>
+              <textarea
+                id="CartDrawer-Note"
+                class="text-area text-area--resize-vertical field__input"
+                name="note"
+                placeholder="{{ 'sections.cart.note' | t }}"
+              >{{ cart.note }}</textarea>
+            </cart-note>
+          </details>
+        {%- endif -%}
+
+        <!-- Start blocks -->
+        <!-- Subtotals moved below bumps -->
+
+        {%- comment -%}
+        <div class="cart-drawer__footer cart-drawer__footer--legacy" style="display:none;" {{ block.shopify_attributes }}>
+          <small class="tax-note caption-large rte" style="display:block;text-align:center;margin:2px 0 10px;line-height:1.7;color:#8A8A8A;">
+            {%- if cart.duties_included and cart.taxes_included -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.duties_and_taxes_included_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{
+                  'sections.cart.duties_and_taxes_included_shipping_at_checkout_with_policy_html'
+                  | t: link: shop.shipping_policy.url
+                }}
+              {%- endif -%}
+            {%- elsif cart.duties_included == false and cart.taxes_included -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.taxes_included_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{
+                  'sections.cart.taxes_included_shipping_at_checkout_with_policy_html'
+                  | t: link: shop.shipping_policy.url
+                }}
+              {%- endif -%}
+            {%- elsif cart.duties_included and cart.taxes_included == false -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.duties_included_taxes_at_checkout_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{
+                  'sections.cart.duties_included_taxes_at_checkout_shipping_at_checkout_with_policy_html'
+                  | t: link: shop.shipping_policy.url
+                }}
+              {%- endif -%}
+            {%- elsif cart.duties_included == false and cart.taxes_included == false -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.taxes_at_checkout_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{
+                  'sections.cart.taxes_at_checkout_shipping_at_checkout_with_policy_html'
+                  | t: link: shop.shipping_policy.url
+                }}
+              {%- endif -%}
+            {%- endif -%}
+          </small>
+        </div>
+        {%- endcomment -%}
+
+        <!-- CTAs -->
+
+        
+        
+        <!-- Subtotals — pinned footer, compact horizontal -->
+        <div class="cart-drawer__footer" {{ block.shopify_attributes }}>
+          {%- liquid
+            assign novafunnel_reference_total = 0
+            for savings_item in cart.items
+              assign savings_reference_line = savings_item.original_line_price
+
+              if savings_item.product.handle == 'novahair-funnel-internal'
+                assign savings_bundle_config = savings_item.properties['_NOVASALE_CONFIG'] | default: savings_item.variant.sku
+                assign savings_bundle_parts = savings_bundle_config | split: '-'
+                assign savings_bundle_size = savings_item.properties['_BUNDLE_SIZE'] | default: savings_bundle_parts[1]
+                case savings_bundle_size
+                  when '2'
+                    assign savings_reference_line = 37980 | times: savings_item.quantity
+                  when '4'
+                    assign savings_reference_line = 75800 | times: savings_item.quantity
+                  when '6'
+                    assign savings_reference_line = 113700 | times: savings_item.quantity
+                endcase
+              else
+                case savings_item.variant_id
+                  when 50459892580647
+                    assign savings_reference_line = 11999 | times: savings_item.quantity
+                  when 51885840072999
+                    assign savings_reference_line = 3990 | times: savings_item.quantity
+                  when 51885840400679
+                    assign savings_reference_line = 3990 | times: savings_item.quantity
+                endcase
+              endif
+
+              assign novafunnel_reference_total = novafunnel_reference_total | plus: savings_reference_line
+            endfor
+            assign novafunnel_paid_total = cart.total_price | default: 0
+            assign novafunnel_savings = novafunnel_reference_total | minus: novafunnel_paid_total
+            if novafunnel_savings < 0
+              assign novafunnel_savings = 0
+            endif
+            assign novafunnel_savings_pct = 0
+            if novafunnel_savings > 0 and novafunnel_reference_total > 0
+              assign novafunnel_savings_pct = novafunnel_savings | times: 100.0 | divided_by: novafunnel_reference_total | round
+            endif
+          -%}
+          {%- if novafunnel_savings > 0 -%}
+            <div class="novafunnel-savings" role="status">
+              <span>חסכת בהזמנה</span>
+              <span>₪{{ novafunnel_savings | money_without_currency }} ({{ novafunnel_savings_pct }}%)</span>
+            </div>
+          {%- endif -%}
+          {%- if novafunnel_reference_total > novafunnel_paid_total -%}
+            <div style="display:flex;justify-content:center;gap:8px;font-size:11.5px;color:#8A8A8A;margin-bottom:2px;">
+              <span>לפני הנחה</span>
+              <s>₪{{ novafunnel_reference_total | money_without_currency }}</s>
+            </div>
+            {%- for discount in cart.cart_level_discount_applications -%}
+              <div style="display:flex;justify-content:center;gap:8px;font-size:11.5px;font-weight:700;color:#027A48;margin-bottom:2px;">
+                <span>{{ discount.title | escape }}</span>
+                <span>-₪{{ discount.total_allocated_amount | money_without_currency }}</span>
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+          <div class="totals" role="status" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 2px 8px;">
+            <h2 class="totals__total" style="margin:0;font-size:14px;font-weight:700;color:#55625D;">סה"כ לתשלום</h2>
+            <p class="totals__total-value" style="margin:0;font-size:21px;font-weight:800;color:#17231E;line-height:1;">₪{{ cart.total_price | money_without_currency }}</p>
+          </div>
+          <small class="tax-note caption-large rte" style="display:block;text-align:center;margin:0 0 8px;font-size:10.5px;line-height:1.5;color:#9A9A9A;">
+            {%- if cart.duties_included and cart.taxes_included -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.duties_and_taxes_included_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{ 'sections.cart.duties_and_taxes_included_shipping_at_checkout_with_policy_html' | t: link: shop.shipping_policy.url }}
+              {%- endif -%}
+            {%- elsif cart.duties_included == false and cart.taxes_included -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.taxes_included_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{ 'sections.cart.taxes_included_shipping_at_checkout_with_policy_html' | t: link: shop.shipping_policy.url }}
+              {%- endif -%}
+            {%- elsif cart.duties_included and cart.taxes_included == false -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.duties_included_taxes_at_checkout_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{ 'sections.cart.duties_included_taxes_at_checkout_shipping_at_checkout_with_policy_html' | t: link: shop.shipping_policy.url }}
+              {%- endif -%}
+            {%- elsif cart.duties_included == false and cart.taxes_included == false -%}
+              {%- if shop.shipping_policy.body == blank -%}
+                {{ 'sections.cart.taxes_at_checkout_shipping_at_checkout_without_policy' | t }}
+              {%- else -%}
+                {{ 'sections.cart.taxes_at_checkout_shipping_at_checkout_with_policy_html' | t: link: shop.shipping_policy.url }}
+              {%- endif -%}
+            {%- endif -%}
+          </small>
+        </div>
+
+<script>
+function orderNovaFunnelCartRows(root) {
+  const scope = root || document;
+  scope.querySelectorAll('[data-novafunnel-cart-rows]').forEach((body) => {
+    const rows = Array.from(body.children).filter((row) => row.hasAttribute('data-novafunnel-order'));
+    const ordered = rows
+      .map((row, index) => ({ row, index, rank: Number(row.dataset.novafunnelOrder || 2) }))
+      .sort((a, b) => a.rank - b.rank || a.index - b.index);
+    if (ordered.every((entry, index) => entry.row === rows[index])) return;
+    const fragment = body.ownerDocument.createDocumentFragment();
+    ordered.forEach((entry) => fragment.appendChild(entry.row));
+    body.appendChild(fragment);
+  });
+}
+window.orderNovaFunnelCartRows = orderNovaFunnelCartRows;
+orderNovaFunnelCartRows(document);
+
+// Swap drawer + cart bubble straight from a cart endpoint `sections` response (single round trip)
+function swapDrawerFromSections(sections) {
+  const drawerHtml = sections && (sections['cart-drawer-novafunnel'] || sections['cart-drawer']);
+  if (!drawerHtml) return false;
+  const host = document.querySelector('cart-drawer');
+  const doc = new DOMParser().parseFromString(drawerHtml, 'text/html');
+  const newDrawer = doc.querySelector('cart-drawer');
+  const newInner = doc.querySelector('#CartDrawer');
+  const currentInner = document.querySelector('#CartDrawer');
+  if (newInner && currentInner) {
+    orderNovaFunnelCartRows(newInner);
+    currentInner.innerHTML = newInner.innerHTML;
+  }
+  if (host) {
+    const empty = newDrawer ? newDrawer.classList.contains('is-empty') : false;
+    host.classList.toggle('is-empty', empty);
+    const overlay = host.querySelector('#CartDrawer-Overlay');
+    if (overlay) overlay.addEventListener('click', host.close.bind(host));
+  }
+  try {
+    if (sections['cart-icon-bubble']) {
+      const bubbleDoc = new DOMParser().parseFromString(sections['cart-icon-bubble'], 'text/html');
+      const newBubble = bubbleDoc.querySelector('.shopify-section') || bubbleDoc.body;
+      const currentBubble = document.getElementById('cart-icon-bubble');
+      if (currentBubble && newBubble) {
+        const next = newBubble.querySelector('#cart-icon-bubble') || newBubble.firstElementChild;
+        if (next) currentBubble.innerHTML = next.innerHTML;
+      }
+    }
+  } catch (e) {}
+  return true;
+}
+window.swapDrawerFromSections = swapDrawerFromSections;
+
+async function toggleCartBump(variantId, add) {
+  const vipCheck = document.getElementById('bump-vip-check');
+  const guideCheck = document.getElementById('bump-guide-check');
+  if (vipCheck) vipCheck.disabled = true;
+  if (guideCheck) guideCheck.disabled = true;
+
+  try {
+    const rootPath = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || '/';
+    const endpoint = add ? 'cart/add.js' : 'cart/change.js';
+    const payload = add
+      ? { items: [{ id: Number(variantId), quantity: 1 }], sections: ['cart-drawer-novafunnel', 'cart-icon-bubble'] }
+      : { id: String(variantId), quantity: 0, sections: ['cart-drawer-novafunnel', 'cart-icon-bubble'] };
+    const res = await fetch(rootPath + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !swapDrawerFromSections(data.sections)) {
+      await refreshCartDrawer();
+    }
+  } catch(e) {
+    console.error('Bump toggle error:', e);
+    alert('שגיאה בעת עדכון הבאמפ. אנא נסי שוב.');
+  } finally {
+    if (vipCheck) vipCheck.disabled = false;
+    if (guideCheck) guideCheck.disabled = false;
+  }
+}
+
+async function clearCartDrawer() {
+  if (confirm('האם את בטוחה שברצונך לנקות את הסל?')) {
+    await fetch('/cart/clear.js', { method: 'POST' });
+    await refreshCartDrawer();
+  }
+}
+
+async function refreshCartDrawer(openAfter) {
+  const host = document.querySelector('cart-drawer');
+  // Open the drawer IMMEDIATELY (perceived-instant); fresh content swaps in below.
+  if (openAfter && host) {
+    if (typeof host.open === 'function') host.open();
+    else host.classList.add('animate', 'active');
+  }
+  try {
+    const rootPath = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || '/';
+    // Fetch drawer + cart-bubble sections in parallel for speed
+    const [res, bubbleRes] = await Promise.all([
+      fetch(`${rootPath}?section_id=cart-drawer-novafunnel`),
+      fetch(`${rootPath}?section_id=cart-icon-bubble`).catch(() => null)
+    ]);
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const newDrawer = doc.querySelector('cart-drawer');
+    const newInner = doc.querySelector('#CartDrawer');
+    const currentInner = document.querySelector('#CartDrawer');
+
+    if (newInner && currentInner) {
+      orderNovaFunnelCartRows(newInner);
+      currentInner.innerHTML = newInner.innerHTML;
+    }
+    // No extra cart.js fetch here — server already rendered the shipping bar correctly.
+    if (host) {
+      const empty = newDrawer ? newDrawer.classList.contains('is-empty') : false;
+      host.classList.toggle('is-empty', empty);
+      const overlay = host.querySelector('#CartDrawer-Overlay');
+      if (overlay) overlay.addEventListener('click', host.close.bind(host));
+      if (openAfter && typeof host.open === 'function') host.open();
+      else if (openAfter) host.classList.add('animate', 'active');
+    }
+
+    try {
+      if (bubbleRes) {
+        const bubbleHtml = await bubbleRes.text();
+        const bubbleDoc = new DOMParser().parseFromString(bubbleHtml, 'text/html');
+        const newBubble = bubbleDoc.querySelector('.shopify-section') || bubbleDoc.body;
+        const currentBubble = document.getElementById('cart-icon-bubble');
+        if (currentBubble && newBubble) {
+          const next = newBubble.querySelector('#cart-icon-bubble') || newBubble.firstElementChild;
+          if (next) currentBubble.innerHTML = next.innerHTML;
+        }
+      }
+    } catch (e) {}
+  } catch(e) {
+    console.error('Refresh drawer error:', e);
+  }
+}
+window.refreshCartDrawer = refreshCartDrawer;
+
+function formatShipMoney(cents, currency) {
+  const value = Math.max(0, Number(cents) || 0) / 100;
+  const fixed = value.toFixed(2);
+  return (currency === 'USD' ? '$' : '₪') + fixed;
+}
+
+function updateFreeShippingBar(totalPrice, currencyHint) {
+  const panel = document.querySelector('[data-free-ship-panel]');
+  if (!panel) return;
+  const currency = currencyHint || panel.getAttribute('data-ship-currency') || 'ILS';
+  const threshold = currency === 'USD' ? 5500 : 19900;
+  panel.setAttribute('data-ship-threshold', String(threshold));
+  panel.setAttribute('data-ship-currency', currency);
+  const total = Number(totalPrice || 0);
+  const copy = panel.querySelector('[data-ship-copy]');
+  const fill = panel.querySelector('[data-ship-fill]');
+  if (!copy || !fill) return;
+  if (total >= threshold) {
+    copy.textContent = 'זכאית למשלוח חינם!';
+    copy.style.color = '#027A48';
+    fill.style.width = '100%';
+    fill.style.background = '#027A48';
+  } else {
+    let pct = threshold ? Math.floor((total * 100) / threshold) : 0;
+    if (total > 0 && pct < 8) pct = 8;
+    copy.textContent = 'חסרים לך עוד ' + formatShipMoney(threshold - total, currency) + ' למשלוח חינם';
+    copy.style.color = '#17231E';
+    fill.style.width = pct + '%';
+    fill.style.background = '#C5A059';
+  }
+}
+
+async function syncFreeShippingBar() {
+  try {
+    const rootPath = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || '/';
+    const cart = await (await fetch(rootPath + 'cart.js', { headers: { Accept: 'application/json' } })).json();
+    updateFreeShippingBar(cart.total_price, cart.currency);
+  } catch (e) {}
+}
+
+
+
+(function ensureNovaFunnelCartQueue(){
+  if(window.novaFunnelEnqueueCartMutation)return;
+  var state={tail:Promise.resolve(),pending:Object.create(null)};
+  window.novaFunnelEnqueueCartMutation=function(key,job){
+    key=String(key||'cart');
+    if(state.pending[key])return state.pending[key];
+    var run=state.tail.catch(function(){}).then(job);
+    state.tail=run.catch(function(){});
+    state.pending[key]=run.finally(function(){delete state.pending[key];});
+    return state.pending[key];
+  };
+})();
+
+function novaFunnelStatus(anchor,message,isError){
+  if(!anchor)return;
+  var label=anchor.closest('label')||anchor.parentElement;
+  if(!label)return;
+  var status=label.querySelector('.novafunnel-cart-status');
+  if(!status){status=document.createElement('div');status.className='novafunnel-cart-status';label.appendChild(status);}
+  status.textContent=message||'';
+  status.classList.toggle('is-error',!!isError);
+}
+
+window.toggleCartBump=function(variantId,add){
+  var checkbox=document.querySelector('input[onchange*="toggleCartBump('+Number(variantId)+',"]');
+  if(checkbox){checkbox.disabled=true;novaFunnelStatus(checkbox,add?'מוסיף...':'מסיר...',false);}
+  return window.novaFunnelEnqueueCartMutation('bump:'+variantId,function(){
+    var rootPath=(window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root)||'/';
+    var endpoint=add?'cart/add.js':'cart/change.js';
+    var payload=add
+      ?{items:[{id:Number(variantId),quantity:1}],sections:['cart-drawer-novafunnel','cart-icon-bubble']}
+      :{id:String(variantId),quantity:0,sections:['cart-drawer-novafunnel','cart-icon-bubble']};
+    return fetch(rootPath+endpoint,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload)})
+      .then(function(response){return response.json().catch(function(){return null;}).then(function(data){if(!response.ok||!data)throw new Error((data&&(data.description||data.message))||'Cart bump update failed');return data;});})
+      .then(function(data){
+        if(!window.swapDrawerFromSections(data.sections))return window.refreshCartDrawer(false);
+        var fresh=document.querySelector('input[onchange*="toggleCartBump('+Number(variantId)+',"]');
+        if(fresh){novaFunnelStatus(fresh,add?'נוסף ✓':'הוסר ✓',false);setTimeout(function(){novaFunnelStatus(fresh,'',false);},900);}
+      })
+      .catch(function(error){
+        console.error('NovaFunnel bump update error:',error);
+        var fresh=document.querySelector('input[onchange*="toggleCartBump('+Number(variantId)+',"]')||checkbox;
+        if(fresh){fresh.checked=!add;novaFunnelStatus(fresh,'לא הצלחנו לעדכן. נסי שוב.',true);}
+      })
+      .finally(function(){var fresh=document.querySelector('input[onchange*="toggleCartBump('+Number(variantId)+',"]')||checkbox;if(fresh)fresh.disabled=false;});
+  });
+};
+
+function novaFunnelChangeLine(lineKey,quantity,trigger){
+  if(!lineKey)return Promise.resolve();
+  var updatingRow=trigger&&trigger.closest&&trigger.closest('tr[data-line-key]');
+  if(trigger)trigger.disabled=true;
+  if(updatingRow){updatingRow.classList.add('is-updating');updatingRow.setAttribute('aria-busy','true');}
+  return window.novaFunnelEnqueueCartMutation('line:'+lineKey,function(){
+    var rootPath=(window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root)||'/';
+    return fetch(rootPath+'cart/change.js',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({id:String(lineKey),quantity:Math.max(0,Number(quantity)||0),sections:['cart-drawer-novafunnel','cart-icon-bubble']})})
+      .then(function(response){return response.json().catch(function(){return null;}).then(function(data){if(!response.ok||!data)throw new Error((data&&(data.description||data.message))||'Cart update failed');return data;});})
+      .then(function(data){if(!window.swapDrawerFromSections(data.sections))return window.refreshCartDrawer(false);})
+      .catch(function(error){console.error('NovaFunnel cart line update error:',error);return window.refreshCartDrawer(false);})
+      .finally(function(){
+        if(trigger&&document.body.contains(trigger))trigger.disabled=false;
+        if(updatingRow&&document.body.contains(updatingRow)){updatingRow.classList.remove('is-updating');updatingRow.removeAttribute('aria-busy');}
+      });
+  });
+}
+window.novaFunnelChangeLine=novaFunnelChangeLine;
+
+if (!window.__novaFunnelCartHandlersBound) {
+  window.__novaFunnelCartHandlersBound = true;
+  document.addEventListener('click', function(event) {
+    var edit = event.target.closest('[data-novafunnel-edit-selection]');
+    if (edit) {
+      event.preventDefault();
+      var drawer = document.querySelector('cart-drawer');
+      if (drawer && typeof drawer.close === 'function') drawer.close();
+      var target = document.getElementById('shadeHeading') || document.querySelector('.shade-grid');
+      if (target) {
+        target.scrollIntoView({behavior:'smooth',block:'center'});
+        if (target.focus) target.focus({preventScroll:true});
+      }
+      return;
+    }
+
+    var removeButton = event.target.closest('.novafunnel-cart-drawer cart-remove-button button');
+    if (removeButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      var removeRow=removeButton.closest('tr[data-line-key]');
+      novaFunnelChangeLine(removeRow&&removeRow.dataset.lineKey,0,removeButton);
+      return;
+    }
+
+    var quantityButton = event.target.closest('.novafunnel-cart-drawer quantity-input .quantity__button');
+    if (quantityButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      var quantityRoot = quantityButton.closest('quantity-input');
+      var input = quantityRoot && quantityRoot.querySelector('.quantity__input');
+      if (!input) return;
+      var delta = quantityButton.name === 'plus' ? 1 : -1;
+      var next = Math.max(0, Number(input.value || 0) + delta);
+      var quantityRow=quantityButton.closest('tr[data-line-key]');
+      novaFunnelChangeLine(quantityRow&&quantityRow.dataset.lineKey,next,quantityButton);
+    }
+  }, true);
+
+  document.addEventListener('change', function(event) {
+    var input = event.target.closest('.novafunnel-cart-drawer .quantity__input');
+    if (!input) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    var inputRow=input.closest('tr[data-line-key]');
+    novaFunnelChangeLine(inputRow&&inputRow.dataset.lineKey,Number(input.value),input);
+  }, true);
+}
+
+// ===== Cross-sell panel logic: one shared in-drawer source for desktop + mobile =====
+(function () {
+  var CS_SETS = {
+    nova: { title: 'מוצרים משלימים במחיר מיוחד', items: [{id:50459892580647,name:'ספריי הברקה לשיער',price:'₪29.99',compare:'₪119.99',offer:'מחיר בהוספה',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/859a4808-129b-4821-8588-67ecfaefd97d.jpg?v=1758896863'},{id:51885840072999,name:'מברשת עיסוי לקרקפת',price:'₪19.90',compare:'₪39.90',offer:'מחיר בהוספה',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/3c8c2338-1207-454e-a4d7-dfd7743f28c6.jpg?v=1786967692'},{id:51885840400679,name:'סרט ראש לטיפוח ואיפור',price:'₪19.90',compare:'₪39.90',offer:'מחיר בהוספה',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/d0e60057-38b4-4066-a555-8a5f6b4c6609.jpg?v=1786967702'}] },
+    elastic: { title: 'משלימים את שגרת ElasticDream', items: [{id:51885840433447,name:'מסיכת קולגן לפנים — יחידה בודדת',price:'₪29.90',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/2a6a1cdd-70e0-4f25-9a02-7b1b96f39ed3.jpg?v=1786967705'},{id:51885840466215,name:'קרם עיניים רטינול',price:'₪34.90',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/47f35344-cc55-4ea9-918d-64260c04c249.jpg?v=1786967708'},{id:51885840531751,name:'קרם צוואר ומחשוף רטינול',price:'₪34.90',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/d0d21cac-59a9-4bd2-a71c-51abe41c34f9.jpg?v=1786967711'},{id:51885840564519,name:'קרם פנים לחות מרגיע',price:'₪34.90',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/8b32add9-bfd1-496c-b95c-6f1837e476f6.jpg?v=1786967713'},{id:51885840990503,name:'קרם מיצוק Bee Venom נגד קמטים',price:'₪34.90',img:'https://cdn.shopify.com/s/files/1/0719/2628/4583/files/79a43d1c-9c54-42e3-9759-8810b2834bd8.jpg?v=1786967717'}] }
+  };
+  var MAIN = { nova: [10339305914663, 10341269274919], elastic: [9671746683175, 10340534026535] };
+  var WHITELIST = {};
+  [51878069535015, 51880636875047, 51880681472295, 51883494474023, 50459892580647, 51885840138535].forEach(function(v){WHITELIST[v]=1;});
+  Object.keys(CS_SETS).forEach(function(k){CS_SETS[k].items.forEach(function(i){WHITELIST[i.id]=1;});});
+  var csResizeTimer=0;
+
+  function csHide(){var panel=document.getElementById('csMobilePanel');if(panel)panel.hidden=true;}
+  function availableItems(set,present){return set.items.filter(function(item){return !present[item.id];});}
+  function crossSellMarkup(item){return '<article class="novafunnel-mobile-upsells__card"><div class="novafunnel-mobile-upsells__image"><img src="'+item.img+'" alt="'+item.name+'" loading="lazy" decoding="async"></div><div class="novafunnel-mobile-upsells__name">'+item.name+'</div><div class="novafunnel-mobile-upsells__meta"><div class="novafunnel-mobile-upsells__price-row" dir="ltr">'+(item.compare?'<bdi class="novafunnel-mobile-upsells__compare" dir="ltr">'+item.compare+'</bdi>':'')+'<bdi class="novafunnel-mobile-upsells__price" dir="ltr">'+item.price+'</bdi></div>'+(item.offer?'<div class="novafunnel-mobile-upsells__offer">'+item.offer+'</div>':'')+'</div><button type="button" class="novafunnel-mobile-upsells__add" data-vid="'+item.id+'">הוספה</button></article>';}
+  function csRender(key,present){
+    var set=CS_SETS[key],items=availableItems(set,present),mobile=document.getElementById('csMobilePanel'),box=document.getElementById('csMobileItems'),title=document.getElementById('csMobileTitle');
+    if(!mobile||!box||!items.length){csHide();return;}
+    if(title)title.textContent=set.title;
+    box.innerHTML=items.map(crossSellMarkup).join('');
+    mobile.hidden=false;
+    requestAnimationFrame(updateNavigation);
+  }
+  function updateNavigation(){
+    var rail=document.getElementById('csMobileItems'),next=document.querySelector('[data-cs-next]'),previous=document.querySelector('[data-cs-previous]');
+    if(!rail||!next||!previous)return;
+    var max=Math.max(0,rail.scrollWidth-rail.clientWidth),position=Math.abs(rail.scrollLeft);
+    previous.disabled=position<3;
+    next.disabled=position>max-3;
+  }
+  function scrollProducts(direction){
+    var rail=document.getElementById('csMobileItems');if(!rail)return;
+    var card=rail.querySelector('.novafunnel-mobile-upsells__card');
+    var step=(card?card.getBoundingClientRect().width:rail.clientWidth*.48)+9;
+    rail.scrollBy({left:direction*step,behavior:'smooth'});
+    setTimeout(updateNavigation,260);
+  }
+  function csEvaluate(){
+    var host=document.querySelector('cart-drawer');
+    if(!host||!host.classList.contains('active')){csHide();return;}
+    var groups={},ok=true,present={};
+    host.querySelectorAll('tr.cart-item[data-product-id][data-variant-id]').forEach(function(row){
+      var variantId=Number(row.dataset.variantId),productId=Number(row.dataset.productId);
+      present[variantId]=1;
+      if(WHITELIST[variantId])return;
+      if(MAIN.nova.indexOf(productId)>-1)groups.nova=1;
+      else if(MAIN.elastic.indexOf(productId)>-1)groups.elastic=1;
+      else ok=false;
+    });
+    var keys=Object.keys(groups);
+    if(!ok||keys.length!==1){csHide();return;}
+    csRender(keys[0],present);
+  }
+  function csAdd(variantId,button){
+    if(button&&button.disabled)return Promise.resolve();
+    if(button){button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='מוסיף...';}
+    return window.novaFunnelEnqueueCartMutation('cross-sell:'+variantId,function(){
+      var rootPath=(window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root)||'/';
+      return fetch(rootPath+'cart/add.js',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({items:[{id:variantId,quantity:1,properties:{'_NOVAFUNNEL_ROLE':'CROSS_SELL'}}],sections:['cart-drawer-novafunnel','cart-icon-bubble']})})
+        .then(function(response){return response.json().catch(function(){return null;}).then(function(data){if(!response.ok||!data)throw new Error((data&&(data.description||data.message))||'Cross-sell add failed');return data;});})
+        .then(function(data){
+          if(!window.swapDrawerFromSections(data.sections))return window.refreshCartDrawer(false);
+          if(button&&document.body.contains(button)){button.removeAttribute('aria-busy');button.textContent='נוסף ✓';}
+        })
+        .catch(function(error){
+          console.error('NovaFunnel cross-sell add error',error);
+          if(button&&document.body.contains(button)){button.removeAttribute('aria-busy');button.disabled=false;button.textContent='נסי שוב';}
+        });
+    });
+  }
+  var originalSwap=window.swapDrawerFromSections;
+  window.swapDrawerFromSections=function(sections){var result=originalSwap(sections);requestAnimationFrame(csEvaluate);return result;};
+  var originalRefresh=window.refreshCartDrawer;
+  window.refreshCartDrawer=function(openAfter){var result=originalRefresh(openAfter);if(result&&result.then)result.then(csEvaluate);return result;};
+  document.addEventListener('click',function(event){
+    var button=event.target.closest('#csMobilePanel [data-vid]');
+    if(button){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();csAdd(Number(button.getAttribute('data-vid')),button);return;}
+    if(event.target.closest('[data-cs-next]')){event.preventDefault();scrollProducts(-1);return;}
+    if(event.target.closest('[data-cs-previous]')){event.preventDefault();scrollProducts(1);}
+  },true);
+  document.addEventListener('DOMContentLoaded',function(){
+    var host=document.querySelector('cart-drawer');
+    if(host)new MutationObserver(csEvaluate).observe(host,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',function(){clearTimeout(csResizeTimer);csResizeTimer=setTimeout(csEvaluate,100);},{passive:true});
+    document.addEventListener('scroll',function(event){if(event.target&&event.target.id==='csMobileItems')updateNavigation();},true);
+  });
+  window.novaFunnelEvaluateCrossSells=csEvaluate;
+})();
+// Shipping bar is server-rendered inside the drawer — no cart.js fetch on page load.
+if (window.subscribe && window.PUB_SUB_EVENTS && window.PUB_SUB_EVENTS.cartUpdate) {
+  subscribe(PUB_SUB_EVENTS.cartUpdate, function () { syncFreeShippingBar(); });
+}
+</script>
+
+  
+        <div class="cart__ctas" {{ block.shopify_attributes }}>
+          <button
+            type="submit"
+            id="CartDrawer-Checkout"
+            class="cart__checkout-button button"
+            name="checkout"
+            form="CartDrawer-Form"
+            {% if cart == empty %}
+              disabled
+            {% endif %}
+          >
+            {{ 'sections.cart.checkout' | t }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</cart-drawer>

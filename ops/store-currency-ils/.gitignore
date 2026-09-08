@@ -1,0 +1,6 @@
+__pycache__/
+backups/
+LATEST_BACKUP.txt
+migration-progress.json
+.env
+.env.*
