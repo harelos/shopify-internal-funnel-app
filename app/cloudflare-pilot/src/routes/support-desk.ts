@@ -1,5 +1,6 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
+import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
@@ -64,15 +65,24 @@ supportBridgeRouter.post("/heartbeat", async (req, res) => {
 // boundary as the mailbox connector so an MCP agent never needs Shopify Admin
 // session cookies or direct database credentials.
 supportBridgeRouter.get("/status", async (_req, res) => {
-  const mailboxes = await prisma.supportMailbox.findMany({ orderBy: { updatedAt: "desc" } });
-  const [open, needsTriage, escalated, queued] = await Promise.all([
-    prisma.supportConversation.count({ where: { status: "OPEN" } }),
-    prisma.supportConversation.count({ where: { status: "NEEDS_TRIAGE" } }),
-    prisma.supportConversation.count({ where: { status: "ESCALATED" } }),
-    prisma.supportDraft.count({ where: { status: "QUEUED_TO_SEND" } }),
+  const db = supportD1();
+  const [mailboxRows, countRows] = await db.batch([
+    db.prepare('SELECT * FROM "SupportMailbox" ORDER BY "updatedAt" DESC'),
+    db.prepare(`SELECT
+      (SELECT COUNT(*) FROM "SupportConversation" WHERE "status" = 'OPEN') AS open,
+      (SELECT COUNT(*) FROM "SupportConversation" WHERE "status" = 'NEEDS_TRIAGE') AS needsTriage,
+      (SELECT COUNT(*) FROM "SupportConversation" WHERE "status" = 'ESCALATED') AS escalated,
+      (SELECT COUNT(*) FROM "SupportDraft" WHERE "status" = 'QUEUED_TO_SEND') AS queued`),
   ]);
+  const mailboxes = mailboxRows.results || [];
+  const counts = (countRows.results?.[0] || {}) as Record<string, number>;
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, mailboxes, counts: { open, needsTriage, escalated, queued } });
+  return res.json({ ok: true, mailboxes, counts: {
+    open: Number(counts.open || 0),
+    needsTriage: Number(counts.needsTriage || 0),
+    escalated: Number(counts.escalated || 0),
+    queued: Number(counts.queued || 0),
+  } });
 });
 
 supportBridgeRouter.get("/conversations", async (req, res) => {

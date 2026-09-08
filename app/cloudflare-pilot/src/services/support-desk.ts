@@ -4,6 +4,7 @@ import { workerEnvValue } from "../lib/shopify-config.js";
 import { generateSupportDecision } from "../lib/support-ai.js";
 import { evaluateSupportPolicy, mayAutoSend } from "../lib/support-policy.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
+import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
 
 const shopify = new ShopifyAdminClient();
 
@@ -23,7 +24,12 @@ async function sha256(value: string): Promise<string> {
 
 async function configuredShop() {
   const domain = (workerEnvValue("SHOP_DOMAIN") || "local-dev.myshopify.com").toLowerCase();
-  return prisma.shop.upsert({ where: { domain }, update: {}, create: { domain } });
+  const db = supportD1();
+  const existing = await db.prepare('SELECT "id", "domain" FROM "Shop" WHERE "domain" = ? LIMIT 1').bind(domain).first<{ id: string; domain: string }>();
+  if (existing) return existing;
+  const id = supportId("shop");
+  await db.prepare('INSERT OR IGNORE INTO "Shop" ("id", "domain") VALUES (?, ?)').bind(id, domain).run();
+  return (await db.prepare('SELECT "id", "domain" FROM "Shop" WHERE "domain" = ? LIMIT 1').bind(domain).first<{ id: string; domain: string }>()) || { id, domain };
 }
 
 function threadKey(input: SupportIngestInput): string {
@@ -215,30 +221,30 @@ export async function recordSupportAgentHeartbeat(input: {
   intervalMs?: number;
 }) {
   const shop = await configuredShop();
-  const now = new Date();
-  return prisma.supportMailbox.upsert({
-    where: { shopId_address: { shopId: shop.id, address: canonicalEmail(input.mailboxAddress) } },
-    update: {
-      connectionStatus: input.status === "ERROR" ? "ERROR" : "CONNECTED",
-      lastAgentRunAt: now,
-      nextAgentRunAt: input.status === "RUNNING" ? null : new Date(now.getTime() + Math.max(60_000, input.intervalMs || 120_000)),
-      lastAgentResult: (input.result || input.status).slice(0, 300),
-      lastScanCount: Math.max(0, Number(input.scanned || 0)),
-      ignoredMessageCount: Math.max(0, Number(input.ignored || 0)),
-      lastError: input.error ? input.error.slice(0, 500) : null,
-    },
-    create: {
-      shopId: shop.id,
-      address: canonicalEmail(input.mailboxAddress),
-      connectionStatus: input.status === "ERROR" ? "ERROR" : "CONNECTED",
-      lastAgentRunAt: now,
-      nextAgentRunAt: input.status === "RUNNING" ? null : new Date(now.getTime() + Math.max(60_000, input.intervalMs || 120_000)),
-      lastAgentResult: (input.result || input.status).slice(0, 300),
-      lastScanCount: Math.max(0, Number(input.scanned || 0)),
-      ignoredMessageCount: Math.max(0, Number(input.ignored || 0)),
-      lastError: input.error ? input.error.slice(0, 500) : null,
-    },
-  });
+  const db = supportD1();
+  const now = supportNow();
+  const address = canonicalEmail(input.mailboxAddress);
+  const connectionStatus = input.status === "ERROR" ? "ERROR" : "CONNECTED";
+  const nextAgentRunAt = input.status === "RUNNING" ? null : new Date(Date.now() + Math.max(60_000, input.intervalMs || 120_000)).toISOString();
+  const result = (input.result || input.status).slice(0, 300);
+  const scanned = Math.max(0, Number(input.scanned || 0));
+  const ignored = Math.max(0, Number(input.ignored || 0));
+  const error = input.error ? input.error.slice(0, 500) : null;
+  const existing = await db.prepare('SELECT "id" FROM "SupportMailbox" WHERE "shopId" = ? AND "address" = ? LIMIT 1').bind(shop.id, address).first<{ id: string }>();
+  const mailboxId = existing?.id || supportId("mailbox");
+  if (existing) {
+    await db.prepare(`UPDATE "SupportMailbox" SET
+      "connectionStatus" = ?, "lastAgentRunAt" = ?, "nextAgentRunAt" = ?,
+      "lastAgentResult" = ?, "lastScanCount" = ?, "ignoredMessageCount" = ?,
+      "lastError" = ?, "updatedAt" = ? WHERE "id" = ?`)
+      .bind(connectionStatus, now, nextAgentRunAt, result, scanned, ignored, error, now, mailboxId).run();
+  } else {
+    await db.prepare(`INSERT INTO "SupportMailbox"
+      ("id", "shopId", "address", "connectionStatus", "lastAgentRunAt", "nextAgentRunAt", "lastAgentResult", "lastScanCount", "ignoredMessageCount", "lastError", "createdAt", "updatedAt")
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(mailboxId, shop.id, address, connectionStatus, now, nextAgentRunAt, result, scanned, ignored, error, now, now).run();
+  }
+  return db.prepare('SELECT * FROM "SupportMailbox" WHERE "id" = ? LIMIT 1').bind(mailboxId).first();
 }
 
 export async function draftSupportReply(conversationId: string, sessionToken?: string) {
