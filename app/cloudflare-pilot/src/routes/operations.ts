@@ -42,10 +42,12 @@ function latestBySource(rows: Row[], source: string): Row | null {
   return rows.find(row => text(row.source) === source) || null;
 }
 
-router.get("/operations/health", async (_req, res) => {
+router.get("/operations/health", async (req, res) => {
   const db = supportD1();
   const now = new Date();
   const todayIsrael = resolveGrowthCockpitRange({ preset: "today", timezone: "Asia/Jerusalem", now });
+  const authorization = req.get("authorization") ?? "";
+  const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
 
   const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel] = await Promise.all([
     db.prepare(`SELECT "connectionStatus", "automationMode", "replyDelayMinutes", "lastSyncAt",
@@ -76,7 +78,7 @@ router.get("/operations/health", async (_req, res) => {
     db.prepare(`SELECT "releaseState", "passedCount", "failedCount", "circuitBreakerTriggered",
       "purchaseKillSwitchActive", "transformActive", "lastWebhookTimestamp", "lastCjSyncTimestamp", "updatedAt"
       FROM "NovaHairMonitorState" WHERE "id" = 'singleton' LIMIT 1`).first<Row>(),
-    shopify.webPixelConfiguration()
+    shopify.webPixelConfiguration(sessionToken)
       .then(result => ({ ok: true as const, ...publicShopifyPixelStatus(result.webPixel) }))
       .catch(() => ({ ok: false as const, state: "UNKNOWN", configured: false, pixelIdPresent: false, endpointMatches: false, expectedEndpointHost: null })),
   ]);
