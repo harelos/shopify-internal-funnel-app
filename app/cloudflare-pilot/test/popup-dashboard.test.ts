@@ -12,6 +12,8 @@ test("deployed popup dashboard contains required operational sections and no moc
   assert.match(script, /\/api\/analytics\/popup/);
   assert.match(script, /popupAttributedRevenueByCurrency/);
   assert.match(script, /recentAttributedOrders/);
+  assert.match(script, /experience.*exit/);
+  assert.match(html, /Unique sessions/);
   assert.doesNotMatch(script, /mockData|Math\.random\(\).*revenue/i);
 });
 

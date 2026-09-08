@@ -593,7 +593,13 @@ router.get("/analytics/popup", async (req, res) => {
       && parsePayload(event.payload).trigger === "suppressed").length;
     const eligibleEvents = events.filter(event => event.name === "popup_eligible"
       && parsePayload(event.payload).trigger !== "suppressed");
-    const eligible = uniquePopupSessionCount(eligibleEvents);
+    const viewEvents = events.filter(event => event.name === "popup_view");
+    // A rendered popup is necessarily eligible. Older runtime versions did not
+    // always emit the separate eligibility event, so include view sessions in
+    // the eligible cohort instead of producing impossible rates above 100%.
+    const eligibleCohortEvents = [...eligibleEvents, ...viewEvents];
+    const eligible = uniquePopupSessionCount(eligibleCohortEvents);
+    const explicitlyEligible = uniquePopupSessionCount(eligibleEvents);
     const signals = sessions("popup_signal");
     const suppressedSnapshots = count("popup_suppressed") + legacySuppressed;
     const views = sessions("popup_view");
@@ -646,8 +652,10 @@ router.get("/analytics/popup", async (req, res) => {
       metrics: {
         exitSignals: signals,
         eligibleSessions: eligible,
-        treatmentEligible: uniquePopupSessionCount(eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant !== "control")),
-        holdoutEligible: uniquePopupSessionCount(eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant === "control")),
+        explicitlyEligibleSessions: explicitlyEligible,
+        eligibilityInferredFromViews: Math.max(0, eligible - explicitlyEligible),
+        treatmentEligible: uniquePopupSessionCount(eligibleCohortEvents.filter(event => parsePayload(event.payload).experimentVariant !== "control")),
+        holdoutEligible: uniquePopupSessionCount(eligibleCohortEvents.filter(event => parsePayload(event.payload).experimentVariant === "control")),
         suppressedSnapshots,
         popupViews: views,
         viewRate: percentage(views, eligible),
