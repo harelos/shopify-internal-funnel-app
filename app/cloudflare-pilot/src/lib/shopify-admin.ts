@@ -510,13 +510,11 @@ export class ShopifyAdminClient {
     type SupportOrder = {
       id: string;
       name: string;
-      email: string | null;
       createdAt: string;
       cancelledAt: string | null;
       displayFinancialStatus: string | null;
       displayFulfillmentStatus: string;
       totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-      customer: { id: string; defaultEmailAddress: { emailAddress: string } | null; firstName: string | null; lastName: string | null; numberOfOrders: string } | null;
       lineItems: { nodes: Array<{ name: string; quantity: number; sku: string | null }> };
       fulfillments: Array<{
         displayStatus: string | null;
@@ -528,21 +526,18 @@ export class ShopifyAdminClient {
     type SupportOrders = { orders: { nodes: SupportOrder[] } };
     const escapedEmail = input.customerEmail.trim().toLowerCase().replace(/["\\]/g, "");
     const orderName = input.orderName?.trim().replace(/[^#A-Za-z0-9_-]/g, "").replace(/^#/, "") || "";
-    const clauses = [`email:\"${escapedEmail}\"`];
-    if (orderName) clauses.push(`name:${orderName}`);
+    const clauses = orderName ? [`name:${orderName}`] : [`email:\"${escapedEmail}\"`];
 
     const operation = `query SupportOrderContext($query: String!) {
       orders(first: 10, query: $query, sortKey: CREATED_AT, reverse: true) {
         nodes {
           id
           name
-          email
           createdAt
           cancelledAt
           displayFinancialStatus
           displayFulfillmentStatus
           totalPriceSet { shopMoney { amount currencyCode } }
-          customer { id defaultEmailAddress { emailAddress } firstName lastName numberOfOrders }
           lineItems(first: 20) { nodes { name quantity sku } }
           fulfillments {
             displayStatus
@@ -553,14 +548,7 @@ export class ShopifyAdminClient {
         }
       }
     }`;
-    let data = await this.graphql<SupportOrders>(operation, { query: clauses.join(" ") }, input.sessionToken);
-    if (data.orders.nodes.length === 0 && orderName) {
-      data = await this.graphql<SupportOrders>(operation, { query: `name:${orderName}` }, input.sessionToken);
-      data.orders.nodes = data.orders.nodes.filter(order => {
-        const orderEmail = (order.email || order.customer?.defaultEmailAddress?.emailAddress || "").trim().toLowerCase();
-        return orderEmail === escapedEmail;
-      });
-    }
+    const data = await this.graphql<SupportOrders>(operation, { query: clauses.join(" ") }, input.sessionToken);
 
     return data.orders.nodes;
   }

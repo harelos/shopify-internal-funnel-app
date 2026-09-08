@@ -398,10 +398,6 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     const primary = orders[0];
     if (primary) {
       await prisma.supportConversation.update({ where: { id: conversation.id }, data: { shopifyOrderGid: primary.id, shopifyOrderName: primary.name } });
-      await prisma.supportCustomer.update({
-        where: { id: conversation.customer.id },
-        data: { shopifyCustomerGid: primary.customer?.id || null, lifetimeOrders: primary.customer ? Number(primary.customer.numberOfOrders) : null },
-      });
       await prisma.supportConversation.update({ where: { id: conversation.id }, data: { audienceType: "VERIFIED_CUSTOMER" } });
       await appendSupportEvidence({ conversationId: conversation.id, kind: "SHOPIFY_ORDER_SNAPSHOT", source: "SHOPIFY_ADMIN", occurredAt: new Date(), payload: orders });
     }
