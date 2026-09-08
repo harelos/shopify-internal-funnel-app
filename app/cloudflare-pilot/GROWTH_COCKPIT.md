@@ -29,6 +29,7 @@ The API uses local calendar dates and returns a half-open UTC range: `from` is i
 | Revenue | Shopify Admin `Order.netPaymentSet.shopMoney` | `ACTUAL` only for a complete, non-truncated query inside the default 60-day order-access window and in the configured reporting currency |
 | Orders | Shopify orders with a positive net payment | Follows the revenue source quality |
 | D1 order revenue | Shopify order webhooks persisted in `OrderAttribution` | `PARTIAL` until a Shopify reconciliation watermark proves coverage |
+| Shopify source-currency revenue | Shopify Admin or the reconciled Shopify order ledger | Remains visible in its native currency even when cross-currency profit is blocked |
 | CJ variable costs | D1 `FinancialLedgerEntry` rows written after CJ verification | `PARTIAL` because current CJ values are confirmed pre-payment estimates, not charged costs |
 | Payment fees | Shopify `Order.transactions.fees` | `ACTUAL` only when successful SALE fee coverage is complete |
 | Meta spend | Meta Insights API for the configured account | `ACTUAL` for a complete API response with idempotent daily D1 persistence and an exact-range coverage watermark |
@@ -36,6 +37,8 @@ The API uses local calendar dates and returns a half-open UTC range: `from` is i
 `Order.netPaymentSet` is the amount received minus refunds. It includes collected tax and shipping and must not be labelled ShopifyQL net sales.
 
 `META_ACCESS_TOKEN` is read only inside `src/lib/meta-ads.ts`; it is never returned by an API, placed in a URL, logged, or written to Git. Successful Meta reads persist daily rows and an exact-range reconciliation watermark in D1. Historical completeness still has to be verified against Meta before release sign-off.
+
+The owner view separates source availability from currency normalization. For example, verified ILS Shopify revenue and paid-order counts remain visible when USD reporting conversion is unavailable. Profit, blended ROAS, and cross-source comparisons stay fail-closed until an authoritative FX source exists.
 
 The account binding must be checked against the campaign owner, not copied from an older audit. On 2026-09-08, production was corrected from an inactive historical account after the scheduled reconciler returned an authenticated empty dataset while current NovaHair campaigns belonged to the account above. Historical rows remain account-keyed and must not be combined across accounts.
 

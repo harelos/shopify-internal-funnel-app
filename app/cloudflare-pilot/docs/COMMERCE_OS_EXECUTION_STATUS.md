@@ -91,6 +91,13 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Live Worker logs proved the credentialed API request succeeded but the configured account returned an empty current-period dataset; this was not a scheduler failure.
 - The production account binding was corrected to the account that owns the active NovaHair campaign. The access token remains a Worker secret and was not moved into code or GitHub.
 - Meta ledger keys include the account ID. Historical rows from a prior account must never be aggregated with the current account when account-scoped reporting is added.
+- Live verification on 2026-09-08 confirmed the current account returned one current-day row and `$64.84` of actual spend. Operations now reports Meta cost coverage as current.
+
+### 8. Source-native Shopify revenue display
+
+- Shopify paid revenue and paid-order counts remain owner-visible in Shopify's native currency when the configured profit currency differs.
+- Currency mismatch still blocks contribution profit, blended ROAS, and cross-source arithmetic until an authoritative FX source is configured.
+- A missing conversion is labelled separately from a missing Shopify source; seven paid ILS orders were present at the verification checkpoint.
 
 ## Current truth snapshot
 
@@ -98,7 +105,7 @@ Snapshot date: 2026-09-08.
 
 - AI Concierge: engagement and saved leads are present, but verified attributed sales are zero.
 - NovaHair gallery experiment: three verified attributed paid orders (control: one; Variant B: two); the sample is far too small to declare a winner.
-- Six paid orders are visible in the current-day store revenue snapshot; three historical orders remain unattributed because the earlier webhook gap left no checkout identity that can be proven now.
+- Seven paid orders are visible in the current-day store revenue snapshot; three historical orders remain unattributed because the earlier webhook gap left no checkout identity that can be proven now.
 
 ## Next checkpoints
 

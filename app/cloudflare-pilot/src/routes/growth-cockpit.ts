@@ -191,11 +191,11 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
   }, config.reportingCurrency);
   const orderCount = shopifyResult.value?.orders ?? d1.orders;
   const orders: FinancialMetric = {
-    amount: revenue.quality === "MISSING" ? null : orderCount,
-    currency: revenue.currency,
-    quality: revenue.quality,
-    source: revenue.source,
-    note: "Orders with a positive Shopify net payment in the selected period.",
+    amount: orderCount,
+    currency: null,
+    quality: observedRevenue.quality,
+    source: observedRevenue.source,
+    note: "Orders with a positive Shopify net payment in the selected period. Order count remains valid when currency conversion is unavailable.",
   };
   const acceptedCjPaidCosts: FinancialMetric = cjPaidCosts.amount != null && cjPaidCosts.currency
     ? {
@@ -212,7 +212,15 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
     orders: orderCount,
   });
   return {
-    metrics: { revenue, orders, cjCosts, cjPaidCosts: acceptedCjPaidCosts, paymentFees, metaSpend },
+    metrics: {
+      revenue,
+      shopifySourceRevenue: observedRevenue,
+      orders,
+      cjCosts,
+      cjPaidCosts: acceptedCjPaidCosts,
+      paymentFees,
+      metaSpend,
+    },
     profit: { ...profit, paymentFeesExcluded: true, strictBlockers: strictProfit.blockers },
     observations: {
       shopifyAdmin: shopifyResult.value ?? { source: "SHOPIFY_ADMIN_ORDERS", error: shopifyResult.error },

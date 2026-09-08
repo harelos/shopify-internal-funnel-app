@@ -32,6 +32,8 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   assert.match(route, /SHOPIFY_TRANSACTION_FEES/);
   assert.match(route, /fetchMetaSpend/);
   assert.match(route, /persistFinancialLedgerCoverage/);
+  assert.match(route, /shopifySourceRevenue: observedRevenue/);
+  assert.match(route, /Order count remains valid when currency conversion is unavailable/);
   assert.match(route, /growth-cockpit\/cj-status/);
   assert.match(route, /growth-cockpit\/cj-reconcile/);
   assert.match(route, /growth-cockpit\/cj-paid-costs/);
@@ -43,6 +45,8 @@ test("Growth Cockpit dashboard uses authenticated contracts and no mock finance 
   assert.match(script, /dismissals/);
   assert.match(script, /definition-trigger/);
   assert.match(script, /comparisonText/);
+  assert.match(script, /Native Shopify currency/);
+  assert.match(script, /Shopify source:/);
   assert.match(script, /MISSING/);
   assert.doesNotMatch(script, /mockData|Math\.random\(|placeholderRevenue/i);
   assert.match(styles, /@media \(max-width: 1080px\)/);

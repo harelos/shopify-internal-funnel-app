@@ -139,10 +139,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderFinance(report) {
     const metrics = report.metrics;
     const profit = report.profit;
+    const shopifySourceRevenue = metrics.shopifySourceRevenue || metrics.revenue;
+    const revenueNeedsConversion = metrics.revenue.amount == null && shopifySourceRevenue.amount != null;
+    const ownerRevenue = revenueNeedsConversion ? shopifySourceRevenue : metrics.revenue;
+    const revenueNote = revenueNeedsConversion
+      ? `${ownerRevenue.source} · Native Shopify currency; conversion to ${report.reportingCurrency || 'the reporting currency'} is still required for profit`
+      : ownerRevenue.source;
     const profitQuality = profit.complete ? 'ACTUAL' : 'MISSING';
     state.definitions = Object.fromEntries((report.metricDefinitions || []).map(definition => [definition.key, definition]));
     const cards = [
-      financialCard('revenue', 'Shopify net payments', formatMoney(metrics.revenue.amount, metrics.revenue.currency), metrics.revenue.quality, metrics.revenue.source),
+      financialCard('revenue', 'Shopify net payments', formatMoney(ownerRevenue.amount, ownerRevenue.currency), ownerRevenue.quality, revenueNote),
       financialCard('orders', 'Paid orders', metrics.orders.amount == null ? 'MISSING' : Number(metrics.orders.amount).toLocaleString(), metrics.orders.quality, metrics.orders.source),
       financialCard('cjPaidCosts', 'CJ paid order costs', formatMoney(metrics.cjPaidCosts.amount, metrics.cjPaidCosts.currency), metrics.cjPaidCosts.quality, 'Accepted COGS source for current profit view'),
       financialCard('paymentFees', 'Payment fees', 'EXCLUDED', 'PARTIAL', 'Not included in current profit calculation'),
@@ -155,8 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
     byId('comparison-summary').textContent = comparisonText(report.comparison);
     byId('profit-status').textContent = profit.complete
       ? `Profit before payment fees is available in ${profit.currency}. Payment fees are explicitly excluded until added later.`
-      : `Profit before payment fees is unavailable: ${profit.blockers.join(' ')}`;
-    byId('financial-status').textContent = `Shopify: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
+      : `${revenueNeedsConversion ? `Shopify paid revenue is available in ${ownerRevenue.currency}; profit remains unavailable until authoritative conversion to ${report.reportingCurrency} exists. ` : ''}Profit before payment fees is unavailable: ${profit.blockers.join(' ')}`;
+    byId('financial-status').textContent = `Shopify source: ${shopifySourceRevenue.quality}${shopifySourceRevenue.currency ? ` (${shopifySourceRevenue.currency})` : ''}. Reporting conversion: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
     const daily = (report.observations?.cjPaidCostsDaily || []).map(row => `${row.date}: ${formatMoney(row.amount, row.currency)}`);
     byId('cj-paid-costs-daily').textContent = daily.length
       ? `CJ paid order costs by UTC payment date: ${daily.join(' · ')}`
