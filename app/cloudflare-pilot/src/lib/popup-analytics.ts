@@ -211,6 +211,36 @@ export function parsePayload(payload: string): Record<string, unknown> {
   }
 }
 
+export type PopupExperience = "exit" | "concierge";
+
+export function popupExperienceForVersion(value: unknown): PopupExperience {
+  return String(value || "").toLowerCase().includes("_ai_") ? "concierge" : "exit";
+}
+
+export function popupSessionKey(event: {
+  id?: unknown;
+  visitorId?: unknown;
+  payload?: unknown;
+}): string {
+  const payload = typeof event.payload === "string" ? parsePayload(event.payload) : {};
+  const sessionId = typeof payload.sessionId === "string" ? payload.sessionId.trim() : "";
+  if (sessionId) return `session:${sessionId}`;
+  const visitorId = typeof event.visitorId === "string" ? event.visitorId.trim() : "";
+  if (visitorId) return `visitor:${visitorId}`;
+  return `event:${String(event.id || "unknown")}`;
+}
+
+export function uniquePopupSessionCount<T extends {
+  id?: unknown;
+  visitorId?: unknown;
+  name?: unknown;
+  payload?: unknown;
+}>(events: T[], name?: string): number {
+  return new Set(events
+    .filter(event => !name || event.name === name)
+    .map(popupSessionKey)).size;
+}
+
 export function percentage(numerator: number, denominator: number): number {
   return denominator > 0 ? Number(((numerator / denominator) * 100).toFixed(1)) : 0;
 }

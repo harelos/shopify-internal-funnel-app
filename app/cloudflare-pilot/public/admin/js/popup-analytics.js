@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function queryString() {
     const params = new URLSearchParams();
+    params.set('experience', 'exit');
     const customFrom = byId('date-from').value;
     const customTo = byId('date-to').value;
     if (customFrom || customTo) {
@@ -198,5 +199,4 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('refresh-report').addEventListener('click', loadReport);
   loadReport();
 });
-
 

@@ -610,7 +610,10 @@
 
   function analyticsQuery() {
     var days = Number(document.getElementById('analytics-days').value) || 14;
-    var query = new URLSearchParams({ from: new Date(Date.now() - days * 86400000).toISOString() });
+    var query = new URLSearchParams({
+      from: new Date(Date.now() - days * 86400000).toISOString(),
+      experience: 'concierge'
+    });
     ['source', 'medium', 'campaign'].forEach(function (key) {
       var value = document.getElementById('analytics-' + key).value;
       if (value) query.set(key, value);
@@ -831,5 +834,4 @@
 </script>
 </body>
 </html>
-
 

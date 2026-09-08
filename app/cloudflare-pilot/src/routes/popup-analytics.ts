@@ -12,6 +12,8 @@ import {
   normalizePopupEventInput,
   parsePayload,
   percentage,
+  popupExperienceForVersion,
+  uniquePopupSessionCount,
   persistPopupEvent,
   type PopupEventInput,
 } from "../lib/popup-analytics.js";
@@ -144,6 +146,14 @@ function orderDimension(order: any, key: AttributionDimension): string {
   return order.popupVersion || "Unversioned";
 }
 
+function eventExperience(event: any) {
+  return popupExperienceForVersion(parsePayload(event.payload || "{}").popupVersion);
+}
+
+function orderExperience(order: any) {
+  return popupExperienceForVersion(order.popupVersion);
+}
+
 function buildBreakdown(events: any[], orders: any[], key: AttributionDimension) {
   const labels = new Set<string>();
   events.forEach(event => labels.add(eventDimension(event, key)));
@@ -151,7 +161,7 @@ function buildBreakdown(events: any[], orders: any[], key: AttributionDimension)
   return [...labels].map(label => {
     const groupEvents = events.filter(event => eventDimension(event, key) === label);
     const groupOrders = orders.filter(order => orderDimension(order, key) === label && order.popupAttributed);
-    const views = groupEvents.filter(event => event.name === "popup_view").length;
+    const views = uniquePopupSessionCount(groupEvents, "popup_view");
     const customerKeys = new Set(groupEvents
       .filter(event => event.name === "popup_submit_success")
       .map(event => String(parsePayload(event.payload).customerKey || event.id)));
@@ -508,24 +518,31 @@ router.get("/analytics/popup", async (req, res) => {
     const medium = text(req.query.medium, 120);
     const campaign = text(req.query.campaign, 180);
     const version = text(req.query.version, 80);
+    const experience = text(req.query.experience, 20);
+    if (experience && experience !== "exit" && experience !== "concierge") {
+      return res.status(400).json({ error: "Experience must be exit or concierge." });
+    }
     const events = rawEvents.filter(event => matches(eventDimension(event, "device"), device)
       && matches(eventDimension(event, "page"), page)
       && matches(eventDimension(event, "source"), source)
       && matches(eventDimension(event, "medium"), medium)
       && matches(eventDimension(event, "campaign"), campaign)
-      && matches(eventDimension(event, "version"), version));
+      && matches(eventDimension(event, "version"), version)
+      && (!experience || eventExperience(event) === experience));
     const orders = rawOrders.filter(order => matches(orderDimension(order, "device"), device)
       && matches(orderDimension(order, "page"), page)
       && matches(orderDimension(order, "source"), source)
       && matches(orderDimension(order, "medium"), medium)
       && matches(orderDimension(order, "campaign"), campaign)
-      && matches(orderDimension(order, "version"), version));
+      && matches(orderDimension(order, "version"), version)
+      && (!experience || orderExperience(order) === experience));
     const optionValues = (key: AttributionDimension) => [...new Set([
       ...rawEvents.map(event => eventDimension(event, key)),
       ...rawOrders.filter(order => order.popupAttributed).map(order => orderDimension(order, key)),
     ])].sort();
 
     const count = (name: string) => events.filter(event => event.name === name).length;
+    const sessions = (name: string) => uniquePopupSessionCount(events, name);
     const successKeys = new Set(events.filter(event => event.name === "popup_submit_success")
       .map(event => String(parsePayload(event.payload).customerKey || event.id)));
     const successEvents = events.filter(event => event.name === "popup_submit_success");
@@ -576,10 +593,10 @@ router.get("/analytics/popup", async (req, res) => {
       && parsePayload(event.payload).trigger === "suppressed").length;
     const eligibleEvents = events.filter(event => event.name === "popup_eligible"
       && parsePayload(event.payload).trigger !== "suppressed");
-    const eligible = eligibleEvents.length;
-    const signals = count("popup_signal");
+    const eligible = uniquePopupSessionCount(eligibleEvents);
+    const signals = sessions("popup_signal");
     const suppressedSnapshots = count("popup_suppressed") + legacySuppressed;
-    const views = count("popup_view");
+    const views = sessions("popup_view");
     const attempts = count("popup_submit_attempt");
     const leads = successKeys.size;
     const popupOrders = orders.filter(order => order.popupAttributed);
@@ -608,7 +625,7 @@ router.get("/analytics/popup", async (req, res) => {
       count: name === "popup_eligible" ? eligible
         : name === "popup_submit_success" ? leads
           : name === "popup_purchase" ? popupOrders.length
-            : count(name),
+            : sessions(name),
     }));
     const funnel = stageCounts.map((stage, index) => ({
       ...stage,
@@ -629,17 +646,17 @@ router.get("/analytics/popup", async (req, res) => {
       metrics: {
         exitSignals: signals,
         eligibleSessions: eligible,
-        treatmentEligible: eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant !== "control").length,
-        holdoutEligible: eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant === "control").length,
+        treatmentEligible: uniquePopupSessionCount(eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant !== "control")),
+        holdoutEligible: uniquePopupSessionCount(eligibleEvents.filter(event => parsePayload(event.payload).experimentVariant === "control")),
         suppressedSnapshots,
         popupViews: views,
         viewRate: percentage(views, eligible),
-        emailStarts: count("popup_email_started"),
+        emailStarts: sessions("popup_email_started"),
         submitAttempts: attempts,
         successfulLeads: leads,
         leadConversionRate: percentage(leads, views),
         submitSuccessRate: percentage(leads, attempts),
-        couponReveals: count("popup_coupon_revealed"),
+        couponReveals: sessions("popup_coupon_revealed"),
         popupAttributedOrders: popupOrders.length,
         popupAttributedRevenue: Number(popupRevenue.toFixed(2)),
         popupRevenueCurrency: popupRevenueByCurrency.length === 1 ? popupRevenueByCurrency[0].currency : null,
@@ -647,7 +664,7 @@ router.get("/analytics/popup", async (req, res) => {
         popupRevenuePerView: views ? Number((popupRevenue / views).toFixed(2)) : 0,
         couponOrders: couponOrders.length,
         couponRevenue: Number(couponRevenue.toFixed(2)),
-        revealToPurchaseRate: percentage(couponOrders.length, count("popup_coupon_revealed")),
+        revealToPurchaseRate: percentage(couponOrders.length, sessions("popup_coupon_revealed")),
       },
       funnel,
       dismissals: {
