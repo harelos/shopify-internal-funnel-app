@@ -105,6 +105,14 @@ This document is the repository-safe operating record for the Funnel Builder →
 - Production Meta reads now run only through the Worker integration, where the token is a deployment secret and is never returned, logged, or committed.
 - Because removing a credential from the current tree does not remove it from Git history, the Meta credential still requires provider-side rotation. History rewriting is not attempted automatically because it would be destructive for every collaborator and clone.
 
+### 10. Open-source implementation catalog
+
+- Added a license-aware catalog of primary-source patterns for tracking, experimentation, Cloudflare background work, support, dashboards, customer journeys, Shopify Web Pixels, and MCP.
+- The catalog deliberately prefers pattern adoption over platform duplication: Shopify remains authoritative for checkout events, D1 remains the first-party ledger, and PostHog remains a diagnostic destination.
+- Repositories with incompatible licenses or unnecessary infrastructure are explicitly rejected for code reuse.
+- Every future dependency requires a pinned version, license verification, security review, tests, and Commerce OS visual-token adaptation before release.
+- Catalog: `docs/OPEN_SOURCE_IMPLEMENTATION_CATALOG.md`.
+
 ## Current truth snapshot
 
 Snapshot date: 2026-09-08.
