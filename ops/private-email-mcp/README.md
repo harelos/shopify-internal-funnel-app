@@ -64,29 +64,52 @@ Run continuously (two-minute interval by default):
 npm run support:watch
 ```
 
-On Windows, install the persistent hidden watcher for the current user:
+On Windows, install the persistent hidden watcher for the current user as a
+local fallback:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install-support-agent-task.ps1
 ```
 
-The task starts immediately, restarts the watcher after a process failure and
-runs again at sign-in. Its operational log is written to
-`.data/support-agent.log`; mailbox credentials and connector tokens are never
-written to that log.
+The task starts immediately, restarts the watcher after a process failure, runs
+again at sign-in and is allowed to run on battery. A PID lock in
+`.data/support-agent.lock` prevents a second local watcher. Keep this task
+disabled while the Railway worker is active so there is only one sender.
+
+## Always-on Railway worker
+
+`src/support-worker-server.mjs` runs the same guarded bridge as a single
+always-on web service. It exposes a secret-free `/health` response and executes
+one mailbox cycle per minute. The production service is isolated from the
+existing NovaHair OTP sender:
+
+```text
+https://tiger-support-email-agent-production.up.railway.app/health
+```
+
+Deploy this directory as its own Railway service. Start with
+`SUPPORT_MAIL_SEND_ENABLED=false`, verify at least one successful cycle, disable
+the Windows fallback, and only then enable cloud sending. Railway must remain at
+one replica; mailbox and bridge credentials are stored as service variables.
 
 Outbound delivery is disabled by default. Set `SUPPORT_MAIL_SEND_ENABLED=true`
 only after the app is in the desired `DRAFT_ONLY` or `AUTOSEND_LOW_RISK` mode.
 Approving a draft queues it; the bridge sends it through the existing Namecheap
 SMTP account and reports the sent Message-ID back to the evidence timeline.
 
-## Run locally
+## Run the MCP locally
 
 ```powershell
 npm install
-npm start
+npm run start:mcp
 ```
 
 The process speaks MCP over stdio and is intended to be started by Codex. The
 Windows wrapper reads the user-level environment variables at process start so
 the Codex config never contains the mailbox password.
+
+To run the hosted-worker process locally instead:
+
+```powershell
+npm start
+```

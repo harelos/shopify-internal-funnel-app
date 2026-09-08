@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { cleanMessageText, parseShopifyContactForm } from "../src/support-sync.mjs";
+import { cleanMessageText, parseShopifyContactForm, triageMessage } from "../src/support-sync.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(here, "../src/server.mjs"), "utf8");
@@ -40,4 +40,13 @@ test("Shopify contact-form relays resolve to the shopper rather than mailer@shop
     textBody: "קוד מדינה:\nIL\n\nשם:\nעדינה לבייב\n\nאימייל:\nadina198570@gmail.com\n\nמספר הזמנה:\n\nתוכן:\nהיי, יש לי שאלה על הגוון",
   });
   assert.deepEqual(parsed, { email: "adina198570@gmail.com", name: "עדינה לבייב", customerMessage: "היי, יש לי שאלה על הגוון" });
+});
+
+test("Shopify payout notices never enter the customer-support queue", () => {
+  const result = triageMessage({
+    subject: "Payout for Sep 8, 2026 ($72.61 USD)",
+    textBody: "$72.61 USD will be deposited to your bank account in 1–2 business days. Refunds $0.00 USD. View payout.",
+  });
+  assert.equal(result.triageClass, "IGNORE");
+  assert.ok(result.triageReasons.includes("BUSINESS_OR_SYSTEM_MAIL_SIGNAL"));
 });

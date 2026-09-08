@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "start": "node src/server.mjs",
+    "start": "node src/support-worker-server.mjs",
+    "start:mcp": "node src/server.mjs",
+    "start:support-worker": "node src/support-worker-server.mjs",
     "support:sync": "node src/support-sync.mjs --once",
     "support:watch": "node src/support-sync.mjs --watch",
     "test": "node --test test/server.test.mjs"
