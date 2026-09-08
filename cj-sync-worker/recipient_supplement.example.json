@@ -1,0 +1,11 @@
+{
+  "default_email": "merchant@example.com",
+  "orders": {
+    "0000": {
+      "zip": "",
+      "address": "",
+      "city": "",
+      "address_confirmed": false
+    }
+  }
+}
