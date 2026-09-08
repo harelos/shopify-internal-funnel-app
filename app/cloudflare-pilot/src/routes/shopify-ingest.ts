@@ -1,6 +1,6 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { Router } from "express";
-import { getShopifyConfig, normalizeShopDomain } from "../lib/shopify-config.js";
+import { getShopifyConfig, normalizeShopDomain, workerEnvValue } from "../lib/shopify-config.js";
 import prisma from "../lib/db.js";
 import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
@@ -386,7 +386,7 @@ router.options("/api/shopify/pixel", (_req, res) => {
 
 router.post("/api/shopify/pixel", async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  if (process.env.SHOPIFY_PIXEL_INGEST_ENABLED !== "true") {
+  if (workerEnvValue("SHOPIFY_PIXEL_INGEST_ENABLED") !== "true") {
     return res.status(503).json({ accepted: false, error: "Shopify Pixel ingestion is not enabled." });
   }
 

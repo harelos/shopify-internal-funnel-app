@@ -7,13 +7,14 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "prisma generate --schema prisma/schema.prisma && tsc --noEmit",
+    "build": "node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
+    "sync:element-runtime": "node scripts/sync-element-runtime.mjs",
     "generate": "prisma generate --schema prisma/schema.prisma",
     "db:validate": "prisma validate --schema prisma/schema.prisma",
     "db:diff": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script",
     "dev": "prisma generate --schema prisma/schema.prisma && wrangler dev",
-    "deploy": "prisma generate --schema prisma/schema.prisma && wrangler deploy"
+    "deploy": "node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && wrangler deploy"
   },
   "dependencies": {
     "@prisma/adapter-d1": "6.12.0",

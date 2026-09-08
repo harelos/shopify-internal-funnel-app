@@ -16,7 +16,7 @@
     .preview-shell { margin:auto; width:390px; max-width:100%; padding:10px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 16px 40px rgba(23,35,30,.12); }
     .preview-shell[data-device="desktop"] { width:760px; }
     .variant-grid.preview-desktop { grid-template-columns:1fr; }
-    .preview-stage { overflow:hidden; aspect-ratio:4/5; border-radius:12px; background:#eee; }
+    .preview-stage { overflow:hidden; aspect-ratio:1/1; border-radius:12px; background:#eee; }
     .preview-stage img { width:100%; height:100%; display:block; object-fit:cover; }
     .preview-thumbs { display:grid; grid-auto-flow:column; grid-auto-columns:56px; gap:7px; overflow:auto; margin-top:8px; }
     .preview-thumbs img { width:56px; height:66px; object-fit:cover; border-radius:7px; }
@@ -25,6 +25,13 @@
     .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
     .results-table-wrap { overflow-x:auto; }
     .results-note { margin-top:12px; padding:11px 13px; border-radius:8px; background:#edf7f2; color:#145941; }
+    .qa-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .qa-stat { padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--card); }
+    .preflight-list { display:grid; gap:8px; }
+    .preflight-check { display:grid; grid-template-columns:24px minmax(0,1fr); gap:8px; align-items:start; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--card); }
+    .preflight-check strong { display:block; }
+    .preflight-icon { font-weight:900; color:var(--green); }
+    .preflight-check.failed .preflight-icon { color:var(--red); }
     .uplift-positive { color:var(--green); font-weight:800; }
     .uplift-negative { color:var(--red); font-weight:800; }
     @media (max-width:900px) { .lab-layout,.variant-grid { grid-template-columns:1fr; } }
@@ -60,7 +67,11 @@
             <input class="input" id="slot-key" name="slotKey" value="novahair.sales.gallery.primary" required>
             <label class="eyebrow" for="slot-name">Name</label>
             <input class="input" id="slot-name" name="name" value="NOVAHAIR primary gallery" required>
+            <label class="eyebrow" for="target-selector">Existing gallery selector</label>
+            <input class="input" id="target-selector" name="targetSelector" value=".nova .hero-media" required>
             <button class="btn btn-primary" type="submit">Create 50/50 draft</button>
+            <button class="btn" id="prepare-novahair" type="button">Prepare approved NovaHair 50/50</button>
+            <p class="muted" style="margin-top:8px;">Idempotent setup: keeps the live gallery as control and publishes the approved Top 10 as Variant B. It does not start traffic.</p>
           </form>
         </section>
 
@@ -90,9 +101,13 @@
             </div>
             <div class="actions">
               <button class="btn" id="save-weights">Save 50/50 split</button>
+              <button class="btn" id="verify-split">Verify split with 20,000 test IDs</button>
+              <button class="btn" id="run-preflight">Run production preflight</button>
               <button class="btn btn-primary" id="start-experiment">Start experiment</button>
               <button class="btn" id="pause-experiment">Pause</button>
             </div>
+            <div id="allocation-qa" hidden></div>
+            <div id="production-preflight" hidden></div>
           </div>
         </div>
 
@@ -101,6 +116,7 @@
             <div class="panel-header"><h2>Variant B gallery</h2><span class="badge badge-draft" id="variant-state">DRAFT</span></div>
             <div class="panel-body">
               <p class="muted" style="margin-bottom:12px;">One image per line: <code>id | https://image-url | alt text | optional caption</code></p>
+              <button class="btn" id="load-novahair-top-10" type="button" style="margin-bottom:12px;">Load approved NovaHair Top 10</button>
               <textarea class="textarea" id="gallery-lines" rows="14" placeholder="hero-proof | https://cdn.shopify.com/... | NOVAHAIR bottles | What arrives in the package"></textarea>
               <label class="eyebrow" for="initial-index">First image</label>
               <input class="input" id="initial-index" type="number" min="1" value="1">

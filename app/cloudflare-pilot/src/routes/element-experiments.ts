@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import prisma from "../lib/db.js";
-import { getShopifyConfig } from "../lib/shopify-config.js";
+import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
 import {
   GALLERY_TEMPLATE_KEY,
@@ -9,8 +9,14 @@ import {
   normalizeElementPayload,
   parseStoredPayload,
 } from "../lib/element-templates.js";
-import { ELEMENT_BASIS_POINTS_TOTAL, hashAnonymousKey, selectElementVariant } from "../services/element-ab-engine.js";
+import {
+  ELEMENT_BASIS_POINTS_TOTAL,
+  hashAnonymousKey,
+  selectElementVariant,
+  simulateElementAllocation,
+} from "../services/element-ab-engine.js";
 import { buildElementExperimentResults } from "../services/element-results.js";
+import { captureElementExposureToPostHog } from "../services/element-posthog.js";
 
 export const elementAdminRouter = Router();
 export const elementRuntimeRouter = Router();
@@ -42,6 +48,14 @@ function slotKey(value: unknown): string {
   return key;
 }
 
+function targetSelector(value: unknown, fallbackKey: string): string {
+  const selector = String(value ?? "").trim() || `[data-funnel-slot="${fallbackKey}"]`;
+  if (selector.length > 240 || /[{};]/.test(selector)) {
+    throw new Error("Target selector must be a single CSS selector under 240 characters.");
+  }
+  return selector;
+}
+
 function parseJson(value: string): unknown {
   try {
     return JSON.parse(value);
@@ -70,6 +84,90 @@ const slotInclude = {
   variants: { include: { versions: { orderBy: { revision: "desc" as const } } } },
   experiment: { include: { allocations: true } },
 };
+
+async function buildElementPreflight(experimentId: string) {
+  const experiment = await prisma.elementExperiment.findUnique({
+    where: { id: experimentId },
+    include: {
+      allocations: true,
+      slot: {
+        include: {
+          template: true,
+          variants: { include: { versions: true } },
+        },
+      },
+    },
+  });
+  if (!experiment) return null;
+
+  const checks: Array<{ key: string; label: string; pass: boolean; detail: string }> = [];
+  const add = (key: string, label: string, pass: boolean, detail: string) => checks.push({ key, label, pass, detail });
+  const positiveAllocations = experiment.allocations.filter(allocation => allocation.weightBasisPoints > 0);
+  const totalWeight = experiment.allocations.reduce((sum, allocation) => sum + allocation.weightBasisPoints, 0);
+  add("startable_status", "Experiment can start", ["DRAFT", "PAUSED"].includes(experiment.status), `Status: ${experiment.status}`);
+  add("traffic_total", "Traffic allocation totals 100%", totalWeight === ELEMENT_BASIS_POINTS_TOTAL, `${totalWeight / 100}% configured`);
+  add("multiple_variants", "At least two live variants", positiveAllocations.length >= 2, `${positiveAllocations.length} variants receive traffic`);
+  add("page_path", "Page target is valid", experiment.slot.pagePath.startsWith("/"), experiment.slot.pagePath);
+  add("target_selector", "Element selector is configured", Boolean(experiment.slot.targetSelector.trim()), experiment.slot.targetSelector || "Missing selector");
+
+  const variantById = new Map(experiment.slot.variants.map(variant => [variant.id, variant]));
+  for (const allocation of positiveAllocations) {
+    const variant = variantById.get(allocation.variantId);
+    const published = variant?.versions.find(version => version.id === variant.publishedVersionId);
+    add(
+      `published_${allocation.variantId}`,
+      `${variant?.name ?? allocation.variantId} is published`,
+      Boolean(variant?.publishedVersionId && published),
+      published ? `Revision ${published.revision}` : "No published content revision",
+    );
+    if (!published) continue;
+    try {
+      const payload = parseStoredPayload(published.payloadJson) as any;
+      const validControl = variant?.isControl && payload?.preserveExisting === true;
+      const validGallery = !variant?.isControl
+        && Array.isArray(payload?.items)
+        && payload.items.length > 0
+        && new Set(payload.items.map((item: any) => item.id)).size === payload.items.length
+        && payload.items.every((item: any) => typeof item.src === "string" && item.src.startsWith("https://"));
+      add(
+        `content_${allocation.variantId}`,
+        `${variant?.name ?? allocation.variantId} content is valid`,
+        Boolean(validControl || validGallery),
+        validControl ? "Current element preserved" : `${payload?.items?.length ?? 0} secure, unique gallery items`,
+      );
+    } catch (error: any) {
+      add(`content_${allocation.variantId}`, `${variant?.name ?? allocation.variantId} content is valid`, false, error.message || "Invalid content");
+    }
+  }
+
+  let allocationQaPassed = false;
+  try {
+    const qa = simulateElementAllocation(experiment.allocations, experiment.id, experiment.allocationVersion, 20_000, "production-preflight");
+    allocationQaPassed = qa.deterministicReplayPassed
+      && qa.totalAssigned === qa.sampleSize
+      && qa.rows.every(row => Math.abs(row.deviationPercentagePoints) <= 1.5);
+    add("allocation_qa", "Deterministic traffic simulation", allocationQaPassed, `${qa.totalAssigned.toLocaleString()} assignments; max deviation ${Math.max(...qa.rows.map(row => Math.abs(row.deviationPercentagePoints))).toFixed(3)}pp`);
+  } catch (error: any) {
+    add("allocation_qa", "Deterministic traffic simulation", false, error.message || "Allocation simulation failed");
+  }
+
+  const pixelReady = !getShopifyConfig().liveConnect || workerEnvValue("SHOPIFY_PIXEL_INGEST_ENABLED") === "true";
+  add("checkout_attribution", "Shopify checkout attribution enabled", pixelReady, pixelReady ? "Checkout and paid-order joins enabled" : "SHOPIFY_PIXEL_INGEST_ENABLED must be true");
+
+  const warnings = [];
+  if (!workerEnvValue("POSTHOG_PROJECT_API_KEY")) warnings.push("PostHog server capture is not configured; Shopify paid-order reporting remains available in Funnel Control.");
+  if (!experiment.posthogFlagKey) warnings.push("No PostHog flag key is attached to this experiment.");
+
+  return {
+    pass: checks.every(check => check.pass),
+    experimentId: experiment.id,
+    experimentKey: experiment.key,
+    status: experiment.status,
+    checks,
+    warnings,
+    generatedAt: new Date().toISOString(),
+  };
+}
 
 elementAdminRouter.get("/element-slots", async (req, res) => {
   try {
@@ -141,11 +239,56 @@ elementAdminRouter.get("/element-experiments/:id/results", async (req, res) => {
   }
 });
 
+elementAdminRouter.get("/element-experiments/:id/allocation-qa", async (req, res) => {
+  try {
+    const experiment = await prisma.elementExperiment.findUnique({
+      where: { id: req.params.id },
+      include: {
+        allocations: true,
+        slot: { include: { variants: true } },
+      },
+    });
+    if (!experiment) return res.status(404).json({ error: "Element experiment not found." });
+    const requestedSampleSize = Number(req.query.sampleSize ?? 20_000);
+    const seedPrefix = String(req.query.seed ?? "gallery-allocation-qa").trim().slice(0, 80) || "gallery-allocation-qa";
+    const report = simulateElementAllocation(
+      experiment.allocations,
+      experiment.id,
+      experiment.allocationVersion,
+      requestedSampleSize,
+      seedPrefix,
+    );
+    const variantNames = new Map(experiment.slot.variants.map(variant => [variant.id, variant.name]));
+    return res.json({
+      ...report,
+      rows: report.rows.map(row => ({ ...row, variantName: variantNames.get(row.variantId) ?? row.variantId })),
+      sampleAssignments: report.sampleAssignments.map(row => ({
+        ...row,
+        variantName: variantNames.get(row.variantId) ?? row.variantId,
+      })),
+      note: "This deterministic dry run writes no assignments or exposures and does not pollute production reporting.",
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Failed to verify traffic allocation." });
+  }
+});
+
+elementAdminRouter.get("/element-experiments/:id/preflight", async (req, res) => {
+  try {
+    const report = await buildElementPreflight(req.params.id);
+    if (!report) return res.status(404).json({ error: "Element experiment not found." });
+    return res.json(report);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Failed to run experiment preflight." });
+  }
+});
+
 elementAdminRouter.post("/element-slots", async (req, res) => {
   try {
     const shop = await getOrCreateShop();
     const normalizedPath = pagePath(req.body.pagePath);
     const normalizedKey = slotKey(req.body.slotKey);
+    const normalizedSelector = targetSelector(req.body.targetSelector, normalizedKey);
     const name = String(req.body.name ?? "").trim().slice(0, 120);
     if (!name) return res.status(400).json({ error: "Slot name is required." });
 
@@ -176,7 +319,7 @@ elementAdminRouter.post("/element-slots", async (req, res) => {
           pagePath: normalizedPath,
           slotKey: normalizedKey,
           name,
-          targetSelector: `[data-funnel-slot="${normalizedKey}"]`,
+          targetSelector: normalizedSelector,
         },
       });
       await prisma.elementVariant.create({
@@ -229,6 +372,26 @@ elementAdminRouter.post("/element-slots", async (req, res) => {
   } catch (error: any) {
     const message = error?.code === "P2002" ? "A slot or experiment with this key already exists." : error.message;
     res.status(400).json({ error: message || "Failed to create element slot." });
+  }
+});
+
+elementAdminRouter.patch("/element-slots/:id", async (req, res) => {
+  try {
+    const slot = await prisma.elementSlot.findUnique({ where: { id: req.params.id }, include: { experiment: true } });
+    if (!slot) return res.status(404).json({ error: "Element slot not found." });
+    if (slot.experiment?.status === "RUNNING") {
+      return res.status(409).json({ error: "Pause the experiment before changing its element selector." });
+    }
+    const name = req.body.name === undefined ? slot.name : String(req.body.name ?? "").trim().slice(0, 120);
+    if (!name) return res.status(400).json({ error: "Slot name is required." });
+    const updated = await prisma.elementSlot.update({
+      where: { id: slot.id },
+      data: { name, targetSelector: targetSelector(req.body.targetSelector, slot.slotKey) },
+      include: slotInclude,
+    });
+    return res.json(publicSlot(updated));
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "Failed to update element slot." });
   }
 });
 
@@ -292,7 +455,7 @@ elementAdminRouter.patch("/element-experiments/:id/allocations", async (req, res
       include: { slot: { include: { variants: true } } },
     });
     if (!experiment) return res.status(404).json({ error: "Element experiment not found." });
-    if (experiment.status !== "DRAFT") return res.status(409).json({ error: "Traffic weights can only change while the experiment is a draft." });
+    if (!["DRAFT", "PAUSED"].includes(experiment.status)) return res.status(409).json({ error: "Pause the experiment before changing traffic weights." });
     const allocations = Array.isArray(req.body.allocations) ? req.body.allocations : [];
     const validVariantIds = new Set(experiment.slot.variants.map(variant => variant.id));
     const allocationVariantIds = allocations.map((allocation: any) => String(allocation.variantId));
@@ -328,6 +491,9 @@ elementAdminRouter.patch("/element-experiments/:id/allocations", async (req, res
 
 elementAdminRouter.post("/element-experiments/:id/start", async (req, res) => {
   try {
+    const preflight = await buildElementPreflight(req.params.id);
+    if (!preflight) return res.status(404).json({ error: "Element experiment not found." });
+    if (!preflight.pass) return res.status(409).json({ error: "Experiment preflight failed.", preflight });
     const experiment = await prisma.elementExperiment.findUnique({
       where: { id: req.params.id },
       include: { allocations: true, slot: { include: { variants: true } } },
@@ -465,11 +631,12 @@ elementRuntimeRouter.post("/element-exposure", async (req, res) => {
         visitor: { shopId: shop.id, anonymousKeyHash: hashAnonymousKey(visitorKey) },
         experiment: { slotId: requestedSlotId },
       },
-      include: { experiment: true },
+      include: { experiment: { include: { slot: true } }, variant: true },
     });
     if (!assignment) return res.status(400).json({ error: "Exposure does not match a valid assignment." });
     const existing = await prisma.elementExposure.findUnique({ where: { eventId } });
     if (existing) return res.json({ accepted: true, duplicate: true });
+    const isInternal = req.body.isInternal === true;
     await prisma.elementExposure.create({
       data: {
         eventId,
@@ -479,8 +646,22 @@ elementRuntimeRouter.post("/element-exposure", async (req, res) => {
         assignmentId: assignment.id,
         experimentId: assignment.experimentId,
         variantId: assignment.variantId,
-        isInternal: req.body.isInternal === true,
+        isInternal,
       },
+    });
+    await captureElementExposureToPostHog(assignment.visitorId, {
+      eventId,
+      assignmentId: assignment.id,
+      allocationVersion: assignment.allocationVersion,
+      experimentId: assignment.experimentId,
+      experimentKey: assignment.experiment.key,
+      posthogFlagKey: assignment.experiment.posthogFlagKey,
+      variantId: assignment.variantId,
+      variantKey: assignment.variant.key,
+      slotId: assignment.experiment.slotId,
+      slotKey: assignment.experiment.slot.slotKey,
+      pagePath: assignment.experiment.slot.pagePath,
+      isInternal,
     });
     return res.status(201).json({ accepted: true, duplicate: false });
   } catch (error: any) {

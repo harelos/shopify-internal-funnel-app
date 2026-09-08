@@ -11,6 +11,31 @@ export interface WeightedVariant {
   weightBasisPoints: number;
 }
 
+export interface ElementAllocationQaRow {
+  variantId: string;
+  configuredPercent: number;
+  observedVisitors: number;
+  observedPercent: number;
+  deviationPercentagePoints: number;
+}
+
+export interface ElementAllocationQaSample {
+  visitorId: string;
+  bucket: number;
+  variantId: string;
+}
+
+export interface ElementAllocationQaReport {
+  experimentId: string;
+  allocationVersion: number;
+  sampleSize: number;
+  seedPrefix: string;
+  rows: ElementAllocationQaRow[];
+  sampleAssignments: ElementAllocationQaSample[];
+  deterministicReplayPassed: boolean;
+  totalAssigned: number;
+}
+
 export function elementBucket(anonymousKey: string, experimentId: string, allocationVersion: number): number {
   const hash = hashAnonymousKey(`${anonymousKey}:${experimentId}:${allocationVersion}`);
   return Number.parseInt(hash.slice(0, 12), 16) % ELEMENT_BASIS_POINTS_TOTAL;
@@ -25,6 +50,62 @@ export function chooseElementVariant(allocations: WeightedVariant[], bucket: num
     if (bucket < cursor) return allocation.variantId;
   }
   return sorted[sorted.length - 1].variantId;
+}
+
+export function simulateElementAllocation(
+  allocations: WeightedVariant[],
+  experimentId: string,
+  allocationVersion: number,
+  sampleSize = 20_000,
+  seedPrefix = "gallery-allocation-qa",
+): ElementAllocationQaReport {
+  if (!Number.isInteger(sampleSize) || sampleSize < 100 || sampleSize > 100_000) {
+    throw new Error("Allocation QA sample size must be an integer from 100 to 100000.");
+  }
+  if (allocations.reduce((sum, allocation) => sum + allocation.weightBasisPoints, 0) !== ELEMENT_BASIS_POINTS_TOTAL) {
+    throw new Error(`Allocation QA requires weights totaling ${ELEMENT_BASIS_POINTS_TOTAL} basis points.`);
+  }
+
+  const counts = new Map(allocations.map(allocation => [allocation.variantId, 0]));
+  const sampleAssignments: ElementAllocationQaSample[] = [];
+  let deterministicReplayPassed = true;
+
+  for (let index = 0; index < sampleSize; index += 1) {
+    const visitorId = `${seedPrefix}-${String(index + 1).padStart(6, "0")}`;
+    const bucket = elementBucket(visitorId, experimentId, allocationVersion);
+    const variantId = chooseElementVariant(allocations, bucket);
+    if (!variantId) continue;
+    counts.set(variantId, (counts.get(variantId) ?? 0) + 1);
+    deterministicReplayPassed = deterministicReplayPassed
+      && elementBucket(visitorId, experimentId, allocationVersion) === bucket
+      && chooseElementVariant(allocations, bucket) === variantId;
+    if (sampleAssignments.length < 20) sampleAssignments.push({ visitorId, bucket, variantId });
+  }
+
+  const totalAssigned = Array.from(counts.values()).reduce((sum, count) => sum + count, 0);
+  return {
+    experimentId,
+    allocationVersion,
+    sampleSize,
+    seedPrefix,
+    deterministicReplayPassed,
+    totalAssigned,
+    rows: allocations
+      .map(allocation => {
+        const observedVisitors = counts.get(allocation.variantId) ?? 0;
+        const observedPercent = totalAssigned ? (observedVisitors / totalAssigned) * 100 : 0;
+        const configuredPercent = allocation.weightBasisPoints / 100;
+        return {
+          variantId: allocation.variantId,
+          configuredPercent,
+          observedVisitors,
+          observedPercent: Number(observedPercent.toFixed(3)),
+          deviationPercentagePoints: Number((observedPercent - configuredPercent).toFixed(3)),
+        };
+      })
+      .sort((left, right) => left.variantId.localeCompare(right.variantId)),
+    sampleAssignments,
+  };
 }
 
 export interface ElementSelection {

@@ -1,5 +1,6 @@
 import prisma from "../lib/db.js";
 import { hashAnonymousKey } from "./element-ab-engine.js";
+import { captureElementPurchaseToPostHog } from "./element-posthog.js";
 
 export interface ElementAssignmentContext {
   assignmentId: string;
@@ -92,7 +93,10 @@ export async function snapshotCheckoutElementAssignments(input: {
 
 export async function snapshotOrderElementAssignments(orderAttributionId: string, checkoutToken: string | null) {
   if (!checkoutToken) return 0;
-  const checkoutAssignments = await prisma.checkoutElementAttribution.findMany({ where: { checkoutToken } });
+  const checkoutAssignments = await prisma.checkoutElementAttribution.findMany({
+    where: { checkoutToken },
+    include: { experiment: true, variant: true, slot: true },
+  });
   const order = await prisma.orderAttribution.findUnique({ where: { id: orderAttributionId } });
   if (!order) return 0;
   for (const attribution of checkoutAssignments) {
@@ -115,6 +119,25 @@ export async function snapshotOrderElementAssignments(orderAttributionId: string
         slotId: attribution.slotId,
       },
     });
+    if (!order.isTest && order.status === "PAID") {
+      const eventId = `element_purchase:${order.id}:${attribution.experimentId}`;
+      await captureElementPurchaseToPostHog(attribution.visitorId, {
+        eventId,
+        assignmentId: attribution.assignmentId,
+        experimentId: attribution.experimentId,
+        experimentKey: attribution.experiment.key,
+        posthogFlagKey: attribution.experiment.posthogFlagKey,
+        variantId: attribution.variantId,
+        variantKey: attribution.variant.key,
+        slotId: attribution.slotId,
+        slotKey: attribution.slot.slotKey,
+        pagePath: attribution.slot.pagePath,
+        orderId: order.shopifyOrderGid,
+        checkoutToken,
+        revenue: order.netRevenueAmount,
+        currency: order.currency,
+      });
+    }
   }
   return checkoutAssignments.length;
 }

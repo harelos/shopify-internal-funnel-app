@@ -5,6 +5,13 @@
     "pagePath": {{ request.path | json }},
     "debug": {{ block.settings.debug | json }},
     "isInternal": {{ request.design_mode | json }},
+    "slots": [
+      {
+        "slotKey": {{ block.settings.slot_key | json }},
+        "selector": {{ block.settings.target_selector | json }},
+        "pagePath": {{ block.settings.page_path | json }}
+      }
+    ],
     "labels": {
       "gallery": {{ 'blocks.runtime.gallery_label' | t | json }},
       "images": {{ 'blocks.runtime.images_label' | t | json }},
@@ -31,6 +38,24 @@
       "id": "debug",
       "label": "t:blocks.runtime.settings.debug",
       "default": false
+    },
+    {
+      "type": "text",
+      "id": "slot_key",
+      "label": "Experiment slot key",
+      "default": "novahair.sales.gallery.primary"
+    },
+    {
+      "type": "text",
+      "id": "target_selector",
+      "label": "Existing element selector",
+      "default": ".nova .hero-media"
+    },
+    {
+      "type": "text",
+      "id": "page_path",
+      "label": "Only run on this page path",
+      "default": "/pages/novahair-sales-staging"
     }
   ]
 }

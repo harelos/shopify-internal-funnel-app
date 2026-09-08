@@ -14,6 +14,19 @@ document.addEventListener("DOMContentLoaded", () => {
   let slots = [];
   let current = null;
 
+  const NOVAHAIR_TOP_10 = [
+    ["roots-returned", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/01-roots-returned.webp?v=1788823607", "שורשים לבנים שצמחו מחדש בין צביעות - NovaHair"],
+    ["five-shades", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/02-shades.webp?v=1788823607", "חמשת הגוונים של NovaHair"],
+    ["ten-minute-routine", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/03-ten-minute-routine.webp?v=1788823607", "שגרת כיסוי שורשים בכעשר דקות עם NovaHair"],
+    ["reclaim-time", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/04-reclaim-time.webp?v=1788823607", "טיפול בשורשים בבית בזמן שמתאים לך"],
+    ["shade-guidance", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/05-shade-guidance.webp?v=1788823607", "מדריך לבחירת גוון NovaHair"],
+    ["three-step-routine", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/06-three-step-routine.webp?v=1788823607", "שלושה שלבים לשימוש ב-NovaHair"],
+    ["hair-textures", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/07-hair-textures.webp?v=1788823607", "NovaHair למרקמי שיער שונים"],
+    ["no-ammonia", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/08-no-ammonia.webp?v=1788823607", "פורמולת NovaHair ללא אמוניה"],
+    ["original-brand", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/09-original-brand.webp?v=1788823607", "מוצרי NovaHair המקוריים"],
+    ["emotional-close", "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/10-emotional-close.webp?v=1788823607", "NovaHair מוכן לפעם הבאה שהשורש חוזר"],
+  ];
+
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
   }
@@ -128,6 +141,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function verifyAllocation() {
+    const container = document.getElementById("allocation-qa");
+    if (!current?.experiment?.id) return;
+    container.hidden = false;
+    container.innerHTML = '<p class="muted">Running a deterministic dry run with 20,000 test visitor IDs…</p>';
+    try {
+      const report = await API.get(`/api/element-experiments/${current.experiment.id}/allocation-qa?sampleSize=20000&seed=novahair-gallery-qa`);
+      container.innerHTML = `
+        <div class="qa-grid">${report.rows.map(row => `
+          <div class="qa-stat"><strong>${escapeHtml(row.variantName)}</strong><br>${row.observedVisitors.toLocaleString()} visitors · ${Number(row.observedPercent).toFixed(2)}%<br><span class="muted">Configured ${Number(row.configuredPercent).toFixed(0)}% · deviation ${Number(row.deviationPercentagePoints).toFixed(2)}pp</span></div>
+        `).join("")}</div>
+        <div class="results-note"><strong>${report.deterministicReplayPassed ? "PASS" : "FAIL"}: deterministic replay</strong><br>${escapeHtml(report.note)}</div>`;
+    } catch (error) {
+      container.innerHTML = `<p class="danger-note">${escapeHtml(error.message)}</p>`;
+    }
+  }
+
+  async function runPreflight() {
+    const container = document.getElementById("production-preflight");
+    if (!current?.experiment?.id) return null;
+    container.hidden = false;
+    container.innerHTML = '<p class="muted">Checking the live-release contract…</p>';
+    try {
+      const report = await API.get(`/api/element-experiments/${current.experiment.id}/preflight`);
+      container.innerHTML = `
+        <div class="results-note" style="margin-bottom:10px;"><strong>${report.pass ? "PASS — ready to start" : "BLOCKED — fix failed checks"}</strong><br>Checked ${escapeHtml(report.generatedAt)}</div>
+        <div class="preflight-list">${report.checks.map(check => `
+          <div class="preflight-check ${check.pass ? "" : "failed"}">
+            <span class="preflight-icon">${check.pass ? "✓" : "×"}</span>
+            <div><strong>${escapeHtml(check.label)}</strong><span class="muted">${escapeHtml(check.detail)}</span></div>
+          </div>`).join("")}</div>
+        ${report.warnings.length ? `<div class="danger-note" style="margin-top:10px;">${report.warnings.map(escapeHtml).join("<br>")}</div>` : ""}`;
+      return report;
+    } catch (error) {
+      container.innerHTML = `<p class="danger-note">${escapeHtml(error.message)}</p>`;
+      return null;
+    }
+  }
+
   function renderList() {
     if (!slots.length) {
       slotList.innerHTML = '<p class="muted">No element slots yet.</p>';
@@ -204,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pagePath: form.get("pagePath"),
         slotKey: form.get("slotKey"),
         name: form.get("name"),
+        targetSelector: form.get("targetSelector"),
       });
       await loadSlots(created.id);
     } catch (error) {
@@ -221,6 +274,89 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("preview-mobile").addEventListener("click", () => setPreviewDevice("mobile"));
   document.getElementById("preview-desktop").addEventListener("click", () => setPreviewDevice("desktop"));
   document.getElementById("refresh-results").addEventListener("click", loadResults);
+  document.getElementById("verify-split").addEventListener("click", verifyAllocation);
+  document.getElementById("run-preflight").addEventListener("click", runPreflight);
+  document.getElementById("prepare-novahair").addEventListener("click", async () => {
+    const button = document.getElementById("prepare-novahair");
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = "Preparing…";
+    try {
+      const exactPath = "/pages/novahair-sales-staging";
+      const exactKey = "novahair.sales.gallery.primary";
+      let target = slots.find(slot => slot.pagePath === exactPath && slot.slotKey === exactKey);
+      if (!target) {
+        target = await API.post("/api/element-slots", {
+          pagePath: exactPath,
+          slotKey: exactKey,
+          name: "NOVAHAIR primary gallery",
+          targetSelector: ".nova .hero-media",
+        });
+      }
+      await loadSlots(target.id);
+      if (current.experiment?.status === "RUNNING") {
+        throw new Error("This NovaHair gallery experiment is already running. Pause it before preparing new content.");
+      }
+      await API.patch(`/api/element-slots/${current.id}`, {
+        name: "NOVAHAIR primary gallery",
+        targetSelector: ".nova .hero-media",
+      });
+      const challenger = variantB();
+      const control = current.variants.find(variant => variant.isControl);
+      if (!challenger || !control) throw new Error("The control or Variant B record is missing.");
+      const payload = {
+        preserveExisting: false,
+        initialIndex: 0,
+        showThumbnails: true,
+        items: NOVAHAIR_TOP_10.map(([id, src, alt]) => ({ id, src, alt })),
+      };
+      await Promise.all([
+        API.patch(`/api/element-variants/${control.id}`, { name: "Current 6-image gallery" }),
+        API.patch(`/api/element-variants/${challenger.id}`, { name: "Approved 10-image gallery" }),
+      ]);
+      await API.put(`/api/element-variants/${challenger.id}/content`, { payload });
+      await API.post(`/api/element-variants/${challenger.id}/publish`, {});
+      await API.patch(`/api/element-experiments/${current.experiment.id}/allocations`, {
+        allocations: [
+          { variantId: control.id, weightBasisPoints: 5000 },
+          { variantId: challenger.id, weightBasisPoints: 5000 },
+        ],
+      });
+      await loadSlots(current.id);
+      await verifyAllocation();
+      const report = await runPreflight();
+      saveMessage.textContent = report?.pass
+        ? "Approved NovaHair gallery is published at a verified 50/50 split. It remains stopped until Start experiment is confirmed."
+        : "NovaHair setup is saved, but the production preflight still has a failed check.";
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  });
+  document.getElementById("load-novahair-top-10").addEventListener("click", async () => {
+    try {
+      const challenger = variantB();
+      const control = current?.variants?.find(variant => variant.isControl);
+      if (!challenger || !control) throw new Error("Create or select the NovaHair gallery experiment first.");
+      lines.value = NOVAHAIR_TOP_10
+        .map(([id, src, alt]) => `${id} | ${src} | ${alt}`)
+        .join("\n");
+      initialIndex.value = "1";
+      showThumbnails.checked = true;
+      await Promise.all([
+        API.patch(`/api/element-variants/${control.id}`, { name: "Current 6-image gallery" }),
+        API.patch(`/api/element-variants/${challenger.id}`, { name: "Approved 10-image gallery" }),
+      ]);
+      control.name = "Current 6-image gallery";
+      challenger.name = "Approved 10-image gallery";
+      saveMessage.textContent = "Approved Top 10 loaded locally. Preview, then publish when ready.";
+      renderPreview();
+    } catch (error) {
+      saveMessage.textContent = error.message;
+    }
+  });
 
   document.getElementById("save-variant").addEventListener("click", async () => {
     try {
@@ -265,6 +401,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("start-experiment").addEventListener("click", async () => {
+    const report = await runPreflight();
+    if (!report?.pass) return;
     if (!confirm("Start this experiment for eligible live visitors using the saved traffic split?")) return;
     try {
       await API.post(`/api/element-experiments/${current.experiment.id}/start`, {});

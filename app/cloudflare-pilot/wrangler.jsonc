@@ -30,7 +30,7 @@
     "SHOPIFY_APP_PROXY_PATH": "/apps/funnels",
     "SHOPIFY_LIVE_CONNECT": "true",
     "SHOPIFY_REQUIRE_AUTH": "true",
-    "SHOPIFY_PIXEL_INGEST_ENABLED": "false",
+    "SHOPIFY_PIXEL_INGEST_ENABLED": "true",
     "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",
     "SHOPIFY_PAGE_IMPORT_ALLOWED_HOSTS": "tigerbrandsglobal.com",
     "NOVAHAIR_CJ_AUTO_CREATE_ENABLED": "true",

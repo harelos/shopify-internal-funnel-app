@@ -1,8 +1,78 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { normalizeGalleryPayload } from "../src/lib/element-templates.js";
-import { canReuseElementAssignment, chooseElementVariant, elementBucket } from "../src/services/element-ab-engine.js";
+import {
+  canReuseElementAssignment,
+  chooseElementVariant,
+  elementBucket,
+  simulateElementAllocation,
+} from "../src/services/element-ab-engine.js";
 import { buildElementExperimentResults } from "../src/services/element-results.js";
+import {
+  buildElementExposureProperties,
+  buildElementPurchaseProperties,
+} from "../src/services/element-posthog.js";
+
+test("NovaHair preset uses all ten approved ready Shopify CDN images in order", () => {
+  const source = readFileSync("public/admin/js/element-experiments.js", "utf8");
+  const urls = [...source.matchAll(/https:\/\/cdn\.shopify\.com\/s\/files\/1\/0719\/2628\/4583\/files\/(\d{2}-[a-z-]+\.webp)\?v=1788823607/g)]
+    .map(match => match[1]);
+  assert.deepEqual(urls, [
+    "01-roots-returned.webp",
+    "02-shades.webp",
+    "03-ten-minute-routine.webp",
+    "04-reclaim-time.webp",
+    "05-shade-guidance.webp",
+    "06-three-step-routine.webp",
+    "07-hair-textures.webp",
+    "08-no-ammonia.webp",
+    "09-original-brand.webp",
+    "10-emotional-close.webp",
+  ]);
+});
+
+test("Worker-hosted element runtime stays byte-identical to the Shopify extension runtime", () => {
+  for (const filename of ["funnel-control-elements.js", "funnel-control-elements.css"]) {
+    const extension = readFileSync(`../extensions/funnel-control-elements/assets/${filename}`);
+    const workerAsset = readFileSync(`public/assets/${filename}`);
+    assert.deepEqual(workerAsset, extension);
+  }
+});
+
+test("PostHog element events carry the same flag variant from exposure through paid order", () => {
+  const shared = {
+    experimentId: "experiment-1",
+    experimentKey: "novahair_gallery_v1",
+    posthogFlagKey: "novahair_gallery_v1",
+    variantId: "variant-b",
+    variantKey: "variant-b",
+    slotId: "slot-1",
+    slotKey: "novahair.sales.gallery.primary",
+    pagePath: "/pages/novahair-sales-staging",
+  };
+  const exposure = buildElementExposureProperties({
+    ...shared,
+    eventId: "exposure-1",
+    assignmentId: "assignment-1",
+    allocationVersion: 1,
+    isInternal: false,
+  });
+  const purchase = buildElementPurchaseProperties({
+    ...shared,
+    eventId: "purchase-1",
+    assignmentId: "assignment-1",
+    orderId: "gid://shopify/Order/1",
+    checkoutToken: "checkout-1",
+    revenue: 239,
+    currency: "ILS",
+  });
+  assert.equal(exposure["$feature/novahair_gallery_v1"], "variant-b");
+  assert.equal(purchase["$feature/novahair_gallery_v1"], "variant-b");
+  assert.equal(purchase.revenue, 239);
+  assert.equal(purchase.currency, "ILS");
+  assert.equal(purchase.is_internal, false);
+});
 
 test("gallery control preserves the existing element without accepting arbitrary markup", () => {
   assert.deepEqual(normalizeGalleryPayload({ preserveExisting: true, html: "<script>alert(1)</script>" }), {
@@ -56,6 +126,34 @@ test("element assignments are reused only for the current allocation version and
   assert.equal(canReuseElementAssignment({ variantId: "winner", allocationVersion: 2 }, 2, allocations), true);
   assert.equal(canReuseElementAssignment({ variantId: "control", allocationVersion: 2 }, 2, allocations), false);
   assert.equal(canReuseElementAssignment({ variantId: "winner", allocationVersion: 1 }, 2, allocations), false);
+});
+
+test("50/50 allocation stays balanced across many synthetic visitor ids and replays deterministically", () => {
+  const allocations = [
+    { variantId: "control", weightBasisPoints: 5000 },
+    { variantId: "gallery-top-10", weightBasisPoints: 5000 },
+  ];
+  const report = simulateElementAllocation(
+    allocations,
+    "novahair-gallery-v1",
+    1,
+    20_000,
+    "novahair-gallery-qa",
+  );
+  assert.equal(report.totalAssigned, 20_000);
+  assert.equal(report.deterministicReplayPassed, true);
+  assert.equal(report.sampleAssignments.length, 20);
+  for (const row of report.rows) {
+    assert.ok(Math.abs(row.deviationPercentagePoints) < 1, `${row.variantId} deviated by ${row.deviationPercentagePoints}pp`);
+  }
+  const replay = simulateElementAllocation(
+    allocations,
+    "novahair-gallery-v1",
+    1,
+    20_000,
+    "novahair-gallery-qa",
+  );
+  assert.deepEqual(replay, report);
 });
 
 test("sales results use unique visitors and paid non-test net revenue", () => {
