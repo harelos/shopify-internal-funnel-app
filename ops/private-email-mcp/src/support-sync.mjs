@@ -104,6 +104,16 @@ export async function supportBridgeFetch(route, options = {}) {
   throw lastError || new Error(`Support bridge ${route} failed.`);
 }
 
+export function cleanMessageText(value) {
+  const normalized = String(value || "").replace(/\r\n/g, "\n").trim();
+  const replyBoundary = /\n(?:בתאריך\s.+?מאת\s|On\s.+?wrote:\s*$|Replying to\s|[-_]{2,}\s*Original Message\s*[-_]{2,}|From:\s.+\nTo:\s)/im;
+  const boundary = normalized.search(replyBoundary);
+  const newestMessage = boundary >= 0 ? normalized.slice(0, boundary) : normalized;
+  return newestMessage
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function attachmentManifest(attachments = []) {
   return Promise.all(attachments.map(async attachment => ({
     filename: attachment.filename || null,
@@ -127,7 +137,7 @@ async function collectMessages(client, folder, direction, since) {
       const to = addresses(parsed.to);
       const customerEmail = direction === "INBOUND" ? from[0] : to.find(address => address !== mailboxAddress);
       if (!customerEmail || customerEmail === mailboxAddress) continue;
-      const textBody = String(parsed.text || "").trim();
+      const textBody = cleanMessageText(parsed.text);
       if (!textBody) continue;
       const messageId = parsed.messageId || `<${folder}-${message.uid}@local-import>`;
       const refs = references(parsed);

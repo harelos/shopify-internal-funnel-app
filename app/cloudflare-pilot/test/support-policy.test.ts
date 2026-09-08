@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateSupportPolicy, mayAutoSend } from "../src/lib/support-policy.js";
 import { triageMailboxMessage } from "../src/lib/support-triage.js";
+import { extractSupportOrderNumber } from "../src/lib/support-email.js";
 
 test("chargeback, legal, refund and safety messages always escalate", () => {
   for (const text of [
@@ -37,6 +38,11 @@ test("a general shipping question can auto-send from approved store facts withou
   const policy = evaluateSupportPolicy("היי, כמה זמן המשלוח וכמה הוא עולה?");
   assert.equal(policy.topic, "GENERAL_SHIPPING");
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.96, hasVerifiedOrder: false, hasUnverifiedClaims: false }), true);
+});
+
+test("order extraction requires an explicit hash and never mistakes a date for an order", () => {
+  assert.equal(extractSupportOrderNumber("Re: הזמנה #4379 אושרה", "יש צפי לקבלת המשלוח?"), "4379");
+  assert.equal(extractSupportOrderNumber("משלוח", "בתאריך 1 בספטמבר 2026 שאלתי על המשלוח"), null);
 });
 
 test("mailbox triage accepts a Hebrew shipping prospect and rejects unrelated system mail", () => {

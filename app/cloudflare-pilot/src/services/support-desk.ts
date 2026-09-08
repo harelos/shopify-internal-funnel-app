@@ -3,6 +3,7 @@ import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { generateSupportDecision } from "../lib/support-ai.js";
 import { evaluateSupportPolicy, mayAutoSend } from "../lib/support-policy.js";
+import { extractSupportOrderNumber } from "../lib/support-email.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
 
@@ -86,9 +87,15 @@ export interface SupportIngestInput {
 
 export async function ingestSupportMessage(input: SupportIngestInput) {
   const db = supportD1();
-  const existingMessage = await db.prepare('SELECT "id", "conversationId" FROM "SupportMessage" WHERE "externalMessageId" = ? LIMIT 1')
-    .bind(input.externalMessageId).first<{ id: string; conversationId: string }>();
-  if (existingMessage) return { duplicate: true, conversationId: existingMessage.conversationId, messageId: existingMessage.id };
+  const existingMessage = await db.prepare('SELECT "id", "conversationId", "textBody" FROM "SupportMessage" WHERE "externalMessageId" = ? LIMIT 1')
+    .bind(input.externalMessageId).first<{ id: string; conversationId: string; textBody: string }>();
+  if (existingMessage) {
+    const cleanerBody = input.textBody.trim();
+    if (cleanerBody.length >= 2 && existingMessage.textBody.length > cleanerBody.length * 1.5) {
+      await db.prepare('UPDATE "SupportMessage" SET "textBody" = ? WHERE "id" = ?').bind(cleanerBody, existingMessage.id).run();
+    }
+    return { duplicate: true, conversationId: existingMessage.conversationId, messageId: existingMessage.id };
+  }
 
   const shop = await configuredShop();
   const email = canonicalEmail(input.customerEmail);
@@ -390,7 +397,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
   const latestInbound = [...conversation.messages].reverse().find(message => message.direction === "INBOUND");
   if (!latestInbound) throw new Error("The conversation has no inbound customer message.");
   const policy = evaluateSupportPolicy(`${conversation.subject}\n${latestInbound.textBody}`);
-  const orderNumber = latestInbound.textBody.match(/#?\d{4,}/)?.[0] || null;
+  const orderNumber = extractSupportOrderNumber(conversation.subject, latestInbound.textBody);
   let orderContext: unknown = null;
   try {
     const orders = await shopify.supportOrderContext({ customerEmail: conversation.customer.email, orderName: orderNumber, sessionToken });
@@ -412,7 +419,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
   });
   const decision = await generateSupportDecision({
     subject: conversation.subject,
-    threadText: conversation.messages.map(message => `${message.direction}: ${message.textBody}`).join("\n\n"),
+    threadText: conversation.messages.slice(-12).map(message => `${message.direction}: ${message.textBody.slice(0, 4000)}`).join("\n\n").slice(-16000),
     ownerExamples: examples,
     orderContext,
     policy,
