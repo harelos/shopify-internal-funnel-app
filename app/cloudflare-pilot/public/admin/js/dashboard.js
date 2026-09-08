@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadShopifyStatus() {
     if (!connectionStatus) return;
+    if (connectionStatus.dataset.overviewManaged === "true") return;
     try {
       const status = await API.get("/api/shopify/status");
       connectionStatus.textContent = status.ok

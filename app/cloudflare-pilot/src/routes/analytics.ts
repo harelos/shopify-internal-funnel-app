@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
-import { analyticsDataContract, analyticsModeForRequest, isTestForMode } from "../lib/analytics-config.js";
+import { analyticsDataContract, analyticsModeForRequest, isReportableRevenueOrder, isTestForMode } from "../lib/analytics-config.js";
 import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
 
@@ -69,9 +69,10 @@ router.get("/analytics/account", async (req, res) => {
     const ordersWhere: any = { isTest: isTestForMode(mode) };
     if (from || to) ordersWhere.paidAt = dateFilter;
     const events = await prisma.event.findMany({ where: eventWhere });
-    const orders = await prisma.orderAttribution.findMany({
+    const rawOrders = await prisma.orderAttribution.findMany({
       where: ordersWhere,
     });
+    const orders = rawOrders.filter(isReportableRevenueOrder);
 
     const activeFunnels = await prisma.funnel.findMany({
       where: { NOT: { status: "ARCHIVED" } },

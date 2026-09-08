@@ -25,3 +25,10 @@ export function analyticsDataContract(mode: AnalyticsMode) {
 export function isTestForMode(mode: AnalyticsMode): boolean {
   return mode === "TEST";
 }
+
+export function isReportableRevenueOrder(order: {
+  netRevenueAmount: number;
+  status: string;
+}): boolean {
+  return Number(order.netRevenueAmount) > 0 && order.status !== "REFUNDED_OR_CANCELLED";
+}

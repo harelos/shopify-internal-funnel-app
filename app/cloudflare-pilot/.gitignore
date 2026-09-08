@@ -18,9 +18,11 @@ public/admin/js/*
 !public/admin/element-experiments.html
 !public/admin/support.html
 !public/admin/css/growth-cockpit.css
+!public/admin/css/overview.css
 !public/admin/css/style.css
 !public/admin/css/support.css
 !public/admin/js/growth-cockpit.js
+!public/admin/js/overview.js
 !public/admin/js/api.js
 !public/admin/js/element-experiments.js
 !public/admin/js/support.js
