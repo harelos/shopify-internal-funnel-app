@@ -394,6 +394,8 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     include: { customer: true, mailbox: true, messages: { orderBy: { sentAt: "asc" }, take: 30 } },
   });
   if (!conversation) throw new Error("Support conversation not found.");
+  const latestMessage = conversation.messages.at(-1);
+  if (!latestMessage || latestMessage.direction !== "INBOUND") throw new Error("There is no unanswered inbound customer message.");
   const latestInbound = [...conversation.messages].reverse().find(message => message.direction === "INBOUND");
   if (!latestInbound) throw new Error("The conversation has no inbound customer message.");
   const policy = evaluateSupportPolicy(`${conversation.subject}\n${latestInbound.textBody}`);
@@ -431,6 +433,8 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     confidence: decision.confidence,
     hasVerifiedOrder: Array.isArray(orderContext) && orderContext.length > 0,
     hasUnverifiedClaims: decision.unverifiedClaims.length > 0,
+    messageAgeMinutes: Math.max(0, (Date.now() - latestInbound.sentAt.getTime()) / 60000),
+    latestMessageIsInbound: latestMessage.direction === "INBOUND",
   });
   const status = decision.decision === "ESCALATE" || policy.mustEscalate
     ? "ESCALATED"

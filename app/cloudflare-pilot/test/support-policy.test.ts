@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { evaluateSupportPolicy, mayAutoSend } from "../src/lib/support-policy.js";
 import { triageMailboxMessage } from "../src/lib/support-triage.js";
 import { extractSupportOrderNumber } from "../src/lib/support-email.js";
+import { deterministicLowRiskDecision } from "../src/lib/support-replies.js";
 
 test("chargeback, legal, refund and safety messages always escalate", () => {
   for (const text of [
@@ -38,6 +39,53 @@ test("a general shipping question can auto-send from approved store facts withou
   const policy = evaluateSupportPolicy("היי, כמה זמן המשלוח וכמה הוא עולה?");
   assert.equal(policy.topic, "GENERAL_SHIPPING");
   assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.96, hasVerifiedOrder: false, hasUnverifiedClaims: false }), true);
+});
+
+test("a delivery ETA phrasing in Hebrew is recognized as order status", () => {
+  const policy = evaluateSupportPolicy("יש צפי לקבלת המשלוח??");
+  assert.equal(policy.topic, "ORDER_STATUS");
+  assert.equal(policy.riskLevel, "LOW");
+});
+
+test("old mail and conversations already answered can never auto-send", () => {
+  const policy = evaluateSupportPolicy("איפה ההזמנה שלי?");
+  assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: true, hasUnverifiedClaims: false, messageAgeMinutes: 73 * 60 }), false);
+  assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: true, hasUnverifiedClaims: false, latestMessageIsInbound: false }), false);
+});
+
+test("a reported delivered-but-missing parcel requires human review", () => {
+  const policy = evaluateSupportPolicy("כתוב שנמסר אבל לא קיבלתי את החבילה");
+  assert.equal(policy.topic, "DELIVERY_DISPUTE");
+  assert.equal(policy.riskLevel, "MEDIUM");
+  assert.equal(mayAutoSend({ automationMode: "AUTOSEND_LOW_RISK", policy, confidence: 0.99, hasVerifiedOrder: true, hasUnverifiedClaims: false }), false);
+});
+
+test("verified tracking context renders a bounded Hebrew reply without an LLM", () => {
+  const policy = evaluateSupportPolicy("יש צפי לקבלת המשלוח??");
+  const decision = deterministicLowRiskDecision({
+    policy,
+    orderContext: [{
+      name: "#4379",
+      cancelledAt: null,
+      displayFinancialStatus: "PAID",
+      displayFulfillmentStatus: "FULFILLED",
+      fulfillments: [{ displayStatus: "IN_TRANSIT", deliveredAt: null, trackingInfo: [{ number: "95111608" }] }],
+    }],
+  });
+  assert.equal(decision?.decision, "REPLY");
+  assert.equal(decision?.confidence, 0.99);
+  assert.match(decision?.replyText || "", /#4379/);
+  assert.match(decision?.replyText || "", /95111608/);
+  assert.match(decision?.replyText || "", /5–12 ימי עסקים/);
+  assert.equal(decision?.unverifiedClaims.length, 0);
+});
+
+test("cancelled, refunded or delivered orders do not use the automatic status renderer", () => {
+  const policy = evaluateSupportPolicy("יש צפי לקבלת המשלוח??");
+  const base = { name: "#4379", cancelledAt: null, displayFinancialStatus: "PAID", displayFulfillmentStatus: "FULFILLED", fulfillments: [] };
+  assert.equal(deterministicLowRiskDecision({ policy, orderContext: [{ ...base, cancelledAt: "2026-09-08" }] }), null);
+  assert.equal(deterministicLowRiskDecision({ policy, orderContext: [{ ...base, displayFinancialStatus: "REFUNDED" }] }), null);
+  assert.equal(deterministicLowRiskDecision({ policy, orderContext: [{ ...base, fulfillments: [{ displayStatus: "DELIVERED", deliveredAt: "2026-09-08", trackingInfo: [] }] }] }), null);
 });
 
 test("order extraction requires an explicit hash and never mistakes a date for an order", () => {

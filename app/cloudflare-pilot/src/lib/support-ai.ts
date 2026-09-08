@@ -1,5 +1,6 @@
 import { workerEnvValue } from "./shopify-config.js";
 import type { SupportPolicyDecision } from "./support-policy.js";
+import { APPROVED_STORE_FACTS, deterministicLowRiskDecision } from "./support-replies.js";
 
 export interface SupportAiDecision {
   decision: "REPLY" | "WAIT" | "ESCALATE";
@@ -16,15 +17,6 @@ const MODEL_LADDER = [
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
   "minimax/minimax-m2.7:free",
   "z-ai/glm-5.2:free",
-];
-
-const APPROVED_STORE_FACTS = [
-  "Delivery is available throughout Israel and normally takes 5–12 business days.",
-  "Shipping is free for orders above ILS 199.",
-  "NovaHair currently offers five shades.",
-  "The recommended four-bottle offer is ILS 239.",
-  "Every order includes a coloring kit valued at ILS 79.",
-  "The store offers a 60-day guarantee; any refund, cancellation or shade-change action still requires human review and verified eligibility.",
 ];
 
 function stripFence(raw: string): string {
@@ -60,22 +52,21 @@ function fallbackDecision(policy: SupportPolicyDecision, reason: string): Suppor
   };
 }
 
-function validDecision(value: any, model: string): SupportAiDecision | null {
+function validDecision(value: any, model: string, fallbackTopic: string): SupportAiDecision | null {
   if (!value || !["REPLY", "WAIT", "ESCALATE"].includes(value.decision)) return null;
-  if (typeof value.replyText !== "string" || typeof value.reason !== "string" || typeof value.topic !== "string") return null;
+  if (typeof value.replyText !== "string") return null;
   const confidence = Number(value.confidence);
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
-  if (!Array.isArray(value.factsUsed) || !Array.isArray(value.unverifiedClaims)) return null;
   const replyText = value.replyText.trim().slice(0, 1600);
   if (value.decision === "REPLY" && !/[\u0590-\u05ff]/.test(replyText)) return null;
   return {
     decision: value.decision,
-    topic: value.topic.slice(0, 80),
+    topic: (typeof value.topic === "string" ? value.topic : fallbackTopic).slice(0, 80),
     confidence,
     replyText,
-    reason: value.reason.slice(0, 500),
-    factsUsed: value.factsUsed.map(String).slice(0, 12),
-    unverifiedClaims: value.unverifiedClaims.map(String).slice(0, 12),
+    reason: (typeof value.reason === "string" ? value.reason : "Model response passed the support reply gate.").slice(0, 500),
+    factsUsed: Array.isArray(value.factsUsed) ? value.factsUsed.map(String).slice(0, 12) : [],
+    unverifiedClaims: Array.isArray(value.unverifiedClaims) ? value.unverifiedClaims.map(String).slice(0, 12) : [],
     model,
   };
 }
@@ -88,6 +79,8 @@ export async function generateSupportDecision(input: {
   policy: SupportPolicyDecision;
   audienceType: string;
 }): Promise<SupportAiDecision> {
+  const deterministic = deterministicLowRiskDecision(input);
+  if (deterministic) return deterministic;
   const apiKey = workerEnvValue("OPENROUTER_API_KEY");
   if (!apiKey) return fallbackDecision(input.policy, "OpenRouter is not configured; human review is required.");
   const pinned = workerEnvValue("SUPPORT_OPENROUTER_MODEL") || workerEnvValue("OPENROUTER_MODEL");
@@ -113,7 +106,6 @@ export async function generateSupportDecision(input: {
           max_tokens: 900,
           temperature: 0.25,
           reasoning: { effort: "low" },
-          response_format: { type: "json_object" },
           messages: [
             {
               role: "system",
@@ -148,9 +140,9 @@ export async function generateSupportDecision(input: {
         signal: controller.signal,
       });
       if (!response.ok) continue;
-      const payload = await response.json() as { choices?: Array<{ message?: { content?: string | null } }> };
-      const raw = payload.choices?.[0]?.message?.content || "";
-      const parsed = validDecision(JSON.parse(extractJson(raw)), model);
+      const payload = await response.json() as { choices?: Array<{ message?: { content?: string | null; reasoning?: string | null } }> };
+      const raw = payload.choices?.[0]?.message?.content || payload.choices?.[0]?.message?.reasoning || "";
+      const parsed = validDecision(JSON.parse(extractJson(raw)), model, input.policy.topic);
       if (!parsed) continue;
       if (input.policy.mustEscalate) return { ...parsed, decision: "ESCALATE", replyText: "", confidence: Math.min(parsed.confidence, 0.7) };
       return parsed;
