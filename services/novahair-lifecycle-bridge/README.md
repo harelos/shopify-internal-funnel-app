@@ -9,9 +9,10 @@ Production lifecycle email infrastructure for NovaHair, connecting Shopify, Clou
 - Schedule: every 10 minutes, plus signed Shopify webhooks
 - Sending domain: `email.tigerbrandsglobal.com` (verified)
 - Enabled flows: Abandoned Checkout, Welcome, Post-Purchase, Replenishment / Winback
+- Delivery-aware Post-Purchase: emails 1-2 are anchored to purchase; emails 3-7 are scheduled only after the exact Shopify order reaches `DELIVERED`
 - Identity-gated flows: Abandoned Cart and Browse Abandonment remain disabled until the storefront can link a consented subscriber to a first-party session reliably
 - Templates: 39 published Resend templates
-- Automated verification: 37 tests passing
+- Automated verification: 40 tests passing
 
 The complete production proof and resource inventory are in [PRODUCTION-READINESS-REPORT.md](./PRODUCTION-READINESS-REPORT.md).
 

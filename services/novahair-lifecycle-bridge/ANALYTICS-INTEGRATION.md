@@ -44,6 +44,7 @@ Important fields:
 - status, automation ID, direct Resend automation URL
 - planned email count
 - each email's number, title, timing, offset, subject, preview, CTA, purpose, approved body copy
+- `scheduleAnchor` (`purchase`, `delivered`, or `trigger`) so the UI can distinguish estimated delays from delivery-aware timing
 - template alias, template ID, publication status, direct Resend template URL
 
 Condensed response shape:
@@ -67,6 +68,7 @@ Condensed response shape:
           "title": "...",
           "timing": "...",
           "offsetMinutes": 60,
+          "scheduleAnchor": "trigger",
           "subject": "...",
           "preview": "...",
           "cta": "...",
@@ -221,6 +223,7 @@ One row per email:
 
 - number and title
 - timing
+- schedule anchor; Post-Purchase E03-E07 should be labeled relative to confirmed delivery, not order date
 - subject
 - template status
 - sent, delivery rate, open rate, provider and first-party click rates

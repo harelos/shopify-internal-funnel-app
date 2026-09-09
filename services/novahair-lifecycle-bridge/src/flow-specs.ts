@@ -4,6 +4,7 @@ export interface EmailScheduleSpec {
   number: number;
   offsetMinutes: number;
   content: string;
+  anchor?: "trigger" | "purchase" | "delivered";
 }
 
 export interface FlowScheduleSpec {
@@ -71,13 +72,13 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
     flow: "post_purchase",
     triggerEvent: "shopify.post_purchase_started",
     emails: [
-      { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps" },
-      { number: 2, offsetMinutes: 3 * day, content: "e02_first_use_prep" },
-      { number: 3, offsetMinutes: 10 * day, content: "e03_first_use_walkthrough" },
-      { number: 4, offsetMinutes: 12 * day, content: "e04_troubleshooting" },
-      { number: 5, offsetMinutes: 21 * day, content: "e05_hair_care" },
-      { number: 6, offsetMinutes: 28 * day, content: "e06_review" },
-      { number: 7, offsetMinutes: 40 * day, content: "e07_soft_cross_sell" },
+      { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps", anchor: "purchase" },
+      { number: 2, offsetMinutes: 2 * day, content: "e02_first_use_prep", anchor: "purchase" },
+      { number: 3, offsetMinutes: day, content: "e03_first_use_walkthrough", anchor: "delivered" },
+      { number: 4, offsetMinutes: 4 * day, content: "e04_troubleshooting", anchor: "delivered" },
+      { number: 5, offsetMinutes: 10 * day, content: "e05_hair_care", anchor: "delivered" },
+      { number: 6, offsetMinutes: 14 * day, content: "e06_review", anchor: "delivered" },
+      { number: 7, offsetMinutes: 21 * day, content: "e07_soft_cross_sell", anchor: "delivered" },
     ],
   },
   replenishment: {

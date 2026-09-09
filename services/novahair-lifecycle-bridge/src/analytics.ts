@@ -242,6 +242,7 @@ export async function lifecycleFlowCatalog(env: LifecycleEnv): Promise<Record<st
           title: email.title,
           timing: email.timing,
           offsetMinutes: schedule?.offsetMinutes ?? null,
+          scheduleAnchor: schedule?.anchor ?? "trigger",
           subject: email.subject,
           preview: email.preview,
           cta: email.cta,

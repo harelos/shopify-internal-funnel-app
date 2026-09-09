@@ -222,6 +222,8 @@ export interface ShopifyOrderWebhook {
   marketing_consent_state?: ConsentState;
   test?: boolean;
   line_items?: Array<{
+    product_id?: number | string | null;
+    product_handle?: string | null;
     title?: string;
     variant_title?: string | null;
     quantity?: number;
@@ -256,10 +258,48 @@ export interface ShopifyOrderNode {
       sku: string | null;
       quantity: number;
       image: { url: string; altText: string | null } | null;
+      product: { id: string; handle: string } | null;
     }>;
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
   };
+  fulfillments: Array<{
+    id: string;
+    displayStatus: string | null;
+    inTransitAt: string | null;
+    deliveredAt: string | null;
+    estimatedDeliveryAt: string | null;
+    trackingInfo: Array<{ company: string | null; number: string | null; url: string | null }>;
+    events: {
+      nodes: Array<{ id: string; status: string; happenedAt: string }>;
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+    };
+  }>;
   currentTotalPriceSet: { presentmentMoney: ShopifyMoney };
+}
+
+export interface ShopifyFulfillmentEventWebhook {
+  id?: number | string;
+  admin_graphql_api_id?: string;
+  fulfillment_id?: number | string;
+  order_id?: number | string;
+  status?: string | null;
+  happened_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  estimated_delivery_at?: string | null;
+}
+
+export interface ShopifyFulfillmentWebhook {
+  id?: number | string;
+  admin_graphql_api_id?: string;
+  order_id?: number | string;
+  status?: string | null;
+  shipment_status?: string | null;
+  tracking_company?: string | null;
+  tracking_number?: string | null;
+  tracking_numbers?: string[] | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface ShopifyCustomerNode {

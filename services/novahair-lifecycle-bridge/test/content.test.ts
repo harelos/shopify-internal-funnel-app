@@ -6,6 +6,13 @@ import { buildTemplateManifest } from "../scripts/lib/template-render.mjs";
 const source = JSON.parse(await readFile(new URL("../content/flows.json", import.meta.url), "utf8"));
 const manifest = buildTemplateManifest(source);
 
+function isInternalLine(line: string): boolean {
+  return line === "IMPLEMENTATION RULES — SHOPIFY MESSAGING"
+    || line === "GROWTH TEAM PRIORITY ORDER"
+    || /^הערת Growth(?: Team)?:/u.test(line)
+    || /^Growth Test אופציונלי:/u.test(line);
+}
+
 test("master plan produces exactly 39 Hebrew-first lifecycle templates", () => {
   assert.equal(source.flows.length, 6);
   assert.equal(manifest.count, 39);
@@ -40,12 +47,9 @@ test("approved subject, preview, copy, and CTA are retained", () => {
       assert.ok(template, `${flow.name} E${email.number}`);
       assert.equal(template.subject, email.subject);
       assert.equal(template.preview, email.preview);
-      const approvedCustomerLines = email.body
-        .slice(0, Math.max(0, email.body.indexOf("IMPLEMENTATION RULES — SHOPIFY MESSAGING")))
+      const boundary = email.body.findIndex(isInternalLine);
+      const lines = (boundary >= 0 ? email.body.slice(0, boundary) : email.body)
         .filter((line: string) => !line.startsWith("["));
-      const lines = email.body.includes("IMPLEMENTATION RULES — SHOPIFY MESSAGING")
-        ? approvedCustomerLines
-        : email.body.filter((line: string) => !line.startsWith("["));
       for (const line of lines) {
         const normalized = line.replaceAll("[שם פרטי]", "{{{CUSTOMER_NAME}}}");
         assert.ok(template.text.includes(normalized), `${template.alias} omitted approved line: ${line}`);

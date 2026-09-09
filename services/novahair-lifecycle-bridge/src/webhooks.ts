@@ -8,12 +8,14 @@ import {
   scheduleLifecycleEvent,
   setHealth,
 } from "./db";
-import { replenishmentOffsetDays } from "./flow-specs";
+import { dueAt, FLOW_SPECS, replenishmentOffsetDays } from "./flow-specs";
 import { monitorResendQuota } from "./quota";
 import type {
   ConsentState,
   LifecycleEnv,
   ResendWebhookPayload,
+  ShopifyFulfillmentEventWebhook,
+  ShopifyFulfillmentWebhook,
   ShopifyOrderWebhook,
 } from "./types";
 
@@ -31,6 +33,30 @@ function orderId(payload: ShopifyOrderWebhook): string | null {
   if (gid?.startsWith("gid://shopify/Order/")) return gid;
   const id = payload.id === undefined ? null : String(payload.id);
   return id ? `gid://shopify/Order/${id}` : null;
+}
+
+function shopifyGid(resource: "Order" | "Fulfillment", value: unknown): string | null {
+  const raw = value === null || value === undefined ? "" : String(value).trim();
+  if (!raw) return null;
+  return raw.startsWith(`gid://shopify/${resource}/`) ? raw : `gid://shopify/${resource}/${raw}`;
+}
+
+function fulfillmentStatus(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toUpperCase().replaceAll("-", "_").replaceAll(" ", "_") ?? "";
+  const allowed = new Set([
+    "ATTEMPTED_DELIVERY",
+    "CARRIER_PICKED_UP",
+    "CONFIRMED",
+    "DELAYED",
+    "DELIVERED",
+    "FAILURE",
+    "IN_TRANSIT",
+    "LABEL_PRINTED",
+    "LABEL_PURCHASED",
+    "OUT_FOR_DELIVERY",
+    "READY_FOR_PICKUP",
+  ]);
+  return allowed.has(normalized) ? normalized : null;
 }
 
 function checkoutId(payload: ShopifyOrderWebhook): string | null {
@@ -57,19 +83,34 @@ function orderMerchandise(payload: ShopifyOrderWebhook): {
   shade: string | null;
   bundle: string | null;
   quantity: number;
+  purchasedProductIds: string[];
+  purchasedProductHandles: string[];
 } {
   const items = payload.line_items ?? [];
-  const first = items[0];
+  const first = items.find(item => /novahair|novasale|cjyd223160/i.test(
+    [item.title, item.sku, item.product_handle].filter(Boolean).join(" "),
+  )) ?? items[0];
   const label = [first?.variant_title, first?.title, first?.sku].filter(Boolean).join(" ");
   const units = label.match(/(\d+)\s*(?:בקבוקים|בקבוק|bottles?|pack)/i);
   const shade = label.match(/(?:\/|גוון|shade)\s*[:\-]?\s*([^|,/]+)/i);
-  const lineQuantity = items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0), 0);
+  const lineQuantity = Math.max(0, Number(first?.quantity) || 0);
   const bundleUnits = Math.max(1, Number(units?.[1]) || lineQuantity || 1);
+  const purchasedProductIds = [...new Set(items.flatMap((item) => {
+    const raw = item.product_id === null || item.product_id === undefined ? "" : String(item.product_id).trim();
+    if (!raw) return [];
+    return [raw.startsWith("gid://shopify/Product/") ? raw : `gid://shopify/Product/${raw}`];
+  }))];
+  const purchasedProductHandles = [...new Set(items.flatMap((item) => {
+    const handle = item.product_handle?.trim().toLowerCase();
+    return handle ? [handle] : [];
+  }))];
   return {
     productName: text(first?.title) ?? null,
     shade: shade?.[1]?.trim() ?? text(first?.variant_title) ?? null,
     bundle: units?.[1] ? `${units[1]} bottles` : text(first?.variant_title) ?? null,
     quantity: bundleUnits,
+    purchasedProductIds,
+    purchasedProductHandles,
   };
 }
 
@@ -118,6 +159,142 @@ async function purchaseGlobalStop(
   ]);
 }
 
+export interface FulfillmentObservation {
+  eventKey: string;
+  shopifyOrderId: string;
+  shopifyFulfillmentId?: string | null;
+  status?: string | null;
+  happenedAt: string;
+  trackingCompany?: string | null;
+  trackingNumber?: string | null;
+  estimatedDeliveryAt?: string | null;
+  source: "WEBHOOK" | "POLL";
+  payload: unknown;
+}
+
+export async function processFulfillmentObservation(
+  env: LifecycleEnv,
+  observation: FulfillmentObservation,
+  now = new Date(),
+): Promise<{ processed: boolean; duplicate?: boolean; delivered?: boolean }> {
+  const current = isoNow(now);
+  const order = await env.DB.prepare(
+    `SELECT shopify_order_id, consent_state, delivered_at
+     FROM lifecycle_orders WHERE shopify_order_id = ?`,
+  ).bind(observation.shopifyOrderId).first<{
+    shopify_order_id: string;
+    consent_state: ConsentState;
+    delivered_at: string | null;
+  }>();
+  if (!order) return { processed: false };
+
+  const duplicate = await env.DB.prepare(
+    "SELECT event_key FROM shopify_fulfillment_events WHERE event_key = ?",
+  ).bind(observation.eventKey).first<{ event_key: string }>();
+  const wasDuplicate = Boolean(duplicate);
+
+  const status = fulfillmentStatus(observation.status);
+  const happenedAt = text(observation.happenedAt) ?? current;
+  const trackingNumberHash = observation.trackingNumber
+    ? await hashPayload(observation.trackingNumber)
+    : null;
+  const deliveredAt = status === "DELIVERED" ? happenedAt : null;
+  const inTransitAt = ["CARRIER_PICKED_UP", "IN_TRANSIT"].includes(status ?? "") ? happenedAt : null;
+  const readyForPickupAt = status === "READY_FOR_PICKUP" ? happenedAt : null;
+  const outForDeliveryAt = status === "OUT_FOR_DELIVERY" ? happenedAt : null;
+
+  if (!wasDuplicate) {
+    await env.DB.prepare(
+      `INSERT INTO shopify_fulfillment_events
+        (event_key, shopify_fulfillment_id, shopify_order_id, status, happened_at,
+         source, payload_hash, received_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      observation.eventKey,
+      observation.shopifyFulfillmentId ?? null,
+      observation.shopifyOrderId,
+      status,
+      happenedAt,
+      observation.source,
+      await hashPayload(observation.payload),
+      current,
+    ).run();
+  }
+
+  await env.DB.prepare(
+    `UPDATE lifecycle_orders SET
+       tracking_status = CASE
+         WHEN tracking_status = 'DELIVERED' THEN tracking_status
+         WHEN ? IS NOT NULL AND (fulfillment_updated_at IS NULL OR ? >= fulfillment_updated_at) THEN ?
+         ELSE tracking_status
+       END,
+       tracking_company = COALESCE(?, tracking_company),
+       tracking_number_hash = COALESCE(?, tracking_number_hash),
+       tracking_available_at = CASE
+         WHEN ? IS NOT NULL THEN COALESCE(tracking_available_at, ?)
+         ELSE tracking_available_at
+       END,
+       in_transit_at = COALESCE(in_transit_at, ?),
+       ready_for_pickup_at = COALESCE(ready_for_pickup_at, ?),
+       out_for_delivery_at = COALESCE(out_for_delivery_at, ?),
+       delivered_at = COALESCE(delivered_at, ?),
+       estimated_delivery_at = COALESCE(?, estimated_delivery_at),
+       fulfillment_updated_at = ?,
+       updated_at = ?
+     WHERE shopify_order_id = ?`,
+  ).bind(
+    status,
+    happenedAt,
+    status,
+    text(observation.trackingCompany),
+    trackingNumberHash,
+    trackingNumberHash,
+    happenedAt,
+    inTransitAt,
+    readyForPickupAt,
+    outForDeliveryAt,
+    deliveredAt,
+    text(observation.estimatedDeliveryAt),
+    happenedAt,
+    current,
+    observation.shopifyOrderId,
+  ).run();
+
+  // Re-run this idempotent reconciliation for duplicate deliveries too. If a prior
+  // attempt failed after recording the receipt, a webhook retry must repair every
+  // missing schedule instead of treating the receipt as fully processed.
+  if (deliveredAt && order.consent_state === "SUBSCRIBED") {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "delivered")) {
+      await scheduleLifecycleEvent(env.DB, {
+        idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${spec.number}`,
+        eventName: "shopify.post_purchase_started",
+        flow: "post_purchase",
+        emailNumber: spec.number,
+        entityType: "order",
+        entityId: observation.shopifyOrderId,
+        dueAt: dueAt(deliveredAt, spec.offsetMinutes),
+        now: current,
+      });
+    }
+    await env.DB.prepare(
+      `UPDATE lifecycle_orders
+       SET post_purchase_delivery_scheduled_at = COALESCE(post_purchase_delivery_scheduled_at, ?),
+           updated_at = ?
+       WHERE shopify_order_id = ?`,
+    ).bind(current, current, observation.shopifyOrderId).run();
+  }
+
+  await env.DB.prepare(
+    "UPDATE shopify_fulfillment_events SET processed_at = ? WHERE event_key = ?",
+  ).bind(current, observation.eventKey).run();
+  await setHealth(env.DB, "last_shopify_fulfillment_event", current, "OK", current);
+  return {
+    processed: true,
+    ...(wasDuplicate ? { duplicate: true } : {}),
+    delivered: Boolean(deliveredAt || order.delivered_at),
+  };
+}
+
 export async function processPaidOrder(
   env: LifecycleEnv,
   payload: ShopifyOrderWebhook,
@@ -152,8 +329,9 @@ export async function processPaidOrder(
     `INSERT INTO lifecycle_orders (
        shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash,
        first_name, consent_state, completed_at, bundle, quantity, shade, product_name,
-       total, currency, replenishment_due_at, repeat_purchase, payload_hash, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       purchased_product_ids_json, purchased_product_handles_json, total, currency,
+       replenishment_due_at, repeat_purchase, payload_hash, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(shopify_order_id) DO UPDATE SET
        shopify_checkout_id = excluded.shopify_checkout_id,
        shopify_customer_id = excluded.shopify_customer_id,
@@ -166,6 +344,8 @@ export async function processPaidOrder(
        quantity = excluded.quantity,
        shade = excluded.shade,
        product_name = excluded.product_name,
+       purchased_product_ids_json = excluded.purchased_product_ids_json,
+       purchased_product_handles_json = excluded.purchased_product_handles_json,
        total = excluded.total,
        currency = excluded.currency,
        replenishment_due_at = excluded.replenishment_due_at,
@@ -185,6 +365,8 @@ export async function processPaidOrder(
     merchandise.quantity,
     merchandise.shade,
     merchandise.productName,
+    JSON.stringify(merchandise.purchasedProductIds),
+    JSON.stringify(merchandise.purchasedProductHandles),
     money(payload.current_total_price ?? payload.total_price),
     text(payload.presentment_currency ?? payload.currency)?.toUpperCase(),
     replenishmentDueAt,
@@ -216,16 +398,18 @@ export async function processPaidOrder(
   }
 
   if (consentState === "SUBSCRIBED") {
-    await scheduleLifecycleEvent(env.DB, {
-      idempotencyKey: `order:${gid}:post_purchase_started`,
-      eventName: "shopify.post_purchase_started",
-      flow: "post_purchase",
-      emailNumber: 0,
-      entityType: "order",
-      entityId: gid,
-      dueAt: current,
-      now: current,
-    });
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "purchase")) {
+      await scheduleLifecycleEvent(env.DB, {
+        idempotencyKey: `order:${gid}:post_purchase:email:${spec.number}`,
+        eventName: "shopify.post_purchase_started",
+        flow: "post_purchase",
+        emailNumber: spec.number,
+        entityType: "order",
+        entityId: gid,
+        dueAt: dueAt(completedAt, spec.offsetMinutes),
+        now: current,
+      });
+    }
     await scheduleLifecycleEvent(env.DB, {
       idempotencyKey: `order:${gid}:replenishment_due`,
       eventName: "shopify.replenishment_due",
@@ -278,7 +462,46 @@ export async function processShopifyLifecycleWebhook(
   ).bind(eventId, topic, shopDomain, await hashPayload(rawBody), current).run();
 
   try {
-    const payload = JSON.parse(rawBody) as ShopifyOrderWebhook;
+    const parsed = JSON.parse(rawBody) as ShopifyOrderWebhook & ShopifyFulfillmentEventWebhook & ShopifyFulfillmentWebhook;
+    const fulfillmentEventTopic = topic === "fulfillment_events/create";
+    const fulfillmentTopic = topic === "fulfillments/create" || topic === "fulfillments/update";
+    if (fulfillmentEventTopic || fulfillmentTopic) {
+      const gid = shopifyGid("Order", parsed.order_id);
+      const fulfillmentGid = shopifyGid("Fulfillment", parsed.fulfillment_id ?? parsed.id);
+      if (!gid) {
+        await env.DB.prepare(
+          "UPDATE shopify_event_receipts SET status = 'IGNORED', processed_at = ? WHERE event_id = ?",
+        ).bind(current, eventId).run();
+        return { accepted: true, ignored: true };
+      }
+      const happenedAt = text(
+        fulfillmentEventTopic
+          ? parsed.happened_at ?? parsed.updated_at ?? parsed.created_at
+          : parsed.updated_at ?? parsed.created_at,
+      ) ?? current;
+      const trackingNumber = fulfillmentTopic
+        ? text(parsed.tracking_number ?? parsed.tracking_numbers?.[0])
+        : null;
+      const result = await processFulfillmentObservation(env, {
+        eventKey: `shopify-webhook:${eventId}`,
+        shopifyOrderId: gid,
+        shopifyFulfillmentId: fulfillmentGid,
+        status: (fulfillmentEventTopic ? parsed.status : parsed.shipment_status) ?? null,
+        happenedAt,
+        trackingCompany: fulfillmentTopic ? parsed.tracking_company ?? null : null,
+        trackingNumber,
+        estimatedDeliveryAt: fulfillmentEventTopic ? parsed.estimated_delivery_at ?? null : null,
+        source: "WEBHOOK",
+        payload: parsed,
+      }, now);
+      await env.DB.prepare(
+        `UPDATE shopify_event_receipts SET status = ?, processed_at = ?, error_code = NULL
+         WHERE event_id = ?`,
+      ).bind(result.processed ? "PROCESSED" : "IGNORED", current, eventId).run();
+      return result.processed ? { accepted: true } : { accepted: true, ignored: true };
+    }
+
+    const payload = parsed as ShopifyOrderWebhook;
     const paidTopic = topic === "orders/paid";
     const paidCreate = topic === "orders/create"
       && ["paid", "partially_paid"].includes((payload.financial_status ?? "").toLowerCase());

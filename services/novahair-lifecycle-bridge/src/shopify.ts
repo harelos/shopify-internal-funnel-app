@@ -9,7 +9,7 @@ import {
 import { FLOW_SPECS, dueAt } from "./flow-specs";
 import { encryptSensitive, hashEmail, hashPayload } from "./crypto";
 import { queueResendUnsubscribe } from "./resend";
-import { processPaidOrder } from "./webhooks";
+import { processFulfillmentObservation, processPaidOrder } from "./webhooks";
 import type {
   AbandonedCheckoutRow,
   ConsentState,
@@ -94,8 +94,20 @@ const PAID_ORDERS_QUERY = `query NovaHairPaidOrders(
         }
       }
       lineItems(first: 20) {
-        nodes { id title variantTitle sku quantity image { url altText } }
+        nodes { id title variantTitle sku quantity image { url altText } product { id handle } }
         pageInfo { hasNextPage endCursor }
+      }
+      fulfillments(first: 20) {
+        id
+        displayStatus
+        inTransitAt
+        deliveredAt
+        estimatedDeliveryAt
+        trackingInfo(first: 10) { company number url }
+        events(first: 50) {
+          nodes { id status happenedAt }
+          pageInfo { hasNextPage endCursor }
+        }
       }
       currentTotalPriceSet { presentmentMoney { amount currencyCode } }
     }
@@ -254,7 +266,13 @@ export async function ensureLifecycleWebhooks(env: LifecycleEnv): Promise<{
   const config = lifecycleConfig(env);
   const endpoint = `${config.appUrl}/api/lifecycle/webhooks/shopify`;
   if (!config.appUrl.startsWith("https://")) throw new Error("shopify_webhook_https_required");
-  const requiredTopics = ["ORDERS_CREATE", "ORDERS_PAID"];
+  const requiredTopics = [
+    "ORDERS_CREATE",
+    "ORDERS_PAID",
+    "FULFILLMENT_EVENTS_CREATE",
+    "FULFILLMENTS_CREATE",
+    "FULFILLMENTS_UPDATE",
+  ];
   const existing = await shopifyGraphql<ShopifyWebhookSubscriptionsResult>(
     env,
     WEBHOOK_SUBSCRIPTIONS_QUERY,
@@ -284,6 +302,7 @@ export async function ensureLifecycleWebhooks(env: LifecycleEnv): Promise<{
     JSON.stringify({ endpoint, topics: subscriptions.map(item => item.topic).sort() }),
     subscriptions.length === requiredTopics.length ? "OK" : "ERROR",
   );
+  await setHealth(env.DB, "last_shopify_webhooks_ensure", isoNow(), "OK");
   return { endpoint, created, subscriptions };
 }
 
@@ -613,12 +632,52 @@ function orderPayload(node: ShopifyOrderNode): ShopifyOrderWebhook {
     marketing_consent_state: emailAddress?.marketingState ?? "UNKNOWN",
     test: node.test,
     line_items: node.lineItems.nodes.map(item => ({
+      product_id: item.product?.id ?? null,
+      product_handle: item.product?.handle ?? null,
       title: item.title,
       variant_title: item.variantTitle,
       quantity: item.quantity,
       sku: item.sku,
     })),
   };
+}
+
+async function observeOrderFulfillments(env: LifecycleEnv, order: ShopifyOrderNode, now: Date): Promise<void> {
+  for (const fulfillment of order.fulfillments ?? []) {
+    if (fulfillment.events.pageInfo.hasNextPage) {
+      throw new Error("shopify_fulfillment_events_pagination_limit_reached");
+    }
+    const tracking = fulfillment.trackingInfo[0];
+    const events = [...fulfillment.events.nodes].sort(
+      (left, right) => new Date(left.happenedAt).getTime() - new Date(right.happenedAt).getTime(),
+    );
+    for (const event of events) {
+      await processFulfillmentObservation(env, {
+        eventKey: `shopify-fulfillment-poll:${event.id}`,
+        shopifyOrderId: order.id,
+        shopifyFulfillmentId: fulfillment.id,
+        status: event.status,
+        happenedAt: event.happenedAt,
+        trackingCompany: tracking?.company ?? null,
+        trackingNumber: tracking?.number ?? null,
+        estimatedDeliveryAt: fulfillment.estimatedDeliveryAt,
+        source: "POLL",
+        payload: { order_id: order.id, fulfillment, event },
+      }, now);
+    }
+    await processFulfillmentObservation(env, {
+      eventKey: `shopify-fulfillment-summary:${fulfillment.id}:${order.updatedAt}`,
+      shopifyOrderId: order.id,
+      shopifyFulfillmentId: fulfillment.id,
+      status: fulfillment.displayStatus,
+      happenedAt: fulfillment.deliveredAt ?? fulfillment.inTransitAt ?? order.updatedAt,
+      trackingCompany: tracking?.company ?? null,
+      trackingNumber: tracking?.number ?? null,
+      estimatedDeliveryAt: fulfillment.estimatedDeliveryAt,
+      source: "POLL",
+      payload: { order_id: order.id, fulfillment },
+    }, now);
+  }
 }
 
 export interface ShopifyOrderSyncResult {
@@ -700,6 +759,7 @@ export async function syncPaidOrders(
         }
         try {
           await processPaidOrder(env, payload, eventId, now);
+          await observeOrderFulfillments(env, order, now);
           processed += 1;
         } catch (error) {
           const code = error instanceof Error ? error.message : "shopify_order_poll_processing_failed";

@@ -1,6 +1,6 @@
 # NovaHair Lifecycle — Engineering Handoff
 
-Last verified: 2026-09-08
+Last verified: 2026-09-09
 
 ## Outcome
 
@@ -14,7 +14,7 @@ This handoff contains no API keys, bearer tokens, customer email addresses, or r
 |---|---|
 | Worker | `novahair-lifecycle-bridge` |
 | Worker URL | `https://novahair-lifecycle-bridge.tigerbrands-funnel.workers.dev` |
-| Current deployment | `d452dbfd-2e13-4c8e-95ae-cce90dda34a9` |
+| Current deployment | `46eadc4e-bdc0-488d-ab3d-55038c8b7221` |
 | Analytics code deployment | `50603e7e-6fc0-48aa-a464-03fa15e6354c` |
 | D1 database | `shopify-funnel-control-db` |
 | D1 database ID | `3b3d2e40-28b3-456f-9109-2607fbc51b17` |
@@ -23,7 +23,7 @@ This handoff contains no API keys, bearer tokens, customer email addresses, or r
 | Shopify Admin API | `2026-07` |
 | Resend sending domain | `email.tigerbrandsglobal.com` |
 | Resend tracking domain | `links.email.tigerbrandsglobal.com` |
-| From | `NovaHair <hello@email.tigerbrandsglobal.com>` |
+| From | `NovaHair by TigerBrandsGlobal <hello@email.tigerbrandsglobal.com>` |
 | Reply-To | `support@tigerbrandsglobal.com` |
 | Production activation cutoff | `2026-09-08T19:01:36.122Z` |
 
@@ -43,7 +43,7 @@ The private `GET /api/lifecycle/admin/flows` endpoint is the machine-readable in
 ## Architecture and ownership
 
 1. Shopify Admin is the source of truth for checkout state, orders, customer consent, currency, and revenue.
-2. Signed Shopify `ORDERS_CREATE` and `ORDERS_PAID` webhooks give the fast purchase stop signal. Overlapping Admin API polling protects against missed webhooks.
+2. Signed Shopify `ORDERS_CREATE` and `ORDERS_PAID` webhooks give the fast purchase stop signal. `FULFILLMENTS_CREATE`, `FULFILLMENTS_UPDATE`, and `FULFILLMENT_EVENTS_CREATE` provide order-specific tracking and delivery state. Overlapping Admin API polling protects against missed webhooks.
 3. D1 owns durable lifecycle state, exact checkout correlation, outbox/idempotency, send eligibility, scheduling, suppressions, webhook receipts, first-party click attribution, errors, and health state.
 4. Resend owns published templates, rendering/delivery, provider suppressions, delivery events, and automation visibility.
 5. Signed Resend webhooks feed sent/delivered/opened/clicked/failed/bounced/complained/suppressed state back into D1.
@@ -80,6 +80,8 @@ The dedicated Resend Worker key must never be printed, returned by health, embed
 
 - `migrations/0011_novahair_lifecycle.sql` creates lifecycle state, event receipts, delivery events, scheduling, attribution, suppressions, errors, health, resource inventory, contacts, orders, and indexes.
 - `migrations/0012_lifecycle_analytics.sql` adds privacy-preserving identity/correlation columns and analytics indexes.
+- `migrations/0013_delivery_aware_post_purchase.sql` adds exact-order fulfillment state, privacy-safe tracking hashes, delivery event receipts, and delivery-watch indexes.
+- `migrations/0014_cross_sell_eligibility.sql` stores purchased product IDs/handles so a customer is never cross-sold an item already present in that order.
 
 Run migrations before deploying code that depends on them:
 
@@ -110,7 +112,23 @@ After deployment verify:
 6. health has no open errors, dead schedules, or uncertain events;
 7. the next Cron records successful Shopify sync and dispatch state.
 
-The 2026-09-08 production verification passed 37/37 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential.
+The 2026-09-08 production verification passed 40/40 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential. A real routed Post-Purchase smoke event completed and its email was delivered.
+
+## Delivery-aware Post-Purchase
+
+Post-Purchase is not timed from an assumed international delivery date:
+
+- E01: purchase + 4 hours
+- E02: purchase + 2 days
+- E03: exact Shopify order `DELIVERED` + 1 day
+- E04: delivered + 4 days
+- E05: delivered + 10 days
+- E06: delivered + 14 days
+- E07: delivered + 21 days
+
+Every fulfillment observation is correlated by Shopify order ID. Tracking numbers are stored only as hashes. Orders still not marked delivered 23 days after purchase are surfaced by the private health endpoint; no usage/review email is guessed or sent early. E07 selects only an active product absent from the order: Hair Gloss first, then BiotinRoot. Argan is currently Draft and no active Keratin product was found, so neither is offered.
+
+The marketing and operational source of truth is the Google Doc [NOVAHAIR — מוח המותג: עובדות מאומתות, שאלות ותשובות וקופי Lifecycle](https://docs.google.com/document/d/1S7SVpE0FC0wpKZdNQNYIf6RlqGSVt1kkTDwcXfxboRY/edit?usp=drivesdk).
 
 ## Safety invariants
 

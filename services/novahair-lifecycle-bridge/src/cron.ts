@@ -3,13 +3,30 @@ import { acquireCronLock, healthValue, isoNow, releaseCronLock, setHealth } from
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { monitorResendQuota } from "./quota";
 import { dispatchResendContactUpdates } from "./resend";
-import { syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
+import { ensureLifecycleWebhooks, syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
 import type { LifecycleEnv, ScheduledControllerLike } from "./types";
 
 function syncIsDue(lastSync: string | null, now: Date, intervalMinutes: number): boolean {
   if (!lastSync) return true;
   const timestamp = new Date(lastSync).getTime();
   return !Number.isFinite(timestamp) || now.getTime() - timestamp >= intervalMinutes * 60_000;
+}
+
+async function monitorDeliveryWatch(env: LifecycleEnv, now: Date): Promise<void> {
+  const current = isoNow(now);
+  const threshold = new Date(now.getTime() - 23 * 86_400_000).toISOString();
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS count FROM lifecycle_orders
+     WHERE completed_at <= ? AND delivered_at IS NULL`,
+  ).bind(threshold).first<{ count: number }>();
+  const count = Number(row?.count ?? 0);
+  await setHealth(
+    env.DB,
+    "post_purchase_delivery_watch",
+    JSON.stringify({ overdueUndeliveredOrders: count, thresholdDays: 23 }),
+    count > 0 ? "WARN" : "OK",
+    current,
+  );
 }
 
 export async function runLifecycleCron(
@@ -29,6 +46,10 @@ export async function runLifecycleCron(
   if (!locked) return;
   try {
     const config = lifecycleConfig(env);
+    const lastWebhookEnsure = await healthValue(env.DB, "last_shopify_webhooks_ensure");
+    if (syncIsDue(lastWebhookEnsure, now, 12 * 60)) {
+      await ensureLifecycleWebhooks(env);
+    }
     const lastSync = await healthValue(env.DB, "last_shopify_sync");
     if (syncIsDue(lastSync, now, config.syncIntervalMinutes)) {
       await syncAbandonedCheckouts(env, now);
@@ -43,6 +64,7 @@ export async function runLifecycleCron(
     }
     await dispatchResendContactUpdates(env, now);
     await dispatchDueLifecycleEvents(env, now, owner);
+    await monitorDeliveryWatch(env, now);
     await monitorResendQuota(env, now);
     await setHealth(env.DB, "lifecycle_runtime_status", "healthy", "OK", current);
   } finally {

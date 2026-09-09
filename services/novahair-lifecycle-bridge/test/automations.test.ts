@@ -42,6 +42,15 @@ test("checkout automation routes D1-released email numbers without email-only re
   assert.ok(conditions.every((step: { config: { field: string } }) => step.config.field === "event.email_number"));
 });
 
+test("post-purchase automation routes D1-released emails and contains no guessed delivery delays", () => {
+  const flow = automations.find((automation: { name: string }) => automation.name === "NovaHair — Post-Purchase");
+  assert.ok(flow);
+  assert.equal(flow.steps.filter((step: { type: string }) => step.type === "delay").length, 0);
+  const conditions = flow.steps.filter((step: { type: string }) => step.type === "condition");
+  assert.equal(conditions.length, 7);
+  assert.ok(conditions.every((step: { config: { field: string } }) => step.config.field === "event.email_number"));
+});
+
 test("purchase and stage-advance stop events guard earlier native flows", () => {
   const waitsByAutomation = Object.fromEntries(automations.map((automation: { name: string; steps: Array<{ type: string; config: { event_name?: string } }> }) => [
     automation.name,

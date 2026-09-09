@@ -69,7 +69,7 @@ test("Worker rejects unsigned Shopify and Resend webhook requests", async () => 
   }
 });
 
-test("Shopify lifecycle webhooks are provisioned idempotently for create and paid orders", async () => {
+test("Shopify lifecycle webhooks are provisioned idempotently for orders and fulfillment tracking", async () => {
   const { db, dispose } = await testDatabase();
   const originalFetch = globalThis.fetch;
   const subscriptions: Array<{ id: string; topic: string; uri: string }> = [];
@@ -101,14 +101,20 @@ test("Shopify lifecycle webhooks are provisioned idempotently for create and pai
     });
     const first = await worker.fetch(request(), env, context);
     assert.equal(first.status, 200);
-    assert.equal((await first.json() as { created: number }).created, 2);
-    assert.deepEqual(subscriptions.map(item => item.topic).sort(), ["ORDERS_CREATE", "ORDERS_PAID"]);
+    assert.equal((await first.json() as { created: number }).created, 5);
+    assert.deepEqual(subscriptions.map(item => item.topic).sort(), [
+      "FULFILLMENTS_CREATE",
+      "FULFILLMENTS_UPDATE",
+      "FULFILLMENT_EVENTS_CREATE",
+      "ORDERS_CREATE",
+      "ORDERS_PAID",
+    ]);
     assert.ok(subscriptions.every(item => item.uri.endsWith("/api/lifecycle/webhooks/shopify")));
 
     const second = await worker.fetch(request(), env, context);
     assert.equal(second.status, 200);
     assert.equal((await second.json() as { created: number }).created, 0);
-    assert.equal(subscriptions.length, 2);
+    assert.equal(subscriptions.length, 5);
   } finally {
     globalThis.fetch = originalFetch;
     await dispose();

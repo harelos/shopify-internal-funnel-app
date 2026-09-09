@@ -25,7 +25,8 @@ function personalized(value) {
 function isInternalBoundary(line) {
   return line === "IMPLEMENTATION RULES — SHOPIFY MESSAGING"
     || line === "GROWTH TEAM PRIORITY ORDER"
-    || line === "הערת Growth:";
+    || /^הערת Growth(?: Team)?:/u.test(line)
+    || /^Growth Test אופציונלי:/u.test(line);
 }
 
 function marker(line) {
@@ -170,7 +171,7 @@ export function renderNovaHairEmail({ email, flowSlug }) {
           ${renderBody(email)}
         </td></tr>
         <tr><td dir="rtl" bgcolor="#2E2119" style="padding-top:22px;padding-right:28px;padding-bottom:22px;padding-left:28px;background-color:#2E2119;text-align:center;font-family:Arial,'Helvetica Neue',Arial,sans-serif;color:#F7F1EA">
-          <p style="margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:20px;color:#F7F1EA">NovaHair · Tiger Brands Global</p>
+          <p style="margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:20px;color:#F7F1EA">NovaHair by TigerBrandsGlobal</p>
           <p style="margin-top:7px;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:11px;line-height:19px;color:#D7C8BA">קיבלת את המייל בעקבות הסכמה לקבלת עדכונים.</p>
           <p style="margin-top:7px;margin-right:0;margin-bottom:0;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:11px;line-height:19px;color:#F7F1EA"><a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:11px;line-height:19px;color:#F7F1EA;text-decoration:underline">להסרה מרשימת הדיוור</a></p>
         </td></tr>
@@ -203,7 +204,7 @@ export function buildTemplateManifest(source) {
         variables: [
           { key: "CUSTOMER_NAME", type: "string", fallback_value: "יקרה" },
           { key: "CTA_URL", type: "string" },
-          { key: "PRODUCT_NAME", type: "string", fallback_value: "NovaHair" },
+          { key: "PRODUCT_NAME", type: "string", fallback_value: "NovaHair by TigerBrandsGlobal" },
           { key: "VARIANT", type: "string", fallback_value: "הגוון שבחרת" },
           { key: "BUNDLE", type: "string", fallback_value: "החבילה שבחרת" },
         ],

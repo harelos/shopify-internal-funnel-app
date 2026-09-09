@@ -1,13 +1,13 @@
 # NovaHair Lifecycle — Production Readiness Report
 
-Generated: 2026-09-08
+Generated: 2026-09-08; delivery-aware update verified: 2026-09-09
 
 ## Production status
 
 `GO LIVE` was explicitly approved by the owner on 2026-09-08. The real abandoned-checkout end-to-end gate and the isolated verified-sender smoke test both passed before activation. Production is now enabled for the four identity-safe flows: Abandoned Checkout, Welcome, Post-Purchase, and Replenishment / Winback. Browse Abandonment and Abandoned Cart remain intentionally disabled until a consented storefront identity link is reliable.
 
 - Cloudflare Worker: `https://novahair-lifecycle-bridge.tigerbrands-funnel.workers.dev`
-- Active Worker deployment: `d452dbfd-2e13-4c8e-95ae-cce90dda34a9`
+- Active Worker deployment: `46eadc4e-bdc0-488d-ab3d-55038c8b7221`
 - Analytics code deployment: `50603e7e-6fc0-48aa-a464-03fa15e6354c`
 - Mode: `production`
 - Dispatch: `LIFECYCLE_ENABLED=true`
@@ -50,7 +50,7 @@ Observed delivery events for the real email: sent, delivered, opened, and clicke
 | 18 | Post-purchase begins only after verified Shopify purchase | PASS |
 | 19 | Replenishment uses bundle/quantity timing | PASS |
 
-Local verification: 37 tests passed, 0 failed; TypeScript build, Worker bundle, and Wrangler dry-run all passed.
+Local verification: 40 tests passed, 0 failed; TypeScript build, Worker bundle, and Wrangler dry-run all passed.
 
 ## Private analytics and application handoff
 
@@ -70,10 +70,11 @@ Shopify remains final revenue truth. First-party attributed revenue uses a 30-da
 - Storefront: `tigerbrandsglobal.com`
 - Admin GraphQL API: `2026-07`
 - Shopify webhook endpoint: `https://novahair-lifecycle-bridge.tigerbrands-funnel.workers.dev/api/lifecycle/webhooks/shopify`
-- `ORDERS_CREATE`: `gid://shopify/WebhookSubscription/2068250394919`
-- `ORDERS_PAID`: `gid://shopify/WebhookSubscription/2068250460455`
-- Provisioning was called twice after creation and created zero duplicates.
+- Five signed topics are active: `ORDERS_CREATE`, `ORDERS_PAID`, `FULFILLMENTS_CREATE`, `FULFILLMENTS_UPDATE`, and `FULFILLMENT_EVENTS_CREATE`.
+- Webhook provisioning is self-healing and idempotent; the ten-minute Cron periodically ensures all five exact endpoint/topic pairs remain present.
 - The ten-minute overlap poll remains a loss-prevention fallback.
+
+Shopify production data confirmed that the store receives fulfillment states through CJ/17TRACK, including `CONFIRMED`, `IN_TRANSIT`, `READY_FOR_PICKUP`, `OUT_FOR_DELIVERY`, and `DELIVERED`. Post-Purchase now uses the exact order's `DELIVERED` event instead of estimating international delivery from the order date. E01/E02 remain purchase-anchored; E03-E07 are scheduled at +1/+4/+10/+14/+21 days after delivery. Tracking numbers are never stored in plaintext.
 
 ## Resend resources
 
@@ -93,7 +94,9 @@ The isolated verified-sender smoke email (`e105f03f-9f17-433f-a829-2321d83bdf97`
 
 ### Automations
 
-All 39 send steps now use `NovaHair <hello@email.tigerbrandsglobal.com>` with `support@tigerbrandsglobal.com` as Reply-To. Four automations are enabled; the two identity-gated storefront flows remain disabled.
+All 39 send steps now use `NovaHair by TigerBrandsGlobal <hello@email.tigerbrandsglobal.com>` with `support@tigerbrandsglobal.com` as Reply-To. Four automations are enabled; the two identity-gated storefront flows remain disabled.
+
+The delivery-aware Post-Purchase workflow was smoke-tested after the production update. Resend run `01a08304-48c5-767c-8bfc-cc51ad95d969` completed, routed only E01, skipped E02-E07, and delivered email `47c7866b-80aa-4b86-a45f-f2c6ad1f4939` to the merchant-controlled test address.
 
 | Flow | Automation ID | Status |
 |---|---|---|
@@ -185,11 +188,19 @@ Purchase is the global stop signal. Checkout recovery is keyed by checkout ID, n
 
 ## Free-tier monitoring
 
-The bridge enforces local and provider-reported quota guards and sends owner alerts around 70/90 emails per day, 2,400 emails per month, and 9,000 automation runs per month. At the production-readiness checkpoint, D1 recorded 2 emails for the day/month and 9 automation runs for the month. Dispatch was allowed and no warning or critical threshold was active; the live health endpoint is the current source.
+The bridge enforces local and provider-reported quota guards and sends owner alerts around 70/90 emails per day, 2,400 emails per month, and 9,000 automation runs per month. At the final delivery-aware verification checkpoint, D1 recorded 3 emails for the day/month and 9 automation runs for the month. Dispatch was allowed and no warning or critical threshold was active; the live health endpoint is the current source.
 
 ## Open-source research applied
 
 The implementation adopts independently implemented patterns from Dittofeed, Novu, Mautic, Plunk, Listmonk, Trigger.dev, Svix, Klaviyo, Omnisend, and PostHog: durable event ledgers, checkout-keyed idempotency, dispatch-time exit conditions, global stage suppression, stable experiment assignment, signed webhooks, conservative retry semantics, and Shopify-as-revenue-truth. It does not add a second heavyweight automation stack or copy incompatible/proprietary code. See `research/open-source-lifecycle-findings.md`.
+
+## Delivery-aware content and cross-sell result
+
+- Public email copy does not promise a fixed international delivery window. The owner's current operating estimate is 12-22 calendar days from order, while the live shipping-policy page still says 8-18 business days after dispatch; this mismatch is documented and intentionally not repeated in lifecycle copy.
+- Usage, troubleshooting, review, and cross-sell emails cannot dispatch until the exact order is marked delivered.
+- E07 never recommends an item already present in the order. Current eligible active products are Hair Gloss and BiotinRoot. The Argan product is Draft and no active Keratin product was found, so those are excluded.
+- The shared source of truth is [NOVAHAIR — מוח המותג: עובדות מאומתות, שאלות ותשובות וקופי Lifecycle](https://docs.google.com/document/d/1S7SVpE0FC0wpKZdNQNYIf6RlqGSVt1kkTDwcXfxboRY/edit?usp=drivesdk).
+- Exact ingredient/INCI and safety statements remain intentionally blocked until all sides of the physical NovaHair package are supplied.
 
 ## Go-live result
 

@@ -32,7 +32,7 @@ export const EVENT_DEFINITIONS = [
   { name: "shopify.checkout_recovered", schema: { ...COMMON_SCHEMA, checkout_id: "string", customer_id: "string" } },
   { name: "shopify.purchase_completed", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA } },
   { name: "shopify.marketing_subscribed", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...ctaSchema(10) } },
-  { name: "shopify.post_purchase_started", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(7) } },
+  { name: "shopify.post_purchase_started", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", email_number: "number", ...MERCHANDISE_SCHEMA, ...ctaSchema(1, true) } },
   { name: "shopify.replenishment_due", schema: { ...COMMON_SCHEMA, order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(4) } },
   { name: "storefront.cart_abandoned", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(5) } },
   { name: "storefront.product_browsed", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(3) } },
@@ -90,6 +90,28 @@ function checkoutAutomation(flowSpec) {
     steps,
     connections,
   };
+}
+
+function routedAutomation(flowSpec, name, strategy) {
+  const steps = [{ key: "start", type: "trigger", config: { event_name: flowSpec.triggerEvent } }];
+  const connections = [{ from: "start", to: "route_e01", type: "default" }];
+  for (const email of flowSpec.emails) {
+    const suffix = String(email.number).padStart(2, "0");
+    const route = `route_e${suffix}`;
+    const send = `send_e${suffix}`;
+    const next = `route_e${String(email.number + 1).padStart(2, "0")}`;
+    steps.push({
+      key: route,
+      type: "condition",
+      config: { type: "rule", field: "event.email_number", operator: "eq", value: email.number },
+    });
+    steps.push({ key: send, type: "send_email", config: templateConfig(flowSpec.flow, email.number, true) });
+    connections.push({ from: route, to: send, type: "condition_met" });
+    if (email.number < flowSpec.emails.length) {
+      connections.push({ from: route, to: next, type: "condition_not_met" });
+    }
+  }
+  return { name, status: "disabled", strategy, steps, connections };
 }
 
 function stoppedSequence(flowSpec, stopEvent) {
@@ -172,12 +194,11 @@ export function buildAutomationBlueprints(flowSpecs) {
       ...sequence,
     });
   }
-  automations.push({
-    name: AUTOMATION_NAMES.post_purchase,
-    status: "disabled",
-    source_of_truth: "Verified Shopify paid order webhook",
-    ...delayedSequence(byFlow.post_purchase),
-  });
+  automations.push(routedAutomation(
+    byFlow.post_purchase,
+    AUTOMATION_NAMES.post_purchase,
+    "D1 releases purchase emails from the paid timestamp and usage/review emails only from the exact Shopify DELIVERED event.",
+  ));
   return automations;
 }
 

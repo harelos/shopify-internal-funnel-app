@@ -37,6 +37,7 @@ interface OrderRow {
   shopify_checkout_id: string | null;
   shopify_customer_id: string | null;
   email: string | null;
+  email_hash: string | null;
   first_name: string | null;
   consent_state: ConsentState;
   completed_at: string;
@@ -46,6 +47,38 @@ interface OrderRow {
   product_name: string | null;
   total: number | null;
   currency: string | null;
+  purchased_product_ids_json: string;
+  purchased_product_handles_json: string;
+  delivered_at: string | null;
+  tracking_status: string | null;
+}
+
+const ACTIVE_CROSS_SELLS = [
+  {
+    productId: "gid://shopify/Product/9943550624039",
+    handle: "ספריי-היירגלוס-לשיער",
+  },
+  {
+    productId: "gid://shopify/Product/10341804081447",
+    handle: "biotinroot-hair-loss-spray",
+  },
+] as const;
+
+function jsonStrings(value: string): Set<string> {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return new Set(Array.isArray(parsed) ? parsed.filter(item => typeof item === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function eligibleCrossSellHandle(order: OrderRow): string | null {
+  const productIds = jsonStrings(order.purchased_product_ids_json);
+  const handles = jsonStrings(order.purchased_product_handles_json);
+  return ACTIVE_CROSS_SELLS.find(candidate => (
+    !productIds.has(candidate.productId) && !handles.has(candidate.handle)
+  ))?.handle ?? null;
 }
 
 interface Dispatchable {
@@ -285,17 +318,30 @@ async function identityEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Pro
 
 async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promise<Dispatchable | null> {
   const order = await env.DB.prepare(
-    `SELECT shopify_order_id, shopify_checkout_id, shopify_customer_id, email, first_name,
-            consent_state, completed_at, bundle, quantity, shade, product_name, total, currency
+    `SELECT shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash, first_name,
+            consent_state, completed_at, bundle, quantity, shade, product_name, total, currency,
+            purchased_product_ids_json, purchased_product_handles_json, delivered_at, tracking_status
      FROM lifecycle_orders WHERE shopify_order_id = ?`,
   ).bind(row.entity_id).first<OrderRow>();
   if (!order?.email || !canDispatchTo(env, order.email)) return null;
   const config = lifecycleConfig(env);
+  const marketingEvent = row.event_name === "shopify.post_purchase_started"
+    || row.event_name === "shopify.replenishment_due";
+  if (marketingEvent && order.consent_state !== "SUBSCRIBED") return null;
+  if (marketingEvent && await localSuppression(env, order.email_hash)) return null;
+  if (row.event_name === "shopify.post_purchase_started") {
+    const spec = emailSpec("post_purchase", row.email_number);
+    if (spec.anchor === "delivered" && !order.delivered_at) return null;
+  }
   const payload = basePayload({
     eventKey: row.idempotency_key,
-    occurredAt: order.completed_at,
+    occurredAt: row.event_name === "shopify.post_purchase_started"
+      && emailSpec("post_purchase", row.email_number).anchor === "delivered"
+      ? order.delivered_at ?? row.due_at
+      : order.completed_at,
     consentState: order.consent_state,
     flow: row.flow,
+    ...(row.email_number > 0 ? { emailNumber: row.email_number } : {}),
     customerId: order.shopify_customer_id,
     checkoutId: order.shopify_checkout_id,
     orderId: order.shopify_order_id,
@@ -308,7 +354,29 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     currency: order.currency,
     isTest: config.mode === "test",
   });
-  if (row.event_name === "shopify.post_purchase_started" || row.event_name === "shopify.replenishment_due") {
+  if (row.event_name === "shopify.post_purchase_started") {
+    const crossSellHandle = row.email_number === 7 ? eligibleCrossSellHandle(order) : null;
+    if (row.email_number === 7 && !crossSellHandle) return null;
+    const target = row.email_number === 4
+      ? safeStorefrontUrl(storefrontDomain(config), "/pages/contact")
+      : row.email_number === 7
+        ? safeStorefrontUrl(storefrontDomain(config), `/products/${encodeURIComponent(crossSellHandle ?? "")}`)
+        : safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales-staging");
+    payload.cta_url = await trackingUrl(env, {
+      entityType: "order",
+      entityId: order.shopify_order_id,
+      flow: "post_purchase",
+      emailNumber: row.email_number,
+      target,
+    });
+    return {
+      flow: "post_purchase",
+      emailNumber: row.email_number,
+      templateAlias: `novahair_post_purchase_e${String(row.email_number).padStart(2, "0")}`,
+      event: { event: row.event_name, email: order.email, payload },
+    };
+  }
+  if (row.event_name === "shopify.replenishment_due") {
     await nativeFlowUrls(env, {
       entityType: "order",
       entityId: order.shopify_order_id,
@@ -334,6 +402,7 @@ async function recordAutomationTracking(
   now: string,
 ): Promise<void> {
   if (!dispatchable.templateAlias || dispatchable.emailNumber < 1) {
+    if (row.event_name !== FLOW_SPECS[dispatchable.flow].triggerEvent) return;
     const recipientHash = await hashEmail(dispatchable.event.email, lifecycleConfig(env).hashKey);
     const specs = FLOW_SPECS[dispatchable.flow].emails;
     for (const nativeSpec of specs) {

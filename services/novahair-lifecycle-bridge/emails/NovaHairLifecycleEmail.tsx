@@ -52,7 +52,7 @@ export function NovaHairLifecycleEmail({
             {ctaLabel && ctaUrl ? <Button href={ctaUrl} style={{ display: "block", width: "fit-content", margin: "28px auto 20px", padding: "15px 30px", borderRadius: "999px", backgroundColor: "#3D2817", color: "#FFFFFF", fontWeight: 700 }}>{ctaLabel}</Button> : null}
           </Section>
           <Section dir="rtl" style={{ padding: "22px 28px", backgroundColor: "#2E2119", color: "#F7F1EA", textAlign: "center" }}>
-            <Text style={{ margin: 0, fontSize: "12px" }}>NovaHair · Tiger Brands Global</Text>
+            <Text style={{ margin: 0, fontSize: "12px" }}>NovaHair by TigerBrandsGlobal</Text>
             <Link href="{{{RESEND_UNSUBSCRIBE_URL}}}" style={{ color: "#F7F1EA", fontSize: "11px", textDecoration: "underline" }}>להסרה מרשימת הדיוור</Link>
           </Section>
         </Container>
