@@ -1,0 +1,37 @@
+name: Isolated gallery preview QA
+on:
+  push:
+    branches: [preview-novahair-gallery-bootstrap-20260910]
+permissions:
+  contents: read
+jobs:
+  preview-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify sandbox boundary
+        run: |
+          test ! -e app/cloudflare-pilot/wrangler.jsonc
+          test ! -e shopify.app.toml
+          node extract.cjs
+          node --test tests/core.test.cjs
+      - name: Install browser test dependency only
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Test real image assets and HTTP preview
+        env:
+          GALLERY_PREVIEW_URL: https://raw.githack.com/harelos/shopify-internal-funnel-app/cecb186840eb1725fedbea0a18b192f89004119b/index.html
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 > /tmp/gallery-static.log 2>&1 &
+          node tests/http-browser.mjs
+      - name: Save preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gallery-preview-evidence
+          path: browser-evidence/
+          retention-days: 7
