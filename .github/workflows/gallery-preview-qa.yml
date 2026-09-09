@@ -8,16 +8,10 @@ jobs:
   preview-only:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Prepare sandbox-only image hosting compatibility
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node tests/prepare-hosted-preview.cjs
       - name: Verify sandbox boundary
         run: |
           test ! -e app/cloudflare-pilot/wrangler.jsonc
@@ -29,6 +23,8 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
       - name: Test real image assets and HTTP preview
+        env:
+          GALLERY_PREVIEW_URL: https://raw.githack.com/harelos/shopify-internal-funnel-app/5e04e3a5ad16062a757856950b77a9c7c056f544/index.html
         run: |
           python3 -m http.server 8080 --bind 127.0.0.1 > /tmp/gallery-static.log 2>&1 &
           node tests/http-browser.mjs

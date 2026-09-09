@@ -1,41 +1,67 @@
-# NovaHair gallery bootstrap — isolated preview
+# NovaHair gallery bootstrap — verified isolated preview
 
-This branch is a **sandbox-only snapshot**, not a replacement for the application branch. Do not merge it over production.
+## Open the preview
 
-The preview has no production app configuration, deployment workflow, Shopify integration, live analytics, payment, email, or fulfillment connection. No Shopify theme or page was changed to create this preview.
+- [New gallery B, clean page view](https://raw.githack.com/harelos/shopify-internal-funnel-app/5e04e3a5ad16062a757856950b77a9c7c056f544/index.html?variant=variant-b&view=page)
+- [Interactive test controls](https://raw.githack.com/harelos/shopify-internal-funnel-app/5e04e3a5ad16062a757856950b77a9c7c056f544/index.html?variant=variant-b)
+- [Original gallery A](https://raw.githack.com/harelos/shopify-internal-funnel-app/5e04e3a5ad16062a757856950b77a9c7c056f544/index.html?variant=control&view=page)
+- [Natural sticky 50/50](https://raw.githack.com/harelos/shopify-internal-funnel-app/5e04e3a5ad16062a757856950b77a9c7c056f544/index.html)
+- [Passing GitHub Actions test run](https://github.com/harelos/shopify-internal-funnel-app/actions/runs/34417030952)
 
-## Included behavior
+The third-party raw.githack host displays an **External Content Notice** on first visit. Click its visible **Open the page** button. The host notice may contain advertising; it is not part of the NovaHair sandbox. No credentials or payment details are required. GitHub stores the source; raw.githack renders it as a website. This is not native GitHub Pages or your storefront.
 
-- Locally evaluated, deterministic 50/50 assignment using the same SHA256/first-12-hex/modulo-10,000 formula as the inspected element allocation engine.
-- A QA-only visitor namespace; existing production visitor cookies are never read or written.
-- Selected gallery committed once; no remote assignment request on the first-render path.
-- Forced A/B inspection does not overwrite the normal sticky assignment.
-- Selected-image loading/failure stays in the selected arm; no automatic switch to the opposite gallery.
-- Separate assignment, rendering, image readiness, exposure, and simulated-checkout records.
-- Same logical exposure deduplication within the QA tab session.
-- Sandbox pause and promotion controls. These save only to this browser, not the real Funnel Control app.
-- Content-Security-Policy blocks outbound fetch/XHR/beacon connections, forms, frames and workers. Public Shopify CDN images remain permitted. B assets are copied from existing repository blobs.
+## Safety and scope
 
-## What this is NOT
+This branch is a **sandbox-only root snapshot**, not an application upgrade branch. **Do not merge it over the production app.** The default application branch, production Worker and every Shopify theme/page are untouched.
 
-This is a functional gallery/buy-box fixture based on the inspected sales page, not a byte-for-byte copy of the entire store. Some styling and controls are adapted for safe testing. The previous page's secondary sections, third-party scripts, popup, mix-and-match commerce and real cart are absent. Do not use it as an images-only A/B test without checking treatment parity.
+The preview has no production app configuration, deployment workflow, Shopify integration, live analytics, payment, email, or fulfillment connection. Its CSP disallows outbound fetch/XHR/beacon, forms, frames and workers. Images may load from public Shopify CDN and this repository's public GitHub image paths. No production visitor cookie is read or written.
 
-The real app's publication, assignment registration, Shopify checkout/webhook attribution, consent behavior, cache invalidation and migration of existing visitors have **not** been wired into this preview. A safe production adapter remains a separate implementation/release gate.
+The gallery/buy-box fixture is based on the inspected sales page, but it is not a byte-for-byte copy of the full storefront. Styling and safe controls are adapted. Secondary sections, third-party scripts, popup, mix-and-match commerce and real cart are absent. Check treatment parity before calling any future test an images-only experiment.
+
+**The actual Funnel Control app has not been connected to this prototype.** Real app publication, registration, Shopify checkout/webhook attribution, consent, identity reconciliation, cache invalidation and existing-visitor migration are separate implementation gates. The on-page publication controls save only to this browser and do not change the live experiment.
+
+## Implemented preview behavior
+
+- Inline configuration and deterministic local selection before gallery mounting.
+- SHA256 / first 12 hex / modulo 10,000 matches the inspected backend bucketing formula.
+- QA-only visitor namespace with sticky browser persistence.
+- Forced A/B inspection does not overwrite natural assignment.
+- One gallery controller. Selected image delay/failure never switches to the opposite arm.
+- Explicit assigned, rendered, image-ready, exposure and simulated-checkout evidence.
+- Logical exposure deduplication within the QA tab session.
+- Local-only pause/promotion simulator with no experimental enrollment while paused/promoted.
+- Thumbnails, arrows, swipes, sample shade/pack selections and simulated checkout.
 
 ## Test evidence
 
-- 14 Node logic tests passed, including 20,000 hash comparisons with Node's SHA256, deterministic replay, configuration validation and blocked-storage getters.
-- 17 Chromium fixture checks passed, including mobile/desktop layouts, initial arm consistency, 3.5-second delays, failed images, duplicate initialization, sticky storage replay and a timing-only reproduction of the previous two-clock race.
-- 10 local synthetic HTTP contract checks passed for registration, exposure/order deduplication, pre-registration checkout context, publication into HTML, old-phase reconciliation and process restart.
+**Passing remote run:** 34417030952.
+**Immutable tested public HTML commit:** 5e04e3a5ad16062a757856950b77a9c7c056f544.
+**HTML blob:** 97e912209aac22f1a63db3d8cc446886dd5ac5e3.
 
-Browser test scope: this execution environment blocks browser navigation. Checks ran with `set_content`, mocked browser storage and labeled synthetic image responses. They are **not** proof of native Safari/WebView behavior, real CDN performance, actual HTTPS persistence, or production first paint. Those require additional verification. The deployed gallery assets are the existing real assets, not the synthetic test images.
+- 14 Node logic tests passed, including 20,000 bucket comparisons with Node crypto: A 10,026 / B 9,974 (50.13% / 49.87%). This is a simulation, not live visitor counts.
+- 17 offline Chromium fixture checks passed with explicitly mocked storage and labeled image pixels.
+- 10 local synthetic HTTP contract checks passed for registration, deduplication, fast checkout, publication and restart. Not a real Shopify backend integration.
+- 6 additional real-HTTP Chromium checks passed on GitHub Actions, including actual A/B assets, five reloads plus a new tab on local HTTP, delayed/failed real image requests, and the public HTTPS preview after clicking the host's content notice.
+- Public HTTPS preview loaded the real B image at 1254×1254, showed no control DOM in sampled B frames, loaded A, and retained natural assignment over three reloads using real localStorage. No console errors were captured by the final public check.
 
-A real iPhone Safari / Instagram / Facebook WebView check and Shopify development-store checkout test remain mandatory before any production release.
+Native iPhone Safari / Instagram / Facebook WebView, full-store script ordering and real Shopify checkout remain untested. No claim of 100% production readiness is made. GitHub Actions screenshots/results are retained for 7 days; the chat development ZIP includes a local copy of final evidence.
+
+## Reproduce
+
+```sh
+node extract.cjs
+node --test tests/core.test.cjs
+python -m http.server 8080 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8080/index.html?variant=variant-b`.
+
+The exact inline core, controller, manifest and CSS can be extracted using extract.cjs. The full local development archive supplied in chat additionally contains the local-only Node QA server and Python fixture/contract suites. No production secrets are required.
 
 ## Provenance
 
-Inspected app baseline: `4129eae93c65f1893940f93c797fb34bd516c0a8` (`fix/order-webhook-reconciliation-20260908`).
+Inspected application baseline: 4129eae93c65f1893940f93c797fb34bd516c0a8 (fix/order-webhook-reconciliation-20260908).
 
-Gallery image blobs: `feat/novahair-gallery-ab-production-20260907`, originally in `app/cloudflare-pilot/public/assets/novahair-gallery/`.
+B images are copied from existing repository blobs originally in app/cloudflare-pilot/public/assets/novahair-gallery/. A images are the original public Shopify CDN assets.
 
-The hostable HTML is self-contained for the critical bootstrap code. It needs no API credentials or build step. Keep this branch separate from production and never point the live app proxy at it.
+A one-time, narrowly checked CI edit allowed those public GitHub image redirects through the preview CSP. That helper has been removed, and the retained QA workflow is contents-read-only and performs no deployment or code writes.
