@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>Timing-only reproduction of previous two-clock design</title>
+<style>#gallery{opacity:0;animation:failopen 1ms linear 2900ms forwards} @keyframes failopen{to{opacity:1}}</style>
+<div id="gallery" data-arm="control">Original A</div>
+<script>
+// Timing fixture based on the inspected 2.9s CSS fail-open and independent 1.4s JS deadline.
+// This is not a byte-for-byte capture of the full production page.
+window.framesSeen=[];function sample(){const g=document.getElementById('gallery');if(+getComputedStyle(g).opacity>0)window.framesSeen.push({at:Math.round(performance.now()),arm:g.dataset.arm});requestAnimationFrame(sample)}sample();
+setTimeout(()=>{let finished=false;const timer=setTimeout(()=>{finished=true},1400);setTimeout(()=>{if(!finished){clearTimeout(timer);const g=document.getElementById('gallery');g.dataset.arm='variant-b';g.textContent='New B';finished=true}},1000)},2500);
+</script>

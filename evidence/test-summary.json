@@ -1,0 +1,16 @@
+{
+  "environment": "LAB",
+  "unitTestsPassed": 14,
+  "browserFixtureChecksPassed": 17,
+  "localSyntheticHttpChecksPassed": 10,
+  "totalPassed": 41,
+  "allocationSimulation": {"visitors":20000,"control":10026,"variantB":9974,"controlPercent":50.13,"variantBPercent":49.87},
+  "indexBlobSha": "db62c7c9c22c20b6b81c51f09a2a84a007a0b425",
+  "artifactVerification": "Normalized local HTML bytes match the uploaded Git blob SHA exactly.",
+  "browserScope": "Chromium via Playwright set_content. Browser navigation is policy-blocked in the execution environment. Browser storage and labeled image pixels were mocked; no native Safari/WebView, real CDN timing, or real HTTPS persistence certification.",
+  "httpScope": "Local synthetic contract only. Real Shopify and Cloudflare app adapters were not connected.",
+  "productionWrites": false,
+  "themeUploads": false,
+  "productionReleaseApproved": false,
+  "remainingGates": ["Preview hosting and actual asset loading verification", "Native iPhone Safari and Meta WebView", "Real app publish/register adapters", "Existing-assignment migration", "Consent and canonical identity reconciliation", "Shopify development-store checkout/webhook test", "Production rollout approval"]
+}

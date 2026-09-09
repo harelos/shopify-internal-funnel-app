@@ -1,4 +1,0 @@
-ALTER TABLE "Variant" ADD COLUMN "sourceType" TEXT NOT NULL DEFAULT 'APP_HTML';
-ALTER TABLE "Variant" ADD COLUMN "sourceUrl" TEXT;
-ALTER TABLE "Variant" ADD COLUMN "sourceTitle" TEXT;
-ALTER TABLE "Variant" ADD COLUMN "sourceImportedAt" DATETIME;

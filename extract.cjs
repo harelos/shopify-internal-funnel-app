@@ -1,0 +1,13 @@
+const fs=require('node:fs'),path=require('node:path');
+const root=__dirname,html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+if(scripts.length!==3)throw Error('Unexpected script structure; do not guess which code to extract.');
+const manifest=html.match(/<script type="application\/json" id="lab-manifest">([\s\S]*?)<\/script>/);
+if(!manifest)throw Error('Manifest missing');
+JSON.parse(manifest[1]);
+fs.mkdirSync(path.join(root,'src'),{recursive:true});
+fs.writeFileSync(path.join(root,'src','core.js'),scripts[0].trimStart());
+fs.writeFileSync(path.join(root,'src','lab.js'),scripts[1].trimStart());
+fs.writeFileSync(path.join(root,'src','manifest.json'),manifest[1]);
+fs.writeFileSync(path.join(root,'src','style.css'),html.match(/<style>([\s\S]*?)<\/style>/)[1]);
+console.log('Extracted the exact preview core, controller, manifest and styles. No network or deployment action.');
