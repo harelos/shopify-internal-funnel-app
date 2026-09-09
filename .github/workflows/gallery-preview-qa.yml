@@ -22,6 +22,8 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
+      - name: Diagnose public preview hosting
+        run: node tests/hosting-diagnostics.mjs
       - name: Test real image assets and HTTP preview
         env:
           GALLERY_PREVIEW_URL: https://raw.githack.com/harelos/shopify-internal-funnel-app/cecb186840eb1725fedbea0a18b192f89004119b/index.html
