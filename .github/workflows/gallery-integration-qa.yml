@@ -4,31 +4,79 @@ on:
     branches: [integration-gallery-only-20260910]
     paths: ['integration/**', '.github/workflows/gallery-integration-qa.yml']
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: gallery-integration-sandbox
+  cancel-in-progress: false
 jobs:
   isolated:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
           path: lab
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           ref: 4129eae93c65f1893940f93c797fb34bd516c0a8
           path: upstream
-      - name: Archive public source only (no credentials or runtime)
+      - name: Check boundaries and capture public HTML without running it
         run: |
+          test "$GITHUB_REF" = refs/heads/integration-gallery-only-20260910
           test ! -e lab/app/cloudflare-pilot/wrangler.jsonc
           test ! -e lab/shopify.app.toml
-          mkdir -p evidence
-          git -C upstream archive --format=tar HEAD app/cloudflare-pilot app/extensions > evidence/pinned-public-source.tar
+          mkdir -p evidence lab/integration/evidence
           curl --fail --max-time 30 --proto '=https' 'https://tigerbrandsglobal.com/pages/novahair-sales-staging' -o evidence/storefront-readonly.html
-          printf '%s\n' 'SOURCE ONLY. Plain GET does not execute storefront scripts. No app process, database, Shopify write, Worker, analytics, email, or fulfillment was started.' > evidence/SAFETY.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: gallery-integration-pinned-source
-          path: evidence/
-          retention-days: 3
+          node-version: '22'
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install beautifulsoup4 playwright
+          python -m playwright install --with-deps chromium
+          npm ci --ignore-scripts --prefix upstream/app/cloudflare-pilot
+      - name: Assemble gallery-only candidate from pinned source
+        run: |
+          python lab/integration/finalize.py
+          node --check lab/integration/storefront/gallery-bootstrap.js
+          python lab/integration/apply.py upstream
+          python lab/integration/build_preview.py evidence/storefront-readonly.html upstream lab/integration/preview
+          python lab/integration/generate_theme.py upstream
+      - name: Protocol and exact browser algorithm tests
+        run: |
+          set -o pipefail
+          node --experimental-strip-types --test lab/integration/tests/protocol.test.mjs | tee lab/integration/evidence/protocol-results.txt
+      - name: Actual application TypeScript build (no deployment)
+        run: |
+          set -o pipefail
+          npm run build --prefix upstream/app/cloudflare-pilot | tee lab/integration/evidence/build-results.txt
+      - name: Original controls and isolated browser tests
+        env:
+          GALLERY_REAL_IMAGES: '1'
+        run: |
+          python -m http.server 8135 --bind 127.0.0.1 --directory lab/integration/preview > /tmp/gallery-preview.log 2>&1 &
+          export GALLERY_UPSTREAM="$PWD/upstream"
+          python lab/integration/tests/browser.py
+      - name: Prepare code-only review patch
+        run: |
+          git -C upstream add app/cloudflare-pilot/src app/cloudflare-pilot/storefront-source app/cloudflare-pilot/public/assets app/cloudflare-pilot/migrations app/extensions
+          git -C upstream diff --cached --binary > lab/integration/evidence/gallery-only.patch
+          git -C upstream diff --cached --name-only > lab/integration/evidence/changed-app-files.txt
+          if grep -E 'wrangler|shopify.app.toml|\.env|secrets|deployments' lab/integration/evidence/changed-app-files.txt; then exit 1; fi
+          printf '%s\n' 'No Shopify theme, page, live Worker, database, analytics, payment, or fulfillment changes were made by this workflow.' > lab/integration/evidence/SAFETY.txt
+      - name: Save verified static preview to this sandbox branch only
+        run: |
+          test "$GITHUB_REF" = refs/heads/integration-gallery-only-20260910
+          cd lab
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add integration
+          if ! git diff --cached --quiet; then git commit -m 'test: save verified gallery-only candidate and unchanged-controls preview'; git push origin HEAD:refs/heads/integration-gallery-only-20260910; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gallery-integration-evidence
+          path: |
+            lab/integration/
+          retention-days: 14

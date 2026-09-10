@@ -1,0 +1,26 @@
+{% layout 'novafunnel-staging-clean' %}
+{% comment %}Candidate only. No authorization to publish a live theme.{% endcomment %}
+{% assign bootstrap = page.metafields.funnel_control.gallery_bootstrap.value %}
+{% assign g_start = '<!-- Gallery Column (Right on Desktop) -->' %}
+{% assign g_end = '<!-- Purchase Column (Left on Desktop) -->' %}
+{% assign old_start = '<!-- NOVAHAIR_GALLERY_AB_RUNTIME_START v1 -->' %}
+{% assign old_end = '<!-- NOVAHAIR_GALLERY_AB_RUNTIME_END v1 -->' %}
+{% assign safe_body = page.content | append: '<!-- nhg-boundary-end -->' %}
+{% assign pieces = safe_body | split: g_start %}
+{% assign tail = pieces.last | split: g_end %}
+{% assign runtime = tail.last | split: old_start %}
+{% assign remainder = runtime.last | split: old_end %}
+{% assign expected_path = '/pages/' | append: page.handle %}
+{% if bootstrap.schemaVersion == 2 and bootstrap.pagePath == expected_path and pieces.size == 2 and tail.size == 2 and runtime.size == 2 and remainder.size == 2 %}
+{% render 'nh-gallery-bootstrap-runtime' %}
+{% render 'nh-gallery-bootstrap-style' %}
+{{ pieces.first }}{{ g_start }}
+<template id="nhg-control">{{ tail.first }}</template>
+<div class="hero-media" id="nhg-slot" hidden></div>
+<script id="nhg-manifest" type="application/json">{{ bootstrap | json | replace: '<', '\u003c' }}</script>
+<script>window.__NHG=NHGalleryBootstrap.mount(document.getElementById('nhg-slot'),document.getElementById('nhg-control'),JSON.parse(document.getElementById('nhg-manifest').textContent));</script>
+<noscript>{{ tail.first }}</noscript>
+{{ g_end }}{{ runtime.first }}{{ remainder.last }}
+{% else %}
+{{ page.content }}
+{% endif %}
