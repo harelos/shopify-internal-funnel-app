@@ -1,0 +1,256 @@
+{
+  "requestedUrl": "https://raw.githack.com/harelos/shopify-internal-funnel-app/986718fa1a06b6dcbbecccc6e5029fa7c91deb0a/integration/preview/index.html?variant=variant-b",
+  "console": [],
+  "errors": [],
+  "failedRequests": [],
+  "responses": [
+    {
+      "url": "https://raw.githack.com/harelos/shopify-internal-funnel-app/986718fa1a06b6dcbbecccc6e5029fa7c91deb0a/integration/preview/index.html?variant=variant-b",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.carbonads.com/carbon.js?serve=CEADPK3U&placement=rawgithackcom&format=responsive",
+      "status": 200
+    },
+    {
+      "url": "https://srv.carbonads.net/ads/CEADPK3U.json?segment=placement:rawgithackcom&v=true",
+      "status": 200
+    },
+    {
+      "url": "https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481157;dc_trk_aid=647423542;dc_trk_cid=246706990;ord=178900370;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?",
+      "status": 302
+    },
+    {
+      "url": "https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481157;dc_pre=CMDs447u4pYDFTS9KQgdonQfnA;dc_trk_aid=647423542;dc_trk_cid=246706990;ord=178900370;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?",
+      "status": 200
+    },
+    {
+      "url": "https://srv.carbonads.net/static/30242/13f4e9dca31c4ecfbf28a20ca1421fcafc370708",
+      "status": 200
+    },
+    {
+      "url": "https://srv.carbonads.net/static/30242/a719f75f8b6a44161528117f997a5d75d3ea8145",
+      "status": 200
+    },
+    {
+      "url": "https://raw.githack.com/harelos/shopify-internal-funnel-app/986718fa1a06b6dcbbecccc6e5029fa7c91deb0a/integration/preview/index.html?variant=variant-b",
+      "status": 303
+    },
+    {
+      "url": "https://raw.githack.com/harelos/shopify-internal-funnel-app/986718fa1a06b6dcbbecccc6e5029fa7c91deb0a/integration/preview/index.html?variant=variant-b",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_9.png?v=1787159195&width=40",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/01-roots-returned.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_8.png?v=1787159191&width=40",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/02-shades.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/04-reclaim-time.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/03-ten-minute-routine.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/06-three-step-routine.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/05-shade-guidance.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/07-hair-textures.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/08-no-ammonia.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/09-original-brand.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/10-emotional-close.webp?v=1788823607",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_2.png?v=1787166132&width=120",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_1.png?v=1787166128&width=120",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_3.png?v=1787166137&width=120",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-coloring-kit-480.webp?width=160",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_5.png?v=1787159178&width=200",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_6.png?v=1787159183&width=200",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_7.png?v=1787159187&width=200",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_9.png?v=1787159195&width=200",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/08723e1e-9f39-41c3-b7c5-7c76c9696610.png?v=1787154002&width=900",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_4.png?v=1787166143",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/Batch7_Ingredients_Mobile.png?v=1787172827",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_5.png?v=1787161150",
+      "status": 200
+    },
+    {
+      "url": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_2.png?v=1787161138",
+      "status": 200
+    }
+  ],
+  "noticeFollowed": true,
+  "passed": true,
+  "url": "https://raw.githack.com/harelos/shopify-internal-funnel-app/986718fa1a06b6dcbbecccc6e5029fa7c91deb0a/integration/preview/index.html?variant=variant-b",
+  "title": "NovaHair · Gallery-only integration preview",
+  "bodyExcerpt": "GALLERY-ONLY PREVIEW · Original shade & package controls preserved · No checkout\nA: Original · B: New · Sticky 50/50\nמשלוח חינם לכל הארץ בהזמנת חבילה\n60 יום אחריות\n✓ האתר הרשמי בישראל\n★★★★★\n4.8\n·\n9,232 דירוגים\nכיסוי לשורשים לבנים בכ־10 דקות, בגוון שנראה כמו השיער שלך\n\nNovaHair מאפשר לך לחדש את השורשים בבית, מתוך 5 גוונים לבחירה, בלי לבנות את היום סביב תור לצבע.\n\n⏱ כיסוי תוך כ־10 דקות\n🌿 ללא אמוניה\n🛡 60 יום אחריות\n1. בחרי את הגוון שלך — נבחר: שחור טבעי\nלא בטוחה בין שני גוונים? התחילי מהגוון שהכי קרוב לצבע הבסיס שלך.\nשחור טבעי\nחום כהה\nחום בהיר\nסגול חציל\nאדום יין\n🎨 שילוב גוונים בחבילה\n2. בחרי את החבילה שלך\n2 בקבוקים\n₪94.50 לבקבוק\n₪189\nבמקום ₪379\nחיסכון 50%\nהנמכר ביותר\n4 בקבוקים\n₪59.75 לבקבוק\n₪239\nבמקום ₪758\nחיסכון 68%\n6 בקבוקים\n₪53.20 לבקבוק\n₪319\nבמקום ₪1,137\nחיסכון 72%\nערכת צביעה מלאה — כלולה בחינם בכל הזמנה\nמסרק · קערה · מברשות וקליפסים\nשווי ₪79\nללא עלות\nלהזמנה — 4 בקבוקים ב־₪239 ›\nגוון: שחור טבעי · 4 בקבוקים\nמשלוח חינם לכל הארץ\nהטבות בשווי ₪117\n60 יום אחריות מלאה\nכ־10 דקות\nטיפול מהיר בבית\n5 גוונים\nלבחירה\nעד 30\nטיפולי שורשים\n60 יום\nאחריות\nהתוצאה מול המראה\nלא מספיק לכסות את הלבן. הכיסוי צריך להשתלב.\n\nבחרי את הגוון הקרוב לצבע הבסיס שלך וחדשי רק את האזור שצריך, כדי שהמעבר בין השורש לשאר השיער ייראה טבעי יותר.\n\nלפני\nאחרי\nלמה הכיסוי נראה אחרת\nMicro-Color Sphere™: כיסוי שנבנה סביב השערה, לא מעליה\n\nבמקום מראה כהה ושטוח, הטכנולוגיה נועדה לפזר חלקיקי פיגמנט זעירים לאורך מעטפת השערה ולבנות כיסוי אחיד יותר.\n\nמתפזר\n\nחלקיקי פיגמנט זעירים מתפזרים לאורך מעטפת השערה באזור שרוצים לחדש.\n\nנבנה בהדרגה\n\nהכיסוי נבנה לאורך השערה במקום להיראות כמו שכבת צבע כבדה מעליה.\n\nמשתלב\n\nהמטרה היא שכיסוי השיבה יעבוד יחד עם צבע הבסיס של השיער וישמור על מראה עשיר וטבעי יותר.\n\nמבט מקצועי\nשתי נקודות מבט מקצועיות על שיער, גוון ושגרת חידוש שורשים\nבריאות הקרקפת והעור\nמומחית לרפואת עור וקרקפת\n\n״פורמולה ללא אמוניה עם pH מאוזן 5.5 היא הבסיס לשמירה על מחסום העור הטבעי.״\n\nעור הקרקפת נחשף לחומרים באופן קבוע, במיוחד בחידוש שורשים תכוף.\n\nהפורמולה של NovaHair מעניקה כיסוי מלא לשיער שיבה, תוך התמקדות בחוויית שימוש עדינה יותר ללא אמוניה ועם pH מאוזן 5.5 לעומת צבעים מסורתיים.\n\nעיצוב והתאמת גוון\nקולוריסטית ומעצבת שיער בכירה\n\n״הטעות הנפוצה בבית היא יצירת 'גוש צבע' אטום. כאן הפיגמנט נטמע בצורה טבעית יותר.״\n\nטכנולוגיית ה-Micro-Color Sphere מאפשרת לפיגמנט להיבנות סביב מעטפת השערה.\n\nהתוצאה היא התמזגות רכה עם גוון הבסיס ומראה רענן ומלא ברק.\n\nפשוט לשלב בשגרה\n3 שלבים. כ־10 דקות.\n1\nמורחים\n\nמרחי את NovaHair על האזור שאת רוצה לחדש, לפי הוראות השימוש.\n\n2\nממתינים\n\nהמתיני כ־10 דקות בהתאם להוראות שעל האריזה.\n\n3\nשוטפים\n\nשטפי היט",
+  "state": {
+    "phase": "IMAGE_READY",
+    "rendered": "variant-b",
+    "assignment": null,
+    "events": [
+      {
+        "name": "image_selected",
+        "time": 1789003698345,
+        "index": 0,
+        "image_id": "roots-returned",
+        "image_index": 1,
+        "reason": "initial"
+      },
+      {
+        "name": "gallery_committed",
+        "time": 1789003698345,
+        "variant": "variant-b",
+        "enrolled": false,
+        "qa": true
+      },
+      {
+        "name": "image_ready",
+        "time": 1789003698431,
+        "variant": "variant-b"
+      }
+    ],
+    "errors": [],
+    "enrolled": false,
+    "visitorId": "da9199cf-d75f-4ac8-8aee-6a7d5d9e2410",
+    "pending": {
+      "experimentId": "qa-gallery-experiment",
+      "slotId": "qa-gallery-slot",
+      "allocationVersion": 2,
+      "variantId": "qa-variant-control",
+      "cohortHash": "914b14d405b8a402403ceac36df06261a1ccaaac3eab26cbc0f89ccca12379f3"
+    },
+    "telemetryAllowed": false,
+    "analyticsProps": {
+      "experiment_id": "qa-gallery-experiment",
+      "experiment_key": "qa-gallery-only-v2",
+      "experiment_variant": "variant-b",
+      "variant_id": "qa-variant-bbbbbbb",
+      "allocation_version": 2,
+      "cohort_hash": "914b14d405b8a402403ceac36df06261a1ccaaac3eab26cbc0f89ccca12379f3",
+      "slot_id": "qa-gallery-slot"
+    },
+    "imageReady": true,
+    "registered": false,
+    "visible": true
+  },
+  "images": [
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/01-roots-returned.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/01-roots-returned.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/02-shades.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/03-ten-minute-routine.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/04-reclaim-time.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/05-shade-guidance.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/06-three-step-routine.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/07-hair-textures.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/08-no-ammonia.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/09-original-brand.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/10-emotional-close.webp?v=1788823607",
+      "complete": true,
+      "width": 1254
+    }
+  ]
+}

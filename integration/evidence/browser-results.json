@@ -7,7 +7,7 @@
   {
     "test": "Same visitor sticky on reload",
     "pass": true,
-    "detail": "variant-b"
+    "detail": "control"
   },
   {
     "test": "B mounts once without A",

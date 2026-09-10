@@ -1,0 +1,34 @@
+[
+  {
+    "test": "Actual Prisma/D1 start publishes snapshot to mock Shopify",
+    "pass": true
+  },
+  {
+    "test": "Repeated actual registration reuses one database assignment",
+    "pass": true
+  },
+  {
+    "test": "Pending fast checkout resolves to same persisted assignment",
+    "pass": true
+  },
+  {
+    "test": "Synthetic order attribution deduplicates and preserves adjusted revenue",
+    "pass": true
+  },
+  {
+    "test": "Historical conflicts rejected without rewriting prior assignment",
+    "pass": true
+  },
+  {
+    "test": "Actual pause propagates to mock published manifest",
+    "pass": true
+  },
+  {
+    "test": "Publication failure surfaces; explicit sync recovers",
+    "pass": true
+  },
+  {
+    "test": "Promotion preserves historical assignment rows",
+    "pass": true
+  }
+]

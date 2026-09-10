@@ -1,1 +1,1 @@
-No Shopify theme, page, live Worker, database, analytics, payment, or fulfillment changes were made by this workflow.
+No Shopify theme, page, live Worker, database, analytics, payment, or fulfillment changes were made by this workflow. D1 tests use local-only ephemeral data and mocked Shopify publication.

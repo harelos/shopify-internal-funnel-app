@@ -5,5 +5,5 @@
 Built and synced the page-scoped element runtime into Worker public assets.
 Prisma schema loaded from prisma/schema.prisma
 
-✔ Generated Prisma Client (6.12.0) to ./src/generated/prisma in 257ms
+✔ Generated Prisma Client (6.12.0) to ./src/generated/prisma in 164ms
 
