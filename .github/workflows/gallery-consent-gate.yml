@@ -1,0 +1,32 @@
+name: Gallery consent release gate (synthetic only)
+on:
+  push:
+    branches: [integration-gallery-only-20260910]
+    paths: ['qa-followup/consent_release_gate.py', '.github/workflows/gallery-consent-gate.yml']
+permissions:
+  contents: read
+jobs:
+  consent-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify sandbox scope
+        run: |
+          test "$GITHUB_REF" = refs/heads/integration-gallery-only-20260910
+          test ! -e app/cloudflare-pilot/wrangler.jsonc
+      - name: Install browser tooling only
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Synthetic consent lifecycle gate
+        run: python qa-followup/consent_release_gate.py
+      - name: Save synthetic evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gallery-consent-release-gate
+          path: consent-qa-evidence/
+          retention-days: 14
