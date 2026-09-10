@@ -15,8 +15,8 @@ with sync_playwright() as p:
  try:
   page.goto(url,wait_until='domcontentloaded')
   page.wait_for_timeout(1000)
-  notice=page.get_by_role('link',name='Open the page',exact=False)
-  if notice.count():
+  notice=page.get_by_text('Open the page',exact=True)
+  if 'External Content Notice' in page.title() and notice.count():
    diagnostics['noticeFollowed']=True
    notice.first.click()
    page.wait_for_timeout(500)
