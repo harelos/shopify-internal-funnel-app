@@ -1,0 +1,33 @@
+name: Gallery integration isolated QA
+on:
+  push:
+    branches: [integration-gallery-only-20260910]
+    paths: ['integration/**', '.github/workflows/gallery-integration-qa.yml']
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          path: lab
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: 4129eae93c65f1893940f93c797fb34bd516c0a8
+          path: upstream
+      - name: Archive public source only (no credentials or runtime)
+        run: |
+          test ! -e lab/app/cloudflare-pilot/wrangler.jsonc
+          test ! -e lab/shopify.app.toml
+          mkdir -p evidence
+          git -C upstream archive --format=tar HEAD app/cloudflare-pilot app/extensions > evidence/pinned-public-source.tar
+          printf '%s\n' 'SOURCE ONLY. No app process, database, Shopify, Worker, analytics, email, or fulfillment was started.' > evidence/SAFETY.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gallery-integration-pinned-source
+          path: evidence/
+          retention-days: 3
