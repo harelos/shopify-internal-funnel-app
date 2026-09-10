@@ -25,7 +25,8 @@ jobs:
           test ! -e lab/shopify.app.toml
           mkdir -p evidence
           git -C upstream archive --format=tar HEAD app/cloudflare-pilot app/extensions > evidence/pinned-public-source.tar
-          printf '%s\n' 'SOURCE ONLY. No app process, database, Shopify, Worker, analytics, email, or fulfillment was started.' > evidence/SAFETY.txt
+          curl --fail --max-time 30 --proto '=https' 'https://tigerbrandsglobal.com/pages/novahair-sales-staging' -o evidence/storefront-readonly.html
+          printf '%s\n' 'SOURCE ONLY. Plain GET does not execute storefront scripts. No app process, database, Shopify write, Worker, analytics, email, or fulfillment was started.' > evidence/SAFETY.txt
       - uses: actions/upload-artifact@v4
         with:
           name: gallery-integration-pinned-source
