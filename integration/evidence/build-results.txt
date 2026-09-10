@@ -1,0 +1,9 @@
+
+> shopify-funnel-control-worker@0.1.0 build
+> node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && tsc --noEmit
+
+Built and synced the page-scoped element runtime into Worker public assets.
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (6.12.0) to ./src/generated/prisma in 257ms
+

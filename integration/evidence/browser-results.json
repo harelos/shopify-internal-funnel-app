@@ -1,0 +1,37 @@
+[
+  {
+    "test": "Real controls unchanged and functional",
+    "pass": true,
+    "detail": "5 real shades, 3 real bundles, original state functions, simulated commerce boundary"
+  },
+  {
+    "test": "Same visitor sticky on reload",
+    "pass": true,
+    "detail": "variant-b"
+  },
+  {
+    "test": "B mounts once without A",
+    "pass": true,
+    "detail": "No control in active DOM; duplicate initialization ignored"
+  },
+  {
+    "test": "Original A controller preserved",
+    "pass": true,
+    "detail": "Original thumbnail handlers work"
+  },
+  {
+    "test": "Image failure never relabels B",
+    "pass": true,
+    "detail": "Failed B never switches to A or reports exposure"
+  },
+  {
+    "test": "Storage getter blocked",
+    "pass": true,
+    "detail": "Usable page, unstable identity excluded"
+  },
+  {
+    "test": "JavaScript disabled",
+    "pass": true,
+    "detail": "Original control without JS"
+  }
+]

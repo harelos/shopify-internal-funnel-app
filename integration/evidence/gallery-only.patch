@@ -1,0 +1,546 @@
+diff --git a/app/cloudflare-pilot/migrations/0019_gallery_bootstrap_snapshot.sql b/app/cloudflare-pilot/migrations/0019_gallery_bootstrap_snapshot.sql
+new file mode 100644
+index 0000000..f134535
+--- /dev/null
++++ b/app/cloudflare-pilot/migrations/0019_gallery_bootstrap_snapshot.sql
+@@ -0,0 +1,14 @@
++-- Additive, staging-first. Never apply against a remote binding without owner approval.
++CREATE TABLE IF NOT EXISTS GalleryBootstrapSnapshot (
++ cohortHash TEXT PRIMARY KEY NOT NULL,
++ experimentId TEXT NOT NULL,
++ manifestJson TEXT NOT NULL,
++ createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
++ FOREIGN KEY (experimentId) REFERENCES ElementExperiment(id) ON DELETE RESTRICT
++);
++CREATE INDEX IF NOT EXISTS GalleryBootstrapSnapshot_experiment ON GalleryBootstrapSnapshot(experimentId);
++CREATE TABLE IF NOT EXISTS GalleryBootstrapLock (
++ experimentId TEXT PRIMARY KEY NOT NULL,
++ owner TEXT NOT NULL,
++ expiresAt INTEGER NOT NULL DEFAULT 0
++);
+diff --git a/app/cloudflare-pilot/public/assets/funnel-control-attribution.js b/app/cloudflare-pilot/public/assets/funnel-control-attribution.js
+index 06ddfee..c475031 100644
+--- a/app/cloudflare-pilot/public/assets/funnel-control-attribution.js
++++ b/app/cloudflare-pilot/public/assets/funnel-control-attribution.js
+@@ -1 +1 @@
+-!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var c=Array.isArray(r.elementAssignments)?r.elementAssignments:[],a=o&&o.assignment;a&&a.experimentId&&(c=c.filter(function(t){return t&&t.experimentId!==a.experimentId})).push({assignmentId:n(a.assignmentId,180),experimentId:n(a.experimentId,180),variantId:n(a.variantId,180),slotId:n(a.slotId,180)}),r.elementAssignments=c.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=c.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o);var s=JSON.stringify(r),c=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(c+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(c+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();
++!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var a=Array.isArray(r.elementAssignments)?r.elementAssignments:[],c=o&&o.assignment;c&&c.experimentId&&(a=a.filter(function(t){return t&&t.experimentId!==c.experimentId})).push({assignmentId:n(c.assignmentId,180),experimentId:n(c.experimentId,180),variantId:n(c.variantId,180),slotId:n(c.slotId,180)}),r.elementAssignments=a.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=a.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o),t.pendingGalleryBootstrap&&(r.pendingGalleryBootstrap=t.pendingGalleryBootstrap),Array.isArray(t.elementAssignments)&&(r.elementAssignments=t.elementAssignments.slice(-4));var s=JSON.stringify(r),a=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(a+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(a+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();
+diff --git a/app/cloudflare-pilot/public/assets/funnel-control-elements.js b/app/cloudflare-pilot/public/assets/funnel-control-elements.js
+index 4fd9191..8eefd97 100644
+--- a/app/cloudflare-pilot/public/assets/funnel-control-elements.js
++++ b/app/cloudflare-pilot/public/assets/funnel-control-elements.js
+@@ -1,2 +1,2 @@
+-!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var c=Array.isArray(r.elementAssignments)?r.elementAssignments:[],a=o&&o.assignment;a&&a.experimentId&&(c=c.filter(function(t){return t&&t.experimentId!==a.experimentId})).push({assignmentId:n(a.assignmentId,180),experimentId:n(a.experimentId,180),variantId:n(a.variantId,180),slotId:n(a.slotId,180)}),r.elementAssignments=c.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=c.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o);var s=JSON.stringify(r),c=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(c+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(c+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();
++!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var a=Array.isArray(r.elementAssignments)?r.elementAssignments:[],c=o&&o.assignment;c&&c.experimentId&&(a=a.filter(function(t){return t&&t.experimentId!==c.experimentId})).push({assignmentId:n(c.assignmentId,180),experimentId:n(c.experimentId,180),variantId:n(c.variantId,180),slotId:n(c.slotId,180)}),r.elementAssignments=a.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=a.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o),t.pendingGalleryBootstrap&&(r.pendingGalleryBootstrap=t.pendingGalleryBootstrap),Array.isArray(t.elementAssignments)&&(r.elementAssignments=t.elementAssignments.slice(-4));var s=JSON.stringify(r),a=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(a+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(a+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();
+ !function(){"use strict";var e=document.currentScript&&document.currentScript.src||"";function t(){var t=document.querySelector("[data-funnel-control-config]");return!!t&&(function(t){if("true"!==t.dataset.fceBooted){var n;t.dataset.fceBooted="true";try{n=JSON.parse(t.textContent||"{}")}catch(e){return}var i="";if(w(),"loading"===document.readyState){var a=new MutationObserver(w);a.observe(document.documentElement,{childList:!0,subtree:!0}),document.addEventListener("DOMContentLoaded",function(){w(),a.disconnect()},{once:!0})}}function o(){!n.debug||!window.console||console.info.apply(console,["[Funnel Control]"].concat(Array.prototype.slice.call(arguments)))}function r(){return window.crypto&&"function"==typeof window.crypto.randomUUID?window.crypto.randomUUID():"evt_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)}function s(e,t){try{return e.getItem(t)||""}catch(e){return""}}function c(e,t,n){try{e.setItem(t,n)}catch(e){o("Browser storage unavailable; using page-scoped identity fallback")}}function l(){return!(!window.posthog||"function"!=typeof window.posthog.capture||"function"==typeof window.posthog.has_opted_out_capturing&&window.posthog.has_opted_out_capturing())}function d(e,t){l()&&window.posthog.capture(e,Object.assign({event_id:r()},t))}function u(e,t){return n.labels&&n.labels[e]||t}function p(e){return{experiment_id:e.experimentId,experiment_key:e.experimentKey,experiment_variant:e.variantKey,assignment_id:e.assignmentId,allocation_version:e.allocationVersion,slot_id:e.slotId,slot_key:e.slotKey,template_type:e.templateType,template_version:e.templateVersion,content_revision:e.contentRevision,page_id:n.pagePath,is_internal:!!n.isInternal}}function m(e,t){var i={visitorId:t,isInternal:!!n.isInternal,assignment:{assignmentId:e.assignmentId,experimentId:e.experimentId,variantId:e.variantId,slotId:e.slotId}};window.FunnelControlAttribution&&"function"==typeof window.FunnelControlAttribution.persist?window.FunnelControlAttribution.persist(i):(window.__funnelControlAttributionQueue=window.__funnelControlAttributionQueue||[],window.__funnelControlAttributionQueue.push(i))}function f(e,t){if(n.isInternal)return Promise.resolve();var i=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/",a=String(n.endpoint||"/apps/funnels").replace(/\/$/,"")+"/element-cart-attribution";return fetch(i+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(e){if(!e.ok)throw new Error("cart_"+e.status);return e.json()}).then(function(n){var i=String(n&&n.token||"").split("?")[0];if(i){var o="_fce_cart:"+i+":"+e.experimentId+":"+e.assignmentId;if(!s(sessionStorage,o))return fetch(a,{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({cartToken:i,visitorId:t,elementAssignments:[{assignmentId:e.assignmentId,experimentId:e.experimentId,variantId:e.variantId,slotId:e.slotId}]})}).then(function(e){if(!e.ok)throw new Error("cart_attribution_"+e.status);c(sessionStorage,o,"1")})}}).catch(function(e){o("Cart attribution persistence failed",e.message)})}function g(e,t,i){var a=p(e),u="_fce_exposure:"+e.experimentKey+":"+e.allocationVersion+":"+e.variantKey;s(sessionStorage,u)||(c(sessionStorage,u,"1"),function(e,t,i){var a=String(n.endpoint||"/apps/funnels").replace(/\/$/,"")+"/element-exposure";fetch(a,{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({eventId:i,visitorId:t,assignmentId:e.assignmentId,experimentId:e.experimentId,variantId:e.variantId,slotId:e.slotId,isInternal:!!n.isInternal})}).catch(function(e){o("Exposure persistence failed",e.message)})}(e,t,r()));var f=u+":posthog";if(!s(sessionStorage,f)){if(!l())return void((i||0)<40&&window.setTimeout(function(){g(e,t,(i||0)+1)},250));m(e,t),c(sessionStorage,f,"1"),e.posthogFlagKey&&window.posthog.capture("$feature_flag_called",Object.assign({$feature_flag:e.posthogFlagKey,$feature_flag_response:e.variantKey},a)),d("experiment_exposed",a),window.dispatchEvent(new CustomEvent("funnel-control:experiment-exposed",{detail:a}))}}function v(e,t,n,i,a){d(t,Object.assign({},p(e),{image_id:n.id,image_index:i+1},a||{}))}function h(e,t,n){var i=t.payload||{};if(e.dataset.experimentKey=t.experimentKey,e.dataset.experimentVariant=t.variantKey,e.dataset.assignmentId=t.assignmentId,t.isControl||i.preserveExisting)return e.dataset.fceReady="true",m(t,n),f(t,n),g(t,n),!0;if(!Array.isArray(i.items)||0===i.items.length)return!1;var a=document.createElement("div");a.className="fce-gallery",a.setAttribute("role","region"),a.setAttribute("aria-label",u("gallery","Product gallery"));var o=document.createElement("figure");o.className="fce-gallery__stage";var r=document.createElement("img");r.className="fce-gallery__image",r.decoding="async",r.loading="eager";var s=document.createElement("figcaption");s.className="fce-gallery__caption",o.appendChild(r),o.appendChild(s);var c=document.createElement("div");c.className="fce-gallery__thumbs",c.setAttribute("aria-label",u("images","Gallery images"));var l=[],d=Math.max(0,Math.min(i.items.length-1,Number(i.initialIndex)||0)),p=0;function h(e){if(p){var n=Date.now()-p;n>=500&&v(t,"gallery_image_engaged",i.items[d],d,{view_duration_ms:n,interaction_source:e}),p=0}}function y(e,n){var a=(e+i.items.length)%i.items.length;p&&h(n||"change"),d=a;var o=i.items[d];r.src=o.src,r.alt=o.alt,s.textContent=o.caption||"",s.hidden=!o.caption,l.forEach(function(e,t){e.setAttribute("aria-current",t===d?"true":"false")}),p=Date.now(),v(t,"gallery_image_viewed",o,d,{interaction_source:n||"initial"})}i.items.forEach(function(e,n){var i=document.createElement("button");i.type="button",i.className="fce-gallery__thumb",i.setAttribute("aria-label",u("showImage","Show image")+" "+(n+1));var a=document.createElement("img");a.className="fce-gallery__thumb-image",a.src=e.src,a.alt="",a.loading="lazy",a.decoding="async",i.appendChild(a),i.addEventListener("click",function(){v(t,"gallery_thumbnail_clicked",e,n,{interaction_type:"thumbnail"}),y(n,"thumbnail")}),l.push(i),c.appendChild(i)});var w=null;return o.addEventListener("pointerdown",function(e){w=e.clientX}),o.addEventListener("pointerup",function(e){if(null!==w){var n=e.clientX-w;if(w=null,!(Math.abs(n)<45)){var a=n<0?d+1:d-1;v(t,"gallery_swiped",i.items[d],d,{interaction_type:"swipe",direction:n<0?"left":"right"}),y(a,"swipe")}}}),a.appendChild(o),!1!==i.showThumbnails&&a.appendChild(c),e.replaceChildren(a),e.dataset.fceReady="true",m(t,n),f(t,n),g(t,n),y(d,"initial"),window.addEventListener("pagehide",function(){h("pagehide")},{once:!0}),document.addEventListener("visibilitychange",function(){document.hidden?h("hidden"):p||(p=Date.now())}),!0}function y(t){var a=t.getAttribute("data-funnel-slot");if(!a||"true"===t.dataset.fceLoading||"true"===t.dataset.fceReady)return Promise.resolve();t.dataset.fceLoading="true";var l=String(n.endpoint||"/apps/funnels").replace(/\/$/,""),d=function(){var e="_fce_visitor",t=s(localStorage,e)||function(e){for(var t=e+"=",n=String(document.cookie||"").split(";"),i=0;i<n.length;i+=1){var a=n[i].trim();if(0===a.indexOf(t))return decodeURIComponent(a.slice(13))}return""}(e)||i;if(t)return t;var n=r();i=n,c(localStorage,e,n);try{document.cookie=e+"="+encodeURIComponent(n)+"; Path=/; Max-Age=31536000; SameSite=Lax; Secure"}catch(e){o("Cookie storage unavailable")}return n}(),u=String(n.selectionEndpoint||"").replace(/\/$/,"");if(!u&&e){var p=new URL(e);"shopify-funnel-control.tigerbrands-funnel.workers.dev"===p.hostname&&(u=p.origin+"/apps/funnels/public")}var m=(u||l)+"/element-runtime/"+encodeURIComponent(a)+"?page="+encodeURIComponent(n.pagePath||window.location.pathname)+"&visitor_id="+encodeURIComponent(d),f=!1,g=Math.max(400,Math.min(2e3,Number(n.revealTimeoutMs)||1400)),v=window.setTimeout(function(){f=!0,t.dataset.fceReady="true",t.dataset.fceFallback="timeout",o("Control revealed after runtime timeout",a)},g);function y(e){f||(f=!0,window.clearTimeout(v),t.dataset.fceReady="true",t.dataset.fceFallback=e)}return fetch(m,{credentials:u?"omit":"same-origin"}).then(function(e){if(!e.ok)throw new Error("runtime_"+e.status);return e.json()}).then(function(e){if(!f){if(!e.active)return o("Inactive slot",a,e.reason),void y("inactive");if("GALLERY"===e.templateType){var n=e.payload||{},i=!e.isControl&&!n.preserveExisting&&Array.isArray(n.items)&&n.items[0]&&n.items[0].src;if(i)return function(e){return new Promise(function(t){if(e){var n=new Image,i=!1;n.onload=function(){a(!0)},n.onerror=function(){a(!1)},n.src=e,n.complete&&n.naturalWidth>0&&a(!0)}else t(!1);function a(e){i||(i=!0,n.onload=null,n.onerror=null,t(e))}})}(i).then(function(n){f||(n?(window.clearTimeout(v),h(t,e,d)||y("invalid_payload"),f=!0):y("image_error"))});window.clearTimeout(v),h(t,e,d)||y("invalid_payload"),f=!0}else y("unsupported_template")}}).catch(function(e){o("Control preserved after runtime failure",a,e.message),t.dataset.fceError="true",y("runtime_error")})}function w(){var e=Array.prototype.slice.call(document.querySelectorAll("[data-funnel-slot]")),t=Array.isArray(n.slots)?n.slots:[],i=(n.pagePath||window.location.pathname||"").replace(/\/+$/,"")||"/";t.forEach(function(t){if(t&&t.slotKey&&t.selector){var n=(t.pagePath||"").replace(/\/+$/,"")||"/";if(!t.pagePath||n===i){var a;try{a=document.querySelector(t.selector)}catch(e){return void o("Invalid slot selector",t.selector)}a&&(a.hasAttribute("data-funnel-slot")||a.setAttribute("data-funnel-slot",t.slotKey),e.indexOf(a)<0&&e.push(a))}}}),e.forEach(y)}}(t),!0)}if(!t()&&document.documentElement){var n=new MutationObserver(function(){t()&&n.disconnect()});n.observe(document.documentElement,{childList:!0,subtree:!0}),document.addEventListener("DOMContentLoaded",function(){t(),n.disconnect()},{once:!0})}}();
+diff --git a/app/cloudflare-pilot/src/lib/gallery-bootstrap-manifest.ts b/app/cloudflare-pilot/src/lib/gallery-bootstrap-manifest.ts
+new file mode 100644
+index 0000000..dc0345f
+--- /dev/null
++++ b/app/cloudflare-pilot/src/lib/gallery-bootstrap-manifest.ts
+@@ -0,0 +1,111 @@
++import { createHash } from "node:crypto";
++
++export type GalleryImage = { id: string; src: string; alt: string; caption?: string };
++export type GalleryArm = { id: string; key: string; isControl: boolean; weightBasisPoints: number; revision: number; payload: { preserveExisting?: boolean; items?: GalleryImage[]; initialIndex?: number; showThumbnails?: boolean } };
++export type GalleryManifest = {
++  schemaVersion: 2; environment: "STAGING" | "LIVE"; pagePath: string; slotId: string; slotKey: string;
++  experimentId: string; experimentKey: string; allocationVersion: number; cohortHash: string;
++  status: "RUNNING" | "PAUSED" | "PROMOTED"; promotedVariantId: string | null;
++  publishedAt: string; posthogFlagKey: string | null; variants: GalleryArm[];
++};
++const id = (v: unknown) => typeof v === "string" && /^[A-Za-z0-9_.-]{3,200}$/.test(v);
++export function digest(value: string): string { return createHash("sha256").update(value).digest("hex"); }
++export function canonical(value: any): string {
++  if(value===null||typeof value!=="object") {const text=JSON.stringify(value);if(text===undefined)throw Error("Undefined manifest value");return text;}
++  if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";
++  return "{"+Object.keys(value).sort().map(key=>JSON.stringify(key)+":"+canonical(value[key])).join(",")+"}";
++}
++export function cohortHash(m: Pick<GalleryManifest,"experimentId"|"slotId"|"allocationVersion"|"variants">): string {
++  return digest(canonical([m.experimentId,m.slotId,m.allocationVersion,m.variants.slice().sort((a,b)=>a.id.localeCompare(b.id))]));
++}
++export function validateManifest(m: GalleryManifest): GalleryManifest {
++  if (!m || m.schemaVersion !== 2 || !["STAGING","LIVE"].includes(m.environment)) throw Error("Invalid gallery bootstrap schema");
++  if (![m.experimentId,m.slotId,m.slotKey,m.experimentKey].every(id)) throw Error("Invalid gallery identity");
++  if (!/^\/pages\/[a-z0-9-]+$/.test(m.pagePath)) throw Error("Invalid page path");
++  if (!Number.isSafeInteger(m.allocationVersion) || m.allocationVersion < 1) throw Error("Invalid allocation version");
++  if (!["RUNNING","PAUSED","PROMOTED"].includes(m.status)) throw Error("Invalid state");
++  if (!Array.isArray(m.variants) || m.variants.length !== 2 || m.variants.filter(v=>v.isControl).length !== 1) throw Error("Exactly two gallery arms and one control required");
++  if (new Set(m.variants.map(v=>v.id)).size !== 2 || new Set(m.variants.map(v=>v.key)).size !== 2) throw Error("Duplicate variants");
++  let total=0;
++  for (const v of m.variants) {
++    if (!id(v.id)||!id(v.key)||!Number.isSafeInteger(v.revision)||v.revision<1) throw Error("Invalid variant");
++    if (!Number.isInteger(v.weightBasisPoints)||v.weightBasisPoints<0) throw Error("Invalid weight");
++    total+=v.weightBasisPoints;
++    if (v.isControl) { if(v.payload.preserveExisting!==true) throw Error("Control must preserve original markup"); }
++    else {
++      const items=v.payload.items;
++      if(!Array.isArray(items)||!items.length||items.length>30||new Set(items.map(i=>i.id)).size!==items.length) throw Error("Invalid image list");
++      for(const image of items) {
++        if(!id(image.id)||typeof image.alt!=="string"||image.alt.length>500) throw Error("Invalid image metadata");
++        const url=new URL(image.src);
++        if(url.protocol!=="https:"||url.hostname!=="cdn.shopify.com"||!url.pathname.startsWith("/s/files/")) throw Error("Only approved Shopify CDN images permitted");
++      }
++      const i=v.payload.initialIndex??0;
++      if(!Number.isInteger(i)||i<0||i>=items.length) throw Error("Invalid initial image index");
++    }
++  }
++  if(total!==10000) throw Error("Allocation must total 10000 basis points");
++  if(m.status==="PROMOTED"&&!m.variants.some(v=>v.id===m.promotedVariantId)) throw Error("Invalid promoted arm");
++  if(m.cohortHash!==cohortHash(m)) throw Error("Manifest fingerprint mismatch");
++  return m;
++}
++/** Input is the actual Prisma experiment including allocations, slot and published versions. */
++export function manifestFromExperiment(experiment: any, environment: "STAGING"|"LIVE" = "STAGING", now = new Date()): GalleryManifest {
++  if(!experiment?.slot || experiment.slot.template?.type!=="GALLERY") throw Error("Gallery experiment required");
++  const variants: GalleryArm[]=experiment.slot.variants.map((v:any)=>{
++    const version=v.versions.find((r:any)=>r.id===v.publishedVersionId);
++    if(!version) throw Error(`Unpublished variant ${v.key}`);
++    const payload=JSON.parse(version.payloadJson);
++    const allocation=experiment.allocations.find((a:any)=>a.variantId===v.id);
++    return {id:v.id,key:v.key,isControl:Boolean(v.isControl),weightBasisPoints:allocation?.weightBasisPoints??0,revision:version.revision,payload};
++  }).sort((a:GalleryArm,b:GalleryArm)=>a.id.localeCompare(b.id));
++  const status=experiment.status==="RUNNING"&&experiment.slot.status==="ACTIVE"?"RUNNING":experiment.status==="COMPLETED"&&experiment.slot.status==="ACTIVE"?"PROMOTED":"PAUSED";
++  const m: GalleryManifest={schemaVersion:2,environment,pagePath:experiment.slot.pagePath,slotId:experiment.slot.id,slotKey:experiment.slot.slotKey,
++    experimentId:experiment.id,experimentKey:experiment.key,allocationVersion:experiment.allocationVersion,cohortHash:"",status,
++    promotedVariantId:status==="PROMOTED"?(variants.find(v=>v.weightBasisPoints===10000)?.id??null):null,
++    publishedAt:now.toISOString(),posthogFlagKey:experiment.posthogFlagKey??null,variants};
++  m.cohortHash=cohortHash(m);return validateManifest(m);
++}
++export function selectedVariant(m: GalleryManifest, visitorId: string): GalleryArm {
++  validateManifest(m);
++  if(typeof visitorId!=="string"||visitorId.length<8||visitorId.length>200)throw Error("Invalid visitor");
++  const bucket=parseInt(digest(`${visitorId}:${m.experimentId}:${m.allocationVersion}`).slice(0,12),16)%10000;
++  let cursor=0;
++  for(const variant of m.variants.slice().sort((a,b)=>a.id.localeCompare(b.id))) { cursor+=variant.weightBasisPoints;if(bucket<cursor)return variant; }
++  throw Error("Unallocated visitor");
++}
++export function serializeInline(m: GalleryManifest): string {
++  return JSON.stringify(validateManifest(m)).replace(/</g,"\\u003c").replace(/\u2028/g,"\\u2028").replace(/\u2029/g,"\\u2029");
++}
++export type PendingGallery = { experimentId:string;slotId:string;allocationVersion:number;variantId:string;cohortHash:string };
++export function validatePending(m: GalleryManifest,p: PendingGallery,visitorId:string) {
++  if(!p||p.experimentId!==m.experimentId||p.slotId!==m.slotId||p.allocationVersion!==m.allocationVersion||p.cohortHash!==m.cohortHash)throw Error("Stale gallery context");
++  if(selectedVariant(m,visitorId).id!==p.variantId)throw Error("Gallery assignment mismatch");
++  return p;
++}
++/** Async registration is not allowed to overwrite a historical assignment. */
++export async function resolveAssignment(ports: {find:()=>Promise<any>;create:()=>Promise<any>},pending:PendingGallery,current:()=>Promise<GalleryManifest>) {
++  const existing=await ports.find();
++  if(existing) {
++    if(existing.experimentId!==pending.experimentId||existing.variantId!==pending.variantId||existing.allocationVersion!==pending.allocationVersion)throw Error("Existing assignment conflict; history preserved");
++    return existing;
++  }
++  const manifest=await current();
++  if(manifest.status!=="RUNNING"||manifest.cohortHash!==pending.cohortHash)throw Error("Enrollment closed or publication changed");
++  let row;
++  try {row=await ports.create();} catch(error) {row=await ports.find();if(!row)throw error;}
++  if(row.variantId!==pending.variantId||row.allocationVersion!==pending.allocationVersion)throw Error("Concurrent assignment conflict");
++  return row;
++}
++export type PublishPorts={read:()=>Promise<{value:string|null;compareDigest:string|null}>;write:(value:string,expected:string|null)=>Promise<{value:string;compareDigest:string}>};
++/** Shopify metafieldsSet CAS prevents a concurrent publisher from silently winning. */
++export async function publishManifest(m:GalleryManifest,ports:PublishPorts) {
++  validateManifest(m);const before=await ports.read();
++  if(before.value) {
++    const prior=JSON.parse(before.value) as GalleryManifest;
++    if(prior.experimentId===m.experimentId&&prior.allocationVersion===m.allocationVersion&&prior.cohortHash!==m.cohortHash&&m.status!=="PROMOTED")throw Error("Content/allocation changed within a cohort; publish a separately approved phase");
++  }
++  const value=JSON.stringify(m);const result=await ports.write(value,before.compareDigest);
++  if(result.value!==value)throw Error("Publication readback mismatch");
++  return {state:"PUBLISHED",cohortHash:m.cohortHash,compareDigest:result.compareDigest};
++}
+diff --git a/app/cloudflare-pilot/src/routes/gallery-bootstrap.ts b/app/cloudflare-pilot/src/routes/gallery-bootstrap.ts
+new file mode 100644
+index 0000000..4dcf6e5
+--- /dev/null
++++ b/app/cloudflare-pilot/src/routes/gallery-bootstrap.ts
+@@ -0,0 +1,55 @@
++import { Router } from "express";
++import { getShopifyConfig } from "../lib/shopify-config.js";
++import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
++import { readGalleryManifest, registerGallery, runBootstrapCommand, bootstrapConfiguredFor, isBoundVariant } from "../services/gallery-bootstrap.js";
++export const galleryBootstrapAdmin = Router();
++export const galleryBootstrapRuntime = Router();
++// Mounted after existing requireShopifySession middleware.
++galleryBootstrapAdmin.get('/element-experiments/:id/bootstrap-manifest',async(req,res)=>{
++ try {res.setHeader('Cache-Control','private, no-store');return res.json(await readGalleryManifest(String(req.params.id)));}
++ catch(error:any){return res.status(409).json({error:error.message});}
++});
++galleryBootstrapAdmin.post('/element-experiments/:id/bootstrap-publish',async(req,res)=>{
++ const sessionToken=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'')||undefined;
++ try {const result=await runBootstrapCommand(String(req.params.id),'sync',undefined,sessionToken);return res.status(result.bootstrap.state==='PUBLISHED'?200:409).json(result);}
++ catch(error:any){return res.status(409).json({error:error.message});}
++});
++galleryBootstrapRuntime.post('/gallery-bootstrap/register',async(req,res)=>{
++ if(getShopifyConfig().liveConnect&&!verifyShopifyAppProxyRequest(req))return res.status(401).json({error:'Signed Shopify proxy required'});
++ try {
++  if(req.body?.isInternal===true)return res.json({internal:true,accepted:false});
++  const result=await registerGallery(req.body?.visitorId,req.body?.pending);
++  res.setHeader('Cache-Control','private, no-store');return res.json({accepted:true,...result});
++ }catch(error:any){return res.status(409).json({accepted:false,error:error.message});}
++});
++for(const action of ['start','pause','promote'] as const) {
++ const suffix=action==='promote'?'/promote/:variantId':`/${action}`;
++ galleryBootstrapAdmin.post(`/element-experiments/:id${suffix}`,async(req,res,next)=>{
++  const params=req.params as Record<string,string>;
++  const id=String(params.id);if(!bootstrapConfiguredFor(id))return next();
++  try {
++   const token=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'')||undefined;
++   const result=await runBootstrapCommand(id,action,params.variantId||undefined,token);
++   if(result.bootstrap.state!=='PUBLISHED')return res.status(409).json({...result,error:'App state saved, storefront publication FAILED. Do not treat the action as complete. Retry bootstrap-publish.'});
++   return res.json(result);
++  }catch(error:any){return res.status(409).json({error:error.message});}
++ });
++}
++galleryBootstrapAdmin.patch('/element-experiments/:id/allocations',(req,res,next)=>{
++ if(!bootstrapConfiguredFor(String(req.params.id)))return next();
++ return res.status(409).json({error:'Bootstrap cohort is frozen. A new allocation requires a separate approved experiment.'});
++});
++galleryBootstrapAdmin.post('/element-variants/:id/publish',async(req,res,next)=>{
++ if(!await isBoundVariant(String(req.params.id)))return next();
++ return res.status(409).json({error:'Published bootstrap content is frozen. Save drafts, then prepare a separate approved experiment.'});
++});
++
++// bound-slot-guard: the target is part of an immutable cohort.
++galleryBootstrapAdmin.patch('/element-slots/:id',async(req,res,next)=>{
++ const { workerEnvValue }=await import('../lib/shopify-config.js');
++ const experimentId=workerEnvValue('GALLERY_BOOTSTRAP_EXPERIMENT_ID');
++ if(!bootstrapConfiguredFor(experimentId))return next();
++ try {const manifest=await readGalleryManifest(experimentId);if(manifest.slotId!==String(req.params.id))return next();}
++ catch(error:any){return res.status(409).json({error:error.message});}
++ return res.status(409).json({error:'Bootstrap slot is frozen. Prepare a separate approved experiment instead.'});
++});
+diff --git a/app/cloudflare-pilot/src/routes/shopify-ingest.ts b/app/cloudflare-pilot/src/routes/shopify-ingest.ts
+index 13da4ec..d6aa507 100644
+--- a/app/cloudflare-pilot/src/routes/shopify-ingest.ts
++++ b/app/cloudflare-pilot/src/routes/shopify-ingest.ts
+@@ -3,6 +3,7 @@ import { Router } from "express";
+ import { getShopifyConfig, normalizeShopDomain, workerEnvValue } from "../lib/shopify-config.js";
+ import { normalizeShopifyCartToken } from "../lib/shopify-cart-token.js";
+ import prisma from "../lib/db.js";
++import { pendingGalleryContexts } from "../services/gallery-bootstrap.js";
+ import { createEventOnce } from "../lib/event-store.js";
+ import { findOrCreateVisitor } from "../lib/visitor-store.js";
+ import { extractDiscountCodes, extractPopupAttribution } from "../lib/popup-attribution.js";
+@@ -441,7 +442,7 @@ router.post("/api/shopify/pixel", async (req, res) => {
+       isTest: Boolean(normalized.value.isInternal),
+     });
+ 
+-    if (eventResult.duplicate) return res.json({ accepted: true, duplicate: true });
++    if (eventResult.duplicate && !rawContext.pendingGalleryBootstrap) return res.json({ accepted: true, duplicate: true });
+ 
+     if (normalized.value.checkoutToken && normalized.value.name === "CART_CHECKOUT_STARTED") {
+       await prisma.checkoutAttribution.upsert({
+@@ -450,11 +451,14 @@ router.post("/api/shopify/pixel", async (req, res) => {
+         create: { shopId: shop.id, checkoutToken: normalized.value.checkoutToken, visitorId: visitor?.id ?? null, funnelId: context.funnelId ?? null, lastStepId: context.stepId ?? null, lastVariantId: context.variantId ?? null, startedAt: normalized.value.occurredAt ?? new Date(), confidence: "MEDIUM" },
+       });
+       if (visitor) {
++        let bootstrapContexts: any[] = [];
++        try { bootstrapContexts = await pendingGalleryContexts(rawContext, context.visitorId!); }
++        catch (_error) { console.warn("Gallery bootstrap checkout context was not resolved; no inferred attribution added."); }
+         const captured = await snapshotCheckoutElementAssignments({
+           shopId: shop.id,
+           checkoutToken: normalized.value.checkoutToken,
+           visitorId: visitor.id,
+-          contexts: normalizeElementAssignmentContexts(rawContext.elementAssignments),
++          contexts: normalizeElementAssignmentContexts([...(Array.isArray(rawContext.elementAssignments) ? rawContext.elementAssignments : []), ...bootstrapContexts]),
+         });
+         if (captured > 0) {
+           await prisma.checkoutAttribution.update({
+@@ -469,6 +473,7 @@ router.post("/api/shopify/pixel", async (req, res) => {
+       await prisma.checkoutAttribution.updateMany({ where: { checkoutToken: normalized.value.checkoutToken }, data: { completedAt: normalized.value.occurredAt ?? new Date() } });
+     }
+ 
++    if (eventResult.duplicate) return res.json({ accepted: true, duplicate: true });
+     if (!normalized.value.isInternal && normalized.value.posthogDistinctId) {
+       const posthogProperties: Record<string, string | number | boolean | null> = {
+         event_schema_version: 1,
+diff --git a/app/cloudflare-pilot/src/server.ts b/app/cloudflare-pilot/src/server.ts
+index 62eaccc..c2a340d 100644
+--- a/app/cloudflare-pilot/src/server.ts
++++ b/app/cloudflare-pilot/src/server.ts
+@@ -19,6 +19,7 @@ import shopifyRoutes from "./routes/shopify.js";
+ import shopifyIngestRoutes from "./routes/shopify-ingest.js";
+ import { aiConciergeStorefront, aiConciergeAdmin } from "./routes/ai-concierge.js";
+ import { cartOfferAdmin, cartOfferStorefront } from "./routes/cart-offers.js";
++import { galleryBootstrapAdmin, galleryBootstrapRuntime } from "./routes/gallery-bootstrap.js";
+ import { elementAdminRouter, elementRuntimeRouter } from "./routes/element-experiments.js";
+ import { supportAdminRouter, supportBridgeRouter } from "./routes/support-desk.js";
+ import { requireShopifySession } from "./middleware/shopify-auth.js";
+@@ -123,6 +124,7 @@ import novahairRoutes from "./routes/novahair.js";
+ 
+ // Storefront element experiments must be mounted before the generic funnel
+ // proxy so /apps/funnels/element-runtime/... is not interpreted as a slug.
++app.use("/apps/funnels", galleryBootstrapRuntime);
+ app.use("/apps/funnels", elementRuntimeRouter);
+ 
+ // Mount ingest and order routes before the storefront proxy surface.
+@@ -152,6 +154,7 @@ app.get("/api/health", (_req, res) => {
+ // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
+ app.use("/api", requireShopifySession);
+ app.use("/api", supportAdminRouter);
++app.use("/api", galleryBootstrapAdmin);
+ app.use("/api", elementAdminRouter);
+ app.use("/api", funnelRoutes);
+ app.use("/api", stepRoutes);
+diff --git a/app/cloudflare-pilot/src/services/gallery-bootstrap.ts b/app/cloudflare-pilot/src/services/gallery-bootstrap.ts
+new file mode 100644
+index 0000000..6d64c9f
+--- /dev/null
++++ b/app/cloudflare-pilot/src/services/gallery-bootstrap.ts
+@@ -0,0 +1,114 @@
++import { randomUUID } from "node:crypto";
++import prisma from "../lib/db.js";
++import { workerEnvValue } from "../lib/shopify-config.js";
++import { ShopifyAdminClient } from "../lib/shopify-admin.js";
++import { hashAnonymousKey } from "./element-ab-engine.js";
++import { manifestFromExperiment, publishManifest, resolveAssignment, validateManifest, validatePending, type GalleryManifest, type PendingGallery } from "../lib/gallery-bootstrap-manifest.js";
++function config() {
++  const mode=workerEnvValue("GALLERY_BOOTSTRAP_MODE");
++  return {enabled:["staging","live-approved"].includes(mode),mode,experimentId:workerEnvValue("GALLERY_BOOTSTRAP_EXPERIMENT_ID"),pageId:workerEnvValue("GALLERY_BOOTSTRAP_PAGE_ID")};
++}
++function db():D1Database {
++  const value=(globalThis as any).__SHOPIFY_WORKER_ENV__?.DB;
++  if(!value)throw Error("Gallery bootstrap D1 unavailable");return value;
++}
++export function bootstrapConfiguredFor(experimentId:string) {const c=config();return c.enabled&&c.experimentId===experimentId;}
++export async function readGalleryManifest(experimentId:string) {
++  if(!bootstrapConfiguredFor(experimentId))throw Error("Gallery bootstrap is not enabled for this experiment");
++  const e=await prisma.elementExperiment.findUnique({where:{id:experimentId},include:{allocations:true,slot:{include:{template:true,variants:{include:{versions:true}}}}}});
++  if(!e)throw Error("Unknown gallery experiment");
++  return manifestFromExperiment(e,config().mode==="live-approved"?"LIVE":"STAGING");
++}
++export async function registerGallery(visitorId:string,pending:PendingGallery) {
++  if(!pending||!bootstrapConfiguredFor(pending.experimentId))throw Error("Bootstrap enrollment disabled");
++  if(typeof visitorId!=="string"||visitorId.length<8||visitorId.length>200||!/^[a-f0-9]{64}$/.test(pending.cohortHash))throw Error("Invalid visitor or snapshot");
++  const record=await db().prepare('SELECT manifestJson FROM GalleryBootstrapSnapshot WHERE cohortHash = ? AND experimentId = ?').bind(pending.cohortHash,pending.experimentId).first<{manifestJson:string}>();
++  if(!record)throw Error("Unknown published snapshot");
++  const snapshot=validateManifest(JSON.parse(record.manifestJson));
++  if(snapshot.status!=="RUNNING")throw Error("Nonexperimental snapshot cannot enroll visitors");
++  validatePending(snapshot,pending,visitorId);
++  const slot=await prisma.elementSlot.findUnique({where:{id:pending.slotId}});
++  if(!slot)throw Error("Unknown slot");
++  const visitor=await prisma.visitor.upsert({where:{shopId_anonymousKeyHash:{shopId:slot.shopId,anonymousKeyHash:hashAnonymousKey(visitorId)}},update:{},create:{shopId:slot.shopId,anonymousKeyHash:hashAnonymousKey(visitorId)}});
++  const where={visitorId_experimentId:{visitorId:visitor.id,experimentId:pending.experimentId}};
++  const assignment=await resolveAssignment({find:()=>prisma.elementAssignment.findUnique({where}),create:()=>prisma.elementAssignment.upsert({where,update:{},create:{visitorId:visitor.id,experimentId:pending.experimentId,variantId:pending.variantId,allocationVersion:pending.allocationVersion}})},pending,async()=>snapshot);
++  const variant=snapshot.variants.find(v=>v.id===assignment.variantId)!;
++  return {assignmentId:assignment.id,experimentId:snapshot.experimentId,experimentKey:snapshot.experimentKey,slotId:snapshot.slotId,slotKey:snapshot.slotKey,variantId:assignment.variantId,variantKey:variant.key,allocationVersion:snapshot.allocationVersion,posthogFlagKey:snapshot.posthogFlagKey,cohortHash:snapshot.cohortHash,pagePath:snapshot.pagePath,templateType:"GALLERY",templateVersion:2,contentRevision:variant.revision};
++}
++/** A fast checkout can register before the page's background request finishes. */
++export async function pendingGalleryContexts(raw:any,visitorId:string):Promise<any[]> {
++  if(!raw?.pendingGalleryBootstrap||raw.isInternal===true)return [];
++  const assignment=await registerGallery(visitorId,raw.pendingGalleryBootstrap);
++  return [{assignmentId:assignment.assignmentId,experimentId:assignment.experimentId,variantId:assignment.variantId,slotId:assignment.slotId}];
++}
++export async function syncGalleryBootstrap(experimentId:string,sessionToken?:string) {
++  if(!bootstrapConfiguredFor(experimentId))return {state:"DISABLED"};
++  const c=config();
++  try {
++    if(!/^gid:\/\/shopify\/Page\/\d+$/.test(c.pageId))throw Error("Explicit page binding required");
++    if(c.mode!=="live-approved"&&c.pageId==="gid://shopify/Page/162313240871")throw Error("Live page is forbidden in staging mode");
++    const manifest=await readGalleryManifest(experimentId);
++    if(c.mode!=="live-approved"&&!manifest.pagePath.startsWith("/pages/qa-"))throw Error("Staging publication requires a dedicated qa- page, not a live sales page");
++    // Pause/promote never overwrite historical cohort receipts.
++    if(manifest.status==="RUNNING") await db().prepare('INSERT OR IGNORE INTO GalleryBootstrapSnapshot (cohortHash, experimentId, manifestJson) VALUES (?, ?, ?)').bind(manifest.cohortHash,experimentId,JSON.stringify(manifest)).run();
++    const client=new ShopifyAdminClient();
++    return await publishManifest(manifest,{
++      read:async()=>{
++        const result:any=await client.graphql('query GalleryBootstrapPage($id:ID!) { page(id:$id) { id handle metafield(namespace:"funnel_control",key:"gallery_bootstrap") { value compareDigest } } }',{id:c.pageId},sessionToken);
++        if(!result.page||`/pages/${result.page.handle}`!==manifest.pagePath)throw Error("Bound page and experiment path differ");
++        return {value:result.page.metafield?.value??null,compareDigest:result.page.metafield?.compareDigest??null};
++      },
++      write:async(value,compareDigest)=>{
++        const result:any=await client.graphql('mutation GalleryBootstrapPublish($metafields:[MetafieldsSetInput!]!) { metafieldsSet(metafields:$metafields) { metafields { value compareDigest } userErrors { field message code } } }',{metafields:[{ownerId:c.pageId,namespace:"funnel_control",key:"gallery_bootstrap",type:"json",value,compareDigest}]},sessionToken);
++        const operation=result.metafieldsSet;
++        if(operation?.userErrors?.length||!operation?.metafields?.[0])throw Error(operation?.userErrors?.map((x:any)=>x.message).join('; ')||"Missing publication acknowledgement");
++        return operation.metafields[0];
++      }
++    });
++  } catch(error:any) {return {state:"PUBLISH_FAILED",reason:String(error.message),databaseChangeMayAlreadyBeSaved:true};}
++}
++/** One publisher per bound experiment. Abandoned requests expire without taking over live services. */
++export async function runBootstrapCommand(experimentId:string,command:"start"|"pause"|"promote"|"sync",variantId?:string,sessionToken?:string) {
++  if(!bootstrapConfiguredFor(experimentId))throw Error("Bootstrap command is not enabled");
++  const connection=db(),owner=randomUUID(),now=Date.now();
++  await connection.prepare('INSERT OR IGNORE INTO GalleryBootstrapLock (experimentId, owner, expiresAt) VALUES (?, ?, 0)').bind(experimentId,'').run();
++  const acquired=await connection.prepare('UPDATE GalleryBootstrapLock SET owner = ?, expiresAt = ? WHERE experimentId = ? AND expiresAt < ?').bind(owner,now+120000,experimentId,now).run();
++  if(!acquired.meta.changes)throw Error("Another bootstrap publication is in progress; retry after it completes");
++  try {
++    const e=await prisma.elementExperiment.findUnique({where:{id:experimentId},include:{allocations:true,slot:{include:{template:true,variants:{include:{versions:true}}}}}});
++    if(!e)throw Error("Unknown experiment");
++    if(command==='start') {
++      if(!['DRAFT','PAUSED','RUNNING'].includes(e.status))throw Error("Completed experiments cannot restart");
++      if(e.allocations.filter(a=>a.weightBasisPoints>0).length!==2)throw Error("A measured experiment requires two allocated arms");
++      manifestFromExperiment({...e,status:'RUNNING',slot:{...e.slot,status:'ACTIVE'}},'STAGING');
++      await prisma.elementExperiment.update({where:{id:experimentId},data:{status:'RUNNING',startedAt:e.startedAt??new Date(),endedAt:null}});
++      await prisma.elementSlot.update({where:{id:e.slotId},data:{status:'ACTIVE'}});
++    } else if(command==='pause') {
++      if(e.status==='COMPLETED')throw Error("Completed experiment cannot be reopened by pausing");
++      await prisma.elementExperiment.update({where:{id:experimentId},data:{status:'PAUSED'}});
++      await prisma.elementSlot.update({where:{id:e.slotId},data:{status:'DRAFT'}});
++    } else if(command==='promote') {
++      const v=e.slot.variants.find(v=>v.id===variantId&&v.publishedVersionId);
++      if(!v)throw Error("Promotion requires a published arm from this slot");
++      if(e.status==='COMPLETED')throw Error("Already promoted; use sync to retry publication without changing history");
++      await connection.batch([
++        connection.prepare('DELETE FROM ElementExperimentAllocation WHERE experimentId = ?').bind(experimentId),
++        connection.prepare('INSERT INTO ElementExperimentAllocation (id, experimentId, variantId, weightBasisPoints) VALUES (?, ?, ?, 10000)').bind(randomUUID(),experimentId,v.id),
++        connection.prepare("UPDATE ElementExperiment SET status = 'COMPLETED', endedAt = ?, updatedAt = ?, allocationVersion = allocationVersion + 1 WHERE id = ?").bind(new Date().toISOString(),new Date().toISOString(),experimentId),
++        connection.prepare("UPDATE ElementSlot SET status = 'ACTIVE', updatedAt = ? WHERE id = ?").bind(new Date().toISOString(),e.slotId),
++      ]);
++    }
++    const lock=await connection.prepare('SELECT owner, expiresAt FROM GalleryBootstrapLock WHERE experimentId = ?').bind(experimentId).first<{owner:string;expiresAt:number}>();
++    if(lock?.owner!==owner||lock.expiresAt<Date.now()+30000)throw Error("Publication lease expired before publishing");
++    const bootstrap=await syncGalleryBootstrap(experimentId,sessionToken);
++    return {...await prisma.elementExperiment.findUnique({where:{id:experimentId},include:{allocations:true}}),bootstrap};
++  } finally {
++    await connection.prepare('UPDATE GalleryBootstrapLock SET expiresAt = 0 WHERE experimentId = ? AND owner = ?').bind(experimentId,owner).run();
++  }
++}
++export async function isBoundVariant(variantId:string) {
++  const c=config();if(!c.enabled)return false;
++  const e=await prisma.elementExperiment.findUnique({where:{id:c.experimentId},select:{slotId:true}});
++  const v=await prisma.elementVariant.findUnique({where:{id:variantId},select:{slotId:true}});
++  return Boolean(e&&v&&e.slotId===v.slotId);
++}
+diff --git a/app/cloudflare-pilot/storefront-source/funnel-control-attribution.js b/app/cloudflare-pilot/storefront-source/funnel-control-attribution.js
+index b3d02e1..484b4f0 100644
+--- a/app/cloudflare-pilot/storefront-source/funnel-control-attribution.js
++++ b/app/cloudflare-pilot/storefront-source/funnel-control-attribution.js
+@@ -89,6 +89,8 @@
+         if (JSON.stringify(compactTouch(context.firstTouch, !0)) !== JSON.stringify(last) && Object.keys(last).length) {
+             checkoutContext.lastTouch = last;
+         }
++        if (context.pendingGalleryBootstrap) checkoutContext.pendingGalleryBootstrap = context.pendingGalleryBootstrap;
++        if (Array.isArray(context.elementAssignments)) checkoutContext.elementAssignments = context.elementAssignments.slice(-4);
+         var value = JSON.stringify(checkoutContext), root = window.Shopify && window.Shopify.routes && window.Shopify.routes.root || "/";
+         fetch(root + "cart.js", { credentials: "same-origin", headers: { Accept: "application/json" } }).then(function(response) {
+             if (!response.ok) throw new Error("cart_" + response.status);
+diff --git a/app/cloudflare-pilot/storefront-source/gallery-bootstrap.css b/app/cloudflare-pilot/storefront-source/gallery-bootstrap.css
+new file mode 100644
+index 0000000..0ae50c2
+--- /dev/null
++++ b/app/cloudflare-pilot/storefront-source/gallery-bootstrap.css
+@@ -0,0 +1 @@
++.fce-gallery{display:grid;gap:12px;width:100%;max-width:760px;margin-inline:auto;color:inherit}.fce-gallery__stage{position:relative;overflow:hidden;margin:0;border-radius:18px;background:#f4f1eb;aspect-ratio:1/1;touch-action:pan-y}.fce-gallery__image{display:block;width:100%;height:100%;object-fit:contain;object-position:center}.fce-gallery__caption{position:absolute;inset-inline:12px;bottom:12px;padding:9px 12px;border-radius:999px;color:#fff;background:rgba(17,29,25,.76);font-size:13px;line-height:1.35;backdrop-filter:blur(8px)}.fce-gallery__thumbs{display:grid;grid-auto-flow:column;grid-auto-columns:64px;gap:8px;overflow-x:auto;padding:2px;scrollbar-width:thin}.fce-gallery__thumb{display:block;overflow:hidden;width:64px;height:64px;padding:0;border:2px solid transparent;border-radius:10px;background:#f4f1eb;cursor:pointer}.fce-gallery__thumb[aria-current="true"]{border-color:currentColor}.fce-gallery__thumb:focus-visible{outline:3px solid #d78356;outline-offset:2px}.fce-gallery__thumb img{display:block;width:100%;height:100%;object-fit:cover}@media(min-width:750px){.fce-gallery{grid-template-columns:82px minmax(0,1fr);align-items:start}.fce-gallery__thumbs{grid-auto-flow:row;grid-auto-rows:82px;grid-template-columns:82px;max-height:620px;order:-1}.fce-gallery__thumb{width:82px;height:82px}}
+diff --git a/app/cloudflare-pilot/storefront-source/gallery-bootstrap.js b/app/cloudflare-pilot/storefront-source/gallery-bootstrap.js
+new file mode 100644
+index 0000000..1b7c56b
+--- /dev/null
++++ b/app/cloudflare-pilot/storefront-source/gallery-bootstrap.js
+@@ -0,0 +1,107 @@
++/* Gallery-only bootstrap v2. Inline before gallery. No shade, price, bundle or cart UI changes. */
++(function(root){'use strict';
++const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
++const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
++function sha256(value){const bytes=new TextEncoder().encode(String(value)),buffer=new Uint8Array(Math.ceil((bytes.length+9)/64)*64);buffer.set(bytes);buffer[bytes.length]=0x80;const view=new DataView(buffer.buffer);view.setUint32(buffer.length-8,Math.floor(bytes.length/0x20000000));view.setUint32(buffer.length-4,(bytes.length*8)>>>0);const h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],w=new Uint32Array(64);for(let offset=0;offset<buffer.length;offset+=64){for(let i=0;i<16;i++)w[i]=view.getUint32(offset+i*4);for(let i=16;i<64;i++){const x=w[i-15],y=w[i-2];w[i]=(w[i-16]+(rotr(x,7)^rotr(x,18)^(x>>>3))+w[i-7]+(rotr(y,17)^rotr(y,19)^(y>>>10)))>>>0;}let[a,b,c,d,e,f,g,j]=h;for(let i=0;i<64;i++){const t1=(j+(rotr(e,6)^rotr(e,11)^rotr(e,25))+((e&f)^(~e&g))+K[i]+w[i])>>>0,t2=((rotr(a,2)^rotr(a,13)^rotr(a,22))+((a&b)^(a&c)^(b&c)))>>>0;j=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;}[a,b,c,d,e,f,g,j].forEach((v,i)=>{h[i]=(h[i]+v)>>>0;});}return h.map(v=>v.toString(16).padStart(8,'0')).join('');}
++function canonical(value){if(value===null||typeof value!=='object'){const text=JSON.stringify(value);if(text===undefined)throw Error('Undefined manifest value');return text;}if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';}
++function bucket(visitorId,experimentId,allocationVersion){return parseInt(sha256(`${visitorId}:${experimentId}:${allocationVersion}`).slice(0,12),16)%10000;}
++function storage(){return {
++ get(k){try{return localStorage.getItem(k);}catch(_){return null;}},
++ set(k,v){try{localStorage.setItem(k,v);return localStorage.getItem(k)===v;}catch(_){return false;}},
++ cookie(k){try{const t=document.cookie.split(';').map(x=>x.trim()).find(x=>x.startsWith(k+'='));return t?decodeURIComponent(t.slice(k.length+1)):null;}catch(_){return null;}},
++ writeCookie(k,v){try{document.cookie=k+'='+encodeURIComponent(v)+'; Path=/; Max-Age=2592000; SameSite=Lax'+(location.protocol==='https:'?'; Secure':'');return this.cookie(k)===v;}catch(_){return false;}},
++ session(k,v){try{if(v!==undefined)sessionStorage.setItem(k,v);return sessionStorage.getItem(k);}catch(_){return null;}}
++};}
++const uuid=()=>root.crypto&&crypto.randomUUID?crypto.randomUUID():('nhg-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
++const states=new Map();
++function mount(node,template,m){
++ if(!node||!template||states.has(node))return states.get(node);
++ const store=storage(),state={phase:'INIT',rendered:null,assignment:null,events:[],errors:[],enrolled:false};states.set(node,state);
++ function event(name,props){const e={name,time:Date.now(),...props};state.events.push(e);root.dispatchEvent(new CustomEvent('gallery-bootstrap:event',{detail:e}));
++  try { // telemetry-isolation
++  if(state.telemetryAllowed&&root.posthog&&typeof posthog.capture==='function'&&!(typeof posthog.has_opted_out_capturing==='function'&&posthog.has_opted_out_capturing())){
++   const names={image_selected:'gallery_image_viewed',image_ready:'gallery_image_ready',image_failed:'gallery_image_failed'};
++   posthog.capture(names[name]||'gallery_bootstrap_diagnostic',{...state.analyticsProps,...props,diagnostic:name,event_id:uuid(),assignment_id:state.assignment&&state.assignment.assignmentId,source:'gallery_bootstrap_v2',is_internal:false});
++   if(name==='image_selected'&&props.reason==='thumbnail')posthog.capture('gallery_thumbnail_clicked',{...state.analyticsProps,...props,event_id:uuid()});
++   if(name==='image_selected'&&props.reason==='swipe')posthog.capture('gallery_swiped',{...state.analyticsProps,...props,event_id:uuid()});
++  }
++ } catch(error) { state.errors.push('telemetry: '+String(error.message)); }
++ }
++ function control(reason){const c=template.content.firstElementChild;if(!c)throw Error('Missing original gallery');node.replaceChildren(...Array.from(c.cloneNode(true).childNodes));node.dataset.fceReady='true';node.dataset.nhgVariant='control';node.hidden=false;state.rendered='control';state.phase='NON_EXPERIMENTAL';event('fallback',{reason});}
++ try{
++  if(!m||m.schemaVersion!==2||!['STAGING','LIVE'].includes(m.environment)||!Array.isArray(m.variants)||m.variants.length!==2)throw Error('Invalid manifest');
++  if(!['RUNNING','PAUSED','PROMOTED'].includes(m.status))throw Error('Invalid experiment state');
++  const sorted=m.variants.slice().sort((a,b)=>a.id.localeCompare(b.id));
++  if(sorted.reduce((n,v)=>n+v.weightBasisPoints,0)!==10000||sorted.some(v=>!Number.isInteger(v.weightBasisPoints)||v.weightBasisPoints<0)||new Set(sorted.map(v=>v.id)).size!==2)throw Error('Invalid allocation');
++  if(sha256(canonical([m.experimentId,m.slotId,m.allocationVersion,sorted]))!==m.cohortHash)throw Error('Manifest hash mismatch');
++  const qa=m.environment==='STAGING',params=new URLSearchParams(location.search);
++  const storageAllowed=qa||Boolean(root.Shopify&&Shopify.customerPrivacy&&typeof Shopify.customerPrivacy.analyticsProcessingAllowed==='function'&&Shopify.customerPrivacy.analyticsProcessingAllowed());
++  const identityKey=qa?'_nhg_qa_visitor':'_fce_visitor';
++  let visitor=storageAllowed?(store.get(identityKey)||store.cookie(identityKey)):null;
++  if(!visitor||visitor.length<8||visitor.length>200)visitor=uuid();
++  const persisted=storageAllowed&&(store.set(identityKey,visitor)|store.writeCookie(identityKey,visitor));
++  const stickyKey=(qa?'_nhg_qa_assignment:':'_nhg_assignment:')+m.experimentId+':'+m.allocationVersion;
++  let sticky=null;try{sticky=storageAllowed?JSON.parse(store.get(stickyKey)||'null'):null;}catch(_){}
++  const b=bucket(visitor,m.experimentId,m.allocationVersion);let sum=0,selected;
++  for(const arm of sorted){sum+=arm.weightBasisPoints;if(b<sum){selected=arm;break;}}
++  if(!selected)throw Error('No allocated gallery');
++  if(m.status==='RUNNING'&&sticky&&(sticky.visitorId!==visitor||sticky.cohortHash!==m.cohortHash||sticky.variantId!==selected.id))throw Error('Stored cohort conflict');
++  const forced=qa?params.get('variant'):null,forcedArm=sorted.find(v=>v.key===forced||v.id===forced);
++  const rendered=m.status==='PAUSED'?sorted.find(v=>v.isControl):m.status==='PROMOTED'?sorted.find(v=>v.id===m.promotedVariantId):forcedArm||selected;
++  if(!rendered)throw Error('Invalid experiment state');
++  if(storageAllowed&&m.status==='RUNNING'&&!forcedArm)store.set(stickyKey,JSON.stringify({visitorId:visitor,cohortHash:m.cohortHash,variantId:selected.id}));
++  state.visitorId=visitor;state.pending={experimentId:m.experimentId,slotId:m.slotId,allocationVersion:m.allocationVersion,variantId:selected.id,cohortHash:m.cohortHash};
++  state.enrolled=m.status==='RUNNING'&&!forcedArm&&Boolean(persisted);state.telemetryAllowed=!qa&&state.enrolled;
++  state.analyticsProps={experiment_id:m.experimentId,experiment_key:m.experimentKey,experiment_variant:rendered.key,variant_id:rendered.id,allocation_version:m.allocationVersion,cohort_hash:m.cohortHash,slot_id:m.slotId};
++  state.rendered=rendered.key;state.phase='COMMITTED';state.imageReady=false;state.registered=false;state.visible=false;
++  node.dataset.nhgOwned='true';node.dataset.nhgVariant=rendered.key;node.dataset.fceReady='true';
++  let image;
++  // Retain exact control DOM; its existing page handlers remain the only A controller.
++  if(rendered.isControl){const original=template.content.firstElementChild.cloneNode(true);node.replaceChildren(...Array.from(original.childNodes));image=node.querySelector('#galMain');}
++  else{
++   const items=rendered.payload.items;if(!Array.isArray(items)||!items.length)throw Error('Empty gallery');
++   let index=rendered.payload.initialIndex||0;if(!Number.isInteger(index)||index<0||index>=items.length)throw Error('Invalid initial index');
++   const gallery=document.createElement('div');gallery.className='fce-gallery';gallery.setAttribute('role','region');gallery.setAttribute('aria-label','גלריית NovaHair');
++   const stage=document.createElement('figure');stage.className='fce-gallery__stage';
++   image=new Image();image.className='fce-gallery__image';image.loading='eager';image.fetchPriority='high';image.decoding='async';image.width=1000;image.height=1000;
++   const caption=document.createElement('figcaption');caption.className='fce-gallery__caption';
++   const thumbs=document.createElement('div');thumbs.className='fce-gallery__thumbs';const buttons=[];
++   function show(i,reason){index=(i+items.length)%items.length;const entry=items[index],u=new URL(entry.src,location.href);if(u.protocol!=='https:'||u.hostname!=='cdn.shopify.com'||!u.pathname.startsWith('/s/files/'))throw Error('Unapproved image source');image.src=entry.src;image.alt=entry.alt;caption.textContent=entry.caption||'';caption.hidden=!entry.caption;buttons.forEach((b,j)=>b.setAttribute('aria-current',String(j===index)));event('image_selected',{index,image_id:entry.id,image_index:index+1,reason});}
++   items.forEach((entry,i)=>{const button=document.createElement('button');button.type='button';button.className='fce-gallery__thumb';button.setAttribute('aria-label','תמונה '+(i+1));const thumb=new Image();thumb.alt='';thumb.loading='lazy';thumb.src=entry.src;button.append(thumb);button.addEventListener('click',()=>show(i,'thumbnail'));buttons.push(button);thumbs.append(button);});
++   let x=null;stage.style.touchAction='pan-y';stage.addEventListener('pointerdown',e=>{x=e.clientX;});stage.addEventListener('pointercancel',()=>{x=null;});stage.addEventListener('pointerup',e=>{if(x===null)return;const d=e.clientX-x;x=null;if(Math.abs(d)>=45)show(index+(d<0?1:-1),'swipe');});
++   stage.append(image,caption);gallery.append(stage);if(rendered.payload.showThumbnails!==false)gallery.append(thumbs);node.replaceChildren(gallery);show(index,'initial');
++  }
++  node.hidden=false;event('gallery_committed',{variant:rendered.key,enrolled:state.enrolled,qa});
++  const ready=()=>{if(!image||!image.complete||image.naturalWidth===0)return;Promise.resolve(image.decode?image.decode():null).then(()=>{state.imageReady=true;node.querySelector('[data-nhg-image-error]')?.remove();state.phase='IMAGE_READY';event('image_ready',{variant:rendered.key});maybeExpose();}).catch(()=>{state.errors.push('decode');});};
++  const failed=()=>{state.errors.push('image');state.phase='IMAGE_FAILED';event('image_failed',{variant:rendered.key});if(!rendered.isControl&&!node.querySelector('[data-nhg-image-error]')){const message=document.createElement('p');message.dataset.nhgImageError='true';message.setAttribute('role','status');message.textContent='התמונה לא נטענה כרגע. אפשר להמשיך לבחור גוון וחבילה.';node.append(message);}};
++  if(image){image.addEventListener('load',ready,{once:true});image.addEventListener('error',failed,{once:true});ready();}
++  let observer;
++  if(root.IntersectionObserver){observer=new IntersectionObserver(entries=>{state.visible=entries.some(e=>e.isIntersecting&&e.intersectionRatio>=0.25);maybeExpose();},{threshold:[0.25]});observer.observe(node);}
++  document.addEventListener('visibilitychange',maybeExpose);
++  function context(assignment){let c={};try{c=JSON.parse(store.cookie('_funnel_context')||'{}');}catch(_){}c.visitorId=visitor;c.pendingGalleryBootstrap=state.pending;if(assignment){c.elementAssignments=(Array.isArray(c.elementAssignments)?c.elementAssignments:[]).filter(a=>a.experimentId!==assignment.experimentId);c.elementAssignments.push({assignmentId:assignment.assignmentId,experimentId:assignment.experimentId,variantId:assignment.variantId,slotId:assignment.slotId});}const encoded=JSON.stringify(c);if(encodeURIComponent(encoded).length>3700){event('context_unavailable',{reason:'cookie_capacity'});return;}store.writeCookie('_funnel_context',encoded);}
++  async function post(path,payload){const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(payload),keepalive:true});if(!response.ok)throw Error('HTTP '+response.status);return response.json();}
++  function maybeExpose(){
++   if(!state.imageReady||!state.visible||document.hidden||!state.enrolled||state.exposureQueued)return;
++   if(qa){state.exposureQueued=true;event('qa_visible',{variant:rendered.key});return;}
++   if(!state.registered)return;state.exposureQueued=true;
++   const key='_nhg_exposure:'+m.experimentId+':'+m.allocationVersion+':'+sha256(visitor).slice(0,24);let record;try{record=JSON.parse(store.session(key)||'null');}catch(_){}
++   if(record&&record.acked)return;record=record||{eventId:uuid(),acked:false};store.session(key,JSON.stringify(record));
++   const a=state.assignment,payload={eventId:record.eventId,visitorId:visitor,assignmentId:a.assignmentId,experimentId:a.experimentId,variantId:a.variantId,slotId:a.slotId,isInternal:false};
++   async function attempt(i){try{await post('/apps/funnels/element-exposure',payload);record.acked=true;store.session(key,JSON.stringify(record));event('exposure_acknowledged',{variant:rendered.key});observer&&observer.disconnect();}catch(e){if(i<2)setTimeout(()=>attempt(i+1),[300,1200][i]);else{state.errors.push('exposure');event('exposure_failed',{});}}}attempt(0);
++  }
++  if(!qa&&state.enrolled){
++   context();if(root.FunnelControlAttribution&&typeof root.FunnelControlAttribution.persist==='function')root.FunnelControlAttribution.persist({visitorId:visitor});
++   (async()=>{for(let retry=0;retry<2;retry++){try{
++    const a=await post('/apps/funnels/gallery-bootstrap/register',{visitorId:visitor,pending:state.pending,isInternal:false});
++    if(!a.accepted||a.variantId!==selected.id||a.allocationVersion!==m.allocationVersion||a.cohortHash!==m.cohortHash)throw Error('Registration conflict');
++    state.assignment=a;state.registered=true;context(a);
++    fetch('/cart.js',{credentials:'same-origin',headers:{Accept:'application/json'}}).then(r=>{if(!r.ok)throw Error('cart');return r.json();}).then(cart=>{const token=String(cart.token||'').split('?')[0];if(!token)return;const key='_nhg_cart:'+sha256(token)+':'+a.assignmentId;if(store.session(key))return;return post('/apps/funnels/element-cart-attribution',{cartToken:token,visitorId:visitor,elementAssignments:[{assignmentId:a.assignmentId,experimentId:a.experimentId,variantId:a.variantId,slotId:a.slotId}]}).then(()=>store.session(key,'1'));}).catch(()=>event('cart_attribution_pending',{}));
++    if(root.FunnelControlAttribution&&typeof root.FunnelControlAttribution.persist==='function')root.FunnelControlAttribution.persist({visitorId:visitor,assignment:a});
++    maybeExpose();return;
++   }catch(e){state.errors.push(String(e.message));if(retry===0)await new Promise(r=>setTimeout(r,500));}}event('registration_failed',{});})();
++  }
++  return state;
++ }catch(error){state.errors.push(String(error.message));if(state.phase==='INIT')control(String(error.message));else{node.hidden=false;state.phase='DEGRADED';}return state;}
++}
++root.NHGalleryBootstrap=Object.freeze({mount,states,bucket,sha256,canonical});
++})(window);
+diff --git a/app/extensions/funnel-control-elements/assets/funnel-control-attribution.js b/app/extensions/funnel-control-elements/assets/funnel-control-attribution.js
+index 06ddfee..c475031 100644
+--- a/app/extensions/funnel-control-elements/assets/funnel-control-attribution.js
++++ b/app/extensions/funnel-control-elements/assets/funnel-control-attribution.js
+@@ -1 +1 @@
+-!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var c=Array.isArray(r.elementAssignments)?r.elementAssignments:[],a=o&&o.assignment;a&&a.experimentId&&(c=c.filter(function(t){return t&&t.experimentId!==a.experimentId})).push({assignmentId:n(a.assignmentId,180),experimentId:n(a.experimentId,180),variantId:n(a.variantId,180),slotId:n(a.slotId,180)}),r.elementAssignments=c.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=c.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o);var s=JSON.stringify(r),c=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(c+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(c+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();
++!function(){"use strict";if(!window.FunnelControlAttribution||"function"!=typeof window.FunnelControlAttribution.persist){var t="_funnel_context";window.FunnelControlAttribution={persist:i},(Array.isArray(window.__funnelControlAttributionQueue)?window.__funnelControlAttributionQueue.splice(0):[]).forEach(i)}function n(t,n){return"string"!=typeof t&&"number"!=typeof t?"":String(t).trim().slice(0,n)}function e(t,e){if(!t||"object"!=typeof t)return{};var i={},o={utmSource:50,utmMedium:50,utmCampaign:100,utmContent:100,utmTerm:e?0:80,campaignId:80,adsetId:80,adId:80,fbclid:180,gclid:180,landingPath:e?0:160,referrerHost:e?0:100};return Object.keys(o).forEach(function(e){var r=o[e]?n(t[e],o[e]):"";r&&(i[e]=r)}),i}function i(o){var r={};try{r=JSON.parse(function(t){for(var n=t+"=",e=String(document.cookie||"").split(";"),i=0;i<e.length;i+=1){var o=e[i].trim();if(0===o.indexOf(n))return decodeURIComponent(o.slice(n.length))}return""}(t)||"{}")}catch(t){}var s=function(){var t=new URLSearchParams(window.location.search||""),e={landingPath:n(window.location.pathname||"/",160)},i={utm_source:["utmSource",50],utm_medium:["utmMedium",50],utm_campaign:["utmCampaign",100],utm_content:["utmContent",100],utm_term:["utmTerm",80],campaign_id:["campaignId",80],adset_id:["adsetId",80],ad_id:["adId",80],fbclid:["fbclid",180],gclid:["gclid",180]};Object.keys(i).forEach(function(o){var r=n(t.get(o),i[o][1]);r&&(e[i[o][0]]=r)});try{document.referrer&&(e.referrerHost=n(new URL(document.referrer).hostname,100))}catch(t){}return e}();r.firstTouch||(r.firstTouch=s),!function(t){return!!(t.utmSource||t.utmMedium||t.utmCampaign||t.utmContent||t.utmTerm||t.campaignId||t.adsetId||t.adId||t.fbclid||t.gclid)}(s)&&r.lastTouch||(r.lastTouch=s),r.firstTouch=e(r.firstTouch,!1),r.lastTouch=e(r.lastTouch,!0),r.visitorId=n(o&&o.visitorId,180)||n(r.visitorId,180),r.isInternal=!!r.isInternal||!(!o||!o.isInternal)||"1"===new URLSearchParams(window.location.search||"").get("funnel_pixel_qa")||"1"===new URLSearchParams(window.location.search||"").get("funnel_internal");var a=Array.isArray(r.elementAssignments)?r.elementAssignments:[],c=o&&o.assignment;c&&c.experimentId&&(a=a.filter(function(t){return t&&t.experimentId!==c.experimentId})).push({assignmentId:n(c.assignmentId,180),experimentId:n(c.experimentId,180),variantId:n(c.variantId,180),slotId:n(c.slotId,180)}),r.elementAssignments=a.slice(-8);var u=!!r.posthogDistinctId;!function(t){try{window.posthog&&"function"==typeof window.posthog.get_distinct_id&&(t.posthogDistinctId=n(window.posthog.get_distinct_id(),180)),window.posthog&&"function"==typeof window.posthog.get_session_id&&(t.posthogSessionId=n(window.posthog.get_session_id(),180))}catch(t){}}(r);var d=JSON.stringify(r);d.length>3600&&(r.elementAssignments=a.slice(-3),delete r.lastTouch,d=JSON.stringify(r));try{document.cookie=t+"="+encodeURIComponent(d)+"; Path=/; Max-Age=2592000; SameSite=Lax; Secure"}catch(t){}var m=Number(o&&o.retryAttempt)||0;(!m||!u&&r.posthogDistinctId)&&function(t){var i=e(t.firstTouch,!1),o=e(t.lastTouch,!0),r={version:1,visitorId:n(t.visitorId,180),firstTouch:i,posthogDistinctId:n(t.posthogDistinctId,180),posthogSessionId:n(t.posthogSessionId,180),isInternal:!!t.isInternal};JSON.stringify(e(t.firstTouch,!0))!==JSON.stringify(o)&&Object.keys(o).length&&(r.lastTouch=o),t.pendingGalleryBootstrap&&(r.pendingGalleryBootstrap=t.pendingGalleryBootstrap),Array.isArray(t.elementAssignments)&&(r.elementAssignments=t.elementAssignments.slice(-4));var s=JSON.stringify(r),a=window.Shopify&&window.Shopify.routes&&window.Shopify.routes.root||"/";fetch(a+"cart.js",{credentials:"same-origin",headers:{Accept:"application/json"}}).then(function(t){if(!t.ok)throw new Error("cart_"+t.status);return t.json()}).then(function(t){var n=String(t&&t.token||"").split("?")[0],e="_fce_checkout_context:"+n+":"+function(t){for(var n=0,e=0;e<t.length;e+=1)n=(n<<5)-n+t.charCodeAt(e),n|=0;return Math.abs(n).toString(36)}(s);if(n&&!function(t){try{return sessionStorage.getItem(t)||""}catch(t){return""}}(e)){var i={};return i.__funnel_context__=s,fetch(a+"cart/update.js",{method:"POST",credentials:"same-origin",keepalive:!0,headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({attributes:i})}).then(function(t){if(!t.ok)throw new Error("cart_context_"+t.status);!function(t){try{sessionStorage.setItem(t,"1")}catch(t){}}(e)})}}).catch(function(){})}(r),!r.posthogDistinctId&&m<20&&window.setTimeout(function(){i(Object.assign({},o,{retryAttempt:m+1}))},250)}}();

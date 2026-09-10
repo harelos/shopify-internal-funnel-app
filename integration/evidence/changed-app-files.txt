@@ -1,0 +1,12 @@
+app/cloudflare-pilot/migrations/0019_gallery_bootstrap_snapshot.sql
+app/cloudflare-pilot/public/assets/funnel-control-attribution.js
+app/cloudflare-pilot/public/assets/funnel-control-elements.js
+app/cloudflare-pilot/src/lib/gallery-bootstrap-manifest.ts
+app/cloudflare-pilot/src/routes/gallery-bootstrap.ts
+app/cloudflare-pilot/src/routes/shopify-ingest.ts
+app/cloudflare-pilot/src/server.ts
+app/cloudflare-pilot/src/services/gallery-bootstrap.ts
+app/cloudflare-pilot/storefront-source/funnel-control-attribution.js
+app/cloudflare-pilot/storefront-source/gallery-bootstrap.css
+app/cloudflare-pilot/storefront-source/gallery-bootstrap.js
+app/extensions/funnel-control-elements/assets/funnel-control-attribution.js

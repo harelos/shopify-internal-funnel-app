@@ -1,0 +1,125 @@
+TAP version 13
+# 20k allocation { 'qa-variant-control': 10000, 'qa-variant-bbbbbbb': 10000 }
+# Subtest: Actual app experiment shape produces a validated manifest with no commercial fields
+ok 1 - Actual app experiment shape produces a validated manifest with no commercial fields
+  ---
+  duration_ms: 10.962681
+  type: 'test'
+  ...
+# Subtest: 20,000 assignments use the original backend SHA256 formula
+ok 2 - 20,000 assignments use the original backend SHA256 formula
+  ---
+  duration_ms: 882.76274
+  type: 'test'
+  ...
+# Subtest: Pause and promote export the actual app state
+ok 3 - Pause and promote export the actual app state
+  ---
+  duration_ms: 0.657644
+  type: 'test'
+  ...
+# Subtest: Unpublished variant cannot be exported
+ok 4 - Unpublished variant cannot be exported
+  ---
+  duration_ms: 0.561466
+  type: 'test'
+  ...
+# Subtest: Invalid weights and active image index rejected
+ok 5 - Invalid weights and active image index rejected
+  ---
+  duration_ms: 0.561085
+  type: 'test'
+  ...
+# Subtest: Image hosts are allowlisted
+ok 6 - Image hosts are allowlisted
+  ---
+  duration_ms: 0.27407
+  type: 'test'
+  ...
+# Subtest: Inline JSON cannot break out of its script element
+ok 7 - Inline JSON cannot break out of its script element
+  ---
+  duration_ms: 0.406848
+  type: 'test'
+  ...
+# Subtest: Wrong client arm rejected
+ok 8 - Wrong client arm rejected
+  ---
+  duration_ms: 0.42384
+  type: 'test'
+  ...
+# Subtest: Existing same-phase assignment reuses ID without rewriting
+ok 9 - Existing same-phase assignment reuses ID without rewriting
+  ---
+  duration_ms: 0.591302
+  type: 'test'
+  ...
+# Subtest: Historical conflict never overwrites
+ok 10 - Historical conflict never overwrites
+  ---
+  duration_ms: 0.737013
+  type: 'test'
+  ...
+# Subtest: Fast checkout registers before background page registration
+ok 11 - Fast checkout registers before background page registration
+  ---
+  duration_ms: 0.410885
+  type: 'test'
+  ...
+# Subtest: Concurrent insert collision rereads winning row
+ok 12 - Concurrent insert collision rereads winning row
+  ---
+  duration_ms: 0.363026
+  type: 'test'
+  ...
+# Subtest: First registration rejects closed enrollment
+ok 13 - First registration rejects closed enrollment
+  ---
+  duration_ms: 0.313263
+  type: 'test'
+  ...
+# Subtest: Publisher passes null CAS for missing metafield
+ok 14 - Publisher passes null CAS for missing metafield
+  ---
+  duration_ms: 0.388945
+  type: 'test'
+  ...
+# Subtest: CAS conflicts surface without blind retry
+ok 15 - CAS conflicts surface without blind retry
+  ---
+  duration_ms: 0.329132
+  type: 'test'
+  ...
+# Subtest: Mid-cohort published-content edits blocked
+ok 16 - Mid-cohort published-content edits blocked
+  ---
+  duration_ms: 0.400576
+  type: 'test'
+  ...
+# Subtest: Pause preserves cohort without rerandomizing
+ok 17 - Pause preserves cohort without rerandomizing
+  ---
+  duration_ms: 0.327259
+  type: 'test'
+  ...
+# Subtest: Actual browser SHA256 and bucketing match server including Unicode
+ok 18 - Actual browser SHA256 and bucketing match server including Unicode
+  ---
+  duration_ms: 45.429262
+  type: 'test'
+  ...
+# Subtest: JSON object reordering cannot change cohort hashes across Liquid serialization
+ok 19 - JSON object reordering cannot change cohort hashes across Liquid serialization
+  ---
+  duration_ms: 1.818086
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1085.803728

@@ -43,3 +43,13 @@ galleryBootstrapAdmin.post('/element-variants/:id/publish',async(req,res,next)=>
  if(!await isBoundVariant(String(req.params.id)))return next();
  return res.status(409).json({error:'Published bootstrap content is frozen. Save drafts, then prepare a separate approved experiment.'});
 });
+
+// bound-slot-guard: the target is part of an immutable cohort.
+galleryBootstrapAdmin.patch('/element-slots/:id',async(req,res,next)=>{
+ const { workerEnvValue }=await import('../lib/shopify-config.js');
+ const experimentId=workerEnvValue('GALLERY_BOOTSTRAP_EXPERIMENT_ID');
+ if(!bootstrapConfiguredFor(experimentId))return next();
+ try {const manifest=await readGalleryManifest(experimentId);if(manifest.slotId!==String(req.params.id))return next();}
+ catch(error:any){return res.status(409).json({error:error.message});}
+ return res.status(409).json({error:'Bootstrap slot is frozen. Prepare a separate approved experiment instead.'});
+});

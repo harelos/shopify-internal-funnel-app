@@ -10,8 +10,13 @@ export type GalleryManifest = {
 };
 const id = (v: unknown) => typeof v === "string" && /^[A-Za-z0-9_.-]{3,200}$/.test(v);
 export function digest(value: string): string { return createHash("sha256").update(value).digest("hex"); }
+export function canonical(value: any): string {
+  if(value===null||typeof value!=="object") {const text=JSON.stringify(value);if(text===undefined)throw Error("Undefined manifest value");return text;}
+  if(Array.isArray(value))return "["+value.map(canonical).join(",")+"]";
+  return "{"+Object.keys(value).sort().map(key=>JSON.stringify(key)+":"+canonical(value[key])).join(",")+"}";
+}
 export function cohortHash(m: Pick<GalleryManifest,"experimentId"|"slotId"|"allocationVersion"|"variants">): string {
-  return digest(JSON.stringify([m.experimentId,m.slotId,m.allocationVersion,m.variants.slice().sort((a,b)=>a.id.localeCompare(b.id))]));
+  return digest(canonical([m.experimentId,m.slotId,m.allocationVersion,m.variants.slice().sort((a,b)=>a.id.localeCompare(b.id))]));
 }
 export function validateManifest(m: GalleryManifest): GalleryManifest {
   if (!m || m.schemaVersion !== 2 || !["STAGING","LIVE"].includes(m.environment)) throw Error("Invalid gallery bootstrap schema");
