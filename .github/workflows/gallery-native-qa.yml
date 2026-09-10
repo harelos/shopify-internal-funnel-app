@@ -1,0 +1,33 @@
+name: Gallery native Shopify QA (no deployments)
+on:
+  push:
+    branches: [integration-gallery-only-20260910]
+    paths: ['qa-followup/native_shopify_qa.py', '.github/workflows/gallery-native-qa.yml']
+permissions:
+  contents: read
+jobs:
+  native-rendering-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify sandbox scope
+        run: |
+          test "$GITHUB_REF" = refs/heads/integration-gallery-only-20260910
+          test ! -e app/cloudflare-pilot/wrangler.jsonc
+          test ! -e shopify.app.toml
+      - name: Install browser tooling only
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Read-only native rendering and simulated controls check
+        run: python qa-followup/native_shopify_qa.py
+      - name: Save non-sensitive QA evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-shopify-gallery-qa
+          path: native-qa-evidence/
+          retention-days: 14
