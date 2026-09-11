@@ -5,6 +5,7 @@ import { workerEnvValue } from "../lib/shopify-config.js";
 import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
 import { summarizeSupportSendAuthorizations } from "../lib/support-analytics.js";
 import { ensureSupportKnowledgeFacts } from "../lib/support-knowledge.js";
+import { renderSupportContextMarkdown } from "../lib/support-context.js";
 import { appendSupportEvidence, draftSupportReply, ingestSupportMessage, recordSupportAgentHeartbeat, type SupportIngestInput } from "../services/support-desk.js";
 
 export const supportAdminRouter = Router();
@@ -433,6 +434,27 @@ supportAdminRouter.get("/support/knowledge", async (_req, res) => {
       alwaysEscalate: ["Refunds or cancellations", "Address changes", "Chargebacks", "Legal, safety, fraud or privacy concerns"],
     },
   });
+});
+
+supportAdminRouter.get("/support/knowledge.md", async (_req, res) => {
+  const shopDomain = (workerEnvValue("SHOP_DOMAIN") || "local-dev.myshopify.com").toLowerCase();
+  const shop = await prisma.shop.findUnique({ where: { domain: shopDomain }, select: { id: true } });
+  if (!shop) return res.status(404).type("text/plain").send("Support knowledge is not available for the configured store.");
+  const [approvedFacts, approvedExamples] = await Promise.all([
+    ensureSupportKnowledgeFacts(shop.id).then(facts => facts.filter(fact => fact.enabled).sort((a, b) => a.position - b.position).map(fact => fact.factText)),
+    prisma.supportVoiceExample.findMany({
+      where: { shopId: shop.id, qualityStatus: "APPROVED" },
+      orderBy: { createdAt: "desc" },
+      take: 24,
+      select: { topic: true, customerMessage: true, ownerReply: true, createdAt: true },
+    }),
+  ]);
+  res.setHeader("Cache-Control", "no-store");
+  return res.type("text/markdown").send(renderSupportContextMarkdown({
+    approvedFacts,
+    approvedExamples,
+    sourceLabel: "Live D1 support knowledge; Drive source cards are provenance only",
+  }));
 });
 
 supportAdminRouter.patch("/support/knowledge/:id", async (req, res) => {

@@ -109,6 +109,7 @@ export async function generateSupportDecision(input: {
   policy: SupportPolicyDecision;
   audienceType: string;
   approvedStoreFacts: string[];
+  supportContextMarkdown?: string;
 }): Promise<SupportAiDecision> {
   const deterministic = deterministicLowRiskDecision({ ...input, approvedStoreFacts: input.approvedStoreFacts });
   if (deterministic) return deterministic;
@@ -165,6 +166,7 @@ export async function generateSupportDecision(input: {
                 conversation: redactForModel(input.threadText),
                 deterministicPolicy: input.policy,
                 approvedStoreFacts: input.approvedStoreFacts,
+                supportContextMarkdown: input.supportContextMarkdown || "",
                 verifiedOrderContext: redactForModel(input.orderContext),
                 ownerVoiceExamples: redactForModel(input.ownerExamples.slice(0, 8)),
               }),

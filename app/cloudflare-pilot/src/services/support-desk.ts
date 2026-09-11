@@ -7,6 +7,7 @@ import { extractSupportOrderNumber } from "../lib/support-email.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
 import { enabledSupportFactTexts } from "../lib/support-knowledge.js";
+import { renderSupportContextMarkdown } from "../lib/support-context.js";
 
 const shopify = new ShopifyAdminClient();
 
@@ -498,6 +499,11 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     ...item.messages.slice().reverse().map(message => `${message.direction === "INBOUND" ? "CUSTOMER" : "OWNER"}: ${message.textBody.slice(0, 2200)}`),
   ].join("\n")).join("\n\n").slice(-9000);
   const approvedStoreFacts = await enabledSupportFactTexts(conversation.shopId);
+  const supportContextMarkdown = renderSupportContextMarkdown({
+    approvedFacts: approvedStoreFacts,
+    approvedExamples: ownerExamples,
+    sourceLabel: "D1 approved support knowledge (Drive source cards inform guardrails)",
+  });
   const decision = await generateSupportDecision({
     subject: conversation.subject,
     threadText: `${threadText}\n\nLATEST CUSTOMER MESSAGE:\n${latestInbound.textBody.slice(0, 6000)}\n\nCUSTOMER HISTORY:\n${historyText || "No earlier support thread is available."}`.slice(-24000),
@@ -506,6 +512,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     policy,
     audienceType: Array.isArray(orderContext) && orderContext.length > 0 ? "VERIFIED_CUSTOMER" : conversation.audienceType,
     approvedStoreFacts,
+    supportContextMarkdown,
   });
   const canAutoSend = mayAutoSend({
     automationMode: conversation.mailbox.automationMode,
