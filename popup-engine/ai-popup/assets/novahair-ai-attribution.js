@@ -12,7 +12,10 @@
  *   3. Mirror key events to GA4 / GTM via dataLayer + gtag, so the same funnel
  *      is visible in Analytics. No-op when GA is not on the page.
  *
- * Nothing here blocks the conversation; every network call is best-effort.
+ * Nothing here blocks the conversation. A cart write is nevertheless verified
+ * against Shopify's returned cart before it is reported as successful. That
+ * distinction is essential: an unverified browser request is not evidence that
+ * a later order can be attributed to the Concierge.
  */
 window.NovaHairAttribution = (function () {
   'use strict';
@@ -119,26 +122,56 @@ window.NovaHairAttribution = (function () {
     if (extra && extra.coupon) attributes['_nh_coupon'] = extra.coupon;
     if (extra && extra.lead) attributes['_nh_lead'] = '1';
 
+    function rootPath() {
+      try {
+        return (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || '/';
+      } catch (_) { return '/'; }
+    }
+
+    function outcome(ok, reason, cart) {
+      var detail = {
+        ok: Boolean(ok),
+        reason: String(reason || (ok ? 'verified' : 'unknown')).slice(0, 80),
+        conversationId: attributes._nh_conversation_id,
+        sessionId: attributes._nh_session_id,
+        popupVersion: attributes._nh_version,
+        trigger: attributes._nh_trigger,
+        device: attributes._nh_device,
+        cartToken: cart && typeof cart.token === 'string' ? cart.token.slice(0, 180) : ''
+      };
+      try { window.dispatchEvent(new CustomEvent('novahair:cart-attribution', { detail: detail })); } catch (_) {}
+      return detail;
+    }
+
     var job = function () {
-      return window.fetch('/cart/update.js', {
+      return window.fetch(rootPath() + 'cart/update.js', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         keepalive: true,
         body: JSON.stringify({ attributes: attributes })
-      });
+      }).then(function (response) {
+        if (!response.ok) return outcome(false, 'http_' + response.status);
+        return response.json().then(function (cart) {
+          var saved = cart && cart.attributes && typeof cart.attributes === 'object' ? cart.attributes : {};
+          var verified = saved._nh_popup === '1'
+            && saved._nh_conversation_id === attributes._nh_conversation_id
+            && saved._nh_session_id === attributes._nh_session_id;
+          return outcome(verified, verified ? 'verified' : 'marker_missing', cart);
+        }).catch(function () { return outcome(false, 'invalid_cart_response'); });
+      }).catch(function () { return outcome(false, 'network_error'); });
     };
 
     try {
       var key = ['ai-attribution', attributes._nh_conversation_id, attributes._nh_trigger,
         attributes._nh_coupon || '', attributes._nh_lead || ''].join(':');
       if (typeof window.novaFunnelEnqueueCartMutation === 'function') {
-        return window.novaFunnelEnqueueCartMutation(key, job).catch(function () {});
+        return window.novaFunnelEnqueueCartMutation(key, job).catch(function () { return outcome(false, 'queue_error'); });
       }
       localCartTail = localCartTail.catch(function () {}).then(job);
-      return localCartTail.catch(function () {});
+      return localCartTail.catch(function () { return outcome(false, 'queue_error'); });
     } catch (_) {
-      return Promise.resolve();
+      return Promise.resolve(outcome(false, 'setup_error'));
     }
   }
 

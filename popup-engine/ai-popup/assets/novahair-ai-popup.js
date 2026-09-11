@@ -146,6 +146,23 @@
     } catch (_) { /* analytics never blocks the conversation */ }
   }
 
+  /* The cart writer reports a verified Shopify response (or an explicit
+   * failure) here. This is a separate ledger event from a CTA click: it lets
+   * the dashboard distinguish “she clicked” from “the marker reached cart”. */
+  window.addEventListener('novahair:cart-attribution', function (event) {
+    var detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
+    emit('popup_cart_attribution', {
+      conversationId: String(detail.conversationId || '').slice(0, 160),
+      sessionId: String(detail.sessionId || '').slice(0, 160),
+      popupVersion: String(detail.popupVersion || popupVersion()).slice(0, 80),
+      trigger: String(detail.trigger || '').slice(0, 80),
+      device: String(detail.device || '').slice(0, 20),
+      cartToken: String(detail.cartToken || '').slice(0, 180),
+      cartMarkerVerified: detail.ok === true,
+      cartWriteReason: String(detail.reason || '').slice(0, 80)
+    });
+  });
+
   /* One row per step. This is the table the backend analysis reads. */
   function logStep(node, action, detail) {
     var dwell = stepStartedAt ? Date.now() - stepStartedAt : 0;

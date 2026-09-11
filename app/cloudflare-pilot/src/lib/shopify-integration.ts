@@ -44,7 +44,20 @@ export interface FunnelContext {
   lastTouch?: AttributionTouch;
   posthogDistinctId?: string;
   posthogSessionId?: string;
+  concierge?: ConciergeCheckoutContext;
   isInternal?: boolean;
+}
+
+/** Checkout-only evidence emitted by the storefront Concierge marker. */
+export interface ConciergeCheckoutContext {
+  popup: true;
+  conversationId?: string;
+  visitorId?: string;
+  sessionId?: string;
+  version?: string;
+  agent?: string;
+  trigger?: string;
+  device?: string;
 }
 
 export interface AttributionTouch {
@@ -117,6 +130,22 @@ function normalizeTouch(value: unknown): AttributionTouch | undefined {
   return entries.length ? Object.fromEntries(entries) as AttributionTouch : undefined;
 }
 
+function normalizeConciergeContext(value: unknown): ConciergeCheckoutContext | undefined {
+  const input = record(value);
+  if (input?.popup !== true) return undefined;
+  const output: ConciergeCheckoutContext = {
+    popup: true,
+    conversationId: boundedString(input.conversationId, 160),
+    visitorId: boundedString(input.visitorId, 160),
+    sessionId: boundedString(input.sessionId, 160),
+    version: boundedString(input.version, 80),
+    agent: boundedString(input.agent, 80),
+    trigger: boundedString(input.trigger, 80),
+    device: boundedString(input.device, 20),
+  };
+  return output;
+}
+
 function hasQaMarker(touch: AttributionTouch | undefined): boolean {
   const marker = [touch?.utmSource, touch?.utmMedium, touch?.utmCampaign, touch?.utmContent]
     .filter(Boolean)
@@ -140,6 +169,7 @@ export function normalizeFunnelContext(value: unknown, shopDomain: string): Funn
     lastTouch: normalizeTouch(input.lastTouch),
     posthogDistinctId: boundedString(input.posthogDistinctId, 300),
     posthogSessionId: boundedString(input.posthogSessionId, 300),
+    concierge: normalizeConciergeContext(input.concierge),
     isInternal: booleanValue(input.isInternal)
       || hasQaMarker(normalizeTouch(input.firstTouch))
       || hasQaMarker(normalizeTouch(input.lastTouch)),
@@ -229,6 +259,14 @@ export function normalizeShopifyPixelEvent(input: ShopifyPixelEventInput, contex
       platformEventName: name,
       hasCheckoutToken: Boolean(token),
       hasOrderId: Boolean(orderGid(data, order)),
+      conciergeMarkerPresent: Boolean(context.concierge?.popup),
+      ...(context.concierge?.conversationId ? { conciergeConversationId: context.concierge.conversationId } : {}),
+      ...(context.concierge?.visitorId ? { conciergeVisitorId: context.concierge.visitorId } : {}),
+      ...(context.concierge?.sessionId ? { conciergeSessionId: context.concierge.sessionId } : {}),
+      ...(context.concierge?.version ? { conciergeVersion: context.concierge.version } : {}),
+      ...(context.concierge?.agent ? { conciergeAgent: context.concierge.agent } : {}),
+      ...(context.concierge?.trigger ? { conciergeTrigger: context.concierge.trigger } : {}),
+      ...(context.concierge?.device ? { conciergeDevice: context.concierge.device } : {}),
       hasPosthogIdentity: Boolean(context.posthogDistinctId),
       ...touchPayload("firstTouch", context.firstTouch),
       ...touchPayload("lastTouch", context.lastTouch),

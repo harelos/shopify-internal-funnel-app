@@ -16,6 +16,9 @@ export const POPUP_EVENTS = [
   "popup_closed",
   "popup_purchase",
   "popup_result_email_sent",
+  // A browser CTA is not proof that its cart marker survived. This event is
+  // emitted only after Shopify's cart response is inspected.
+  "popup_cart_attribution",
   // AI concierge: one row per conversation step, so every step of the flow
   // can be read back and improved independently.
   "popup_ai_step",
@@ -36,6 +39,7 @@ const STOREFRONT_EVENTS = new Set<PopupEventName>([
   "popup_continue_clicked",
   "popup_closed",
   "popup_ai_step",
+  "popup_cart_attribution",
 ]);
 const DEVICES = new Set(["mobile", "desktop", "tablet", "other"]);
 const CLOSE_METHODS = new Set(["x", "backdrop", "esc", "other"]);
@@ -64,6 +68,9 @@ const SAFE_PAYLOAD_KEYS = new Set([
   // and where the widget was placed. Lets analytics compare lanes.
   "agent", "placement",
   "emailKind",
+  // Cart attribution proof. These values are pseudonymous and allow a later
+  // checkout observation to be reconciled without copying customer data.
+  "cartToken", "cartMarkerVerified", "cartWriteReason",
   // Full marketing attribution carried on every event. utm_source/medium/
   // campaign already have dedicated Event columns; these are the rest, so a
   // step can be sliced by ad content, keyword, or click id, and matched to the

@@ -1,6 +1,7 @@
 import {register} from '@shopify/web-pixels-extension';
 import {
   cartContextFromEvent,
+  conciergeContextFromEvent,
   reduceCheckoutEvent,
   resolvePixelEndpoint,
 } from './runtime.js';
@@ -17,8 +18,9 @@ register(({analytics, browser, settings}) => {
 
   async function forward(event) {
     const cartContext = cartContextFromEvent(event);
+    const conciergeContext = conciergeContextFromEvent(event);
     const storedContext = await cookieContext();
-    const eventContext = {...cartContext, ...storedContext};
+    const eventContext = {...cartContext, ...storedContext, concierge: conciergeContext};
     const body = JSON.stringify({
       event: reduceCheckoutEvent(event),
       context: eventContext,

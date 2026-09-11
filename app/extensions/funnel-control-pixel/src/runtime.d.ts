@@ -2,6 +2,7 @@ export const FUNNEL_CONTROL_PIXEL_ENDPOINT: string;
 export const FUNNEL_CONTROL_CART_ATTRIBUTE: string;
 export function resolvePixelEndpoint(configuredEndpoint?: unknown): string;
 export function cartContextFromEvent(event: unknown): Record<string, unknown>;
+export function conciergeContextFromEvent(event: unknown): Record<string, unknown>;
 export function reduceCheckoutEvent(event: unknown): {
   id?: string;
   name?: string;

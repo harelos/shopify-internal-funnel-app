@@ -2,6 +2,10 @@ export const FUNNEL_CONTROL_PIXEL_ENDPOINT =
   'https://shopify-funnel-control.tigerbrands-funnel.workers.dev/api/shopify/pixel';
 
 export const FUNNEL_CONTROL_CART_ATTRIBUTE = '__funnel_context__';
+const CONCIERGE_MARKER_KEYS = new Set([
+  '_nh_popup', '_nh_conversation_id', '_nh_visitor_id', '_nh_session_id',
+  '_nh_version', '_nh_agent', '_nh_trigger', '_nh_device',
+]);
 
 /**
  * Keep checkout telemetry on the app-owned origin. The merchant setting remains
@@ -43,6 +47,34 @@ export function cartContextFromEvent(event) {
   } catch (_) {
     return {};
   }
+}
+
+/**
+ * Extract the Concierge's deliberately allow-listed pseudonymous marker from
+ * checkout attributes. We never forward arbitrary cart attributes (which may
+ * contain shopper data), and we do not forward UTM/click IDs here because the
+ * app-owned funnel context already carries those separately.
+ */
+export function conciergeContextFromEvent(event) {
+  const checkout = event?.data?.checkout;
+  const attributes = checkoutAttributes(checkout);
+  const values = {};
+  for (const candidate of attributes) {
+    const key = text(candidate?.key, 80);
+    if (!key || !CONCIERGE_MARKER_KEYS.has(key)) continue;
+    values[key] = text(candidate?.value, 180) || '';
+  }
+  if (values._nh_popup !== '1') return {};
+  return {
+    popup: true,
+    conversationId: values._nh_conversation_id || '',
+    visitorId: values._nh_visitor_id || '',
+    sessionId: values._nh_session_id || '',
+    version: values._nh_version || '',
+    agent: values._nh_agent || '',
+    trigger: values._nh_trigger || '',
+    device: values._nh_device || '',
+  };
 }
 
 /**

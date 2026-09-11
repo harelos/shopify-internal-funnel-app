@@ -106,8 +106,11 @@ test("lead success uses the secured Shopify Customer endpoint and optional conse
 test("AI attribution joins the shared cart mutation queue", () => {
   assert.match(attribution, /novaFunnelEnqueueCartMutation\(key, job\)/);
   assert.match(attribution, /localCartTail.*then\(job\)/s);
-  assert.match(attribution, /fetch\('\/cart\/update\.js'/);
+  assert.match(attribution, /cart\/update\.js/);
   assert.match(attribution, /JSON\.stringify\(\{ attributes: attributes \}\)/);
+  assert.match(attribution, /response\.ok/);
+  assert.match(attribution, /saved\._nh_conversation_id === attributes\._nh_conversation_id/);
+  assert.match(attribution, /novahair:cart-attribution/);
   assert.doesNotMatch(attribution, /\/cart\/(?:add|change|clear)\.js/);
   assert.doesNotMatch(attribution, /JSON\.stringify\(\{\s*(?:items|lines):/);
 });
