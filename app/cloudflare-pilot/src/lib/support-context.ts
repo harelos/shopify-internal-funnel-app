@@ -8,6 +8,8 @@ export interface SupportContextExample {
 function clean(value: unknown, max = 900): string {
   return String(value ?? "")
     .replace(/\r/g, "")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[EMAIL]")
+    .replace(/(?:\+?972|0)(?:[-\s]?\d){8,9}/g, "[PHONE]")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, max);
@@ -68,4 +70,3 @@ export function renderSupportContextMarkdown(input: {
   );
   return lines.join("\n");
 }
-

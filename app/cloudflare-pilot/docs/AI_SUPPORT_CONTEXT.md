@@ -8,6 +8,7 @@ content is stored in the support database and rendered as Markdown by the app.
 
 - Drive library: `MASTER SKILLS LIBRARY`
 - Knowledge area: `01_EXTRACTED_KNOWLEDGE`
+- Connected folder: https://drive.google.com/drive/folders/1z9gkkFOC0xVA0A7jF2mV123GfVOwTHRG
 - NovaHair evidence source: `05_NOVAHAIR_EVIDENCE_AND_BRAND.md`
 - Source taxonomy: `00_KNOWLEDGE_TAXONOMY.md`
 
@@ -49,4 +50,3 @@ never included.
 Only the final approved owner reply enters the learning set. The generated
 Markdown is a read model, not an editable prompt. This prevents accidental
 learning from hallucinations, unverified claims, or malicious customer text.
-
