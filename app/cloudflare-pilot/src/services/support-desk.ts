@@ -472,14 +472,36 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
   const examples = await prisma.supportVoiceExample.findMany({
     where: { shopId: conversation.shopId, qualityStatus: "APPROVED" },
     orderBy: { createdAt: "desc" },
-    take: 12,
-    select: { customerMessage: true, ownerReply: true },
+    take: 24,
+    select: { topic: true, customerMessage: true, ownerReply: true },
   });
+  const customerHistory = await prisma.supportConversation.findMany({
+    where: { customerId: conversation.customerId, id: { not: conversation.id } },
+    orderBy: { updatedAt: "desc" },
+    take: 3,
+    select: {
+      subject: true,
+      topic: true,
+      messages: { orderBy: { sentAt: "desc" }, take: 6, select: { direction: true, textBody: true, sentAt: true } },
+    },
+  });
+  const topicExamples = examples.filter(example => example.topic === conversation.topic && example.customerMessage && example.ownerReply)
+    .slice(0, 8);
+  const fallbackExamples = examples.filter(example => !topicExamples.includes(example)).slice(0, 4);
+  const ownerExamples = [...topicExamples, ...fallbackExamples];
+  const threadText = conversation.messages.slice(-14)
+    .map(message => `${message.direction === "INBOUND" ? "CUSTOMER" : "OWNER"}: ${message.textBody.slice(0, 4500)}`)
+    .join("\n\n").slice(-18000);
+  const historyText = customerHistory.map(item => [
+    `Earlier subject: ${item.subject}`,
+    `Earlier topic: ${item.topic}`,
+    ...item.messages.slice().reverse().map(message => `${message.direction === "INBOUND" ? "CUSTOMER" : "OWNER"}: ${message.textBody.slice(0, 2200)}`),
+  ].join("\n")).join("\n\n").slice(-9000);
   const approvedStoreFacts = await enabledSupportFactTexts(conversation.shopId);
   const decision = await generateSupportDecision({
     subject: conversation.subject,
-    threadText: conversation.messages.slice(-12).map(message => `${message.direction}: ${message.textBody.slice(0, 4000)}`).join("\n\n").slice(-16000),
-    ownerExamples: examples,
+    threadText: `${threadText}\n\nLATEST CUSTOMER MESSAGE:\n${latestInbound.textBody.slice(0, 6000)}\n\nCUSTOMER HISTORY:\n${historyText || "No earlier support thread is available."}`.slice(-24000),
+    ownerExamples: ownerExamples.map(example => ({ customerMessage: example.customerMessage, ownerReply: example.ownerReply })),
     orderContext,
     policy,
     audienceType: Array.isArray(orderContext) && orderContext.length > 0 ? "VERIFIED_CUSTOMER" : conversation.audienceType,

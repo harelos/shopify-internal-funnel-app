@@ -52,12 +52,42 @@ function fallbackDecision(policy: SupportPolicyDecision, reason: string): Suppor
   };
 }
 
+function normalizeReplyText(value: string): string {
+  return value
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    // Models occasionally split a Hebrew word at a line break. Repair only
+    // letter-to-letter breaks; paragraph breaks and sentence breaks remain.
+    .replace(/([\u0590-\u05ff])\n([\u0590-\u05ff])/g, "$1$2")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, 1600);
+}
+
+function isGenericHoldingReply(value: string): boolean {
+  return /קיבלנו את הפנייה|נחזור אלייך לאחר בדיקה|נחזור אליך לאחר בדיקה/i.test(value)
+    && value.length < 420;
+}
+
+function qualityGate(value: SupportAiDecision, input: { policy: SupportPolicyDecision; orderContext: unknown }): SupportAiDecision | null {
+  const replyText = normalizeReplyText(value.replyText);
+  if (!replyText) return null;
+  if (value.decision === "REPLY" && isGenericHoldingReply(replyText)) return null;
+  // A model may not claim to have checked an order, tracking or a refund
+  // unless the corresponding verified context was actually supplied.
+  const hasOrder = Array.isArray(input.orderContext) && input.orderContext.length > 0;
+  if (!hasOrder && /בדקתי את ההזמנה|מספר המעקב|ההזמנה שלך כבר|המשלוח שלך כבר|החזר.*אושר/i.test(replyText)) return null;
+  if (/מומחה.*יחזור|נדאג שתצאי מרוצה|נעדכן אותך מיד|עד שהיא תגיע/i.test(replyText)
+      && input.policy.topic !== "GENERAL_SHIPPING") return null;
+  return { ...value, replyText };
+}
+
 function validDecision(value: any, model: string, fallbackTopic: string): SupportAiDecision | null {
   if (!value || !["REPLY", "WAIT", "ESCALATE"].includes(value.decision)) return null;
   if (typeof value.replyText !== "string") return null;
   const confidence = Number(value.confidence);
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
-  const replyText = value.replyText.trim().slice(0, 1600);
+  const replyText = normalizeReplyText(value.replyText);
   if (value.decision === "REPLY" && !/[\u0590-\u05ff]/.test(replyText)) return null;
   return {
     decision: value.decision,
@@ -114,7 +144,10 @@ export async function generateSupportDecision(input: {
                 "You are the email support assistant for Tiger Brands Global, serving Israeli customers.",
                 "Return JSON only with: decision, topic, confidence, replyText, reason, factsUsed, unverifiedClaims.",
                 "Write replyText in warm, natural, concise Israeli Hebrew and address the customer in feminine form when the wording allows it.",
-                "Lead with the direct answer, then one calming next step. Sound like a responsible retailer, never like a robot or aggressive salesperson.",
+                "Lead with the direct answer to the latest customer message, then one useful next step. Sound like a responsible retailer, never like a robot or aggressive salesperson.",
+                "Treat the latest CUSTOMER message as the question to answer. Earlier messages are context only; do not answer an old quoted message or repeat an answer already given by the owner.",
+                "Use the owner voice examples as style guidance, not as facts. Keep the natural warmth, short paragraphs and feminine Hebrew seen in those examples.",
+                "Do not open with a generic acknowledgement when a direct factual answer is available. Do not say you will check something unless you actually have the required verified context.",
                 "Never invent order status, tracking movement, delivery date, refund, cancellation, policy, product result or medical claim.",
                 "Only use approvedStoreFacts and verifiedOrderContext as factual sources. Owner examples are voice examples only.",
                 "If the request concerns chargeback, legal action, safety/medical issues, fraud, refund, cancellation, address change, identity uncertainty, regulatory approval, ingredients or conflicting facts: decision must be ESCALATE. Provide only a conservative holding draft for owner review; never assert an unverified fact or promise an outcome.",
@@ -145,10 +178,12 @@ export async function generateSupportDecision(input: {
       const raw = payload.choices?.[0]?.message?.content || payload.choices?.[0]?.message?.reasoning || "";
       const parsed = validDecision(JSON.parse(extractJson(raw)), model, input.policy.topic);
       if (!parsed) continue;
-      const reviewDraft = parsed.replyText || ownerReviewHoldingDraft(input.policy);
-      if (input.policy.mustEscalate) return { ...parsed, decision: "ESCALATE", replyText: reviewDraft, confidence: Math.min(parsed.confidence, 0.7) };
-      if (parsed.decision === "ESCALATE" && !parsed.replyText) return { ...parsed, replyText: reviewDraft };
-      return parsed;
+      const gated = qualityGate(parsed, input);
+      if (!gated) continue;
+      const reviewDraft = gated.replyText || ownerReviewHoldingDraft(input.policy);
+      if (input.policy.mustEscalate) return { ...gated, decision: "ESCALATE", replyText: reviewDraft, confidence: Math.min(gated.confidence, 0.7) };
+      if (gated.decision === "ESCALATE" && !gated.replyText) return { ...gated, replyText: reviewDraft };
+      return gated;
     } catch {
       // A failed or malformed rung is never surfaced to the customer; try the next vetted rung.
     } finally {

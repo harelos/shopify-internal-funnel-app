@@ -23,9 +23,11 @@ public/admin/js/*
 !public/admin/css/overview.css
 !public/admin/css/style.css
 !public/admin/css/support.css
+!public/admin/css/commerce-os.css
 !public/admin/js/growth-cockpit.js
 !public/admin/js/journeys.js
 !public/admin/js/overview.js
 !public/admin/js/api.js
 !public/admin/js/element-experiments.js
 !public/admin/js/support.js
+!public/admin/js/commerce-os-shell.js

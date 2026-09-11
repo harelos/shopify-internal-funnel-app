@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
 <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-<title>NovaHair · לוח בקרה</title>
+<title>AI Concierge</title>
+<link rel="stylesheet" href="css/commerce-os.css">
+<script defer src="js/commerce-os-shell.js"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -106,67 +108,67 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>NovaHair · לוח בקרה</h1>
+  <h1>AI Concierge</h1>
   <div class="tabs">
-    <button class="tab-btn active" data-tab="triggers" type="button">טריגרים</button>
-    <button class="tab-btn" data-tab="analytics" type="button">השפעה ומכירות</button>
-    <button class="tab-btn" data-tab="steps" type="button">שלבי שיחה</button>
-    <button class="tab-btn" data-tab="models" type="button">מודלים</button>
+    <button class="tab-btn active" data-tab="triggers" type="button">Triggers</button>
+    <button class="tab-btn" data-tab="analytics" type="button">Impact & sales</button>
+    <button class="tab-btn" data-tab="steps" type="button">Conversation steps</button>
+    <button class="tab-btn" data-tab="models" type="button">Models</button>
   </div>
 
   <section class="panel active" id="panel-triggers">
     <div class="card">
       <div class="control-row">
         <div>
-          <h2>מצב הפופאפ</h2>
-          <p class="muted">המתג הראשי עוצר את כל הטריגרים בלי לשנות את הקוד באתר.</p>
+          <h2>Concierge status</h2>
+          <p class="muted">The master switch pauses every trigger without changing storefront code.</p>
         </div>
-        <label class="toggle-label"><input id="global-enabled" type="checkbox"> פעיל</label>
+        <label class="toggle-label"><input id="global-enabled" type="checkbox"> Enabled</label>
       </div>
-      <p class="muted" id="config-meta">טוען את ההגדרות הפעילות...</p>
+      <p class="muted" id="config-meta">Loading active settings…</p>
     </div>
     <div class="card">
-      <h2>שערי כניסה</h2>
+      <h2>Eligibility gates</h2>
       <div class="grid" id="gates-grid"></div>
     </div>
     <div class="card">
-      <h2>זיהוי נטישה</h2>
+      <h2>Exit-intent signals</h2>
       <div class="grid" id="abandon-grid"></div>
     </div>
     <div class="card">
-      <h2>תדירות</h2>
+      <h2>Frequency</h2>
       <div class="grid" id="frequency-grid"></div>
     </div>
     <div class="card">
-      <h2>מדידה וניסוי</h2>
+      <h2>Measurement & experiment</h2>
       <div class="control-row">
         <div>
-          <h3>תיעוד אותות יציאה</h3>
-          <p class="muted">מתעד את רגעי הנטישה ב־PostHog גם כשהפופאפ לא נפתח.</p>
+          <h3>Record exit signals</h3>
+          <p class="muted">Records exit moments in PostHog even when the Concierge does not open.</p>
         </div>
-        <label class="toggle-label"><input id="signal-tracking" type="checkbox"> פעיל</label>
+        <label class="toggle-label"><input id="signal-tracking" type="checkbox"> Enabled</label>
       </div>
       <div class="grid" style="margin-top:14px">
         <div class="field">
-          <label><span>מזהה ניסוי</span><input id="experiment-id" type="text" maxlength="80" required></label>
-          <div class="hint">מזהה קבוע שמאפשר להשוות תוצאות לאורך זמן.</div>
+          <label><span>Experiment ID</span><input id="experiment-id" type="text" maxlength="80" required></label>
+          <div class="hint">A stable ID for comparing results over time.</div>
         </div>
         <div class="field">
-          <label><span>קבוצת ביקורת</span><input id="holdout-percent" type="number" min="0" max="50" step="1" required></label>
-          <div class="hint">אחוז הזכאיות שלא יראו פופאפ. 0 משאיר את האתר במצב מדידה בלבד.</div>
+          <label><span>Holdout group</span><input id="holdout-percent" type="number" min="0" max="50" step="1" required></label>
+          <div class="hint">The eligible share that will not see the Concierge. 0 is measurement only.</div>
         </div>
       </div>
-      <p class="muted" style="margin-bottom:0">קבוצת ביקורת מעל 0 משנה חשיפה בפועל. השתמשי בה רק כשיש מספיק תנועה למדידת השפעה על רכישות.</p>
+      <p class="muted" style="margin-bottom:0">A holdout above 0 changes live exposure. Use it only with enough traffic to measure purchase impact.</p>
     </div>
     <div class="card">
-      <h2>טריגרים פעילים</h2>
+      <h2>Active triggers</h2>
       <div class="trigger-list" id="triggers-list"></div>
     </div>
     <div class="actions">
-      <button class="primary" id="save-btn" type="button">שמירה והחלה באתר</button>
-      <button id="reload-btn" type="button">טעינה מחדש</button>
-      <button id="reset-btn" type="button">החזרת ברירת מחדל</button>
-      <button id="export-btn" type="button">ייצוא גיבוי</button>
+      <button class="primary" id="save-btn" type="button">Save and apply</button>
+      <button id="reload-btn" type="button">Reload</button>
+      <button id="reset-btn" type="button">Restore defaults</button>
+      <button id="export-btn" type="button">Export backup</button>
     </div>
     <p id="config-status" class="status-line muted" role="status" aria-live="polite"></p>
   </section>
@@ -174,56 +176,56 @@
   <section class="panel" id="panel-analytics">
     <div class="card">
       <div class="analytics-controls">
-        <label>טווח
-          <select id="analytics-days"><option value="7">7 ימים</option><option value="14" selected>14 ימים</option><option value="30">30 ימים</option></select>
+        <label>Range
+          <select id="analytics-days"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option></select>
         </label>
-        <label>מקור
-          <select id="analytics-source"><option value="">הכל</option></select>
+        <label>Source
+          <select id="analytics-source"><option value="">All</option></select>
         </label>
-        <label>אמצעי הגעה
-          <select id="analytics-medium"><option value="">הכל</option></select>
+        <label>Medium
+          <select id="analytics-medium"><option value="">All</option></select>
         </label>
-        <label>קמפיין
-          <select id="analytics-campaign"><option value="">הכל</option></select>
+        <label>Campaign
+          <select id="analytics-campaign"><option value="">All</option></select>
         </label>
-        <button class="primary" id="analytics-refresh" type="button">רענון</button>
+        <button class="primary" id="analytics-refresh" type="button">Refresh</button>
       </div>
-      <p class="muted" id="analytics-status" role="status" aria-live="polite">טוען נתונים מאומתים...</p>
+      <p class="muted" id="analytics-status" role="status" aria-live="polite">Loading verified data…</p>
     </div>
     <div class="card">
-      <h2>השפעה על העסק</h2>
+      <h2>Business impact</h2>
       <div class="analytics-summary" id="analytics-summary"></div>
     </div>
     <div class="card">
-      <h2>השפעה לפי UTM</h2>
+      <h2>Impact by channel</h2>
       <div class="breakdown-grid" id="analytics-breakdowns"></div>
     </div>
     <div class="card">
-      <h2>לידים שנשמרו ב־Shopify</h2>
-      <div class="sales-table"><table><thead><tr><th>לקוחה</th><th>מקור</th><th>מה ביקשה</th><th>UTM</th><th>הסכמה</th><th>תאריך</th></tr></thead><tbody id="analytics-leads"></tbody></table></div>
+      <h2>Leads saved in Shopify</h2>
+      <div class="sales-table"><table><thead><tr><th>Customer</th><th>Source</th><th>Request</th><th>Channel</th><th>Consent</th><th>Date</th></tr></thead><tbody id="analytics-leads"></tbody></table></div>
       <p class="muted" id="analytics-leads-status"></p>
     </div>
     <div class="card">
-      <h2>מכירות שיוחסו ל־Concierge</h2>
-      <div class="sales-table"><table><thead><tr><th>הזמנה</th><th>תאריך</th><th>מקור</th><th>קמפיין</th><th>הכנסה נטו</th></tr></thead><tbody id="analytics-orders"></tbody></table></div>
+      <h2>Sales attributed to Concierge</h2>
+      <div class="sales-table"><table><thead><tr><th>Order</th><th>Date</th><th>Source</th><th>Campaign</th><th>Net revenue</th></tr></thead><tbody id="analytics-orders"></tbody></table></div>
     </div>
     <div class="card">
-      <h2>שימושי NOVA10 ללא שיוך ודאי</h2>
-      <p class="muted">הזמנות עם הקוד המשותף, אך בלי חותמת Concierge בעגלה. הן אינן נספרות כמכירת Concierge.</p>
-      <div class="sales-table"><table><thead><tr><th>הזמנה</th><th>תאריך</th><th>קוד</th><th>הכנסה נטו</th></tr></thead><tbody id="analytics-coupon-only"></tbody></table></div>
+      <h2>NOVA10 uses without a verified Concierge link</h2>
+      <p class="muted">Orders with the shared code but without a Concierge cart marker. They are not counted as Concierge sales.</p>
+      <div class="sales-table"><table><thead><tr><th>Order</th><th>Date</th><th>Code</th><th>Net revenue</th></tr></thead><tbody id="analytics-coupon-only"></tbody></table></div>
     </div>
   </section>
 
   <section class="panel" id="panel-steps">
     <div class="card">
       <div class="stat-row">
-        <span><span class="lbl">שיחות בסך הכל: </span><span id="conversations-total">0</span></span>
+          <span><span class="lbl">Total conversations: </span><span id="conversations-total">0</span></span>
         <span>
-          <span class="lbl">טווח: </span>
+          <span class="lbl">Range: </span>
           <select id="days-select">
-            <option value="7">7 ימים</option>
-            <option value="14" selected>14 ימים</option>
-            <option value="30">30 ימים</option>
+            <option value="7">7 days</option>
+            <option value="14" selected>14 days</option>
+            <option value="30">30 days</option>
           </select>
         </span>
       </div>
@@ -234,10 +236,10 @@
 
   <section class="panel" id="panel-models">
     <div class="card">
-      <h2>תצורת מודלים פעילה</h2>
-      <p id="models-status" class="muted">טוען תצורה מאובטחת מהשרת...</p>
+      <h2>Active model configuration</h2>
+      <p id="models-status" class="muted">Loading secure configuration from the server…</p>
       <ol id="models-list"></ol>
-      <p class="muted" style="margin-bottom:0">התצורה היא לקריאה בלבד. מפתח ה-API והבחירה במודל מנוהלים בצד השרת.</p>
+      <p class="muted" style="margin-bottom:0">This configuration is read-only. API keys and model selection are server-managed.</p>
     </div>
   </section>
 </div>
@@ -281,28 +283,28 @@
   };
 
   var FIELD_META = [
-    { section: 'gates', path: ['minEngagedSeconds'], label: 'שניות מעורבות מינימליות', hint: 'כמה שניות פעילות נדרשות לפני שהפופאפ מותר להיפתח.', step: 1, min: 0, max: 600 },
-    { section: 'gates', path: ['minTimeOnPage'], label: 'זמן מינימלי בעמוד', hint: 'מספר השניות מאז טעינת העמוד לפני הצגה אפשרית.', step: 1, min: 0, max: 600 },
-    { section: 'gates', path: ['minScrollDepth'], label: 'עומק גלילה מינימלי', hint: 'חלק יחסי מהעמוד שצריך לגלול, בין 0 ל-1.', step: 0.05, min: 0, max: 1 },
-    { section: 'gates', path: ['minEngagementScore'], label: 'ציון מעורבות מינימלי', hint: 'סכום פעולות המשתמש הנדרש כדי להיחשב מעורב.', step: 1, min: 0, max: 50 },
-    { section: 'abandon', path: ['fastScrollUp', 'minVelocity'], label: 'מהירות גלילה למעלה', hint: 'מהירות גלילה למעלה בפיקסלים לשנייה.', step: 1, min: 100, max: 5000 },
-    { section: 'abandon', path: ['fastScrollUp', 'settleMs'], label: 'זמן התייצבות', hint: 'כמה מילישניות לחכות אחרי גלילה מהירה.', step: 1, min: 0, max: 5000 },
-    { section: 'abandon', path: ['returnToTop', 'deepAt'], label: 'עומק נחשב עמוק', hint: 'חלק מהעמוד שמעליו הגלילה נחשבת עמוקה.', step: 0.05, min: 0, max: 1 },
-    { section: 'abandon', path: ['returnToTop', 'backTo'], label: 'חזרה למעלה', hint: 'חלק מהעמוד שמתחתיו נחשבת חזרה לראש.', step: 0.05, min: 0, max: 1 },
-    { section: 'abandon', path: ['idle', 'idleSeconds'], label: 'שניות חוסר פעילות', hint: 'כמה שניות של אי פעילות מזהות משתמש מוסח.', step: 1, min: 0, max: 600 },
-    { section: 'abandon', path: ['idleAfterPrice', 'idleSeconds'], label: 'חוסר פעילות אחרי מחיר', hint: 'שניות אי פעילות אחרי צפייה במחיר.', step: 1, min: 0, max: 600 },
-    { section: 'frequency', path: ['maxImpressionsPerSession'], label: 'הצגות מקסימליות בסשן', hint: 'מספר ההצגות המרבי בסשן אחד.', step: 1, min: 0, max: 20 },
-    { section: 'frequency', path: ['maxImpressionsPerVisitor'], label: 'הצגות מקסימליות למבקר', hint: 'מספר ההצגות המרבי לכל מבקר.', step: 1, min: 0, max: 100 },
-    { section: 'frequency', path: ['dismissCooldownDays'], label: 'ימי צינון אחרי סגירה', hint: 'כמה ימים לחכות אחרי סגירה.', step: 1, min: 0, max: 365 }
+    { section: 'gates', path: ['minEngagedSeconds'], label: 'Minimum engaged seconds', hint: 'Active seconds required before the Concierge may open.', step: 1, min: 0, max: 600 },
+    { section: 'gates', path: ['minTimeOnPage'], label: 'Minimum time on page', hint: 'Seconds from page load before an opening is possible.', step: 1, min: 0, max: 600 },
+    { section: 'gates', path: ['minScrollDepth'], label: 'Minimum scroll depth', hint: 'The share of the page a visitor must scroll, from 0 to 1.', step: 0.05, min: 0, max: 1 },
+    { section: 'gates', path: ['minEngagementScore'], label: 'Minimum engagement score', hint: 'The user-action total required to count as engaged.', step: 1, min: 0, max: 50 },
+    { section: 'abandon', path: ['fastScrollUp', 'minVelocity'], label: 'Fast upward scroll speed', hint: 'Upward scroll speed in pixels per second.', step: 1, min: 100, max: 5000 },
+    { section: 'abandon', path: ['fastScrollUp', 'settleMs'], label: 'Settle time', hint: 'Milliseconds to wait after a fast scroll.', step: 1, min: 0, max: 5000 },
+    { section: 'abandon', path: ['returnToTop', 'deepAt'], label: 'Deep-scroll threshold', hint: 'The page share above which scrolling counts as deep.', step: 0.05, min: 0, max: 1 },
+    { section: 'abandon', path: ['returnToTop', 'backTo'], label: 'Return-to-top threshold', hint: 'The page share below which the visitor counts as back at the top.', step: 0.05, min: 0, max: 1 },
+    { section: 'abandon', path: ['idle', 'idleSeconds'], label: 'Idle seconds', hint: 'Seconds without activity that identify a distracted visitor.', step: 1, min: 0, max: 600 },
+    { section: 'abandon', path: ['idleAfterPrice', 'idleSeconds'], label: 'Idle after price', hint: 'Idle seconds after the visitor sees the price.', step: 1, min: 0, max: 600 },
+    { section: 'frequency', path: ['maxImpressionsPerSession'], label: 'Maximum impressions per session', hint: 'The maximum number of openings in one session.', step: 1, min: 0, max: 20 },
+    { section: 'frequency', path: ['maxImpressionsPerVisitor'], label: 'Maximum impressions per visitor', hint: 'The maximum number of openings for one visitor.', step: 1, min: 0, max: 100 },
+    { section: 'frequency', path: ['dismissCooldownDays'], label: 'Dismissal cooldown days', hint: 'Days to wait after the visitor closes the Concierge.', step: 1, min: 0, max: 365 }
   ];
 
   var TRIGGER_META = [
-    { id: 'return_to_top', label: 'חזרה לראש העמוד', hint: 'הגיעה לעומק משמעותי ואז חזרה במהירות למעלה.' },
-    { id: 'fast_scroll_up', label: 'גלילה מהירה למעלה', hint: 'אות נטישה מרכזי במובייל ובדפדפני Instagram ו-Facebook.' },
-    { id: 'idle_after_price', label: 'עצירה אחרי צפייה במחיר', hint: 'ראתה את אזור המחיר ולא המשיכה לפעול.' },
-    { id: 'desktop_exit', label: 'יציאת עכבר בדסקטופ', hint: 'הסמן יוצא דרך החלק העליון של המסך.' },
-    { id: 'bundle_hesitation', label: 'התלבטות באזור המארזים', hint: 'שהתה ליד המארזים בלי לבחור מארז או גוון.' },
-    { id: 'engaged_drift', label: 'מעורבת אבל לא מתקדמת', hint: 'רמת עניין גבוהה לצד אותות נטישה מצטברים.' }
+    { id: 'return_to_top', label: 'Return to page top', hint: 'The visitor reached meaningful depth then returned upward.' },
+    { id: 'fast_scroll_up', label: 'Fast upward scroll', hint: 'A central exit signal on mobile and Instagram/Facebook browsers.' },
+    { id: 'idle_after_price', label: 'Pause after price', hint: 'The visitor saw the price area and did not continue.' },
+    { id: 'desktop_exit', label: 'Desktop mouse exit', hint: 'The pointer leaves via the upper edge of the screen.' },
+    { id: 'bundle_hesitation', label: 'Bundle hesitation', hint: 'The visitor stayed near the packages without choosing one or a shade.' },
+    { id: 'engaged_drift', label: 'Engaged but not progressing', hint: 'High interest alongside accumulating exit signals.' }
   ];
 
   var configInputs = {};
@@ -374,11 +376,11 @@
       var enabled = document.createElement('input');
       enabled.type = 'checkbox';
       enabledLabel.appendChild(enabled);
-      enabledLabel.appendChild(document.createTextNode(' פעיל'));
+      enabledLabel.appendChild(document.createTextNode(' Enabled'));
 
       var score = document.createElement('label');
       score.className = 'trigger-score';
-      score.appendChild(document.createTextNode('ציון נטישה מינימלי'));
+      score.appendChild(document.createTextNode('Minimum exit score'));
       var abandon = document.createElement('input');
       abandon.type = 'number';
       abandon.min = '0';
@@ -405,7 +407,7 @@
         engagement.required = true;
         var engagementLabel = document.createElement('label');
         engagementLabel.className = 'trigger-score';
-        engagementLabel.appendChild(document.createTextNode('ציון מעורבות מינימלי'));
+        engagementLabel.appendChild(document.createTextNode('Minimum engagement score'));
         engagementLabel.appendChild(engagement);
         scoreWrap.appendChild(engagementLabel);
         triggerInputs[meta.id].minEngagementScore = engagement;
@@ -445,30 +447,30 @@
     config.enabled = document.getElementById('global-enabled').checked;
     config.measurement.signalTracking = document.getElementById('signal-tracking').checked;
     var experimentId = document.getElementById('experiment-id').value.trim();
-    if (!/^[a-z0-9_-]{3,80}$/i.test(experimentId)) throw new Error('מזהה הניסוי חייב להכיל 3-80 אותיות, ספרות, קו או מקף.');
+    if (!/^[a-z0-9_-]{3,80}$/i.test(experimentId)) throw new Error('Experiment ID must contain 3–80 letters, numbers, underscores, or hyphens.');
     config.measurement.experimentId = experimentId;
     var holdoutPercent = Number(document.getElementById('holdout-percent').value);
-    if (!Number.isInteger(holdoutPercent) || holdoutPercent < 0 || holdoutPercent > 50) throw new Error('קבוצת הביקורת חייבת להיות מספר שלם בין 0 ל־50.');
+    if (!Number.isInteger(holdoutPercent) || holdoutPercent < 0 || holdoutPercent > 50) throw new Error('Holdout must be a whole number between 0 and 50.');
     config.measurement.holdoutPercent = holdoutPercent;
     FIELD_META.forEach(function (meta) {
       var key = meta.section + '.' + meta.path.join('.');
       var raw = configInputs[key].value;
       var num = raw === '' ? 0 : Number(raw);
-      if (!isFinite(num) || num < meta.min || num > meta.max) throw new Error('ערך לא תקין בשדה: ' + meta.label);
+      if (!isFinite(num) || num < meta.min || num > meta.max) throw new Error('Invalid value for: ' + meta.label);
       setPath(config, fullPath(meta), num);
     });
     if (config.abandon.returnToTop.backTo >= config.abandon.returnToTop.deepAt) {
-      throw new Error('ערך החזרה למעלה חייב להיות נמוך מעומק הגלילה העמוק.');
+      throw new Error('Return-to-top must be below the deep-scroll threshold.');
     }
     TRIGGER_META.forEach(function (meta) {
       var inputs = triggerInputs[meta.id];
       var score = Number(inputs.minAbandonScore.value);
-      if (!Number.isInteger(score) || score < 0 || score > 50) throw new Error('ציון לא תקין בטריגר: ' + meta.label);
+      if (!Number.isInteger(score) || score < 0 || score > 50) throw new Error('Invalid trigger score: ' + meta.label);
       config.triggers[meta.id].enabled = inputs.enabled.checked;
       config.triggers[meta.id].minAbandonScore = score;
       if (inputs.minEngagementScore) {
         var engagement = Number(inputs.minEngagementScore.value);
-        if (!Number.isInteger(engagement) || engagement < 0 || engagement > 50) throw new Error('ציון מעורבות לא תקין.');
+        if (!Number.isInteger(engagement) || engagement < 0 || engagement > 50) throw new Error('Invalid engagement score.');
         config.triggers[meta.id].minEngagementScore = engagement;
       }
     });

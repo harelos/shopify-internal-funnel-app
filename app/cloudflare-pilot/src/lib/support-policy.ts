@@ -21,7 +21,7 @@ const rules: Array<{ pattern: RegExp; flag: string; topic: string; risk: Support
   { pattern: /רשימת רכיבים|מה (?:יש|מכיל).*מוצר|אישור משרד הבריאות|משרד הבריאות|INCI|ingredients|regulatory approval/i, flag: "PRODUCT_OR_REGULATORY_INFORMATION", topic: "PRODUCT_INFORMATION", risk: "MEDIUM" },
   { pattern: /כמה (?:עולה )?(?:ה)?משלוח|עלות משלוח|תוך כמה זמן|כמה זמן (?:ה)?משלוח|ימי עסקים|shipping cost|delivery time|how long.*deliver/i, flag: "PRE_SALE_SHIPPING", topic: "GENERAL_SHIPPING", risk: "LOW" },
   { pattern: /מסומן(?:ת)? כנמסר|כתוב.*נמסר|לא קיבלתי.*(?:הזמנה|חבילה)|delivered.*(?:not|but)|marked.*delivered/i, flag: "DELIVERY_DISPUTE", topic: "DELIVERY_DISPUTE", risk: "MEDIUM" },
-  { pattern: /איפה ההזמנה|איפה החבילה|מספר מעקב|לא הגיע|צפי.*(?:משלוח|לקבל)|מתי.*(?:יגיע|אקבל)|tracking|where is my order/i, flag: "ORDER_STATUS", topic: "ORDER_STATUS", risk: "LOW" },
+  { pattern: /איפה ההזמנה|איפה החבילה|מספר מעקב|לא הגיע|צפי.*(?:משלוח|לקבל)|מתי.*(?:יגיע|אקבל)|מתי.*(?:יצא|נשלח)|(?:יצא|נשלח).*הזמנה|עדכון.*(?:משלוח|הזמנה)|לא קיבלתי.*עדכון|tracking|where is my order/i, flag: "ORDER_STATUS", topic: "ORDER_STATUS", risk: "LOW" },
   { pattern: /איך משתמש|הוראות שימוש|איך לצבוע|how (do|to) use/i, flag: "HOW_TO_USE", topic: "PRODUCT_USAGE", risk: "MEDIUM" },
   { pattern: /לא עובד|לא צבע|לא נתפס|didn.?t work|no result/i, flag: "PRODUCT_RESULT", topic: "PRODUCT_RESULT", risk: "MEDIUM" },
 ];

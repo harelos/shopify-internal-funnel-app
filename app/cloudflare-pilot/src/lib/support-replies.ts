@@ -32,6 +32,28 @@ export function ownerReviewHoldingDraft(policy: SupportPolicyDecision): string {
       "צוות Tiger Brands Global",
     ].join("\n");
   }
+  if (["ORDER_STATUS", "DELIVERY_DISPUTE"].includes(policy.topic)) {
+    return [
+      "היי,",
+      "",
+      "תודה שכתבת לנו. אני בודקת עכשיו את פרטי ההזמנה והמעקב כדי לחזור אלייך עם עדכון מדויק, ולא עם תשובה כללית.",
+      "",
+      "אחזור אלייך לאחר הבדיקה.",
+      "",
+      "צוות Tiger Brands Global",
+    ].join("\n");
+  }
+  if (["PRODUCT_RESULT", "PRODUCT_USAGE", "PRODUCT_SAFETY"].includes(policy.topic)) {
+    return [
+      "היי,",
+      "",
+      "תודה שכתבת ושיתפת אותנו. אני רוצה לבדוק את הפרטים כמו שצריך לפני שאכוון אותך, ולכן הפנייה עוברת עכשיו לבדיקה אישית.",
+      "",
+      "נחזור אלייך עם מענה מסודר לאחר שנבדוק את המקרה.",
+      "",
+      "צוות Tiger Brands Global",
+    ].join("\n");
+  }
   return [
     "היי,",
     "",

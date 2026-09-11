@@ -30,8 +30,8 @@
     return {
       id: newId(kind), kind: kind, enabled: true, position: 0,
       productId: "", variantId: "", productTitle: "", variantTitle: "",
-      title: "", priceIls: "", compareAtIls: "", anchorText: kind === "carousel" ? "מחיר בהוספה" : "",
-      buttonText: kind === "carousel" ? "הוספה" : "הוסיפי להזמנה",
+      title: "", priceIls: "", compareAtIls: "", anchorText: kind === "carousel" ? "Price when added" : "",
+      buttonText: kind === "carousel" ? "Add" : "Add to order",
       imageUrl: "", imageAlt: "", storefrontPriceIls: "", discountNodeId: ""
     };
   }
@@ -55,10 +55,10 @@
     var image = node.querySelector(".offer-image");
     if (item.imageUrl) image.src = item.imageUrl;
     image.alt = item.imageAlt || item.title || "";
-    node.querySelector(".selected-product").textContent = item.productTitle || "לא נבחר מוצר";
+    node.querySelector(".selected-product").textContent = item.productTitle || "No product selected";
     node.querySelector(".selected-variant").textContent = item.variantTitle || "";
     node.querySelector(".shopify-price").textContent = item.storefrontPriceIls
-      ? "מחיר נוכחי בחנות: ₪" + item.storefrontPriceIls
+      ? "Current store price: ₪" + item.storefrontPriceIls
       : "";
     node.querySelector(".move-up").disabled = index === 0;
     node.querySelector(".move-down").disabled = index === total - 1;
@@ -68,7 +68,7 @@
       else input.value = item[field] || "";
       input.addEventListener("input", function () {
         item[field] = input.type === "checkbox" ? input.checked : input.value;
-        setStatus("יש שינויים שעדיין לא נשמרו.", false);
+        setStatus("You have unsaved changes.", false);
       });
     });
     node.querySelector(".choose-product").addEventListener("click", function () { openPicker(item.kind, item.id); });
@@ -77,7 +77,7 @@
       list.splice(list.indexOf(item), 1);
       updatePositions(list);
       render();
-      setStatus("הפריט הוסר מהטיוטה.", false);
+      setStatus("The item was removed from this draft.", false);
     });
     node.querySelector(".move-up").addEventListener("click", function () { moveItem(item.kind, item.id, -1); });
     node.querySelector(".move-down").addEventListener("click", function () { moveItem(item.kind, item.id, 1); });
@@ -106,13 +106,13 @@
     list.splice(next, 0, moved);
     updatePositions(list);
     render();
-    setStatus("סדר הפריטים השתנה בטיוטה.", false);
+    setStatus("The draft order was updated.", false);
   }
 
   function addItem(kind) {
     var max = kind === "carousel" ? 12 : 8;
     var list = listFor(kind);
-    if (list.length >= max) return setStatus("הגעת למספר הפריטים המרבי באזור הזה.", true);
+    if (list.length >= max) return setStatus("You reached the item limit for this area.", true);
     list.push(blankItem(kind));
     updatePositions(list);
     render();
@@ -123,7 +123,7 @@
     activePicker = { kind: kind, id: id };
     picker.hidden = false;
     search.value = "";
-    results.innerHTML = '<p class="muted">טוען מוצרים...</p>';
+    results.innerHTML = '<p class="muted">Loading products…</p>';
     search.focus();
     loadProducts("");
   }
@@ -146,7 +146,7 @@
     title.textContent = product.productTitle;
     var variant = document.createElement("span");
     variant.className = "muted";
-    variant.textContent = product.variantTitle + (product.availableForSale ? "" : " · לא זמין");
+    variant.textContent = product.variantTitle + (product.availableForSale ? "" : " · Unavailable");
     copy.append(title, variant);
     var price = document.createElement("bdi");
     price.className = "picker-result-price";
@@ -158,16 +158,16 @@
   }
 
   async function loadProducts(query) {
-    results.innerHTML = '<p class="muted">מחפש בחנות...</p>';
+    results.innerHTML = '<p class="muted">Searching your store…</p>';
     try {
       var data = await API.get("/api/cart-offers/products?query=" + encodeURIComponent(query || ""));
       if (!data.products.length) {
-        results.innerHTML = '<p class="muted">לא נמצאו מוצרים.</p>';
+        results.innerHTML = '<p class="muted">No products found.</p>';
         return;
       }
       results.replaceChildren.apply(results, data.products.map(productResult));
     } catch (error) {
-      results.innerHTML = '<p class="error-msg">לא ניתן לטעון מוצרים כרגע.</p>';
+      results.innerHTML = '<p class="error-msg">Products could not be loaded right now.</p>';
     }
   }
 
@@ -188,7 +188,7 @@
     item.discountNodeId = "";
     closePicker();
     render();
-    setStatus("המוצר נבחר. השינוי נמצא בטיוטה בלבד.", false);
+    setStatus("Product selected. This change is in the draft only.", false);
   }
 
   function configFromForm() {
@@ -205,15 +205,15 @@
 
   async function saveDraft() {
     setBusy(true);
-    setStatus("שומר טיוטה...", false);
+    setStatus("Saving draft…", false);
     try {
       var data = await API.put("/api/cart-offers/draft", { config: configFromForm() });
       state = data.draft;
-      document.getElementById("revision-copy").textContent = "טיוטה " + data.draftRevision + " · גרסה מפורסמת " + data.publishedRevision;
+      document.getElementById("revision-copy").textContent = "Draft " + data.draftRevision + " · Published version " + data.publishedRevision;
       render();
-      setStatus("הטיוטה נשמרה. החנות לא השתנתה.", false);
+      setStatus("Draft saved. Your store has not changed.", false);
     } catch (error) {
-      setStatus(error.message || "שמירת הטיוטה נכשלה.", true);
+      setStatus(error.message || "Draft could not be saved.", true);
     } finally {
       setBusy(false);
     }
@@ -221,17 +221,17 @@
 
   async function publish() {
     setBusy(true);
-    setStatus("שומר, מאמת מול Shopify ומפרסם לחנות...", false);
+    setStatus("Saving, validating with Shopify, and publishing to the store…", false);
     try {
       var data = await API.post("/api/cart-offers/publish", { config: configFromForm() });
       state = data.draft;
-      document.getElementById("revision-copy").textContent = "טיוטה " + data.draftRevision + " · גרסה מפורסמת " + data.publishedRevision;
+      document.getElementById("revision-copy").textContent = "Draft " + data.draftRevision + " · Published version " + data.publishedRevision;
       render();
       setStatus(data.cleanupErrors && data.cleanupErrors.length
-        ? "פורסם, אך נותרה הנחה ישנה לניקוי ידני."
-        : "פורסם בהצלחה לחנות · גרסה " + data.publishedRevision + ".", Boolean(data.cleanupErrors && data.cleanupErrors.length));
+        ? "Published, but an older discount still needs manual cleanup."
+        : "Published to the store · version " + data.publishedRevision + ".", Boolean(data.cleanupErrors && data.cleanupErrors.length));
     } catch (error) {
-      setStatus(error.message || "הפרסום נכשל. החנות נשארה בגרסה הקודמת.", true);
+      setStatus(error.message || "Publishing failed. Your store is still on the previous version.", true);
     } finally {
       setBusy(false);
     }
@@ -242,17 +242,17 @@
     try {
       var data = await API.get("/api/cart-offers");
       state = data.draft;
-      document.getElementById("revision-copy").textContent = "טיוטה " + data.draftRevision + " · גרסה מפורסמת " + data.publishedRevision;
+      document.getElementById("revision-copy").textContent = "Draft " + data.draftRevision + " · Published version " + data.publishedRevision;
       render();
-      setStatus("שינויים נשמרים כטיוטה עד לחיצה על פרסום לחנות.", false);
+      setStatus("Changes stay in draft until you publish them to the store.", false);
     } catch (error) {
-      setStatus(error.message || "לא ניתן לטעון את ההצעות.", true);
+      setStatus(error.message || "Cart offers could not be loaded.", true);
     } finally {
       setBusy(false);
     }
   }
 
-  document.getElementById("carousel-title").addEventListener("input", function () { setStatus("יש שינויים שעדיין לא נשמרו.", false); });
+  document.getElementById("carousel-title").addEventListener("input", function () { setStatus("You have unsaved changes.", false); });
   document.getElementById("add-carousel").addEventListener("click", function () { addItem("carousel"); });
   document.getElementById("add-bump").addEventListener("click", function () { addItem("bump"); });
   document.getElementById("save-draft").addEventListener("click", saveDraft);

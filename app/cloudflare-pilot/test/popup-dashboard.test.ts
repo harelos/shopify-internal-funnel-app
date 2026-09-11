@@ -19,11 +19,11 @@ test("deployed popup dashboard contains required operational sections and no moc
 
 test("AI Concierge dashboard exposes Shopify sales and UTM impact without mock data", () => {
   const html = readFileSync(new URL("../public/admin/ai-concierge.html", import.meta.url), "utf8");
-  assert.match(html, /השפעה ומכירות/);
+  assert.match(html, /Impact & sales/);
   assert.match(html, /\/api\/analytics\/popup/);
   assert.match(html, /recentAttributedOrders/);
   assert.match(html, /recentLeads/);
-  assert.match(html, /לידים שנשמרו ב־Shopify/);
+  assert.match(html, /Leads saved in Shopify/);
   assert.match(html, /recentCouponOnlyOrders/);
   assert.match(html, /popupAttributedRevenueByCurrency/);
   assert.match(html, /analytics-(?:source|medium|campaign)/);
