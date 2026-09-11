@@ -69,12 +69,13 @@ router.get("/operations/health", async (req, res) => {
       ORDER BY "occurredAt" DESC LIMIT 1`).first<Row>(),
     db.prepare(`SELECT
       COUNT(*) AS "paid",
-      SUM(CASE WHEN "checkoutToken" IS NOT NULL AND "checkoutToken" != '' THEN 1 ELSE 0 END) AS "linked",
-      SUM(CASE WHEN "checkoutToken" IS NULL OR "checkoutToken" = '' THEN 1 ELSE 0 END) AS "unlinked",
-      MAX("updatedAt") AS "lastUpdatedAt"
-      FROM "OrderAttribution"
-      WHERE "isTest" = 0 AND "netRevenueAmount" > 0 AND "status" != 'REFUNDED_OR_CANCELLED'
-        AND "paidAt" >= ? AND "paidAt" < ?`).bind(todayIsrael.from, todayIsrael.toExclusive).first<Row>(),
+      SUM(CASE WHEN c."visitorId" IS NOT NULL AND c."visitorId" != '' THEN 1 ELSE 0 END) AS "linked",
+      SUM(CASE WHEN c."visitorId" IS NULL OR c."visitorId" = '' THEN 1 ELSE 0 END) AS "unlinked",
+      MAX(o."updatedAt") AS "lastUpdatedAt"
+      FROM "OrderAttribution" o
+      LEFT JOIN "CheckoutAttribution" c ON c."checkoutToken" = o."checkoutToken"
+      WHERE o."isTest" = 0 AND o."netRevenueAmount" > 0 AND o."status" != 'REFUNDED_OR_CANCELLED'
+        AND o."paidAt" >= ? AND o."paidAt" < ?`).bind(todayIsrael.from, todayIsrael.toExclusive).first<Row>(),
     db.prepare(`SELECT "releaseState", "passedCount", "failedCount", "circuitBreakerTriggered",
       "purchaseKillSwitchActive", "transformActive", "lastWebhookTimestamp", "lastCjSyncTimestamp", "updatedAt"
       FROM "NovaHairMonitorState" WHERE "id" = 'singleton' LIMIT 1`).first<Row>(),

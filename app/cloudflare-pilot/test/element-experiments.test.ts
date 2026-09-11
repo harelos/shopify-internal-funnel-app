@@ -46,6 +46,12 @@ test("Worker-hosted runtime includes the same Shopify extension code and its att
   assert.ok(workerRuntime.includes(attributionRuntime));
 });
 
+test("Element Tests opens the running experiment and loads its sales by default", () => {
+  const source = readFileSync("public/admin/js/element-experiments.js", "utf8");
+  assert.match(source, /slots\.find\(slot => slot\.experiment\?\.status === "RUNNING"\)/);
+  assert.match(source, /if \(current\) await loadResults\(\)/);
+});
+
 test("element runtime persists attribution without mutating cart line items", () => {
   const experimentRuntime = readFileSync("public/assets/funnel-control-elements.js", "utf8");
   const attributionRuntime = readFileSync("public/assets/funnel-control-attribution.js", "utf8");

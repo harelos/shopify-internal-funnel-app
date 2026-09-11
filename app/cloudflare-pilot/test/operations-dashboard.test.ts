@@ -33,6 +33,8 @@ test("Operations backend derives health from authoritative ledgers and fails att
   assert.match(route, /SupportMailbox/);
   assert.match(route, /ElementExposure/);
   assert.match(route, /OrderAttribution/);
+  assert.match(route, /LEFT JOIN "CheckoutAttribution"/);
+  assert.match(route, /c\."visitorId" IS NOT NULL/);
   assert.match(route, /will remain unattributed rather than guessed/);
   assert.match(route, /Meta cost coverage is stale/);
   assert.match(route, /probeShopifyPixelHealth\(shopify, sessionToken\)/);

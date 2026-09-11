@@ -2,13 +2,14 @@ import prisma from "../lib/db.js";
 import { resolveGrowthCockpitRange } from "../lib/growth-cockpit-config.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { getShopifyConfig, normalizeShopDomain } from "../lib/shopify-config.js";
+import { extractShopifyStoredContext } from "../lib/shopify-stored-context.js";
 import {
   needsOrderReconciliation,
   normalizeShopifyOrderForAttribution,
   reconciliationCreateFields,
   reconciliationFinancialUpdate,
 } from "../lib/shopify-order-reconciliation.js";
-import { snapshotOrderElementAssignments } from "./element-attribution.js";
+import { restoreCheckoutFromStoredContext, snapshotOrderElementAssignments } from "./element-attribution.js";
 
 const shopify = new ShopifyAdminClient();
 
@@ -62,6 +63,34 @@ export async function reconcileShopifyOrderAttribution(input: {
     }
     if (fields.isRevenueOrder) shopifyRevenueOrders += 1;
 
+    const stored = extractShopifyStoredContext(sourceOrder.customAttributes, domain);
+    const restoredCheckout = existing?.checkoutToken
+      ? await restoreCheckoutFromStoredContext({
+        shopId: shop.id,
+        checkoutToken: existing.checkoutToken,
+        stored,
+        occurredAt: fields.paidAt,
+        completedAt: fields.paidAt,
+      })
+      : null;
+
+    if (existing && restoredCheckout && (
+      existing.funnelId !== restoredCheckout.funnelId
+      || existing.variantId !== restoredCheckout.lastVariantId
+      || existing.confidence !== restoredCheckout.confidence
+      || existing.isTest !== Boolean(stored?.context.isInternal)
+    )) {
+      await prisma.orderAttribution.update({
+        where: { id: existing.id },
+        data: {
+          funnelId: restoredCheckout.funnelId,
+          variantId: restoredCheckout.lastVariantId,
+          confidence: restoredCheckout.visitorId || restoredCheckout.funnelId ? "HIGH" : existing.confidence,
+          isTest: Boolean(stored?.context.isInternal),
+        },
+      });
+    }
+
     if (!existing) {
       const order = await prisma.orderAttribution.upsert({
         where: { shopifyOrderGid: fields.shopifyOrderGid },
@@ -73,6 +102,7 @@ export async function reconcileShopifyOrderAttribution(input: {
       continue;
     }
     if (!needsOrderReconciliation(existing, fields)) {
+      await snapshotOrderElementAssignments(existing.id, existing.checkoutToken);
       unchanged += 1;
       continue;
     }

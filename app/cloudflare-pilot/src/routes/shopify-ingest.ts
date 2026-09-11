@@ -6,6 +6,7 @@ import prisma from "../lib/db.js";
 import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
 import { extractDiscountCodes, extractPopupAttribution } from "../lib/popup-attribution.js";
+import { extractShopifyStoredContext } from "../lib/shopify-stored-context.js";
 import { capturePostHogServerEvent } from "../lib/posthog-server.js";
 import {
   normalizePaidOrderWebhook,
@@ -19,6 +20,7 @@ import {
   promoteCartElementAssignmentsToCheckout,
   reconcileOrdersForCheckout,
   resolveBrowserVisitor,
+  restoreCheckoutFromStoredContext,
   snapshotCheckoutElementAssignments,
   snapshotOrderElementAssignments,
 } from "../services/element-attribution.js";
@@ -113,13 +115,26 @@ async function ensureCheckoutAttribution(shopId: string, checkoutToken: string |
 }
 
 async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, orderPayload: Record<string, unknown>) {
-  const checkout = await ensureCheckoutAttribution(shopId, event.checkoutToken, event.occurredAt ?? new Date());
+  const occurredAt = event.occurredAt ?? new Date();
+  const initialCheckout = await ensureCheckoutAttribution(shopId, event.checkoutToken, occurredAt);
+  const stored = extractShopifyStoredContext(orderPayload.note_attributes, event.shopDomain);
+  const checkout = await restoreCheckoutFromStoredContext({
+    shopId,
+    checkoutToken: initialCheckout?.checkoutToken,
+    stored,
+    occurredAt,
+    completedAt: occurredAt,
+  }) ?? initialCheckout;
   const promotedAssignments = await promoteCartElementAssignmentsToCheckout({
     shopId,
     cartToken: normalizeShopifyCartToken(orderPayload.cart_token),
     checkoutToken: checkout?.checkoutToken,
   });
-  const confidence = checkout?.visitorId || checkout?.funnelId || promotedAssignments > 0 ? "HIGH" : "UNATTRIBUTED";
+  const refreshedCheckout = checkout?.checkoutToken
+    ? await prisma.checkoutAttribution.findUnique({ where: { checkoutToken: checkout.checkoutToken } })
+    : null;
+  const confidence = refreshedCheckout?.visitorId || refreshedCheckout?.funnelId || promotedAssignments > 0 ? "HIGH" : "UNATTRIBUTED";
+  const isTest = Boolean(orderPayload.test) || Boolean(stored?.context.isInternal);
   const popup = extractPopupAttribution(orderPayload);
   const discountCodes = extractDiscountCodes(orderPayload);
   const popupFields = {
@@ -140,15 +155,15 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
     where: { shopifyOrderGid: event.orderGid! },
     update: {
       checkoutToken: checkout?.checkoutToken ?? null,
-      funnelId: checkout?.funnelId ?? null,
-      variantId: checkout?.lastVariantId ?? null,
+      funnelId: refreshedCheckout?.funnelId ?? null,
+      variantId: refreshedCheckout?.lastVariantId ?? null,
       currency: event.currency!,
       grossAmount: event.grossAmount!,
       netRevenueAmount: event.grossAmount!,
       refundedAmount: 0,
       status: "PAID",
       confidence,
-      isTest: false,
+      isTest,
       paidAt: event.occurredAt ?? new Date(),
       ...popupFields,
     },
@@ -156,15 +171,15 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
       shopId,
       shopifyOrderGid: event.orderGid!,
       checkoutToken: checkout?.checkoutToken ?? null,
-      funnelId: checkout?.funnelId ?? null,
-      variantId: checkout?.lastVariantId ?? null,
+      funnelId: refreshedCheckout?.funnelId ?? null,
+      variantId: refreshedCheckout?.lastVariantId ?? null,
       currency: event.currency!,
       grossAmount: event.grossAmount!,
       netRevenueAmount: event.grossAmount!,
       refundedAmount: 0,
       status: "PAID",
       confidence,
-      isTest: false,
+      isTest,
       paidAt: event.occurredAt ?? new Date(),
       ...popupFields,
     },
@@ -180,7 +195,7 @@ async function persistOrderPaid(shopId: string, event: ShopifyIntegrationEvent, 
       variantId: checkout?.lastVariantId ?? null,
       checkoutToken: checkout?.checkoutToken ?? null,
       payload: JSON.stringify(event.payload),
-      isTest: false,
+      isTest,
   });
 
   if (popup) {
@@ -240,11 +255,19 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
   if (!gid || amount === undefined || !currency) return false;
 
   const checkoutToken = textValue(payload.checkout_token);
-  const checkout = await ensureCheckoutAttribution(
+  const initialCheckout = await ensureCheckoutAttribution(
     shopId,
     checkoutToken,
     dateValue(payload.processed_at) ?? dateValue(payload.created_at) ?? new Date(),
   );
+  const stored = extractShopifyStoredContext(payload.note_attributes, getShopifyConfig().shopDomain);
+  const checkout = await restoreCheckoutFromStoredContext({
+    shopId,
+    checkoutToken: initialCheckout?.checkoutToken,
+    stored,
+    occurredAt: dateValue(payload.processed_at) ?? dateValue(payload.created_at) ?? new Date(),
+    completedAt: dateValue(payload.processed_at) ?? null,
+  }) ?? initialCheckout;
   const promotedAssignments = await promoteCartElementAssignmentsToCheckout({
     shopId,
     cartToken: normalizeShopifyCartToken(payload.cart_token),
@@ -279,7 +302,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       status: status.status,
       confidence: promotedAssignments > 0 ? "HIGH" : existing?.confidence ?? "UNATTRIBUTED",
       cancelledAt: status.cancelledAt,
-      isTest: false,
+      isTest: Boolean(payload.test) || Boolean(stored?.context.isInternal),
       discountCodes: JSON.stringify(discountCodes),
       ...updatedPopupFields,
     },
@@ -295,7 +318,7 @@ async function persistOrderUpdated(shopId: string, payload: Record<string, unkno
       refundedAmount: Math.max(0, amount - status.netRevenue),
       status: status.status,
       confidence: checkout?.visitorId || checkout?.funnelId || promotedAssignments > 0 ? "HIGH" : "UNATTRIBUTED",
-      isTest: false,
+      isTest: Boolean(payload.test) || Boolean(stored?.context.isInternal),
       discountCodes: JSON.stringify(discountCodes),
       popupAttributed: Boolean(popup),
       popupVisitorKey: popup?.visitorId ?? null,

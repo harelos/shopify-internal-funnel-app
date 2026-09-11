@@ -236,6 +236,11 @@ document.addEventListener("DOMContentLoaded", () => {
     slots = await API.get("/api/element-slots");
     if (preferredId) current = slots.find(slot => slot.id === preferredId) || current;
     else if (current) current = slots.find(slot => slot.id === current.id) || null;
+    if (!current && slots.length) {
+      current = slots.find(slot => slot.experiment?.status === "RUNNING")
+        || slots.find(slot => slot.status === "ACTIVE")
+        || slots[0];
+    }
     renderList();
     renderDetail();
     if (current) await loadResults();

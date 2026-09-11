@@ -2,6 +2,7 @@ import prisma from "../lib/db.js";
 import { normalizeShopifyCartToken } from "../lib/shopify-cart-token.js";
 import { hashAnonymousKey } from "./element-ab-engine.js";
 import { captureElementPurchaseToPostHog } from "./element-posthog.js";
+import type { ShopifyStoredContext } from "../lib/shopify-stored-context.js";
 
 export interface ElementAssignmentContext {
   assignmentId: string;
@@ -45,6 +46,63 @@ export async function resolveBrowserVisitor(shopId: string, anonymousKey: string
   });
   if (legacyVisitor) return legacyVisitor;
   return prisma.visitor.create({ data: { shopId, anonymousKeyHash: hashed } });
+}
+
+/**
+ * Restores a verified browser/experiment link from the private cart attribute
+ * copied by Shopify onto the order. This is the server-side fallback when the
+ * checkout Web Pixel is delayed or consent prevents its callback from running.
+ */
+export async function restoreCheckoutFromStoredContext(input: {
+  shopId: string;
+  checkoutToken: string | null | undefined;
+  stored: ShopifyStoredContext | null;
+  occurredAt: Date;
+  completedAt?: Date | null;
+}) {
+  const checkoutToken = String(input.checkoutToken ?? "").trim();
+  if (!checkoutToken || !input.stored || input.stored.context.isInternal) return null;
+  const context = input.stored.context;
+  const visitor = context.visitorId ? await resolveBrowserVisitor(input.shopId, context.visitorId) : null;
+  const update: Record<string, unknown> = {};
+  if (visitor) update.visitorId = visitor.id;
+  if (context.funnelId) update.funnelId = context.funnelId;
+  if (context.stepId) update.lastStepId = context.stepId;
+  if (context.variantId) update.lastVariantId = context.variantId;
+  if (input.completedAt) update.completedAt = input.completedAt;
+  if (visitor || context.funnelId || context.variantId) update.confidence = "MEDIUM";
+
+  await prisma.checkoutAttribution.upsert({
+    where: { checkoutToken },
+    update,
+    create: {
+      shopId: input.shopId,
+      checkoutToken,
+      visitorId: visitor?.id ?? null,
+      funnelId: context.funnelId ?? null,
+      lastStepId: context.stepId ?? null,
+      lastVariantId: context.variantId ?? null,
+      startedAt: input.occurredAt,
+      completedAt: input.completedAt ?? null,
+      confidence: visitor || context.funnelId || context.variantId ? "MEDIUM" : "UNATTRIBUTED",
+    },
+  });
+
+  if (visitor) {
+    const captured = await snapshotCheckoutElementAssignments({
+      shopId: input.shopId,
+      checkoutToken,
+      visitorId: visitor.id,
+      contexts: normalizeElementAssignmentContexts(input.stored.elementAssignments),
+    });
+    if (captured > 0) {
+      await prisma.checkoutAttribution.update({
+        where: { checkoutToken },
+        data: { confidence: "HIGH" },
+      });
+    }
+  }
+  return prisma.checkoutAttribution.findUnique({ where: { checkoutToken } });
 }
 
 export async function snapshotCheckoutElementAssignments(input: {

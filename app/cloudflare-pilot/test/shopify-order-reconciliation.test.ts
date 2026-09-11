@@ -7,6 +7,7 @@ import {
   type ExistingOrderAttributionSnapshot,
   type ShopifyOrderForAttributionReconciliation,
 } from "../src/lib/shopify-order-reconciliation.ts";
+import { extractShopifyStoredContext } from "../src/lib/shopify-stored-context.ts";
 
 function order(overrides: Partial<ShopifyOrderForAttributionReconciliation> = {}): ShopifyOrderForAttributionReconciliation {
   return {
@@ -103,4 +104,26 @@ test("a partial Shopify marker cannot erase richer verified popup attribution", 
   const update = reconciliationFinancialUpdate(fields, snapshot);
   assert.equal("popupVisitorKey" in update && update.popupVisitorKey, "verified_visitor");
   assert.equal(needsOrderReconciliation(snapshot, fields), false);
+});
+
+test("extracts only the pseudonymous stored cart context used for checkout recovery", () => {
+  const stored = extractShopifyStoredContext([
+    { key: "email", value: "customer@example.com" },
+    {
+      key: "__funnel_context__",
+      value: JSON.stringify({
+        visitorId: "visitor_12345678",
+        firstTouch: { utmSource: "facebook", utmCampaign: "roots" },
+        elementAssignments: [{ assignmentId: "assignment_123", experimentId: "experiment_123", variantId: "variant_123", slotId: "slot_123456" }],
+      }),
+    },
+  ], "jacobfelipe.myshopify.com");
+  assert.equal(stored?.context.visitorId, "visitor_12345678");
+  assert.equal(stored?.context.firstTouch?.utmSource, "facebook");
+  assert.equal(Array.isArray(stored?.elementAssignments), true);
+  assert.equal("email" in (stored?.context || {}), false);
+});
+
+test("rejects malformed stored cart context safely", () => {
+  assert.equal(extractShopifyStoredContext([{ key: "__funnel_context__", value: "not-json" }], "jacobfelipe.myshopify.com"), null);
 });

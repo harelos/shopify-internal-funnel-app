@@ -122,7 +122,6 @@ export function reconciliationFinancialUpdate(
     netRevenueAmount: fields.netRevenueAmount,
     refundedAmount: fields.refundedAmount,
     status: fields.status,
-    isTest: false as const,
     discountCodes: fields.discountCodes,
     paidAt: fields.paidAt,
     cancelledAt: fields.cancelledAt,
@@ -147,6 +146,7 @@ export function reconciliationFinancialUpdate(
 export function reconciliationCreateFields(fields: ReconciledOrderFields) {
   return {
     ...reconciliationFinancialUpdate(fields),
+    isTest: false as const,
     shopifyOrderGid: fields.shopifyOrderGid,
     checkoutToken: null,
     funnelId: null,
@@ -179,7 +179,6 @@ export function needsOrderReconciliation(
     || existing.netRevenueAmount !== fields.netRevenueAmount
     || existing.refundedAmount !== fields.refundedAmount
     || existing.status !== fields.status
-    || existing.isTest
     || existing.discountCodes !== fields.discountCodes
     || !dateEqual(existing.paidAt, fields.paidAt)
     || !dateEqual(existing.cancelledAt, fields.cancelledAt);
