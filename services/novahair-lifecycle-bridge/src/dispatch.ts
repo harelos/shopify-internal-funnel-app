@@ -53,6 +53,7 @@ interface OrderRow {
   delivered_at: string | null;
   ready_for_pickup_at: string | null;
   tracking_status: string | null;
+  tracking_available_at: string | null;
   tracking_url_encrypted: string | null;
 }
 
@@ -333,8 +334,8 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
   const order = await env.DB.prepare(
     `SELECT shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash, first_name,
             consent_state, completed_at, bundle, quantity, shade, product_name, total, currency,
-            purchased_product_ids_json, purchased_product_handles_json, delivered_at, tracking_status
-            , ready_for_pickup_at, tracking_url_encrypted
+            purchased_product_ids_json, purchased_product_handles_json, delivered_at, tracking_status,
+            tracking_available_at, ready_for_pickup_at, tracking_url_encrypted
      FROM lifecycle_orders WHERE shopify_order_id = ?`,
   ).bind(row.entity_id).first<OrderRow>();
   if (!order?.email || !canDispatchTo(env, order.email)) return null;
@@ -346,14 +347,28 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
   if (row.event_name === "shopify.post_purchase_started") {
     const spec = emailSpec("post_purchase", row.email_number);
     if (spec.anchor === "delivered" && !order.delivered_at) return null;
-    if (spec.anchor === "in_transit" && (order.delivered_at || order.ready_for_pickup_at)) return null;
+    if (spec.anchor === "tracking" && (
+      !config.shipmentCustomerMessagesEnabled
+      || !order.tracking_available_at
+      || order.delivered_at
+      || order.ready_for_pickup_at
+    )) return null;
+    if (spec.anchor === "delay" && (
+      !config.shipmentCustomerMessagesEnabled
+      || order.tracking_status !== "DELAYED"
+      || order.delivered_at
+      || order.ready_for_pickup_at
+    )) return null;
   }
   const payload = basePayload({
     eventKey: row.idempotency_key,
     occurredAt: row.event_name === "shopify.post_purchase_started"
       && emailSpec("post_purchase", row.email_number).anchor === "delivered"
       ? order.delivered_at ?? row.due_at
-      : order.completed_at,
+      : row.event_name === "shopify.post_purchase_started"
+        && emailSpec("post_purchase", row.email_number).anchor === "tracking"
+        ? order.tracking_available_at ?? row.due_at
+        : order.completed_at,
     consentState: order.consent_state,
     flow: row.flow,
     ...(row.email_number > 0 ? { emailNumber: row.email_number } : {}),

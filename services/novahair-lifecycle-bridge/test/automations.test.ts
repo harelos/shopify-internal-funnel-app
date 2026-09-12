@@ -21,8 +21,9 @@ test("six automations contain all 41 sends and start disabled", () => {
   assert.equal(sends.length, 41);
 });
 
-test("delivery-aware post-purchase aliases retain the historical template audit trail", () => {
-  assert.equal(resendTemplateAlias("post_purchase", 4), "novahair_post_purchase_e04");
+test("event-driven post-purchase aliases use isolated V2 drafts", () => {
+  assert.equal(resendTemplateAlias("post_purchase", 3), "novahair-post-purchase-e03-v2");
+  assert.equal(resendTemplateAlias("post_purchase", 4), "novahair-post-purchase-e04-v2");
   assert.equal(resendTemplateAlias("post_purchase", 5), "novahair-post-purchase-e05-v2");
   assert.equal(resendTemplateAlias("post_purchase", 6), "novahair-post-purchase-e06-v2");
   assert.equal(resendTemplateAlias("post_purchase", 7), "novahair-post-purchase-e07-v2");

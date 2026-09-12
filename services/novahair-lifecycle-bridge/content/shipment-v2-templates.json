@@ -1,0 +1,45 @@
+{
+  "flow_slug": "post_purchase",
+  "templates": [
+    {
+      "alias": "novahair-post-purchase-e03-v2",
+      "name": "NovaHair Post-Purchase E03 V2 — Tracking Event",
+      "number": 3,
+      "subject": "יש עדכון מעקב להזמנה שלך",
+      "preview": "אפשר לראות את המצב העדכני בקישור.",
+      "purpose": "Operational tracking confirmation, only after a reliable tracking event and verified notification ownership.",
+      "service": true,
+      "body": [
+        "היי [שם פרטי],",
+        "יש עדכון חדש להזמנה שלך. המשלוח קיבל פרטי מעקב.",
+        "המידע בקישור מתעדכן לפי חברת המשלוחים, ולעיתים יש פער בין סריקה אחת לבאה.",
+        "[כפתור: למעקב אחר המשלוח | TRACKING_URL]",
+        "אם משהו לא ברור, אפשר לענות למייל הזה."
+      ],
+      "variables": [
+        { "key": "CUSTOMER_NAME", "type": "string", "fallbackValue": "יקרה" },
+        { "key": "TRACKING_URL", "type": "string" }
+      ]
+    },
+    {
+      "alias": "novahair-post-purchase-e04-v2",
+      "name": "NovaHair Post-Purchase E04 V2 — Verified Delay",
+      "number": 4,
+      "subject": "עדכון חשוב לגבי המשלוח שלך",
+      "preview": "שמנו לב שהעדכון הבא מתעכב, ואנחנו עוקבות.",
+      "purpose": "Operational delay assistance, only after an explicit carrier delay or verified promise-risk rule.",
+      "service": true,
+      "body": [
+        "היי [שם פרטי],",
+        "שמנו לב שלא התקבל עדכון חדש למשלוח בזמן שציפינו.",
+        "אנחנו בודקות את המצב מול נתוני המשלוח ונעדכן אם יהיה שינוי שדורש ממך פעולה.",
+        "[כפתור: למצב המשלוח | TRACKING_URL]",
+        "אם את מעדיפה שנבדוק את ההזמנה באופן אישי, פשוט עני למייל הזה."
+      ],
+      "variables": [
+        { "key": "CUSTOMER_NAME", "type": "string", "fallbackValue": "יקרה" },
+        { "key": "TRACKING_URL", "type": "string" }
+      ]
+    }
+  ]
+}

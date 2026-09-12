@@ -7,7 +7,7 @@ import { healthValue } from "../src/db";
 import { replenishmentOffsetDays } from "../src/flow-specs";
 import { classifyResendResponse, dispatchResendContactUpdates, sendLifecycleEvent } from "../src/resend";
 import { syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders, upsertCheckout } from "../src/shopify";
-import { handleResendWebhook, processFulfillmentObservation, processShopifyLifecycleWebhook } from "../src/webhooks";
+import { handleResendWebhook, processFulfillmentObservation, processShopifyLifecycleWebhook, reconcilePostPurchaseTransitUpdates } from "../src/webhooks";
 import { processLifecycleIdentityClaims, processStorefrontLifecycleEvents } from "../src/storefront";
 import { checkoutFixture, TEST_EMAIL, testDatabase, testEnv } from "./helpers/d1";
 
@@ -264,7 +264,7 @@ test("verified paid order is the global stop and starts post-purchase/replenishm
     const checkoutStates = await db.prepare("SELECT state FROM abandoned_checkouts WHERE email = ?").bind(TEST_EMAIL).all();
     assert.deepEqual(new Set(checkoutStates.results.map((row: { state: string }) => row.state)), new Set(["PURCHASED"]));
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM lifecycle_orders").first("count")), 1);
-    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 4);
+    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 2);
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.replenishment_due'").first("count")), 1);
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.checkout_abandoned' AND status IN ('PENDING','RETRY','LEASED')").first("count")), 0);
   } finally {
@@ -272,7 +272,7 @@ test("verified paid order is the global stop and starts post-purchase/replenishm
   }
 });
 
-test("post-purchase shipping updates are scheduled from purchase and usage emails from exact delivery", async () => {
+test("post-purchase tracking and delay messages are event-driven and remain safely gated until V2 is approved", async () => {
   const { db, dispose } = await testDatabase();
   const env = testEnv(db);
   const paidPayload = (id: number) => ({
@@ -307,7 +307,7 @@ test("post-purchase shipping updates are scheduled from purchase and usage email
 
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/901").first("count")), 4);
+    ).bind("gid://shopify/Order/901").first("count")), 2);
 
     const delivered = await processFulfillmentObservation(env, {
       eventKey: "fulfillment-event-delivered-901",
@@ -337,10 +337,10 @@ test("post-purchase shipping updates are scheduled from purchase and usage email
 
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/901").first("count")), 9);
+    ).bind("gid://shopify/Order/901").first("count")), 7);
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/902").first("count")), 4);
+    ).bind("gid://shopify/Order/902").first("count")), 2);
     assert.equal(await db.prepare(
       "SELECT delivered_at FROM lifecycle_orders WHERE shopify_order_id = ?",
     ).bind("gid://shopify/Order/901").first("delivered_at"), "2026-09-25T12:00:00.000Z");
@@ -351,6 +351,92 @@ test("post-purchase shipping updates are scheduled from purchase and usage email
       "SELECT * FROM lifecycle_orders WHERE shopify_order_id = ?",
     ).bind("gid://shopify/Order/901").first());
     assert.doesNotMatch(stored, /TRACKING-SECRET-901|secret-carrier-token-901/);
+  } finally {
+    await dispose();
+  }
+});
+
+test("event-driven shipment messages schedule once only after a reliable tracking or delay event", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db, {
+    SHIPMENT_CUSTOMER_MESSAGES_ENABLED: "true",
+    SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED: "true",
+  });
+  const payload = {
+    id: 904,
+    admin_graphql_api_id: "gid://shopify/Order/904",
+    email: TEST_EMAIL,
+    customer: { id: 9001, first_name: "הראל", email: TEST_EMAIL },
+    processed_at: "2026-09-08T02:10:00.000Z",
+    currency: "ILS",
+    total_price: "189.00",
+    financial_status: "paid",
+    test: true,
+    marketing_consent_state: "SUBSCRIBED",
+    shipping_country_code: "IL",
+    line_items: [{ title: "NOVAHAIR", variant_title: "2 בקבוקים / חום כהה", quantity: 2 }],
+  };
+  try {
+    await processShopifyLifecycleWebhook(
+      env,
+      await orderRequest(payload, "shopify-event-paid-904"),
+      new Date("2026-09-08T02:10:00.000Z"),
+    );
+    await processFulfillmentObservation(env, {
+      eventKey: "fulfillment-event-tracking-904",
+      shopifyOrderId: "gid://shopify/Order/904",
+      status: "IN_TRANSIT",
+      happenedAt: "2026-09-10T10:00:00.000Z",
+      trackingNumber: "TRACKING-SECRET-904",
+      trackingUrl: "https://tracking.example.invalid/secret-carrier-token-904",
+      source: "WEBHOOK",
+      payload: { status: "IN_TRANSIT" },
+    }, new Date("2026-09-10T10:00:00.000Z"));
+    await processFulfillmentObservation(env, {
+      eventKey: "fulfillment-event-delay-904",
+      shopifyOrderId: "gid://shopify/Order/904",
+      status: "DELAYED",
+      happenedAt: "2026-09-18T10:00:00.000Z",
+      source: "WEBHOOK",
+      payload: { status: "DELAYED" },
+    }, new Date("2026-09-18T10:00:00.000Z"));
+    const rows = await db.prepare(
+      `SELECT email_number, due_at FROM scheduled_lifecycle_events
+       WHERE entity_id = ? AND flow = 'post_purchase' AND email_number > 0 ORDER BY email_number`,
+    ).bind("gid://shopify/Order/904").all<{ email_number: number; due_at: string }>();
+    assert.deepEqual(rows.results?.map(row => row.email_number), [1, 2, 3, 4]);
+    assert.equal(rows.results?.find(row => row.email_number === 3)?.due_at, "2026-09-10T10:00:00.000Z");
+    assert.equal(rows.results?.find(row => row.email_number === 4)?.due_at, "2026-09-18T10:00:00.000Z");
+    const stored = JSON.stringify(await db.prepare(
+      "SELECT * FROM lifecycle_orders WHERE shopify_order_id = ?",
+    ).bind("gid://shopify/Order/904").first());
+    assert.doesNotMatch(stored, /TRACKING-SECRET-904|secret-carrier-token-904/);
+  } finally {
+    await dispose();
+  }
+});
+
+test("clock-based post-purchase shipment schedules are retired before dispatch", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db);
+  try {
+    await db.prepare(
+      `INSERT INTO scheduled_lifecycle_events (
+        idempotency_key, event_name, flow, email_number, entity_type, entity_id,
+        due_at, status, attempts, max_attempts, next_attempt_at, created_at, updated_at
+      ) VALUES (?, 'shopify.post_purchase_started', 'post_purchase', 3, 'order', ?, ?, 'PENDING', 0, 7, ?, ?, ?)`,
+    ).bind(
+      "order:gid://shopify/Order/retire:post_purchase:email:3",
+      "gid://shopify/Order/retire",
+      "2026-09-15T12:00:00.000Z",
+      "2026-09-15T12:00:00.000Z",
+      "2026-09-12T12:00:00.000Z",
+      "2026-09-12T12:00:00.000Z",
+    ).run();
+    assert.equal(await reconcilePostPurchaseTransitUpdates(env, new Date("2026-09-12T12:01:00.000Z")), 1);
+    assert.equal(await db.prepare(
+      "SELECT status FROM scheduled_lifecycle_events WHERE idempotency_key = ?",
+    ).bind("order:gid://shopify/Order/retire:post_purchase:email:3").first("status"), "CANCELLED");
   } finally {
     await dispose();
   }
@@ -715,7 +801,7 @@ test("paid-order polling is idempotent, starts post-purchase, and prevents a lat
       await db.prepare("SELECT shopify_checkout_id FROM lifecycle_orders WHERE shopify_order_id = ?").bind("gid://shopify/Order/800").first("shopify_checkout_id"),
       correlatedCheckoutId,
     );
-    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 4);
+    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 2);
 
     const checkoutId = "gid://shopify/AbandonedCheckout/AFTER-ORDER";
     await upsertCheckout(env, checkoutFixture(checkoutId, { createdAt: "2026-09-08T01:59:30.000Z" }), new Date("2026-09-08T02:11:00.000Z"));

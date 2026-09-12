@@ -11,6 +11,7 @@
     "build:worker": "node scripts/build-worker.mjs",
     "test": "tsx --test test/*.test.ts",
     "render:templates": "node scripts/render-templates.mjs",
+    "render:shipment-v2": "node scripts/render-shipment-v2-templates.mjs",
     "generate:resend": "node scripts/generate-resend-blueprints.mjs",
     "provision:resend": "node scripts/provision-resend.mjs"
   },

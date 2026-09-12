@@ -302,6 +302,51 @@ export async function processFulfillmentObservation(
     observation.shopifyOrderId,
   ).run();
 
+  // These service messages are event driven. They remain switched off until the
+  // V2 drafts have been reviewed and Shopify's native notification ownership is
+  // confirmed, but the scheduling rules are already deterministic and
+  // idempotent for the later enablement.
+  const config = lifecycleConfig(env);
+  const hasReliableTracking = Boolean(trackingNumberHash || safeTrackingUrl);
+  if (
+    config.shipmentCustomerMessagesEnabled
+    && order.consent_state === "SUBSCRIBED"
+    && order.shipping_country_code === "IL"
+    && !deliveredAt
+    && !readyForPickupAt
+  ) {
+    if (hasReliableTracking) {
+      const trackingSpec = FLOW_SPECS.post_purchase.emails.find(email => email.anchor === "tracking");
+      if (trackingSpec) {
+        await scheduleLifecycleEvent(env.DB, {
+          idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${trackingSpec.number}`,
+          eventName: "shopify.post_purchase_started",
+          flow: "post_purchase",
+          emailNumber: trackingSpec.number,
+          entityType: "order",
+          entityId: observation.shopifyOrderId,
+          dueAt: current,
+          now: current,
+        });
+      }
+    }
+    if (status === "DELAYED") {
+      const delaySpec = FLOW_SPECS.post_purchase.emails.find(email => email.anchor === "delay");
+      if (delaySpec) {
+        await scheduleLifecycleEvent(env.DB, {
+          idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${delaySpec.number}`,
+          eventName: "shopify.post_purchase_started",
+          flow: "post_purchase",
+          emailNumber: delaySpec.number,
+          entityType: "order",
+          entityId: observation.shopifyOrderId,
+          dueAt: current,
+          now: current,
+        });
+      }
+    }
+  }
+
   // Re-run this idempotent reconciliation for duplicate deliveries too. If a prior
   // attempt failed after recording the receipt, a webhook retry must repair every
   // missing schedule instead of treating the receipt as fully processed.
@@ -455,9 +500,7 @@ export async function processPaidOrder(
   }
 
   if (consentState === "SUBSCRIBED" && isDomesticOrder) {
-    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => (
-      email.anchor === "purchase" || email.anchor === "in_transit"
-    ))) {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "purchase")) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${gid}:post_purchase:email:${spec.number}`,
         eventName: "shopify.post_purchase_started",
@@ -488,46 +531,54 @@ export async function processPaidOrder(
 }
 
 /**
- * Backfills the two in-transit service updates for orders that were created
- * before this version was deployed. It is deliberately bounded to the
- * supported 10-22 day delivery window: older unresolved orders are surfaced
- * operationally rather than receiving a stale status email.
+ * Retires previously scheduled clock-based E03/E04 messages. New shipment
+ * messages are created only by a reliable fulfillment observation, never from
+ * a purchase timestamp. This is intentionally safe to call on every sync.
  */
 export async function reconcilePostPurchaseTransitUpdates(
   env: LifecycleEnv,
   now = new Date(),
 ): Promise<number> {
-  const config = lifecycleConfig(env);
   const current = isoNow(now);
-  const cutoff = new Date(now.getTime() - 22 * 24 * 60 * 60_000).toISOString();
-  const rows = await env.DB.prepare(
-    `SELECT shopify_order_id, completed_at
-       FROM lifecycle_orders
-      WHERE consent_state = 'SUBSCRIBED'
-        AND shipping_country_code = 'IL'
-        AND completed_at >= ?
-        AND completed_at >= ?
-        AND delivered_at IS NULL
-        AND ready_for_pickup_at IS NULL`,
-  ).bind(config.activatedAt, cutoff).all<{ shopify_order_id: string; completed_at: string }>();
-
-  let scheduled = 0;
-  for (const order of rows.results ?? []) {
-    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "in_transit")) {
-      await scheduleLifecycleEvent(env.DB, {
-        idempotencyKey: `order:${order.shopify_order_id}:post_purchase:email:${spec.number}`,
-        eventName: "shopify.post_purchase_started",
-        flow: "post_purchase",
-        emailNumber: spec.number,
-        entityType: "order",
-        entityId: order.shopify_order_id,
-        dueAt: dueAt(order.completed_at, spec.offsetMinutes),
-        now: current,
-      });
-      scheduled += 1;
-    }
+  const config = lifecycleConfig(env);
+  if (config.shipmentCustomerMessagesEnabled) {
+    await setHealth(
+      env.DB,
+      "shipment_message_safety",
+      JSON.stringify({ retired_clock_based_schedules: 0, customer_messages_enabled: true, notification_ownership_verified: true }),
+      "OK",
+      current,
+    );
+    return 0;
   }
-  return scheduled;
+  const rows = await env.DB.prepare(
+    `SELECT idempotency_key
+       FROM scheduled_lifecycle_events
+      WHERE flow = 'post_purchase'
+        AND email_number IN (3, 4)
+        AND status IN ('PENDING', 'RETRY')`,
+  ).all<{ idempotency_key: string }>();
+
+  for (const row of rows.results ?? []) {
+    await env.DB.prepare(
+      `UPDATE scheduled_lifecycle_events
+       SET status = 'CANCELLED', last_error_code = 'retired_clock_based_shipment_message',
+           lease_until = NULL, updated_at = ?
+       WHERE idempotency_key = ? AND status IN ('PENDING', 'RETRY')`,
+    ).bind(current, row.idempotency_key).run();
+  }
+  await setHealth(
+    env.DB,
+    "shipment_message_safety",
+    JSON.stringify({
+      retired_clock_based_schedules: rows.results?.length ?? 0,
+      customer_messages_enabled: false,
+      notification_ownership_verified: config.shipmentNotificationOwnershipVerified,
+    }),
+    "OK",
+    current,
+  );
+  return rows.results?.length ?? 0;
 }
 
 export async function processShopifyLifecycleWebhook(

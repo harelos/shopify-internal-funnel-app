@@ -30,10 +30,10 @@ function isInternalBoundary(line) {
 }
 
 function marker(line) {
-  const button = line.match(/^\[כפתור(?: \/ קישור)?:\s*(.+)\]$/u);
-  if (button) return { type: "button", label: button[1] };
-  const link = line.match(/^\[קישור:\s*(.+)\]$/u);
-  if (link) return { type: "link", label: link[1] };
+  const button = line.match(/^\[כפתור(?: \/ קישור)?:\s*(.+?)(?:\s*\|\s*([A-Z][A-Z0-9_]{0,60}))?\]$/u);
+  if (button) return { type: "button", label: button[1], variable: button[2] ?? "CTA_URL" };
+  const link = line.match(/^\[קישור:\s*(.+?)(?:\s*\|\s*([A-Z][A-Z0-9_]{0,60}))?\]$/u);
+  if (link) return { type: "link", label: link[1], variable: link[2] ?? "CTA_URL" };
   if (/^\[(?:בלוק|תמונה|כאן להכניס|קישור ל-)/u.test(line)) return { type: "omit" };
   return null;
 }
@@ -48,21 +48,21 @@ function approvedBody(email) {
   return lines;
 }
 
-function buttonHtml(label) {
+function buttonHtml(label, variable = "CTA_URL") {
   return `
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px;margin-right:0;margin-bottom:20px;margin-left:0">
       <tr><td align="center">
         <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
           <td bgcolor="#3D2817" style="background-color:#3D2817;border-radius:999px;text-align:center">
-            <a href="{{{CTA_URL}}}" target="_blank" style="display:inline-block;padding-top:15px;padding-right:30px;padding-bottom:15px;padding-left:30px;color:#FFFFFF;text-decoration:none;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:700;line-height:20px;border-top-width:1px;border-right-width:1px;border-bottom-width:1px;border-left-width:1px;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;border-top-color:#3D2817;border-right-color:#3D2817;border-bottom-color:#3D2817;border-left-color:#3D2817;border-radius:999px">${escapeHtml(label)}</a>
+            <a href="{{{${variable}}}}" target="_blank" style="display:inline-block;padding-top:15px;padding-right:30px;padding-bottom:15px;padding-left:30px;color:#FFFFFF;text-decoration:none;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;font-weight:700;line-height:20px;border-top-width:1px;border-right-width:1px;border-bottom-width:1px;border-left-width:1px;border-top-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-style:solid;border-top-color:#3D2817;border-right-color:#3D2817;border-bottom-color:#3D2817;border-left-color:#3D2817;border-radius:999px">${escapeHtml(label)}</a>
           </td>
         </tr></table>
       </td></tr>
     </table>`;
 }
 
-function linkHtml(label) {
-  return `<p style="margin-top:18px;margin-right:0;margin-bottom:18px;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:28px;color:#392D26;text-align:right"><a href="{{{CTA_URL}}}" target="_blank" style="font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:28px;color:#6F4E37;text-decoration:underline;font-weight:700">${escapeHtml(label)}</a></p>`;
+function linkHtml(label, variable = "CTA_URL") {
+  return `<p style="margin-top:18px;margin-right:0;margin-bottom:18px;margin-left:0;font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:28px;color:#392D26;text-align:right"><a href="{{{${variable}}}}" target="_blank" style="font-family:Arial,'Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:28px;color:#6F4E37;text-decoration:underline;font-weight:700">${escapeHtml(label)}</a></p>`;
 }
 
 function dynamicProductHtml() {
@@ -83,6 +83,7 @@ function paragraphHtml(line) {
 }
 
 function shouldShowProductImage(email) {
+  if (email.service) return false;
   const value = `${email.title} ${email.subject} ${email.cta ?? ""}`;
   return !/Reply|תמיכה|ליצור קשר|ללא כפתור|ללא מכירה/u.test(value);
 }
@@ -97,12 +98,12 @@ function renderBody(email) {
   for (const line of approvedBody(email)) {
     const parsed = marker(line);
     if (parsed?.type === "button") {
-      parts.push(buttonHtml(parsed.label));
+      parts.push(buttonHtml(parsed.label, parsed.variable));
       renderedCta = true;
       continue;
     }
     if (parsed?.type === "link") {
-      parts.push(linkHtml(parsed.label));
+      parts.push(linkHtml(parsed.label, parsed.variable));
       renderedCta = true;
       continue;
     }
@@ -125,7 +126,7 @@ function renderText(email) {
   for (const line of approvedBody(email)) {
     const parsed = marker(line);
     if (parsed?.type === "button" || parsed?.type === "link") {
-      lines.push(`${parsed.label}: {{{CTA_URL}}}`);
+      lines.push(`${parsed.label}: {{{${parsed.variable}}}}`);
       renderedCta = true;
       continue;
     }
@@ -218,6 +219,15 @@ export function buildTemplateManifest(source) {
     count: templates.length,
     templates,
   };
+}
+
+export function buildStandaloneTemplateManifest(source) {
+  const templates = source.templates.map(template => ({
+    ...template,
+    html: renderNovaHairEmail({ email: template, flowSlug: source.flow_slug }),
+    text: renderText(template),
+  }));
+  return { generated_at: new Date().toISOString(), count: templates.length, templates };
 }
 
 export { FLOW_SLUGS, PRODUCT_IMAGE, approvedBody };

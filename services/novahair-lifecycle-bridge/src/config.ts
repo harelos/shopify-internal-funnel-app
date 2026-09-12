@@ -44,6 +44,11 @@ export function lifecycleConfig(env: LifecycleEnv) {
     syncIntervalMinutes: boundedInteger(env.LIFECYCLE_SYNC_INTERVAL_MINUTES, 10, 5, 60),
     syncOverlapMinutes: boundedInteger(env.LIFECYCLE_SYNC_OVERLAP_MINUTES, 30, 10, 180),
     maxPages: boundedInteger(env.LIFECYCLE_MAX_PAGES, 10, 1, 30),
+    // Both switches are required. This prevents a future enablement from
+    // duplicating Shopify's own order/fulfillment messages by accident.
+    shipmentCustomerMessagesEnabled: env.SHIPMENT_CUSTOMER_MESSAGES_ENABLED === "true"
+      && env.SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED === "true",
+    shipmentNotificationOwnershipVerified: env.SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED === "true",
   };
 }
 

@@ -18,7 +18,9 @@ Research, revised copy and the first disabled infrastructure layer are now inclu
 - `src/shipment-risk.ts` — deterministic Israeli business-day thresholds and explainable risk findings.
 - `test/shipment-risk.test.ts` — threshold, terminal-state, dispute-safety and database-idempotency coverage.
 
-The V2 internal-monitoring layer is deployed to production as Worker version `2ee493ae-0e99-4107-a84b-6a0f42e9de78`. Migrations `0018`–`0020` are applied to D1, `CJ_API_KEY` is held only in Cloudflare Secrets, and `SHIPMENT_ASSURANCE_ENABLED=true` enables D1-only reconciliation. `SHIPMENT_CUSTOMER_MESSAGES_ENABLED=false` is an explicit hard stop: no new customer service template, delay notice or chargeback-prevention message can be sent by this layer. The existing customer-facing production flows remain unchanged.
+The V2 internal-monitoring layer is deployed to production as Worker version `3a3e7dbd-e261-4924-9bc9-a6e28b5f7332`. Migrations `0018`–`0020` are applied to D1, `CJ_API_KEY` is held only in Cloudflare Secrets, and `SHIPMENT_ASSURANCE_ENABLED=true` enables D1-only reconciliation. Two independent flags are required before a Resend shipment message can leave the system: `SHIPMENT_CUSTOMER_MESSAGES_ENABLED=true` and `SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED=true`. Both are currently false. The existing customer-facing production flows remain unchanged, except that the four pending, clock-based E03/E04 schedules were safely cancelled.
+
+Two reviewed V2 templates now exist in Resend as **drafts only**: `novahair-post-purchase-e03-v2` (ID `f29e2167-1924-4e92-b06b-c2cde41cda26`) and `novahair-post-purchase-e04-v2` (ID `bf879c84-5d88-402e-bb1f-2da2da259ef0`). They are not published, not attached to the enabled automation, and cannot send.
 
 The implementation order is: apply migration → store the CJ key in Cloudflare Secrets → port and test the CJ client → enable internal alerts only → audit Shopify notification ownership → create/publish the new templates disabled → run real shipment-state E2E tests → enable customer messages one state at a time.
 
@@ -28,7 +30,7 @@ The implementation order is: apply migration → store the CJ key in Cloudflare 
 |---|---|
 | Worker | `novahair-lifecycle-bridge` |
 | Worker URL | `https://novahair-lifecycle-bridge.tigerbrands-funnel.workers.dev` |
-| Current deployment | `46eadc4e-bdc0-488d-ab3d-55038c8b7221` |
+| Current deployment | `3a3e7dbd-e261-4924-9bc9-a6e28b5f7332` |
 | Analytics code deployment | `50603e7e-6fc0-48aa-a464-03fa15e6354c` |
 | D1 database | `shopify-funnel-control-db` |
 | D1 database ID | `3b3d2e40-28b3-456f-9109-2607fbc51b17` |
@@ -126,7 +128,7 @@ After deployment verify:
 6. health has no open errors, dead schedules, or uncertain events;
 7. the next Cron records successful Shopify sync and dispatch state.
 
-The 2026-09-08 production verification passed 40/40 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails at that time, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential. A real routed Post-Purchase smoke event completed and its email was delivered.
+The 2026-09-08 production verification passed 40/40 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails at that time, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential. A real routed Post-Purchase smoke event completed and its email was delivered. The latest shipment-safety suite passes 51/51 tests.
 
 ## Delivery-aware Post-Purchase
 
@@ -134,8 +136,8 @@ Post-Purchase is not timed from an assumed international delivery date:
 
 - E01: purchase + 4 hours
 - E02: purchase + 2 days
-- E03: purchase + 7 days, only while the order is neither delivered nor ready for pickup
-- E04: purchase + 14 days, only while the order is neither delivered nor ready for pickup
+- E03: only after a reliable tracking-number/tracking-link event, and only when Shopify is not already sending the same update
+- E04: only after an explicit carrier delay or a verified promise-risk rule; never from a fixed day count
 - E05: exact Shopify order `DELIVERED` + 1 day
 - E06: delivered + 4 days
 - E07: delivered + 10 days

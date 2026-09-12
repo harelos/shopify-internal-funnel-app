@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { buildTemplateManifest } from "../scripts/lib/template-render.mjs";
+import { buildStandaloneTemplateManifest, buildTemplateManifest } from "../scripts/lib/template-render.mjs";
 
 const source = JSON.parse(await readFile(new URL("../content/flows.json", import.meta.url), "utf8"));
 const manifest = buildTemplateManifest(source);
@@ -65,5 +65,16 @@ test("all customer-facing commercial links resolve only through CTA_URL", () => 
     for (const href of hrefs) {
       assert.ok(["{{{CTA_URL}}}", "{{{RESEND_UNSUBSCRIBE_URL}}}"].includes(href), `${template.alias}: ${href}`);
     }
+  }
+});
+
+test("V2 shipment drafts use a dedicated tracking destination rather than a generic commercial CTA", async () => {
+  const shipmentSource = JSON.parse(await readFile(new URL("../content/shipment-v2-templates.json", import.meta.url), "utf8"));
+  const shipmentManifest = buildStandaloneTemplateManifest(shipmentSource);
+  assert.equal(shipmentManifest.count, 2);
+  for (const template of shipmentManifest.templates) {
+    assert.match(template.html, /href="\{\{\{TRACKING_URL\}\}\}"/);
+    assert.doesNotMatch(template.html, /href="\{\{\{CTA_URL\}\}\}"/);
+    assert.match(template.html, /<html lang="he" dir="rtl">/);
   }
 });

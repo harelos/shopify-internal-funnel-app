@@ -4,7 +4,9 @@ export interface EmailScheduleSpec {
   number: number;
   offsetMinutes: number;
   content: string;
-  anchor?: "trigger" | "purchase" | "in_transit" | "delivered";
+  // An anchor is a real-world state, never a label for a timer. In particular,
+  // shipment messages must not be sent merely because an order is N days old.
+  anchor?: "trigger" | "purchase" | "tracking" | "delay" | "delivered";
 }
 
 export interface FlowScheduleSpec {
@@ -77,8 +79,8 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
     emails: [
       { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps", anchor: "purchase" },
       { number: 2, offsetMinutes: 2 * day, content: "e02_first_use_prep", anchor: "purchase" },
-      { number: 3, offsetMinutes: 7 * day, content: "e03_shipping_checkin", anchor: "in_transit" },
-      { number: 4, offsetMinutes: 14 * day, content: "e04_shipping_support", anchor: "in_transit" },
+      { number: 3, offsetMinutes: 0, content: "e03_shipping_checkin", anchor: "tracking" },
+      { number: 4, offsetMinutes: 0, content: "e04_shipping_support", anchor: "delay" },
       { number: 5, offsetMinutes: day, content: "e05_first_use_walkthrough", anchor: "delivered" },
       { number: 6, offsetMinutes: 4 * day, content: "e06_troubleshooting", anchor: "delivered" },
       { number: 7, offsetMinutes: 10 * day, content: "e07_hair_care", anchor: "delivered" },
@@ -109,6 +111,9 @@ export function emailSpec(flow: LifecycleFlow, emailNumber: number): EmailSchedu
 // remains intact; these explicit production aliases keep the catalog and
 // webhook attribution pointing at the current delivery-aware templates.
 export function resendTemplateAlias(flow: LifecycleFlow, emailNumber: number): string {
+  if (flow === "post_purchase" && emailNumber >= 3 && emailNumber <= 4) {
+    return `novahair-post-purchase-e${String(emailNumber).padStart(2, "0")}-v2`;
+  }
   if (flow === "post_purchase" && emailNumber >= 5 && emailNumber <= 7) {
     return `novahair-post-purchase-e${String(emailNumber).padStart(2, "0")}-v2`;
   }

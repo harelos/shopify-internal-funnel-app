@@ -60,6 +60,7 @@ export interface LifecycleEnv {
   CJ_API_KEY?: string;
   SHIPMENT_ASSURANCE_ENABLED?: string;
   SHIPMENT_CUSTOMER_MESSAGES_ENABLED?: string;
+  SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED?: string;
 }
 
 export type LifecycleFlow =

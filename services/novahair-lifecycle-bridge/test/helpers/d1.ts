@@ -75,6 +75,7 @@ export function testEnv(db: unknown, overrides: Record<string, unknown> = {}) {
     LIFECYCLE_HASH_KEY: "test-hash-key-that-is-never-used-in-production",
     LIFECYCLE_SYNC_INTERVAL_MINUTES: "10",
     LIFECYCLE_SYNC_OVERLAP_MINUTES: "30",
+    SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED: "false",
     ...overrides,
   };
 }
