@@ -13,7 +13,8 @@
  */
 import { Router, type Request } from "express";
 import { approvedFactAnswer } from "../lib/ai-approved-facts.js";
-import { workerEnvValue } from "../lib/shopify-config.js";
+import prisma from "../lib/db.js";
+import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { parsePayload } from "../lib/popup-analytics.js";
 import {
   DEFAULT_POPUP_TRIGGER_CONTROL,
@@ -31,6 +32,64 @@ import {
 
 const storefront = Router();
 const admin = Router();
+
+type ConciergeObservationOutcome = "success" | "fallback" | "failure";
+
+const LOCAL_SHOP_DOMAIN = "local-dev.myshopify.com";
+
+function configuredShopDomain(): string {
+  return getShopifyConfig().shopDomain || LOCAL_SHOP_DOMAIN;
+}
+
+function isExplicitQaConversation(conversationId: string): boolean {
+  return /^(?:qa|test)[_-]/i.test(conversationId);
+}
+
+async function resolveShopIdForConcierge(): Promise<string | null> {
+  try {
+    const byDomain = await prisma.shop.findUnique({ where: { domain: configuredShopDomain() } });
+    if (byDomain) return byDomain.id;
+    const fallback = await prisma.shop.findFirst();
+    return fallback?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function recordConciergeObservation(input: {
+  conversationId: string;
+  customerQuestion: string;
+  aiReply: string;
+  selectedModel: string;
+  latencyMs: number;
+  outcome: ConciergeObservationOutcome;
+  nextScreen: string;
+  sessionId?: string;
+  stepId?: string;
+}) {
+  const shopId = await resolveShopIdForConcierge();
+  if (!shopId) return;
+
+  try {
+    await prisma.conciergeReplyObservation.create({
+      data: {
+        shopId,
+        conversationId: input.conversationId || "anon",
+        sessionId: input.sessionId || null,
+        stepId: input.stepId || null,
+        customerQuestion: input.customerQuestion,
+        aiReply: input.aiReply,
+        selectedModel: input.selectedModel,
+        latencyMs: Math.max(0, input.latencyMs),
+        outcome: input.outcome,
+        nextScreen: input.nextScreen || "",
+        isTest: isExplicitQaConversation(input.conversationId),
+      },
+    });
+  } catch (error) {
+    console.warn("[ai-concierge] failed to persist observation", (error as Error).message);
+  }
+}
 
 /* Node ids the model is allowed to route to. Anything else is ignored, so a
  * hallucinated step can never break the flow. */
@@ -296,19 +355,43 @@ storefront.get("/popup-trigger-config", async (_req, res) => {
 });
 
 storefront.post("/ai-chat", async (req, res) => {
+  const requestStartedAt = Date.now();
   const body = (req.body ?? {}) as ChatBody;
   const message = typeof body.message === "string" ? body.message.trim().slice(0, 400) : "";
   if (!message) return res.status(400).json({ error: "A message is required." });
 
+  const conversationId = cleanContextValue(body.conversationId, 160) || "anon";
+  const sessionId = cleanContextValue(body.sessionId, 160);
+  const stepId = cleanContextValue(body.stepId, 160);
   const emailBridge = body.mode === "email_bridge";
   const approvedFact = emailBridge ? null : approvedFactAnswer(message);
   if (approvedFact) {
+    await recordConciergeObservation({
+      conversationId,
+      sessionId,
+      stepId,
+      customerQuestion: message,
+      aiReply: approvedFact.reply,
+      selectedModel: "approved-facts-v1",
+      latencyMs: Date.now() - requestStartedAt,
+      outcome: "fallback",
+      nextScreen: approvedFact.next,
+    });
     return res.json({ ...approvedFact, model: "approved-facts-v1" });
   }
-
-  const conversationId = cleanContextValue(body.conversationId, 160) || "anon";
   const clientIp = proxyClientIp(req);
   if ((clientIp && rateLimited(`ip:${clientIp}`)) || rateLimited(`conversation:${conversationId}`)) {
+    await recordConciergeObservation({
+      conversationId,
+      sessionId,
+      stepId,
+      customerQuestion: message,
+      aiReply: "",
+      selectedModel: "rate-limit",
+      latencyMs: Date.now() - requestStartedAt,
+      outcome: "fallback",
+      nextScreen: "rate_limited",
+    });
     // Client treats a fallback flag as "use keyword routing", so a rate-limited
     // shopper still gets a working conversation, just without the LLM.
     return res.status(429).json({ error: "Too many requests.", fallback: true });
@@ -316,6 +399,17 @@ storefront.post("/ai-chat", async (req, res) => {
 
   const apiKey = workerEnvValue("OPENROUTER_API_KEY");
   if (!apiKey) {
+    await recordConciergeObservation({
+      conversationId,
+      sessionId,
+      stepId,
+      customerQuestion: message,
+      aiReply: "",
+      selectedModel: "config-missing",
+      latencyMs: Date.now() - requestStartedAt,
+      outcome: "fallback",
+      nextScreen: "config_error",
+    });
     return res.status(503).json({ error: "AI is not configured.", fallback: true });
   }
 
@@ -403,6 +497,17 @@ storefront.post("/ai-chat", async (req, res) => {
         if (words.length > 18 || /[?？]|מייל|הנחה|אני מבינה אותך לגמרי/.test(bridge)) continue;
         const bridgeProblem = replyIsAcceptable(bridge);
         if (bridgeProblem) continue;
+        await recordConciergeObservation({
+          conversationId,
+          sessionId,
+          stepId,
+          customerQuestion: message,
+          aiReply: bridge,
+          selectedModel: model,
+          latencyMs: Date.now() - requestStartedAt,
+          outcome: "success",
+          nextScreen: "",
+        });
         return res.json({ reply: bridge, next: "", model });
       }
 
@@ -425,13 +530,46 @@ storefront.post("/ai-chat", async (req, res) => {
       }
 
       if (!ALLOWED_NEXT.has(next)) next = "";
+      await recordConciergeObservation({
+        conversationId,
+        sessionId,
+        stepId,
+        customerQuestion: message,
+        aiReply: reply,
+        selectedModel: model,
+        latencyMs: Date.now() - requestStartedAt,
+        outcome: "success",
+        nextScreen: next || "",
+      });
       return res.json({ reply, next, model });
     }
 
     console.warn("[ai-concierge] whole ladder failed", attempted.join(","));
+    await recordConciergeObservation({
+      conversationId,
+      sessionId,
+      stepId,
+      customerQuestion: message,
+      aiReply: "",
+      selectedModel: attempted[attempted.length - 1] || "all-models-failed",
+      latencyMs: Date.now() - requestStartedAt,
+      outcome: "failure",
+      nextScreen: "",
+    });
     return res.status(502).json({ error: "All models unavailable.", fallback: true });
   } catch (error) {
     console.warn("[ai-concierge] chat failed", (error as Error).message);
+    await recordConciergeObservation({
+      conversationId,
+      sessionId,
+      stepId,
+      customerQuestion: message,
+      aiReply: "",
+      selectedModel: attempted[attempted.length - 1] || "route-error",
+      latencyMs: Date.now() - requestStartedAt,
+      outcome: "failure",
+      nextScreen: "",
+    });
     return res.status(502).json({ error: "AI request failed.", fallback: true });
   }
 });
@@ -580,6 +718,51 @@ admin.get("/ai-models", (_req, res) => {
     models: pinned ? [pinned] : MODEL_LADDER,
     timeoutMs: MODEL_TIMEOUT_MS,
     deadlineMs: CHAT_DEADLINE_MS,
+  });
+});
+
+// Admin-only: customer questions and AI answers remain inside the internal app.
+admin.get("/ai-reply-observations", async (req, res) => {
+  const conversationId = cleanContextValue(req.query.conversationId as unknown, 160);
+  const outcome = String(req.query.outcome || "").trim();
+  const days = Math.min(Math.max(Number(req.query.days) || 14, 1), 90);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 1000);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const where: Record<string, unknown> = { createdAt: { gte: since }, isTest: false };
+  if (conversationId) where.conversationId = conversationId;
+  if (outcome === "success" || outcome === "fallback" || outcome === "failure") where.outcome = outcome;
+
+  const rows = await prisma.conciergeReplyObservation.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      conversationId: true,
+      sessionId: true,
+      stepId: true,
+      customerQuestion: true,
+      aiReply: true,
+      selectedModel: true,
+      latencyMs: true,
+      outcome: true,
+      nextScreen: true,
+      isTest: true,
+      createdAt: true,
+    },
+  });
+
+  const byOutcome: Record<string, number> = rows.reduce((acc, row) => {
+    acc[row.outcome] = (acc[row.outcome] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return res.json({
+    days,
+    filters: { conversationId: conversationId || null, outcome: outcome || null, limit },
+    count: rows.length,
+    byOutcome,
+    rows,
   });
 });
 

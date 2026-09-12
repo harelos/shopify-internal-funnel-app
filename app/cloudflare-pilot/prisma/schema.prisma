@@ -31,6 +31,7 @@ model Shop {
   supportCustomers SupportCustomer[]
   supportConversations SupportConversation[]
   supportVoiceExamples SupportVoiceExample[]
+  conciergeReplyObservations ConciergeReplyObservation[]
 }
 
 model Funnel {
@@ -440,6 +441,7 @@ model OrderAttribution {
   popupAttributed  Boolean  @default(false)
   popupVisitorKey  String?
   popupSessionKey  String?
+  popupConversationKey String?
   popupVersion     String?
   popupCouponCode  String?
   popupPage        String?
@@ -458,6 +460,7 @@ model OrderAttribution {
   @@index([funnelId, variantId, paidAt])
   @@index([popupAttributed, popupVersion, paidAt])
   @@index([popupCouponCode, paidAt])
+  @@index([popupConversationKey, paidAt])
 }
 
 model ShopifyWebhookDelivery {
@@ -631,4 +634,25 @@ model SupportVoiceExample {
 
   @@unique([shopId, inboundExternalId, outboundExternalId])
   @@index([shopId, topic, qualityStatus])
+}
+
+model ConciergeReplyObservation {
+  id               String   @id @default(uuid())
+  shopId           String
+  conversationId   String
+  sessionId        String?
+  stepId           String?
+  customerQuestion String
+  aiReply          String
+  selectedModel    String
+  latencyMs        Int
+  outcome          String
+  nextScreen       String
+  isTest           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  shop             Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, conversationId, createdAt])
+  @@index([conversationId])
+  @@index([isTest, createdAt])
 }

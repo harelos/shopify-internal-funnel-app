@@ -12,6 +12,8 @@ const flows = readFileSync(new URL("../../../popup-engine/ai-popup/assets/novaha
 const attribution = readFileSync(new URL("../../../popup-engine/ai-popup/assets/novahair-ai-attribution.js", import.meta.url), "utf8");
 const snippet = readFileSync(new URL("../../../popup-engine/ai-popup/theme/novahair-ai-concierge.liquid", import.meta.url), "utf8");
 const dashboard = readFileSync(new URL("../public/admin/ai-concierge.html", import.meta.url), "utf8");
+const schema = readFileSync(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+const ingest = readFileSync(new URL("../src/routes/shopify-ingest.ts", import.meta.url), "utf8");
 
 test("AI chat is accepted only as a signed storefront proxy path", () => {
   assert.match(proxyAuth, /STOREFRONT_PROXY_PATHS[\s\S]*"\/ai-chat"/);
@@ -154,4 +156,21 @@ test("AI dashboard is authenticated and exposes only real model controls", () =>
   assert.doesNotMatch(dashboard, /\/api\/model-split/);
   const inlineScripts = Array.from(dashboard.matchAll(/<script>([\s\S]*?)<\/script>/g), match => match[1]);
   assert.doesNotThrow(() => new Function(inlineScripts.at(-1) || ""));
+});
+
+test("Concierge reply observations stay admin-only and preserve the order handoff key", () => {
+  assert.match(route, /admin\.get\("\/ai-reply-observations"/);
+  assert.match(route, /recordConciergeObservation\(/);
+  assert.match(route, /customerQuestion/);
+  assert.match(route, /aiReply/);
+  assert.match(route, /selectedModel/);
+  assert.match(route, /latencyMs/);
+  assert.match(route, /outcome/);
+  assert.match(route, /nextScreen/);
+  assert.match(route, /isExplicitQaConversation/);
+  assert.match(schema, /model ConciergeReplyObservation/);
+  assert.match(schema, /isTest\s+Boolean/);
+  assert.match(schema, /popupConversationKey/);
+  assert.match(ingest, /popupConversationKey:\s*popup\?\.conversationId/);
+  assert.doesNotMatch(attribution, /customerQuestion|aiReply|selectedModel/);
 });
