@@ -1,12 +1,26 @@
 # NovaHair Lifecycle — Engineering Handoff
 
-Last verified: 2026-09-09
+Last verified: 2026-09-12
 
 ## Outcome
 
 NovaHair's production lifecycle system is live for the four flows that have safe, first-party identity. A real Shopify checkout-to-email-to-purchase end-to-end test passed before the owner's explicit `GO LIVE`. The system remains conservative: purchase is the global stop signal, recovery is correlated by Shopify checkout ID rather than email, every send is rechecked for eligibility, and all provider webhooks are signature-verified and idempotent.
 
 This handoff contains no API keys, bearer tokens, customer email addresses, or recovery URLs.
+
+## 2026-09-12 Lifecycle V2 / chargeback-prevention work
+
+Research, revised copy and the first disabled infrastructure layer are now included in this repository:
+
+- `research/NOVAHAIR_LIFECYCLE_V2_AND_CHARGEBACK_PREVENTION.md` — primary-source research, state model, source precedence, release order and QA gates.
+- `content/NOVAHAIR_LIFECYCLE_V2_COPY.md` — complete proposed copy for the 41 core emails plus conditional shipment/service, decision-help, long-nurture and repeat-customer templates.
+- `migrations/0019_shipment_assurance.sql` — D1 schema for normalized shipments, append-only tracking events, service cases, notification ownership/idempotency, customer preferences, disputes, encrypted evidence snapshots and internal alerts.
+- `src/shipment-risk.ts` — deterministic Israeli business-day thresholds and explainable risk findings.
+- `test/shipment-risk.test.ts` — threshold, terminal-state, dispute-safety and database-idempotency coverage.
+
+The V2 internal-monitoring layer is deployed to production as Worker version `2ee493ae-0e99-4107-a84b-6a0f42e9de78`. Migrations `0018`–`0020` are applied to D1, `CJ_API_KEY` is held only in Cloudflare Secrets, and `SHIPMENT_ASSURANCE_ENABLED=true` enables D1-only reconciliation. `SHIPMENT_CUSTOMER_MESSAGES_ENABLED=false` is an explicit hard stop: no new customer service template, delay notice or chargeback-prevention message can be sent by this layer. The existing customer-facing production flows remain unchanged.
+
+The implementation order is: apply migration → store the CJ key in Cloudflare Secrets → port and test the CJ client → enable internal alerts only → audit Shopify notification ownership → create/publish the new templates disabled → run real shipment-state E2E tests → enable customer messages one state at a time.
 
 ## Production map
 

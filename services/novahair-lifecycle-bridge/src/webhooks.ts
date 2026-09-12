@@ -9,6 +9,7 @@ import {
   setHealth,
 } from "./db";
 import { dueAt, FLOW_SPECS, replenishmentOffsetDays } from "./flow-specs";
+import { encryptTrackingNumber } from "./shipment-assurance";
 import { monitorResendQuota } from "./quota";
 import type {
   ConsentState,
@@ -234,6 +235,7 @@ export async function processFulfillmentObservation(
   const trackingNumberHash = observation.trackingNumber
     ? await hashPayload(observation.trackingNumber)
     : null;
+  const encryptedTrackingNumber = await encryptTrackingNumber(env, observation.trackingNumber);
   const deliveredAt = status === "DELIVERED" ? happenedAt : null;
   const inTransitAt = ["CARRIER_PICKED_UP", "IN_TRANSIT"].includes(status ?? "") ? happenedAt : null;
   const readyForPickupAt = status === "READY_FOR_PICKUP" ? happenedAt : null;
@@ -266,6 +268,7 @@ export async function processFulfillmentObservation(
        END,
        tracking_company = COALESCE(?, tracking_company),
        tracking_number_hash = COALESCE(?, tracking_number_hash),
+       tracking_number_encrypted = COALESCE(?, tracking_number_encrypted),
        tracking_url_encrypted = COALESCE(?, tracking_url_encrypted),
        tracking_available_at = CASE
          WHEN ? IS NOT NULL THEN COALESCE(tracking_available_at, ?)
@@ -285,6 +288,7 @@ export async function processFulfillmentObservation(
     status,
     text(observation.trackingCompany),
     trackingNumberHash,
+    encryptedTrackingNumber,
     encryptedTrackingUrl,
     trackingNumberHash,
     happenedAt,

@@ -57,6 +57,9 @@ export interface LifecycleEnv {
   LIFECYCLE_SYNC_INTERVAL_MINUTES?: string;
   LIFECYCLE_SYNC_OVERLAP_MINUTES?: string;
   LIFECYCLE_MAX_PAGES?: string;
+  CJ_API_KEY?: string;
+  SHIPMENT_ASSURANCE_ENABLED?: string;
+  SHIPMENT_CUSTOMER_MESSAGES_ENABLED?: string;
 }
 
 export type LifecycleFlow =
