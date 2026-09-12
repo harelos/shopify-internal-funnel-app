@@ -168,7 +168,12 @@ export async function handleLifecycleRequest(
   }
   if (url.pathname === "/api/lifecycle/admin/audience" && request.method === "GET") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
-    return json(await lifecycleAudienceActivity(env, url));
+    try {
+      return json(await lifecycleAudienceActivity(env, url));
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "audience_failed";
+      return json({ ok: false, error: code.slice(0, 100) }, code.startsWith("audience_invalid_") ? 400 : 500);
+    }
   }
   if (url.pathname === "/api/lifecycle/admin/run" && request.method === "POST") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });

@@ -130,7 +130,8 @@ test("private analytics exposes all 39 emails, performance, and revenue without 
     assert.equal(audienceResponse.status, 200);
     const audience = await audienceResponse.json() as {
       contactTracking: { resendContactTags: string; unsubscribeAndSuppressionSync: string };
-      messages: Array<{ recipient: string; flow: string; emailNumber: number; openedAt: string | null; providerClickedAt: string | null }>;
+      messages: Array<{ recipient: string; flow: string; emailNumber: number; deliveredAt: string | null; openedAt: string | null; providerClickedAt: string | null }>;
+      pagination: { hasMore: boolean; nextOffset: number | null };
       privacy: { recoveryUrlReturned: boolean; checkoutTokenReturned: boolean };
     };
     assert.equal(audience.contactTracking.resendContactTags, "not_configured");
@@ -141,8 +142,27 @@ test("private analytics exposes all 39 emails, performance, and revenue without 
     assert.equal(audience.messages[0]?.recipient, TEST_EMAIL);
     assert.equal(audience.messages[0]?.flow, "abandoned_checkout");
     assert.equal(audience.messages[0]?.emailNumber, 1);
+    assert.ok(audience.messages[0]?.deliveredAt);
     assert.ok(audience.messages[0]?.openedAt);
     assert.ok(audience.messages[0]?.providerClickedAt);
+    assert.equal(audience.pagination.hasMore, false);
+    assert.equal(audience.pagination.nextOffset, null);
+
+    const filteredResponse = await worker.fetch(
+      new Request("https://worker.test/api/lifecycle/admin/audience?flow=abandoned_checkout&emailNumber=1&limit=1", { headers }),
+      env,
+      context,
+    );
+    assert.equal(filteredResponse.status, 200);
+    const filtered = await filteredResponse.json() as { messages: unknown[] };
+    assert.equal(filtered.messages.length, 1);
+
+    const invalidFilter = await worker.fetch(
+      new Request("https://worker.test/api/lifecycle/admin/audience?flow=not-a-flow", { headers }),
+      env,
+      context,
+    );
+    assert.equal(invalidFilter.status, 400);
   } finally {
     await dispose();
   }

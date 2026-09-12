@@ -43,6 +43,11 @@
     .signal.ok { border-color:#88c7a6; color:#17653e; background:#effaf3; }
     .signal.neutral { color:var(--muted); background:#faf8f4; }
     .small-copy { max-width:780px; font-size:13px; line-height:1.65; }
+    .audience-summary { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 15px; }
+    .audience-summary span { background:#f7f3eb; border:1px solid var(--line); border-radius:999px; padding:5px 9px; font-size:12px; }
+    .recipient-modal { position:fixed; inset:0; z-index:500; display:grid; place-items:center; padding:18px; background:rgba(23,35,30,.58); }
+    .recipient-modal-card { width:min(100%, 1050px); max-height:min(84vh, 780px); overflow:auto; background:var(--card); border:1px solid var(--ink); border-radius:12px; box-shadow:0 20px 48px rgba(0,0,0,.28); }
+    .recipient-modal-head { position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; align-items:start; gap:14px; padding:18px; background:var(--card); border-bottom:1px solid var(--line); }
     [hidden] { display:none !important; }
     @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } .flow-grid { grid-template-columns:1fr; } .flow-detail-meta { grid-template-columns:1fr; } .lifecycle-hero { align-items:flex-start; flex-direction:column; } }
     @media (max-width:520px) { .overview-grid { grid-template-columns:1fr; } .step-list li { grid-template-columns:34px 1fr; } .step-list li a { grid-column:2; } }
@@ -74,6 +79,9 @@
     <section data-panel="library" hidden><div class="panel"><div class="panel-header"><h2 id="library-title">ספריית המיילים</h2><span class="eyebrow">מוצג Flow אחד בכל פעם</span></div><div id="library-body" class="panel-body"><p class="muted">בחרי Flow בסקירה כדי לראות את המיילים שלו.</p></div></div></section>
     <section data-panel="health" hidden><div class="panel"><div class="panel-header"><h2>בריאות, זיהוי ומעקב</h2><span id="health-status" class="eyebrow">בודק…</span></div><div id="health-body" class="panel-body"></div></div><div class="panel"><div class="panel-header"><h2>איך מתויגים ומודדים אנשים?</h2></div><div id="tracking-body" class="panel-body small-copy"></div></div></section>
   </main>
+  <div id="recipient-modal" class="recipient-modal" role="dialog" aria-modal="true" aria-labelledby="recipient-modal-title" hidden>
+    <div class="recipient-modal-card"><div class="recipient-modal-head"><div><h2 id="recipient-modal-title">נמענות ופעילות</h2><p id="recipient-modal-subtitle" class="muted" style="margin-top:4px"></p></div><button class="btn btn-sm" id="recipient-modal-close">סגירה</button></div><div class="panel-body"><div id="recipient-modal-body"><p class="muted">טוען…</p></div></div></div>
+  </div>
   <script src="js/api.js"></script><script src="js/lifecycle-analytics.js"></script>
 </body>
 </html>

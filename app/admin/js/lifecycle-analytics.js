@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const state = { currentDays: "7", selectedFlow: "abandoned_checkout", analytics: null, audience: null, health: null };
+  const state = { currentDays: "7", selectedFlow: "abandoned_checkout", analytics: null, audience: null, health: null, recipientRows: [], recipientQuery: null, recipientPagination: null, lastFocus: null };
   const $ = (selector) => document.querySelector(selector);
   const safe = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
   const formatDate = (value) => value ? new Intl.DateTimeFormat("he-IL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
@@ -19,6 +19,50 @@ document.addEventListener("DOMContentLoaded", () => {
   function showView(view) {
     document.querySelectorAll("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== view; });
     document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  }
+
+  function recipientSignals(row) {
+    const signals = [`<span class="signal ok">נשלח</span>`];
+    if (row.deliveredAt) signals.push(`<span class="signal ok">נמסר</span>`);
+    if (row.openedAt) signals.push(`<span class="signal neutral">נפתח</span>`);
+    if (row.providerClickedAt || row.firstPartyClickedAt) signals.push(`<span class="signal ok">נלחץ</span>`);
+    return signals.join("");
+  }
+
+  function closeRecipients() {
+    $("#recipient-modal").hidden = true;
+    state.lastFocus?.focus?.();
+  }
+
+  function renderRecipients() {
+    const rows = state.recipientRows || [];
+    const opened = rows.filter((row) => row.openedAt).length;
+    const clicked = rows.filter((row) => row.providerClickedAt || row.firstPartyClickedAt).length;
+    const delivered = rows.filter((row) => row.deliveredAt).length;
+    const pagination = state.recipientPagination || {};
+    $("#recipient-modal-body").innerHTML = `<div class="audience-summary"><span>${rows.length} נמענות מוצגות</span><span>${delivered} נמסרו</span><span>${opened} נפתחו</span><span>${clicked} נלחצו</span></div><div class="table-wrap"><table class="table"><thead><tr><th>כתובת מייל</th><th>נשלח</th><th>נמסר</th><th>נפתח</th><th>נלחץ</th><th>מייל הבא</th></tr></thead><tbody>${rows.length ? rows.map((row) => `<tr><td class="person-cell"><strong>${safe(row.recipient)}</strong>${row.firstName ? `<br><span class="muted">${safe(row.firstName)}</span>` : ""}</td><td>${formatDate(row.sentAt)}</td><td>${row.deliveredAt ? formatDate(row.deliveredAt) : "—"}</td><td>${row.openedAt ? formatDate(row.openedAt) : "—"}</td><td>${row.providerClickedAt || row.firstPartyClickedAt ? formatDate(row.firstPartyClickedAt || row.providerClickedAt) : "—"}</td><td class="muted">${row.nextScheduledAt ? formatDate(row.nextScheduledAt) : "—"}</td></tr>`).join("") : `<tr><td colspan="6" class="muted">המייל הזה עדיין לא נשלח לאף נמענת.</td></tr>`}</tbody></table></div>${pagination.hasMore ? `<div style="margin-top:14px"><button class="btn" id="recipient-load-more">טעינת נמענות נוספות</button></div>` : ""}`;
+    $("#recipient-load-more")?.addEventListener("click", () => openRecipients(state.recipientQuery.flow, state.recipientQuery.emailNumber, pagination.nextOffset, true));
+  }
+
+  async function openRecipients(flow, emailNumber, offset = 0, append = false) {
+    const selectedFlow = (state.analytics?.flows || []).find((item) => item.flow === flow);
+    const email = selectedFlow?.emails?.find((item) => Number(item.number) === Number(emailNumber));
+    if (!append) state.lastFocus = document.activeElement;
+    $("#recipient-modal-title").textContent = `נמענות ופעילות · ${selectedFlow?.name || flow} #${emailNumber}`;
+    $("#recipient-modal-subtitle").textContent = email?.subject || "";
+    $("#recipient-modal").hidden = false;
+    if (!append) $("#recipient-modal-body").innerHTML = `<p class="muted">טוען את נתוני הנמענות…</p>`;
+    try {
+      const query = new URLSearchParams({ flow, emailNumber: String(emailNumber), limit: "250", offset: String(offset) });
+      const response = await API.get(`/api/lifecycle/admin/audience?${query.toString()}`);
+      if (!response.ok) throw new Error(response.error || "Audience data is unavailable");
+      state.recipientRows = append ? [...state.recipientRows, ...(response.messages || [])] : (response.messages || []);
+      state.recipientQuery = { flow, emailNumber };
+      state.recipientPagination = response.pagination || null;
+      renderRecipients();
+    } catch (error) {
+      $("#recipient-modal-body").innerHTML = `<p class="notice notice-warn">לא הצלחנו לטעון את נתוני הנמענות: ${safe(error.message)}</p>`;
+    }
   }
 
   function renderOverview() {
@@ -51,18 +95,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const query = String($("#people-search")?.value || "").trim().toLowerCase();
     const rows = (state.audience?.messages || []).filter((row) => `${row.recipient} ${row.flowName} ${row.subject}`.toLowerCase().includes(query));
     $("#people-table").innerHTML = rows.length ? rows.map((row) => {
-      const signals = [`<span class="signal ok">נשלח</span>`];
-      if (row.openedAt) signals.push(`<span class="signal neutral">נפתח</span>`);
-      if (row.providerClickedAt || row.firstPartyClickedAt) signals.push(`<span class="signal ok">נלחץ</span>`);
       const next = row.nextScheduledAt ? `מייל נוסף מתוכנן: ${formatDate(row.nextScheduledAt)}` : "אין מייל מתוזמן נוסף כרגע";
-      return `<tr><td class="person-cell"><strong>${safe(row.recipient)}</strong>${row.firstName ? `<br><span class="muted">${safe(row.firstName)}</span>` : ""}</td><td><strong>${safe(row.flowName)}</strong><br><span class="muted">#${Number(row.emailNumber)} · ${safe(row.emailTitle)}</span></td><td>${formatDate(row.sentAt)}</td><td>${signals.join("")}</td><td class="muted">${safe(next)}</td></tr>`;
+      return `<tr><td class="person-cell"><strong>${safe(row.recipient)}</strong>${row.firstName ? `<br><span class="muted">${safe(row.firstName)}</span>` : ""}</td><td><strong>${safe(row.flowName)}</strong><br><span class="muted">#${Number(row.emailNumber)} · ${safe(row.emailTitle)}</span></td><td>${formatDate(row.sentAt)}</td><td>${recipientSignals(row)}</td><td class="muted">${safe(next)}</td></tr>`;
     }).join("") : `<tr><td colspan="5" class="muted">לא נמצאו מיילים לפי החיפוש.</td></tr>`;
   }
 
   function renderLibrary() {
     const flow = getFlow(); if (!flow) return;
     $("#library-title").textContent = `ספריית המיילים · ${flow.name}`;
-    $("#library-body").innerHTML = `<p class="section-intro">כאן רואים את התכנון והביצועים של ה־Flow הנבחר — לא את כל 39 המיילים יחד.</p><div class="table-wrap"><table class="table"><thead><tr><th>שלב</th><th>נושא</th><th>תזמון</th><th>נשלח / נמסר</th><th>פתיחה / קליק</th><th></th></tr></thead><tbody>${(flow.emails || []).map((email) => { const m = email.metrics || {}; return `<tr><td><strong>#${Number(email.number)}</strong><br><span class="muted">${safe(email.title || "")}</span></td><td>${safe(email.subject || "—")}</td><td>${safe(email.timing || "—")}</td><td>${Number(m.sent || 0)} / ${Number(m.delivered || 0)}</td><td>${Number(m.opened || 0)} / ${Number(m.firstPartyClicked || 0)}</td><td>${email.templateUrl ? `<a href="${safe(email.templateUrl)}" target="_blank" rel="noopener noreferrer">Template</a>` : "—"}</td></tr>`; }).join("")}</tbody></table></div>`;
+    $("#library-body").innerHTML = `<p class="section-intro">לחצי על “נמענות ופעילות” בכל מייל כדי לראות את כתובות המייל, זמני המסירה, פתיחה וקליקים של אותו מייל.</p><div class="table-wrap"><table class="table"><thead><tr><th>שלב</th><th>נושא</th><th>תזמון</th><th>נשלח / נמסר</th><th>פתיחה / קליק</th><th>פעולות</th></tr></thead><tbody>${(flow.emails || []).map((email) => { const m = email.metrics || {}; return `<tr><td><strong>#${Number(email.number)}</strong><br><span class="muted">${safe(email.title || "")}</span></td><td>${safe(email.subject || "—")}</td><td>${safe(email.timing || "—")}</td><td>${Number(m.sent || 0)} / ${Number(m.delivered || 0)}</td><td>${Number(m.opened || 0)} / ${Number(m.firstPartyClicked || 0)}</td><td><button class="btn btn-sm" data-audience-flow="${safe(flow.flow)}" data-audience-email="${Number(email.number)}">נמענות ופעילות</button>${email.templateUrl ? ` <a href="${safe(email.templateUrl)}" target="_blank" rel="noopener noreferrer">Template</a>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`;
+    document.querySelectorAll("[data-audience-flow]").forEach((button) => button.addEventListener("click", () => openRecipients(button.dataset.audienceFlow, Number(button.dataset.audienceEmail))));
   }
 
   function renderHealth() {
@@ -92,5 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("#range-buttons button").forEach((button) => button.addEventListener("click", () => { document.querySelectorAll("#range-buttons button").forEach((item) => item.classList.remove("btn-primary", "active")); button.classList.add("btn-primary", "active"); state.currentDays = button.dataset.days; load(); }));
   $("#btn-refresh").addEventListener("click", load);
   $("#people-search").addEventListener("input", renderPeople);
+  $("#recipient-modal-close").addEventListener("click", closeRecipients);
+  $("#recipient-modal").addEventListener("click", (event) => { if (event.target === $("#recipient-modal")) closeRecipients(); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !$("#recipient-modal").hidden) closeRecipients(); });
   load();
 });

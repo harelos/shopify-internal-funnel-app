@@ -106,6 +106,7 @@ interface AudienceMessageRow {
   sent_at: string | null;
   scheduled_at: string | null;
   clicked_at: string | null;
+  delivered_at: string | null;
   opened_at: string | null;
   provider_clicked_at: string | null;
   next_scheduled_at: string | null;
@@ -486,13 +487,43 @@ export async function lifecycleAudienceActivity(
   url: URL,
 ): Promise<Record<string, unknown>> {
   const parsedLimit = Number(url.searchParams.get("limit") ?? 50);
-  const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, Math.floor(parsedLimit))) : 50;
+  const limit = Number.isFinite(parsedLimit) ? Math.min(250, Math.max(1, Math.floor(parsedLimit))) : 50;
+  const parsedOffset = Number(url.searchParams.get("offset") ?? 0);
+  const offset = Number.isFinite(parsedOffset) ? Math.min(50_000, Math.max(0, Math.floor(parsedOffset))) : 0;
+  const requestedFlow = url.searchParams.get("flow");
+  const flow = requestedFlow && FLOW_ORDER.includes(requestedFlow as LifecycleFlow)
+    ? requestedFlow as LifecycleFlow
+    : null;
+  if (requestedFlow && !flow) throw new Error("audience_invalid_flow");
+  const requestedEmailNumber = url.searchParams.get("emailNumber");
+  const parsedEmailNumber = requestedEmailNumber === null ? null : Number(requestedEmailNumber);
+  const emailNumber = parsedEmailNumber !== null
+    && Number.isInteger(parsedEmailNumber)
+    && parsedEmailNumber >= 1
+    && parsedEmailNumber <= 10
+    ? parsedEmailNumber
+    : null;
+  if (requestedEmailNumber !== null && emailNumber === null) throw new Error("audience_invalid_email_number");
+  const conditions = [
+    "t.sent_at IS NOT NULL",
+    "COALESCE(NULLIF(i.email, ''), NULLIF(a.email, ''), NULLIF(o.email, '')) IS NOT NULL",
+  ];
+  const bindings: Array<string | number> = [];
+  if (flow) {
+    conditions.push("t.flow = ?");
+    bindings.push(flow);
+  }
+  if (emailNumber !== null) {
+    conditions.push("t.email_number = ?");
+    bindings.push(emailNumber);
+  }
   const [messageResult, activeFlowResult] = await Promise.all([
     env.DB.prepare(
       `SELECT t.id, t.flow, t.email_number, t.status, t.entity_type, t.entity_id,
               COALESCE(NULLIF(i.email, ''), NULLIF(a.email, ''), NULLIF(o.email, '')) AS recipient,
               COALESCE(i.first_name, a.first_name, o.first_name) AS first_name,
               t.sent_at, t.scheduled_at, t.clicked_at,
+              MAX(CASE WHEN e.event_type = 'email.delivered' THEN e.occurred_at END) AS delivered_at,
               MAX(CASE WHEN e.event_type = 'email.opened' THEN e.occurred_at END) AS opened_at,
               MAX(CASE WHEN e.event_type = 'email.clicked' THEN e.occurred_at END) AS provider_clicked_at,
               (
@@ -511,12 +542,11 @@ export async function lifecycleAudienceActivity(
          ON t.entity_type = 'order' AND t.entity_id = o.shopify_order_id
        LEFT JOIN email_delivery_events e
          ON e.resend_email_id = t.resend_email_id AND e.status = 'PROCESSED'
-       WHERE t.sent_at IS NOT NULL
-         AND COALESCE(NULLIF(i.email, ''), NULLIF(a.email, ''), NULLIF(o.email, '')) IS NOT NULL
+       WHERE ${conditions.join(" AND ")}
        GROUP BY t.id
        ORDER BY t.sent_at DESC
-       LIMIT ?`,
-    ).bind(limit).all<AudienceMessageRow>(),
+       LIMIT ? OFFSET ?`,
+    ).bind(...bindings, limit + 1, offset).all<AudienceMessageRow>(),
     env.DB.prepare(
       `SELECT flow,
               COUNT(DISTINCT entity_type || ':' || entity_id) AS active_people,
@@ -527,7 +557,9 @@ export async function lifecycleAudienceActivity(
     ).all<AudienceFlowRow>(),
   ]);
   const activityByFlow = new Map(rows(activeFlowResult).map(row => [row.flow, row]));
-  const messages = rows(messageResult).map((message) => {
+  const rawMessages = rows(messageResult);
+  const hasMore = rawMessages.length > limit;
+  const messages = rawMessages.slice(0, limit).map((message) => {
     const content = contentEmail(message.flow, message.email_number);
     return {
       recipient: message.recipient,
@@ -539,6 +571,7 @@ export async function lifecycleAudienceActivity(
       subject: content?.subject ?? null,
       status: message.status,
       sentAt: message.sent_at,
+      deliveredAt: message.delivered_at,
       openedAt: message.opened_at,
       providerClickedAt: message.provider_clicked_at,
       firstPartyClickedAt: message.clicked_at,
@@ -560,6 +593,12 @@ export async function lifecycleAudienceActivity(
       unsubscribeAndSuppressionSync: "enabled",
       openSignal: "verified_resend_webhook",
       clickSignal: "verified_resend_webhook_and_first_party_redirect",
+    },
+    pagination: {
+      limit,
+      offset,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
     },
     flowActivity: FLOW_ORDER.map(flow => {
       const row = activityByFlow.get(flow);
