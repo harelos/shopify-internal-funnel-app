@@ -582,6 +582,7 @@ test("paid-order polling is idempotent, starts post-purchase, and prevents a lat
     createdAt: "2026-09-08T02:00:00.000Z",
     updatedAt: "2026-09-08T02:01:00.000Z",
     processedAt: "2026-09-08T02:00:30.000Z",
+    checkoutToken: "checkout-token-A",
     displayFinancialStatus: "PAID",
     test: true,
     email: TEST_EMAIL,
@@ -618,11 +619,20 @@ test("paid-order polling is idempotent, starts post-purchase, and prevents a lat
     data: { orders: { nodes: [node], pageInfo: { hasNextPage: false, endCursor: null } } },
   });
   try {
+    const correlatedCheckoutId = "gid://shopify/AbandonedCheckout/TOKEN-A";
+    await upsertCheckout(env, checkoutFixture(correlatedCheckoutId, {
+      createdAt: "2026-09-08T01:59:30.000Z",
+      abandonedCheckoutUrl: "https://jacobfelipe.myshopify.com/checkouts/checkout-token-A/recover?key=sensitive-token&locale=he",
+    }), new Date("2026-09-08T02:00:00.000Z"));
     const first = await syncPaidOrders(env, new Date("2026-09-08T02:05:00.000Z"), { fetcher });
     const duplicate = await syncPaidOrders(env, new Date("2026-09-08T02:10:00.000Z"), { fetcher });
     assert.equal(first.processed, 1);
     assert.equal(duplicate.processed, 0);
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM lifecycle_orders").first("count")), 1);
+    assert.equal(
+      await db.prepare("SELECT shopify_checkout_id FROM lifecycle_orders WHERE shopify_order_id = ?").bind("gid://shopify/Order/800").first("shopify_checkout_id"),
+      correlatedCheckoutId,
+    );
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 2);
 
     const checkoutId = "gid://shopify/AbandonedCheckout/AFTER-ORDER";

@@ -1,5 +1,5 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
-import { hashEmail, hashPayload, verifyShopifyHmac, verifySvixSignature } from "./crypto";
+import { hashEmail, hashPayload, hmacSha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
 import {
   cancelEntitySchedules,
   incrementUsageOnce,
@@ -337,7 +337,17 @@ export async function processPaidOrder(
   if (!gid || !email) throw new Error("order_identity_unavailable");
   const current = isoNow(now);
   const completedAt = text(payload.processed_at) ?? text(payload.created_at) ?? current;
-  const exactCheckoutId = checkoutId(payload);
+  const checkoutTokenHash = payload.checkout_token
+    ? await hmacSha256Hex(config.hashKey, payload.checkout_token)
+    : null;
+  let exactCheckoutId = checkoutId(payload);
+  if (!exactCheckoutId && checkoutTokenHash) {
+    const tokenMatch = await env.DB.prepare(
+      `SELECT shopify_checkout_id FROM abandoned_checkouts
+       WHERE checkout_token_hash = ? ORDER BY created_at DESC LIMIT 1`,
+    ).bind(checkoutTokenHash).first<{ shopify_checkout_id: string }>();
+    exactCheckoutId = tokenMatch?.shopify_checkout_id ?? null;
+  }
   const emailHash = await hashEmail(email, config.hashKey);
   const suppliedConsent = payload.marketing_consent_state;
   const consentState = suppliedConsent && [
@@ -358,13 +368,14 @@ export async function processPaidOrder(
 
   await env.DB.prepare(
        `INSERT INTO lifecycle_orders (
-       shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash,
+       shopify_order_id, shopify_checkout_id, checkout_token_hash, shopify_customer_id, email, email_hash,
        first_name, consent_state, completed_at, bundle, quantity, shade, product_name,
        purchased_product_ids_json, purchased_product_handles_json, total, currency,
        shipping_country_code, replenishment_due_at, repeat_purchase, payload_hash, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(shopify_order_id) DO UPDATE SET
        shopify_checkout_id = excluded.shopify_checkout_id,
+       checkout_token_hash = COALESCE(excluded.checkout_token_hash, lifecycle_orders.checkout_token_hash),
        shopify_customer_id = excluded.shopify_customer_id,
        email = excluded.email,
        email_hash = excluded.email_hash,
@@ -387,6 +398,7 @@ export async function processPaidOrder(
   ).bind(
     gid,
     exactCheckoutId,
+    checkoutTokenHash,
     customerId(payload),
     email,
     emailHash,

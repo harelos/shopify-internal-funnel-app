@@ -7,7 +7,7 @@ import {
   setHealth,
 } from "./db";
 import { FLOW_SPECS, dueAt } from "./flow-specs";
-import { encryptSensitive, hashEmail, hashPayload } from "./crypto";
+import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex } from "./crypto";
 import { queueResendUnsubscribe } from "./resend";
 import { processFulfillmentObservation, processPaidOrder } from "./webhooks";
 import type {
@@ -79,6 +79,7 @@ const PAID_ORDERS_QUERY = `query NovaHairPaidOrders(
       createdAt
       updatedAt
       processedAt
+      checkoutToken
       displayFinancialStatus
       test
       email
@@ -316,6 +317,17 @@ function normalizedEmail(value: string | null | undefined): string | null {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
 
+function recoveryCheckoutToken(value: string): string | null {
+  try {
+    const pathname = new URL(value).pathname.split("/").filter(Boolean);
+    const index = pathname.findIndex(segment => segment.toLowerCase() === "checkouts");
+    const token = index >= 0 ? pathname[index + 1] : null;
+    return token && token.length <= 512 ? decodeURIComponent(token) : null;
+  } catch {
+    return null;
+  }
+}
+
 function deriveMerchandise(checkout: ShopifyAbandonedCheckout) {
   const first = checkout.lineItems.nodes[0];
   const combined = [first?.variantTitle, first?.sku, first?.title].filter(Boolean).join(" ");
@@ -360,6 +372,8 @@ export async function upsertCheckout(env: LifecycleEnv, checkout: ShopifyAbandon
   const emailAddress = checkout.customer?.defaultEmailAddress;
   const email = emailAddress?.validFormat === false ? null : normalizedEmail(emailAddress?.emailAddress);
   const emailHash = email ? await hashEmail(email, config.hashKey) : null;
+  const checkoutToken = recoveryCheckoutToken(checkout.abandonedCheckoutUrl);
+  const checkoutTokenHash = checkoutToken ? await hmacSha256Hex(config.hashKey, checkoutToken) : null;
   const consentState: ConsentState = emailAddress?.marketingState ?? "UNKNOWN";
   const existing = await env.DB.prepare(
     "SELECT state, completed_at FROM abandoned_checkouts WHERE shopify_checkout_id = ?",
@@ -402,6 +416,7 @@ export async function upsertCheckout(env: LifecycleEnv, checkout: ShopifyAbandon
     updatedAt: checkout.updatedAt,
     completedAt: checkout.completedAt,
     emailHash,
+    checkoutTokenHash,
     consentState,
     lineItems: checkout.lineItems.nodes,
     total: safeTotal,
@@ -413,17 +428,18 @@ export async function upsertCheckout(env: LifecycleEnv, checkout: ShopifyAbandon
   await env.DB.prepare(
     `INSERT INTO abandoned_checkouts (
        shopify_checkout_id, shop_domain, customer_id, email, email_hash, first_name,
-       checkout_url, created_at, updated_at, completed_at, first_seen_at, last_seen_at,
+       checkout_url, checkout_token_hash, created_at, updated_at, completed_at, first_seen_at, last_seen_at,
        consent_state, state, next_email_number, next_due_at, payload_hash,
        product_name, product_image, variant, shade, bundle, quantity, total, currency,
        created_record_at, updated_record_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(shopify_checkout_id) DO UPDATE SET
        customer_id = excluded.customer_id,
        email = excluded.email,
        email_hash = excluded.email_hash,
        first_name = excluded.first_name,
        checkout_url = excluded.checkout_url,
+       checkout_token_hash = COALESCE(excluded.checkout_token_hash, abandoned_checkouts.checkout_token_hash),
        updated_at = excluded.updated_at,
        completed_at = excluded.completed_at,
        last_seen_at = excluded.last_seen_at,
@@ -452,6 +468,7 @@ export async function upsertCheckout(env: LifecycleEnv, checkout: ShopifyAbandon
     emailHash,
     checkout.customer?.firstName ?? null,
     encryptedUrl,
+    checkoutTokenHash,
     checkout.createdAt,
     checkout.updatedAt,
     checkout.completedAt,
@@ -623,6 +640,7 @@ function orderPayload(node: ShopifyOrderNode): ShopifyOrderWebhook {
   const emailAddress = node.customer?.defaultEmailAddress;
   return {
     admin_graphql_api_id: node.id,
+    checkout_token: node.checkoutToken,
     email: node.email ?? emailAddress?.emailAddress ?? null,
     customer: node.customer ? {
       admin_graphql_api_id: node.customer.id,

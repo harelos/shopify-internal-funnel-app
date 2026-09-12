@@ -138,6 +138,7 @@ The marketing and operational source of truth is the Google Doc [NOVAHAIR — מ
 - Recovery URLs are encrypted at rest and never logged or returned by analytics.
 - UTMs contain only flow/email labels. They never contain an address, name, phone, Shopify token, or recovery secret.
 - Shopify order data is revenue truth. Attributed revenue is observational last-click revenue, not proven incremental lift.
+- Shopify checkout-token correlation is stored as a one-way HMAC so a later paid order can be matched to the exact recovery checkout without retaining the raw token.
 - Browse/Cart remain disabled until the storefront has reliable consented identity. Do not work around this with invasive tracking or checkout JavaScript.
 - No plan upgrade, paid queue, card, or pay-as-you-go was enabled.
 
@@ -157,6 +158,7 @@ For a production incident, prefer disabling dispatch or the affected automation 
 - Resend currently reports 10 recent transactional messages. D1 has received 9 `email.sent`, 9 `email.delivered`, 10 `email.opened`, and 4 `email.clicked` webhook events; duplicate event IDs remain idempotent.
 - All six automations and the verified sending domain are still present. Four automations are enabled; Browse and Cart remain identity-gated.
 - The analytics UI and server-side proxy now exist in `app/admin/lifecycle-analytics.html`, `app/admin/js/lifecycle-analytics.js`, and `app/src/routes/lifecycle-admin.ts`. The existing Railway `funnel-app` production service is deployed and verified at `https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html`. Authenticated production checks returned `200` for the page, health proxy, flows endpoint, and analytics endpoint; the response contained all 6 flows and 39 email definitions with no customer PII. The app suite is 8/8, the Worker suite is 40/40, and both TypeScript builds pass.
+- Migration `0016_checkout_token_attribution.sql` is applied remotely and the Worker deployment containing exact Shopify `checkoutToken` attribution is live. New abandoned checkout records hash the checkout token parsed from the recovery URL; paid-order polling hashes Shopify's `Order.checkoutToken` and resolves the matching checkout before the email fallback.
 
 ## Remaining product work
 

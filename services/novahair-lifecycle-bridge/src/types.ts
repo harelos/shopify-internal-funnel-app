@@ -161,6 +161,7 @@ export interface AbandonedCheckoutRow {
   email_hash: string | null;
   first_name: string | null;
   checkout_url: string;
+  checkout_token_hash: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -243,6 +244,7 @@ export interface ShopifyOrderNode {
   createdAt: string;
   updatedAt: string;
   processedAt: string | null;
+  checkoutToken: string | null;
   displayFinancialStatus: string | null;
   test: boolean;
   email: string | null;
