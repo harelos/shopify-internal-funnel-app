@@ -46,14 +46,10 @@ function isExplicitQaConversation(conversationId: string): boolean {
 }
 
 async function resolveShopIdForConcierge(): Promise<string | null> {
-  try {
-    const byDomain = await prisma.shop.findUnique({ where: { domain: configuredShopDomain() } });
-    if (byDomain) return byDomain.id;
-    const fallback = await prisma.shop.findFirst();
-    return fallback?.id ?? null;
-  } catch {
-    return null;
-  }
+  const byDomain = await prisma.shop.findUnique({ where: { domain: configuredShopDomain() } });
+  if (byDomain) return byDomain.id;
+  const fallback = await prisma.shop.findFirst();
+  return fallback?.id ?? null;
 }
 
 async function recordConciergeObservation(input: {
@@ -68,27 +64,25 @@ async function recordConciergeObservation(input: {
   stepId?: string;
 }) {
   const shopId = await resolveShopIdForConcierge();
-  if (!shopId) return;
+  if (!shopId) throw new Error("No shop is available to store Concierge observations.");
 
-  try {
-    await prisma.conciergeReplyObservation.create({
-      data: {
-        shopId,
-        conversationId: input.conversationId || "anon",
-        sessionId: input.sessionId || null,
-        stepId: input.stepId || null,
-        customerQuestion: input.customerQuestion,
-        aiReply: input.aiReply,
-        selectedModel: input.selectedModel,
-        latencyMs: Math.max(0, input.latencyMs),
-        outcome: input.outcome,
-        nextScreen: input.nextScreen || "",
-        isTest: isExplicitQaConversation(input.conversationId),
-      },
-    });
-  } catch (error) {
-    console.warn("[ai-concierge] failed to persist observation", (error as Error).message);
-  }
+  // Measurement is a hard requirement: never return an AI answer that cannot
+  // be reviewed internally. Callers deliberately fail closed if D1 is down.
+  await prisma.conciergeReplyObservation.create({
+    data: {
+      shopId,
+      conversationId: input.conversationId || "anon",
+      sessionId: input.sessionId || null,
+      stepId: input.stepId || null,
+      customerQuestion: input.customerQuestion,
+      aiReply: input.aiReply,
+      selectedModel: input.selectedModel,
+      latencyMs: Math.max(0, input.latencyMs),
+      outcome: input.outcome,
+      nextScreen: input.nextScreen || "",
+      isTest: isExplicitQaConversation(input.conversationId),
+    },
+  });
 }
 
 /* Node ids the model is allowed to route to. Anything else is ignored, so a
