@@ -183,7 +183,7 @@ test("verified paid order is the global stop and starts post-purchase/replenishm
     const checkoutStates = await db.prepare("SELECT state FROM abandoned_checkouts WHERE email = ?").bind(TEST_EMAIL).all();
     assert.deepEqual(new Set(checkoutStates.results.map((row: { state: string }) => row.state)), new Set(["PURCHASED"]));
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM lifecycle_orders").first("count")), 1);
-    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 2);
+    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 4);
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.replenishment_due'").first("count")), 1);
     assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.checkout_abandoned' AND status IN ('PENDING','RETRY','LEASED')").first("count")), 0);
   } finally {
@@ -191,7 +191,7 @@ test("verified paid order is the global stop and starts post-purchase/replenishm
   }
 });
 
-test("post-purchase usage emails are scheduled from the exact order DELIVERED event", async () => {
+test("post-purchase shipping updates are scheduled from purchase and usage emails from exact delivery", async () => {
   const { db, dispose } = await testDatabase();
   const env = testEnv(db);
   const paidPayload = (id: number) => ({
@@ -226,7 +226,7 @@ test("post-purchase usage emails are scheduled from the exact order DELIVERED ev
 
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/901").first("count")), 2);
+    ).bind("gid://shopify/Order/901").first("count")), 4);
 
     const delivered = await processFulfillmentObservation(env, {
       eventKey: "fulfillment-event-delivered-901",
@@ -236,6 +236,7 @@ test("post-purchase usage emails are scheduled from the exact order DELIVERED ev
       happenedAt: "2026-09-25T12:00:00.000Z",
       trackingCompany: "CJPacket YP Special Line",
       trackingNumber: "TRACKING-SECRET-901",
+      trackingUrl: "https://tracking.example.invalid/secret-carrier-token-901",
       source: "POLL",
       payload: { id: 501, status: "delivered" },
     }, new Date("2026-09-25T12:05:00.000Z"));
@@ -255,20 +256,20 @@ test("post-purchase usage emails are scheduled from the exact order DELIVERED ev
 
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/901").first("count")), 7);
+    ).bind("gid://shopify/Order/901").first("count")), 9);
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/902").first("count")), 2);
+    ).bind("gid://shopify/Order/902").first("count")), 4);
     assert.equal(await db.prepare(
       "SELECT delivered_at FROM lifecycle_orders WHERE shopify_order_id = ?",
     ).bind("gid://shopify/Order/901").first("delivered_at"), "2026-09-25T12:00:00.000Z");
     assert.equal(await db.prepare(
       "SELECT due_at FROM scheduled_lifecycle_events WHERE idempotency_key = ?",
-    ).bind("order:gid://shopify/Order/901:post_purchase:email:3").first("due_at"), "2026-09-26T12:00:00.000Z");
+    ).bind("order:gid://shopify/Order/901:post_purchase:email:5").first("due_at"), "2026-09-26T12:00:00.000Z");
     const stored = JSON.stringify(await db.prepare(
       "SELECT * FROM lifecycle_orders WHERE shopify_order_id = ?",
     ).bind("gid://shopify/Order/901").first());
-    assert.doesNotMatch(stored, /TRACKING-SECRET-901/);
+    assert.doesNotMatch(stored, /TRACKING-SECRET-901|secret-carrier-token-901/);
   } finally {
     await dispose();
   }
@@ -318,10 +319,10 @@ test("post-purchase cross-sell is cancelled when every active candidate was alre
     }
     assert.equal(await db.prepare(
       "SELECT status FROM scheduled_lifecycle_events WHERE idempotency_key = ?",
-    ).bind("order:gid://shopify/Order/903:post_purchase:email:7").first("status"), "CANCELLED");
+    ).bind("order:gid://shopify/Order/903:post_purchase:email:9").first("status"), "CANCELLED");
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM resend_events WHERE idempotency_key = ?",
-    ).bind("order:gid://shopify/Order/903:post_purchase:email:7").first("count")), 0);
+    ).bind("order:gid://shopify/Order/903:post_purchase:email:9").first("count")), 0);
   } finally {
     await dispose();
   }

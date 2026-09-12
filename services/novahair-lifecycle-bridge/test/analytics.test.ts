@@ -7,7 +7,7 @@ const context = { waitUntil() {} };
 const from = "2026-09-08T19:01:36.122Z";
 const to = "2026-09-09T19:01:36.122Z";
 
-test("private analytics exposes all 39 emails, performance, and revenue without PII", async () => {
+test("private analytics exposes all 41 emails, performance, and revenue without PII", async () => {
   const { db, dispose } = await testDatabase();
   const env = testEnv(db, { LIFECYCLE_MODE: "production", LIFECYCLE_ACTIVATED_AT: from });
   try {
@@ -90,7 +90,7 @@ test("private analytics exposes all 39 emails, performance, and revenue without 
       flows: Array<{ emails: Array<{ body: string[] }> }>;
     };
     assert.equal(catalog.totalFlows, 6);
-    assert.equal(catalog.totalEmails, 39);
+    assert.equal(catalog.totalEmails, 41);
     assert.ok(catalog.flows.every(flow => flow.emails.every(email => email.body.length > 0)));
 
     const analyticsResponse = await worker.fetch(

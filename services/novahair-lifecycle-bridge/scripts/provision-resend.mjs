@@ -236,7 +236,7 @@ async function registerWithWorker(resources) {
 const manifest = JSON.parse(await readFile(join(root, "dist", "templates", "manifest.json"), "utf8"));
 const eventDefinitions = JSON.parse(await readFile(join(root, "dist", "resend", "events.json"), "utf8"));
 const automationFile = JSON.parse(await readFile(join(root, "dist", "resend", "automations.json"), "utf8"));
-if (manifest.count !== 39 || automationFile.count !== 6) throw new Error("provisioning_manifest_incomplete");
+if (manifest.count !== 41 || automationFile.count !== 6) throw new Error("provisioning_manifest_incomplete");
 
 const audit = await auditAccount();
 if (!apply) {
@@ -255,7 +255,7 @@ resources.push(...await upsertDisabledAutomations(automationFile.automations, da
 const registered = await registerWithWorker(resources);
 await writeFile(
   join(root, "dist", "resend", "provision-result.json"),
-  `${JSON.stringify({ completed_at: new Date().toISOString(), templates: 39, events: eventDefinitions.length, automations: 6, all_automations_disabled: true, worker_registered: registered }, null, 2)}\n`,
+  `${JSON.stringify({ completed_at: new Date().toISOString(), templates: 41, events: eventDefinitions.length, automations: 6, all_automations_disabled: true, worker_registered: registered }, null, 2)}\n`,
   "utf8",
 );
-console.log(`Provisioned ${eventDefinitions.length} events, 39 published templates, and 6 disabled automations. Worker registration: ${registered ? "complete" : "not configured"}.`);
+console.log(`Provisioned ${eventDefinitions.length} events, 41 published templates, and 6 disabled automations. Worker registration: ${registered ? "complete" : "not configured"}.`);

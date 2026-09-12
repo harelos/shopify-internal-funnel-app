@@ -1,5 +1,5 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
-import { hashEmail, hashPayload, hmacSha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
+import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
 import {
   cancelEntitySchedules,
   incrementUsageOnce,
@@ -195,6 +195,7 @@ export interface FulfillmentObservation {
   happenedAt: string;
   trackingCompany?: string | null;
   trackingNumber?: string | null;
+  trackingUrl?: string | null;
   estimatedDeliveryAt?: string | null;
   source: "WEBHOOK" | "POLL";
   payload: unknown;
@@ -225,6 +226,11 @@ export async function processFulfillmentObservation(
 
   const status = fulfillmentStatus(observation.status);
   const happenedAt = text(observation.happenedAt) ?? current;
+  const trackingUrl = text(observation.trackingUrl, 2_000);
+  const safeTrackingUrl = trackingUrl && /^https:\/\//i.test(trackingUrl) ? trackingUrl : null;
+  const encryptedTrackingUrl = safeTrackingUrl
+    ? await encryptSensitive(safeTrackingUrl, lifecycleConfig(env).dataKey)
+    : null;
   const trackingNumberHash = observation.trackingNumber
     ? await hashPayload(observation.trackingNumber)
     : null;
@@ -260,6 +266,7 @@ export async function processFulfillmentObservation(
        END,
        tracking_company = COALESCE(?, tracking_company),
        tracking_number_hash = COALESCE(?, tracking_number_hash),
+       tracking_url_encrypted = COALESCE(?, tracking_url_encrypted),
        tracking_available_at = CASE
          WHEN ? IS NOT NULL THEN COALESCE(tracking_available_at, ?)
          ELSE tracking_available_at
@@ -278,6 +285,7 @@ export async function processFulfillmentObservation(
     status,
     text(observation.trackingCompany),
     trackingNumberHash,
+    encryptedTrackingUrl,
     trackingNumberHash,
     happenedAt,
     inTransitAt,
@@ -443,7 +451,9 @@ export async function processPaidOrder(
   }
 
   if (consentState === "SUBSCRIBED" && isDomesticOrder) {
-    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "purchase")) {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => (
+      email.anchor === "purchase" || email.anchor === "in_transit"
+    ))) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${gid}:post_purchase:email:${spec.number}`,
         eventName: "shopify.post_purchase_started",
@@ -471,6 +481,49 @@ export async function processPaidOrder(
     `UPDATE shopify_event_receipts
      SET status = 'PROCESSED', processed_at = ?, error_code = NULL WHERE event_id = ?`,
   ).bind(current, eventId).run();
+}
+
+/**
+ * Backfills the two in-transit service updates for orders that were created
+ * before this version was deployed. It is deliberately bounded to the
+ * supported 10-22 day delivery window: older unresolved orders are surfaced
+ * operationally rather than receiving a stale status email.
+ */
+export async function reconcilePostPurchaseTransitUpdates(
+  env: LifecycleEnv,
+  now = new Date(),
+): Promise<number> {
+  const config = lifecycleConfig(env);
+  const current = isoNow(now);
+  const cutoff = new Date(now.getTime() - 22 * 24 * 60 * 60_000).toISOString();
+  const rows = await env.DB.prepare(
+    `SELECT shopify_order_id, completed_at
+       FROM lifecycle_orders
+      WHERE consent_state = 'SUBSCRIBED'
+        AND shipping_country_code = 'IL'
+        AND completed_at >= ?
+        AND completed_at >= ?
+        AND delivered_at IS NULL
+        AND ready_for_pickup_at IS NULL`,
+  ).bind(config.activatedAt, cutoff).all<{ shopify_order_id: string; completed_at: string }>();
+
+  let scheduled = 0;
+  for (const order of rows.results ?? []) {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "in_transit")) {
+      await scheduleLifecycleEvent(env.DB, {
+        idempotencyKey: `order:${order.shopify_order_id}:post_purchase:email:${spec.number}`,
+        eventName: "shopify.post_purchase_started",
+        flow: "post_purchase",
+        emailNumber: spec.number,
+        entityType: "order",
+        entityId: order.shopify_order_id,
+        dueAt: dueAt(order.completed_at, spec.offsetMinutes),
+        now: current,
+      });
+      scheduled += 1;
+    }
+  }
+  return scheduled;
 }
 
 export async function processShopifyLifecycleWebhook(

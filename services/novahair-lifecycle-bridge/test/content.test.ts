@@ -13,10 +13,10 @@ function isInternalLine(line: string): boolean {
     || /^Growth Test אופציונלי:/u.test(line);
 }
 
-test("master plan produces exactly 39 Hebrew-first lifecycle templates", () => {
+test("master plan produces exactly 41 Hebrew-first lifecycle templates", () => {
   assert.equal(source.flows.length, 6);
-  assert.equal(manifest.count, 39);
-  assert.deepEqual(source.flows.map((flow: { emails: unknown[] }) => flow.emails.length), [10, 10, 5, 3, 7, 4]);
+  assert.equal(manifest.count, 41);
+  assert.deepEqual(source.flows.map((flow: { emails: unknown[] }) => flow.emails.length), [10, 10, 5, 3, 9, 4]);
 });
 
 test("every template is RTL, mobile-first, unsubscribable, and marker-free", () => {

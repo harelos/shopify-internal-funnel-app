@@ -9,9 +9,9 @@ Production lifecycle email infrastructure for NovaHair, connecting Shopify, Clou
 - Schedule: every 10 minutes, plus signed Shopify webhooks
 - Sending domain: `email.tigerbrandsglobal.com` (verified)
 - Enabled flows: Abandoned Checkout, Welcome, Post-Purchase, Replenishment / Winback
-- Delivery-aware Post-Purchase: emails 1-2 are anchored to purchase; emails 3-7 are scheduled only after the exact Shopify order reaches `DELIVERED`
+- Delivery-aware Post-Purchase: emails 1-2 are anchored to purchase; emails 3-4 are conditional shipment check-ins; emails 5-9 are scheduled only after the exact Shopify order reaches `DELIVERED`
 - Identity-gated flows: Abandoned Cart and Browse Abandonment remain disabled until the storefront can link a consented subscriber to a first-party session reliably
-- Templates: 39 published Resend templates
+- Templates: 41 active lifecycle send steps. Three historic post-purchase templates are retained separately for auditability.
 - Automated verification: 40 tests passing
 
 The complete production proof and resource inventory are in [PRODUCTION-READINESS-REPORT.md](./PRODUCTION-READINESS-REPORT.md).
@@ -32,7 +32,7 @@ The Worker exposes three read-only admin endpoints:
 
 They require `Authorization: Bearer <LIFECYCLE_ADMIN_TOKEN>`. Unauthorized requests intentionally return `404`. The token must be stored only in the application backend; never put it in browser JavaScript, a mobile app, Git, logs, or a public URL.
 
-`/admin/flows` returns the full six-flow / 39-email catalog, including timing, subject, preview, CTA, approved body copy, Resend template ID/link, and automation status/link. `/admin/analytics` returns delivery, open, click, conversion, Shopify revenue, and first-party attribution metrics per flow and per email without customer PII.
+`/admin/flows` returns the full six-flow / 41-email catalog, including timing, subject, preview, CTA, approved body copy, Resend template ID/link, and automation status/link. `/admin/analytics` returns delivery, open, click, conversion, Shopify revenue, and first-party attribution metrics per flow and per email without customer PII.
 
 ## Local verification
 

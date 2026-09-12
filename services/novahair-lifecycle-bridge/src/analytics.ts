@@ -1,6 +1,6 @@
 import flowDocument from "../content/flows.json";
 import { lifecycleConfig } from "./config";
-import { FLOW_SPECS } from "./flow-specs";
+import { FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
 import type { LifecycleEnv, LifecycleFlow } from "./types";
 
 const FLOW_ORDER: LifecycleFlow[] = [
@@ -147,10 +147,6 @@ function metricKey(flow: string, emailNumber: number): string {
   return `${flow}:${emailNumber}`;
 }
 
-function templateAlias(flow: LifecycleFlow, emailNumber: number): string {
-  return `novahair_${flow}_e${String(emailNumber).padStart(2, "0")}`;
-}
-
 function percent(numerator: number, denominator: number): number {
   if (!denominator) return 0;
   return Math.round((numerator / denominator) * 10_000) / 100;
@@ -258,7 +254,7 @@ export async function lifecycleFlowCatalog(env: LifecycleEnv): Promise<Record<st
         ? `https://resend.com/automations/${automation.external_id}`
         : null,
       emails: content.emails.map((email) => {
-        const alias = templateAlias(flow, email.number);
+        const alias = resendTemplateAlias(flow, email.number);
         const template = templateResources.get(alias);
         const schedule = FLOW_SPECS[flow].emails.find(item => item.number === email.number);
         return {

@@ -10,7 +10,7 @@ import {
   markScheduleRetry,
   setHealth,
 } from "./db";
-import { emailSpec, FLOW_SPECS } from "./flow-specs";
+import { emailSpec, FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
 import { noteDispatchFailure, sendLifecycleEvent } from "./resend";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "./url";
 import type {
@@ -50,7 +50,9 @@ interface OrderRow {
   purchased_product_ids_json: string;
   purchased_product_handles_json: string;
   delivered_at: string | null;
+  ready_for_pickup_at: string | null;
   tracking_status: string | null;
+  tracking_url_encrypted: string | null;
 }
 
 const ACTIVE_CROSS_SELLS = [
@@ -321,6 +323,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     `SELECT shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash, first_name,
             consent_state, completed_at, bundle, quantity, shade, product_name, total, currency,
             purchased_product_ids_json, purchased_product_handles_json, delivered_at, tracking_status
+            , ready_for_pickup_at, tracking_url_encrypted
      FROM lifecycle_orders WHERE shopify_order_id = ?`,
   ).bind(row.entity_id).first<OrderRow>();
   if (!order?.email || !canDispatchTo(env, order.email)) return null;
@@ -332,6 +335,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
   if (row.event_name === "shopify.post_purchase_started") {
     const spec = emailSpec("post_purchase", row.email_number);
     if (spec.anchor === "delivered" && !order.delivered_at) return null;
+    if (spec.anchor === "in_transit" && (order.delivered_at || order.ready_for_pickup_at)) return null;
   }
   const payload = basePayload({
     eventKey: row.idempotency_key,
@@ -355,11 +359,17 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     isTest: config.mode === "test",
   });
   if (row.event_name === "shopify.post_purchase_started") {
-    const crossSellHandle = row.email_number === 7 ? eligibleCrossSellHandle(order) : null;
-    if (row.email_number === 7 && !crossSellHandle) return null;
-    const target = row.email_number === 4
+    const crossSellHandle = row.email_number === 9 ? eligibleCrossSellHandle(order) : null;
+    if (row.email_number === 9 && !crossSellHandle) return null;
+    const trackingTarget = order.tracking_url_encrypted
+      ? await decryptSensitive(order.tracking_url_encrypted, config.dataKey).catch(() => null)
+      : null;
+    const safeTrackingTarget = trackingTarget && /^https:\/\//i.test(trackingTarget) ? trackingTarget : null;
+    const target = (row.email_number === 3 || row.email_number === 4) && safeTrackingTarget
+      ? safeTrackingTarget
+      : row.email_number === 6
       ? safeStorefrontUrl(storefrontDomain(config), "/pages/contact")
-      : row.email_number === 7
+      : row.email_number === 9
         ? safeStorefrontUrl(storefrontDomain(config), `/products/${encodeURIComponent(crossSellHandle ?? "")}`)
         : safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales-staging");
     payload.cta_url = await trackingUrl(env, {
@@ -372,7 +382,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     return {
       flow: "post_purchase",
       emailNumber: row.email_number,
-      templateAlias: `novahair_post_purchase_e${String(row.email_number).padStart(2, "0")}`,
+      templateAlias: resendTemplateAlias("post_purchase", row.email_number),
       event: { event: row.event_name, email: order.email, payload },
     };
   }

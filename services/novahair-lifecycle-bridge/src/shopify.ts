@@ -699,6 +699,7 @@ async function observeOrderFulfillments(env: LifecycleEnv, order: ShopifyOrderNo
       happenedAt: fulfillment.deliveredAt ?? fulfillment.inTransitAt ?? order.updatedAt,
       trackingCompany: tracking?.company ?? null,
       trackingNumber: tracking?.number ?? null,
+      trackingUrl: tracking?.url ?? null,
       estimatedDeliveryAt: fulfillment.estimatedDeliveryAt,
       source: "POLL",
       payload: { order_id: order.id, fulfillment },

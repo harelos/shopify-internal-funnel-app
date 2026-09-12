@@ -4,7 +4,7 @@ export interface EmailScheduleSpec {
   number: number;
   offsetMinutes: number;
   content: string;
-  anchor?: "trigger" | "purchase" | "delivered";
+  anchor?: "trigger" | "purchase" | "in_transit" | "delivered";
 }
 
 export interface FlowScheduleSpec {
@@ -74,11 +74,13 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
     emails: [
       { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps", anchor: "purchase" },
       { number: 2, offsetMinutes: 2 * day, content: "e02_first_use_prep", anchor: "purchase" },
-      { number: 3, offsetMinutes: day, content: "e03_first_use_walkthrough", anchor: "delivered" },
-      { number: 4, offsetMinutes: 4 * day, content: "e04_troubleshooting", anchor: "delivered" },
-      { number: 5, offsetMinutes: 10 * day, content: "e05_hair_care", anchor: "delivered" },
-      { number: 6, offsetMinutes: 14 * day, content: "e06_review", anchor: "delivered" },
-      { number: 7, offsetMinutes: 21 * day, content: "e07_soft_cross_sell", anchor: "delivered" },
+      { number: 3, offsetMinutes: 7 * day, content: "e03_shipping_checkin", anchor: "in_transit" },
+      { number: 4, offsetMinutes: 14 * day, content: "e04_shipping_support", anchor: "in_transit" },
+      { number: 5, offsetMinutes: day, content: "e05_first_use_walkthrough", anchor: "delivered" },
+      { number: 6, offsetMinutes: 4 * day, content: "e06_troubleshooting", anchor: "delivered" },
+      { number: 7, offsetMinutes: 10 * day, content: "e07_hair_care", anchor: "delivered" },
+      { number: 8, offsetMinutes: 14 * day, content: "e08_review", anchor: "delivered" },
+      { number: 9, offsetMinutes: 21 * day, content: "e09_soft_cross_sell", anchor: "delivered" },
     ],
   },
   replenishment: {
@@ -97,6 +99,17 @@ export function emailSpec(flow: LifecycleFlow, emailNumber: number): EmailSchedu
   const spec = FLOW_SPECS[flow].emails.find(email => email.number === emailNumber);
   if (!spec) throw new Error(`unknown_lifecycle_email:${flow}:${emailNumber}`);
   return spec;
+}
+
+// Resend retains historic aliases permanently. E05-E07 were duplicated from the
+// previously published, delivery-anchored templates so their earlier reporting
+// remains intact; these explicit production aliases keep the catalog and
+// webhook attribution pointing at the current delivery-aware templates.
+export function resendTemplateAlias(flow: LifecycleFlow, emailNumber: number): string {
+  if (flow === "post_purchase" && emailNumber >= 5 && emailNumber <= 7) {
+    return `novahair-post-purchase-e${String(emailNumber).padStart(2, "0")}-v2`;
+  }
+  return `novahair_${flow}_e${String(emailNumber).padStart(2, "0")}`;
 }
 
 export function dueAt(start: string | Date, offsetMinutes: number): string {

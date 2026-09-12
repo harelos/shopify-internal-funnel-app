@@ -35,10 +35,10 @@ This handoff contains no API keys, bearer tokens, customer email addresses, or r
 | Welcome | 10 | `01a0811e-62d3-7129-b4e0-a7c650cff04e` | enabled |
 | Abandoned Cart | 5 | `01a0811e-6ee5-733f-8a22-6a30f89b22fa` | disabled — identity gate |
 | Browse Abandonment | 3 | `01a0811e-79eb-728e-a789-28ff6180a6e7` | disabled — identity gate |
-| Post-Purchase | 7 | `01a0811e-9e6d-77dd-94d1-1de86fbb4a2d` | enabled |
+| Post-Purchase | 9 | `01a0811e-9e6d-77dd-94d1-1de86fbb4a2d` | enabled |
 | Replenishment / Winback | 4 | `01a0811e-868c-765e-aa6f-27f727a436ca` | enabled |
 
-The private `GET /api/lifecycle/admin/flows` endpoint is the machine-readable inventory. It returns the approved content and direct Resend links for every automation and template, so the admin application does not need to hard-code 39 records.
+The private `GET /api/lifecycle/admin/flows` endpoint is the machine-readable inventory. It returns the approved content and direct Resend links for every automation and template, so the admin application does not need to hard-code 41 records.
 
 ## Architecture and ownership
 
@@ -107,12 +107,12 @@ After deployment verify:
 1. all tests pass;
 2. an unauthenticated admin API request returns `404`;
 3. authenticated `health`, `flows`, and `analytics` requests return `200` from a trusted server;
-4. `flows` reports 6 flows and 39 emails;
+4. `flows` reports 6 flows and 41 emails;
 5. production flow states are four enabled and two identity-gated;
 6. health has no open errors, dead schedules, or uncertain events;
 7. the next Cron records successful Shopify sync and dispatch state.
 
-The 2026-09-08 production verification passed 40/40 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential. A real routed Post-Purchase smoke event completed and its email was delivered.
+The 2026-09-08 production verification passed 40/40 automated tests. The live protected analytics endpoints returned `200`, 6 flows, 39 emails at that time, the correct four/two state split, and no customer PII. The same routes returned `404` without the bearer credential. A real routed Post-Purchase smoke event completed and its email was delivered.
 
 ## Delivery-aware Post-Purchase
 
@@ -120,13 +120,15 @@ Post-Purchase is not timed from an assumed international delivery date:
 
 - E01: purchase + 4 hours
 - E02: purchase + 2 days
-- E03: exact Shopify order `DELIVERED` + 1 day
-- E04: delivered + 4 days
-- E05: delivered + 10 days
-- E06: delivered + 14 days
-- E07: delivered + 21 days
+- E03: purchase + 7 days, only while the order is neither delivered nor ready for pickup
+- E04: purchase + 14 days, only while the order is neither delivered nor ready for pickup
+- E05: exact Shopify order `DELIVERED` + 1 day
+- E06: delivered + 4 days
+- E07: delivered + 10 days
+- E08: delivered + 14 days
+- E09: delivered + 21 days
 
-Every fulfillment observation is correlated by Shopify order ID. Tracking numbers are stored only as hashes. Orders still not marked delivered 23 days after purchase are surfaced by the private health endpoint; no usage/review email is guessed or sent early. E07 selects only an active product absent from the order: Hair Gloss first, then BiotinRoot. Argan is currently Draft and no active Keratin product was found, so neither is offered.
+Every fulfillment observation is correlated by Shopify order ID. Tracking URLs are encrypted at rest; customer-facing status links use an opaque first-party redirect rather than exposing a carrier token to analytics. Orders still not marked delivered 23 days after purchase are surfaced by the private health endpoint; no usage/review email is guessed or sent early. E09 selects only an active product absent from the order: Hair Gloss first, then BiotinRoot. Argan is currently Draft and no active Keratin product was found, so neither is offered.
 
 The marketing and operational source of truth is the Google Doc [NOVAHAIR — מוח המותג: עובדות מאומתות, שאלות ותשובות וקופי Lifecycle](https://docs.google.com/document/d/1S7SVpE0FC0wpKZdNQNYIf6RlqGSVt1kkTDwcXfxboRY/edit?usp=drivesdk).
 
@@ -157,7 +159,7 @@ For a production incident, prefer disabling dispatch or the affected automation 
 - The live Worker Cron has recorded successful Shopify sync/API calls, and the current D1 health counters show zero open errors, dead schedules, or uncertain Resend events.
 - Resend currently reports 10 recent transactional messages. D1 has received 9 `email.sent`, 9 `email.delivered`, 10 `email.opened`, and 4 `email.clicked` webhook events; duplicate event IDs remain idempotent.
 - All six automations and the verified sending domain are still present. Four automations are enabled; Browse and Cart remain identity-gated.
-- The analytics UI and server-side proxy now exist in `app/admin/lifecycle-analytics.html`, `app/admin/js/lifecycle-analytics.js`, and `app/src/routes/lifecycle-admin.ts`. The existing Railway `funnel-app` production service is deployed and verified at `https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html`. Authenticated production checks returned `200` for the page, health proxy, flows endpoint, and analytics endpoint; the response contained all 6 flows and 39 email definitions with no customer PII. The app suite is 8/8, the Worker suite is 40/40, and both TypeScript builds pass.
+- The analytics UI and server-side proxy now exist in `app/admin/lifecycle-analytics.html`, `app/admin/js/lifecycle-analytics.js`, and `app/src/routes/lifecycle-admin.ts`. The existing Railway `funnel-app` production service is deployed and verified at `https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html`. Authenticated production checks returned `200` for the page, health proxy, flows endpoint, and analytics endpoint; the response contained all 6 flows and 39 email definitions at that time with no customer PII. The current catalog has 41 email definitions. The app suite is 8/8, the Worker suite is 40/40, and both TypeScript builds pass.
 - Migration `0016_checkout_token_attribution.sql` is applied remotely and the Worker deployment containing exact Shopify `checkoutToken` attribution is live. New abandoned checkout records hash the checkout token parsed from the recovery URL; paid-order polling hashes Shopify's `Order.checkoutToken` and resolves the matching checkout before the email fallback.
 
 ## Remaining product work

@@ -6,7 +6,7 @@ import { buildTemplateManifest } from "./lib/template-render.mjs";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = JSON.parse(await readFile(join(root, "content", "flows.json"), "utf8"));
 const manifest = buildTemplateManifest(source);
-if (manifest.count !== 39) throw new Error(`expected_39_templates_received_${manifest.count}`);
+if (manifest.count !== 41) throw new Error(`expected_41_templates_received_${manifest.count}`);
 
 const htmlDir = join(root, "dist", "templates", "html");
 const textDir = join(root, "dist", "templates", "text");

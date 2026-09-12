@@ -60,7 +60,7 @@ The production Worker now exposes a PII-free, server-only analytics contract for
 - `GET /api/lifecycle/admin/flows`
 - `GET /api/lifecycle/admin/analytics?from=<ISO>&to=<ISO>`
 
-All three require the `LIFECYCLE_ADMIN_TOKEN` bearer credential. Unauthorized requests intentionally return `404`. The live catalog and analytics endpoints both returned `200` during production verification; the catalog returned all 6 flows and 39 emails with full approved copy, timing, template links and automation links. The analytics endpoint returns flow/email delivery, open, click, failure, suppression, order and revenue metrics while explicitly excluding customer email, name, recovery URL and customer entity IDs.
+All three require the `LIFECYCLE_ADMIN_TOKEN` bearer credential. Unauthorized requests intentionally return `404`. The live catalog and analytics endpoints both returned `200` during production verification; the catalog returned all 6 flows and 39 emails at that time with full approved copy, timing, template links and automation links. The analytics endpoint returns flow/email delivery, open, click, failure, suppression, order and revenue metrics while explicitly excluding customer email, name, recovery URL and customer entity IDs.
 
 Shopify remains final revenue truth. First-party attributed revenue uses a 30-day last-click model with exact checkout correlation preferred, and is never described as incremental revenue. Resend's provider dashboard remains useful for delivery diagnostics, but no unsupported Resend revenue value is invented. See `ANALYTICS-INTEGRATION.md` and `HANDOFF.md`.
 
@@ -74,7 +74,7 @@ Shopify remains final revenue truth. First-party attributed revenue uses a 30-da
 - Webhook provisioning is self-healing and idempotent; the ten-minute Cron periodically ensures all five exact endpoint/topic pairs remain present.
 - The ten-minute overlap poll remains a loss-prevention fallback.
 
-Shopify production data confirmed that the store receives fulfillment states through CJ/17TRACK, including `CONFIRMED`, `IN_TRANSIT`, `READY_FOR_PICKUP`, `OUT_FOR_DELIVERY`, and `DELIVERED`. Post-Purchase now uses the exact order's `DELIVERED` event instead of estimating international delivery from the order date. E01/E02 remain purchase-anchored; E03-E07 are scheduled at +1/+4/+10/+14/+21 days after delivery. Tracking numbers are never stored in plaintext.
+Shopify production data confirmed that the store receives fulfillment states through CJ/17TRACK, including `CONFIRMED`, `IN_TRANSIT`, `READY_FOR_PICKUP`, `OUT_FOR_DELIVERY`, and `DELIVERED`. The updated Post-Purchase sequence uses the exact order's `DELIVERED` event instead of estimating international delivery from the order date: E01/E02 remain purchase-anchored, E03/E04 are conditional day-7/day-14 shipment check-ins, and E05-E09 are scheduled at +1/+4/+10/+14/+21 days after delivery. Tracking URLs are never stored in plaintext.
 
 ## Resend resources
 
@@ -94,7 +94,7 @@ The isolated verified-sender smoke email (`e105f03f-9f17-433f-a829-2321d83bdf97`
 
 ### Automations
 
-All 39 send steps now use `NovaHair by TigerBrandsGlobal <hello@email.tigerbrandsglobal.com>` with `support@tigerbrandsglobal.com` as Reply-To. Four automations are enabled; the two identity-gated storefront flows remain disabled.
+All 41 send steps use `NovaHair by TigerBrandsGlobal <hello@email.tigerbrandsglobal.com>` with `support@tigerbrandsglobal.com` as Reply-To. Four automations are enabled; the two identity-gated storefront flows remain disabled.
 
 The delivery-aware Post-Purchase workflow was smoke-tested after the production update. Resend run `01a08304-48c5-767c-8bfc-cc51ad95d969` completed, routed only E01, skipped E02-E07, and delivered email `47c7866b-80aa-4b86-a45f-f2c6ad1f4939` to the merchant-controlled test address.
 

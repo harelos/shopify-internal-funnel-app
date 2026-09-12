@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { FLOW_SPECS } from "../src/flow-specs";
+import { FLOW_SPECS, resendTemplateAlias } from "../src/flow-specs";
 import { buildAutomationBlueprints, EVENT_DEFINITIONS, toResendWorkflow } from "../scripts/lib/automation-blueprints.mjs";
 
 const automations = buildAutomationBlueprints(Object.values(FLOW_SPECS));
@@ -14,11 +14,19 @@ function durationMinutes(value: string): number {
   return amount;
 }
 
-test("six automations contain all 39 sends and start disabled", () => {
+test("six automations contain all 41 sends and start disabled", () => {
   assert.equal(automations.length, 6);
   assert.ok(automations.every((automation: { status: string }) => automation.status === "disabled"));
   const sends = automations.flatMap((automation: { steps: Array<{ type: string }> }) => automation.steps.filter(step => step.type === "send_email"));
-  assert.equal(sends.length, 39);
+  assert.equal(sends.length, 41);
+});
+
+test("delivery-aware post-purchase aliases retain the historical template audit trail", () => {
+  assert.equal(resendTemplateAlias("post_purchase", 4), "novahair_post_purchase_e04");
+  assert.equal(resendTemplateAlias("post_purchase", 5), "novahair-post-purchase-e05-v2");
+  assert.equal(resendTemplateAlias("post_purchase", 6), "novahair-post-purchase-e06-v2");
+  assert.equal(resendTemplateAlias("post_purchase", 7), "novahair-post-purchase-e07-v2");
+  assert.equal(resendTemplateAlias("post_purchase", 8), "novahair_post_purchase_e08");
 });
 
 test("every native delay/wait remains within Resend's 30-day ceiling", () => {
@@ -47,7 +55,7 @@ test("post-purchase automation routes D1-released emails and contains no guessed
   assert.ok(flow);
   assert.equal(flow.steps.filter((step: { type: string }) => step.type === "delay").length, 0);
   const conditions = flow.steps.filter((step: { type: string }) => step.type === "condition");
-  assert.equal(conditions.length, 7);
+  assert.equal(conditions.length, 9);
   assert.ok(conditions.every((step: { config: { field: string } }) => step.config.field === "event.email_number"));
 });
 

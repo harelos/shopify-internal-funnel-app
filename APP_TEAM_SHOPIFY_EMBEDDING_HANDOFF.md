@@ -24,7 +24,7 @@ The existing app was created as an Admin-created custom app. Shopify does not al
 | Sending domain | `email.tigerbrandsglobal.com` | Already verified. Do not edit DNS. |
 | Tracking domain | `links.email.tigerbrandsglobal.com` | Already verified. Do not edit DNS. |
 | Existing dashboard | `https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html` | Replace this access path with an embedded App Home experience. |
-| Lifecycle flows | 6 flows / 39 emails | Use the catalog API; never hard-code the catalog in the frontend. |
+| Lifecycle flows | 6 flows / 41 emails | Use the catalog API; never hard-code the catalog in the frontend. |
 
 Four flows are currently live: Abandoned Checkout, Welcome, Post-Purchase, and Replenishment/Winback. Browse and Abandoned Cart deliberately remain disabled until a reliable consented storefront identity design exists. Do not turn them on as part of this embedding work.
 
@@ -36,7 +36,7 @@ The page must show:
 
 1. Overview: delivery, open, click, Shopify revenue truth, first-party email-attributed revenue, flow state, health, and quota.
 2. Flows: six lifecycle flows, their enabled/identity-gated state, triggers, exits, email steps, and Resend automation links.
-3. Email library: all 39 emails, copy/metadata, Resend template links, and a per-email **Recipients and activity** drill-down.
+3. Email library: all 41 emails, copy/metadata, Resend template links, and a per-email **Recipients and activity** drill-down.
 4. Recipient drill-down: exact email address, sent, delivered, opened, clicked, and next scheduled email for that selected flow step. This is restricted PII and must be visible only to explicitly authorized lifecycle administrators.
 5. Operations: private health, recent error summaries, webhook state, sync state, and free-plan usage alarms.
 
@@ -177,7 +177,7 @@ Keep Shopify's Admin frame; do not open the dashboard in a popup or force `top.l
 
 ## Lifecycle API contract
 
-The Worker catalog endpoint is the authority for flow labels, approved Hebrew copy, timing, automation/template IDs, and direct Resend URLs. The UI must not duplicate the 39-email catalog.
+The Worker catalog endpoint is the authority for flow labels, approved Hebrew copy, timing, automation/template IDs, and direct Resend URLs. The UI must not duplicate the 41-email catalog.
 
 `GET /api/lifecycle/admin/analytics` accepts optional ISO timestamps:
 
@@ -201,7 +201,7 @@ An open must never be used as an attribution signal. Mail privacy systems can pr
 4. No email/name/phone/recovery secret appears in UTM values. Commercial links use the existing flow/email UTM standard.
 5. Unsubscribed, complained, hard-bounced, or suppressed contacts do not receive later marketing sends.
 6. Browse and Cart must remain identity-gated. Do not manufacture identity or add intrusive checkout JavaScript.
-7. Post-Purchase E03 through E07 are anchored to confirmed delivery state, not an estimated shipping date. The production schedule is delivery-aware.
+7. Post-Purchase E03/E04 are conditional shipment check-ins; E05 through E09 are anchored to confirmed delivery state, not an estimated shipping date. The production schedule is delivery-aware.
 8. Do not directly mutate Resend automations, templates, D1 data, or Worker resource state from this UI.
 
 ## Verification and acceptance checklist
@@ -213,7 +213,7 @@ The team should complete all items in a staging/safe deployment before making th
 - [ ] A fresh Shopify ID token is attached to every same-origin `/api/*` request.
 - [ ] Missing, expired, forged, wrong-audience, and wrong-shop tokens get `401`; they cannot read lifecycle data.
 - [ ] Server-side Worker proxy works with `LIFECYCLE_ADMIN_TOKEN`; the browser network panel never contains that token.
-- [ ] `flows`, `analytics`, and `health` load inside Shopify and show 6 flows / 39 emails.
+- [ ] `flows`, `analytics`, and `health` load inside Shopify and show 6 flows / 41 emails.
 - [ ] Only explicitly allowlisted lifecycle admins can open recipient activity; a non-allowlisted staff member gets `403` and sees no customer email addresses.
 - [ ] A selected email opens its recipient activity modal with sent/delivered/opened/clicked timestamps and pagination.
 - [ ] External direct Worker admin routes still return `404` without the Worker bearer credential.
@@ -240,4 +240,3 @@ Rollback of the UI embedding is safe: set the app route back to the existing pro
 - [Full lifecycle engineering handoff](./services/novahair-lifecycle-bridge/HANDOFF.md)
 - [Analytics endpoint contract](./services/novahair-lifecycle-bridge/ANALYTICS-INTEGRATION.md)
 - [Production readiness report](./services/novahair-lifecycle-bridge/PRODUCTION-READINESS-REPORT.md)
-

@@ -7,7 +7,7 @@ Resend already provides provider-level views inside each Automation and email, b
 - Resend delivery, open, click, failure, complaint, and suppression webhooks;
 - D1 schedule, trigger, first-party click, lifecycle state, and resource records;
 - Shopify completed orders, currency, and revenue truth;
-- the approved six-flow / 39-email content catalog.
+- the approved six-flow / 41-email content catalog.
 
 The application developer should build the visual dashboard on this API. No direct D1, Shopify, or Resend credentials belong in the browser.
 
@@ -35,7 +35,7 @@ Unauthorized requests intentionally return `404`, not `401`, to avoid advertisin
 GET /api/lifecycle/admin/flows
 ```
 
-Purpose: render the Flows page and the “what is inside this email?” detail drawer. The response contains all six flows and 39 emails.
+Purpose: render the Flows page and the “what is inside this email?” detail drawer. The response contains all six flows and 41 emails.
 
 Important fields:
 
@@ -54,7 +54,7 @@ Condensed response shape:
   "ok": true,
   "generatedAt": "2026-09-08T19:59:30.000Z",
   "totalFlows": 6,
-  "totalEmails": 39,
+  "totalEmails": 41,
   "flows": [
     {
       "flow": "abandoned_checkout",
@@ -223,7 +223,7 @@ One row per email:
 
 - number and title
 - timing
-- schedule anchor; Post-Purchase E03-E07 should be labeled relative to confirmed delivery, not order date
+- schedule anchor; Post-Purchase E03-E04 are shipment check-ins, while E05-E09 are labeled relative to confirmed delivery, not order date
 - subject
 - template status
 - sent, delivery rate, open rate, provider and first-party click rates
@@ -259,7 +259,7 @@ True incrementality requires a durable holdout/control cohort. The current API c
 3. Date ranges are sent as ISO-8601 UTC and capped at 366 days.
 4. The UI handles multiple currencies without summing unlike currencies.
 5. Zero-volume periods render as zero, not an error.
-6. Every flow and all 39 emails appear from the catalog API.
+6. Every flow and all 41 emails appear from the catalog API.
 7. Email detail shows approved copy and a working Resend template link.
 8. Revenue labels preserve the attribution distinction above.
 9. Disabled Browse/Cart are not presented as broken.
@@ -267,4 +267,4 @@ True incrementality requires a durable holdout/control cohort. The current API c
 
 ## Live verification
 
-On 2026-09-08 both protected endpoints returned `200` from the live Worker using a server-side credential. The catalog returned 6 flows and 39 emails with the correct four-enabled/two-disabled state. The analytics response used the production activation cutoff, returned Shopify/first-party totals, and declared all PII/recovery fields absent. The same endpoints returned `404` without authorization.
+On 2026-09-08 both protected endpoints returned `200` from the live Worker using a server-side credential. The catalog returned 6 flows and 39 emails at that time with the correct four-enabled/two-disabled state. The analytics response used the production activation cutoff, returned Shopify/first-party totals, and declared all PII/recovery fields absent. The same endpoints returned `404` without authorization.
