@@ -35,6 +35,14 @@ test("private analytics exposes all 39 emails, performance, and revenue without 
            'e01_checkout_reminder', ?, ?
          )`,
       ).bind(from, from, from, "2026-09-08T20:00:00.000Z", from, "2026-09-08T20:00:00.000Z"),
+      db.prepare(
+        `INSERT INTO abandoned_checkouts (
+           shopify_checkout_id, shop_domain, email, email_hash, checkout_url,
+           created_at, updated_at, first_seen_at, last_seen_at, consent_state,
+           state, payload_hash
+         ) VALUES ('checkout-1', 'jacobfelipe.myshopify.com', ?, 'recipient-hash',
+                   'encrypted-recovery-url', ?, ?, ?, ?, 'SUBSCRIBED', 'ABANDONED', 'checkout-hash')`,
+      ).bind(TEST_EMAIL, from, from, from, from),
       ...["sent", "delivered", "opened", "clicked"].map((event) => db.prepare(
         `INSERT INTO email_delivery_events (
            webhook_event_id, event_type, resend_email_id, template_id, automation_id,
@@ -113,6 +121,28 @@ test("private analytics exposes all 39 emails, performance, and revenue without 
     const serialized = JSON.stringify({ catalog, analytics });
     assert.doesNotMatch(serialized, new RegExp(TEST_EMAIL.replace(".", "\\."), "i"));
     assert.doesNotMatch(serialized, /recipient-hash|checkout-1|order-1/i);
+
+    const audienceResponse = await worker.fetch(
+      new Request("https://worker.test/api/lifecycle/admin/audience", { headers }),
+      env,
+      context,
+    );
+    assert.equal(audienceResponse.status, 200);
+    const audience = await audienceResponse.json() as {
+      contactTracking: { resendContactTags: string; unsubscribeAndSuppressionSync: string };
+      messages: Array<{ recipient: string; flow: string; emailNumber: number; openedAt: string | null; providerClickedAt: string | null }>;
+      privacy: { recoveryUrlReturned: boolean; checkoutTokenReturned: boolean };
+    };
+    assert.equal(audience.contactTracking.resendContactTags, "not_configured");
+    assert.equal(audience.contactTracking.unsubscribeAndSuppressionSync, "enabled");
+    assert.equal(audience.privacy.recoveryUrlReturned, false);
+    assert.equal(audience.privacy.checkoutTokenReturned, false);
+    assert.equal(audience.messages.length, 1);
+    assert.equal(audience.messages[0]?.recipient, TEST_EMAIL);
+    assert.equal(audience.messages[0]?.flow, "abandoned_checkout");
+    assert.equal(audience.messages[0]?.emailNumber, 1);
+    assert.ok(audience.messages[0]?.openedAt);
+    assert.ok(audience.messages[0]?.providerClickedAt);
   } finally {
     await dispose();
   }

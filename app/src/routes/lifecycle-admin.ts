@@ -92,6 +92,12 @@ router.get("/lifecycle/admin/analytics", (req, res) => {
   return proxyLifecycleAdminRoute("/api/lifecycle/admin/analytics", normalizeQuery(req.query as Record<string, unknown>), res);
 });
 
+// GET /api/lifecycle/admin/audience
+// Recipient-level data stays behind this server-side proxy and its admin access controls.
+router.get("/lifecycle/admin/audience", (req, res) => {
+  return proxyLifecycleAdminRoute("/api/lifecycle/admin/audience", normalizeQuery(req.query as Record<string, unknown>), res);
+});
+
 // GET /api/lifecycle/admin/health
 router.get("/lifecycle/admin/health", (req, res) => {
   return proxyLifecycleAdminRoute("/api/lifecycle/health", normalizeQuery(req.query as Record<string, unknown>), res);

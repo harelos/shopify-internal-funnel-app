@@ -1,165 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <title>NovaHair Lifecycle Email Analytics</title>
+  <title>NovaHair — Lifecycle Center</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .lifecycle-hero { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:18px; }
+    .lifecycle-hero h1 { margin:0 0 5px; font-size:30px; letter-spacing:-.6px; }
+    .lifecycle-hero p { max-width:720px; margin:0; }
+    .lifecycle-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+    .lifecycle-tabs .btn.active { background:var(--ink); color:#fff; }
+    .notice { padding:12px 14px; border-radius:var(--radius); border:1px solid var(--line); background:#f8f5ef; color:var(--muted); }
+    .notice strong { color:var(--ink); }
+    .notice-good { border-color:#9ed7bd; background:#edf9f2; color:#246142; }
+    .notice-warn { border-color:#ebcf7d; background:#fff8df; color:#6e5311; }
+    .overview-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:18px; }
+    .overview-grid .metric-card { text-align:right; padding:15px; }
+    .overview-grid .metric-val { font-size:25px; }
+    .flow-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+    .flow-card { width:100%; text-align:right; cursor:pointer; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; color:var(--ink); font:inherit; }
+    .flow-card:hover, .flow-card.selected { border-color:var(--accent); box-shadow:0 2px 12px rgba(216,83,54,.1); }
+    .flow-card-top, .flow-card-stats, .flow-detail-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .flow-card h3 { margin:7px 0 5px; font-size:17px; }
+    .flow-card-stats { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .status-live { background:#d1fae5; color:#17653e; border:1px solid #77c89c; }
+    .status-paused { background:#fff1c7; color:#725310; border:1px solid #dfbd57; }
+    .flow-detail { padding:18px; }
+    .flow-detail-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
+    .flow-detail-meta div { background:#f7f3eb; border-radius:6px; padding:11px; }
+    .flow-detail-meta b { display:block; margin-bottom:3px; }
+    .step-list { list-style:none; display:grid; gap:8px; }
+    .step-list li { display:grid; grid-template-columns:44px 1fr auto; align-items:center; gap:10px; padding:11px; border:1px solid var(--line); border-radius:6px; }
+    .step-number { width:30px; height:30px; border-radius:50%; background:var(--ink); color:#fff; display:grid; place-items:center; font:bold 12px var(--mono); }
+    .step-subject { color:var(--muted); font-size:12px; margin-top:2px; }
+    .section-intro { margin:0 0 14px; color:var(--muted); }
+    .table-wrap { overflow-x:auto; }
+    .person-cell { direction:ltr; text-align:right; unicode-bidi:plaintext; }
+    .signal { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); font:11px var(--mono); margin-inline-start:4px; white-space:nowrap; }
+    .signal.ok { border-color:#88c7a6; color:#17653e; background:#effaf3; }
+    .signal.neutral { color:var(--muted); background:#faf8f4; }
+    .small-copy { max-width:780px; font-size:13px; line-height:1.65; }
+    [hidden] { display:none !important; }
+    @media (max-width:900px) { .overview-grid { grid-template-columns:repeat(2,1fr); } .flow-grid { grid-template-columns:1fr; } .flow-detail-meta { grid-template-columns:1fr; } .lifecycle-hero { align-items:flex-start; flex-direction:column; } }
+    @media (max-width:520px) { .overview-grid { grid-template-columns:1fr; } .step-list li { grid-template-columns:34px 1fr; } .step-list li a { grid-column:2; } }
+  </style>
 </head>
 <body>
   <header class="top-bar">
     <div class="top-bar-inner">
-      <div class="brand">
-        <a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a>
-        <span class="brand-name">NovaHair Lifecycle Email Analytics</span>
-      </div>
-      <div class="top-actions">
-        <a href="analytics.html" class="btn">Funnel Analytics</a>
-      </div>
+      <div class="brand"><a href="index.html" class="btn btn-ghost btn-sm">← לדשבורד</a><span class="brand-name">NovaHair by TigerBrandsGlobal · Lifecycle Center</span></div>
+      <div class="top-actions"><a href="analytics.html" class="btn">Funnel Analytics</a></div>
     </div>
   </header>
-
   <main class="main">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-      <div>
-        <h1>Lifecycle Email Performance</h1>
-        <p class="muted">Sent / Delivered / Opened / Clicked and lifecycle attribution by flow and email.</p>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn btn-primary" id="btn-refresh">Refresh now</button>
-        <span id="lifecycle-status" class="eyebrow">Loading</span>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-bottom:18px;">
-      <div class="panel-header">
-        <h2>Date Range</h2>
-        <span class="eyebrow" id="range-badge">Default: last 30 days</span>
-      </div>
-      <div class="panel-body" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <label class="eyebrow">From</label>
-        <input class="input" style="width:150px; margin:0;" type="date" id="date-from">
-        <label class="eyebrow">To</label>
-        <input class="input" style="width:150px; margin:0;" type="date" id="date-to">
-        <button class="btn btn-sm btn-primary" id="btn-apply-dates">Apply</button>
-        <div id="range-buttons" style="display:flex; gap:6px; margin-left:4px;">
-          <button class="btn btn-sm btn-primary active" data-days="7">7d</button>
-          <button class="btn btn-sm" data-days="30">30d</button>
-          <button class="btn btn-sm" data-days="90">90d</button>
-          <button class="btn btn-sm" data-days="all">All</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="health-banner" class="panel" style="margin-bottom:18px; display:none;">
-      <div class="panel-header">
-        <h2>Worker Health</h2>
-        <span class="eyebrow" id="health-status">Reading...</span>
-      </div>
-      <div class="panel-body" id="health-body">
-        <p class="muted">Worker health is loaded from the private API.</p>
-      </div>
-    </div>
-
-    <div class="grid-4" style="grid-template-columns: repeat(6, 1fr); margin-bottom:18px;">
-      <div class="metric-card"><div class="metric-val" id="metric-sent">0</div><div class="metric-label">Sent</div></div>
-      <div class="metric-card"><div class="metric-val" id="metric-delivered">0</div><div class="metric-label">Delivered</div></div>
-      <div class="metric-card"><div class="metric-val" id="metric-opened">0</div><div class="metric-label">Opened</div></div>
-      <div class="metric-card"><div class="metric-val" id="metric-provider-clicked">0</div><div class="metric-label">Resend Clicked</div></div>
-      <div class="metric-card"><div class="metric-val" id="metric-first-party-clicked">0</div><div class="metric-label">First-party Clicked</div></div>
-      <div class="metric-card"><div class="metric-val" id="metric-failed">0</div><div class="metric-label">Failed + Suppressed</div></div>
-    </div>
-
-    <div class="grid-4" style="grid-template-columns: repeat(4, 1fr); margin-bottom:18px;">
-      <div class="metric-card">
-        <div class="metric-val" id="metric-delivery-rate">0%</div><div class="metric-label">Delivery Rate</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val" id="metric-open-rate">0%</div><div class="metric-label">Open Rate</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val" id="metric-click-rate">0%</div><div class="metric-label">Resend Click Rate</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val" id="metric-first-party-click-rate">0%</div><div class="metric-label">First-party Click Rate</div>
-      </div>
-    </div>
-
-    <div class="grid-2" style="margin-bottom:18px;">
-      <div class="metric-card">
-        <div class="metric-label" style="margin-bottom:6px;">Shopify Orders</div>
-        <div id="metric-shopify-orders" class="metric-val">0</div>
-        <div id="metric-shopify-revenue" class="muted" style="font-size:12px; margin-top:6px;">₪0</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label" style="margin-bottom:6px;">1st-party attributed orders</div>
-        <div id="metric-attributed-orders" class="metric-val">0</div>
-        <div id="metric-attributed-revenue" class="muted" style="font-size:12px; margin-top:6px;">₪0</div>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-bottom:18px;">
-      <div class="panel-header">
-        <h2>Flows</h2>
-        <span class="eyebrow" id="flows-updated"></span>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="table" id="flow-table">
-          <thead>
-            <tr>
-              <th>Flow</th>
-              <th>Status</th>
-              <th>Sent</th>
-              <th>Delivered</th>
-              <th>Open</th>
-              <th>Resend Click</th>
-              <th>1st-Party Click</th>
-              <th>Attributed Orders</th>
-              <th>Attributed Revenue</th>
-              <th>Automation</th>
-            </tr>
-          </thead>
-          <tbody id="flow-body">
-            <tr><td colspan="10" class="muted">Loading flows…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-header">
-        <h2>Emails</h2>
-        <span class="eyebrow">39 emails total</span>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="table" id="email-table">
-          <thead>
-            <tr>
-              <th>Flow</th>
-              <th>Step</th>
-              <th>Subject</th>
-              <th>Timing</th>
-              <th>Sent</th>
-              <th>Delivered</th>
-              <th>Open</th>
-              <th>Resend Click</th>
-              <th>1st-Party Click</th>
-              <th>Attributed Orders</th>
-              <th>Attributed Revenue</th>
-              <th>Template</th>
-            </tr>
-          </thead>
-          <tbody id="email-body">
-            <tr><td colspan="12" class="muted">Loading emails…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <section class="lifecycle-hero">
+      <div><h1>מרכז האימיילים של NovaHair</h1><p class="muted">כאן רואים מה נשלח, למי, באיזה Flow היא נמצאת ומה צפוי לקרות בהמשך. נתוני נמענים זמינים רק בתוך אזור הניהול הפרטי הזה.</p></div>
+      <div><button class="btn btn-primary" id="btn-refresh">רענון נתונים</button> <span id="lifecycle-status" class="eyebrow">טוען…</span></div>
+    </section>
+    <nav class="lifecycle-tabs" aria-label="Lifecycle views">
+      <button class="btn active" data-view="overview">סקירה</button><button class="btn" data-view="people">אנשים ומיילים שנשלחו</button><button class="btn" data-view="library">ספריית המיילים</button><button class="btn" data-view="health">בריאות ומעקב</button>
+    </nav>
+    <section class="panel" style="margin-bottom:18px;"><div class="panel-body" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><strong>טווח נתונים</strong><div id="range-buttons" style="display:flex; gap:6px;"><button class="btn btn-sm btn-primary active" data-days="7">7 ימים</button><button class="btn btn-sm" data-days="30">30 ימים</button><button class="btn btn-sm" data-days="90">90 ימים</button><button class="btn btn-sm" data-days="all">הכול</button></div><span id="range-badge" class="eyebrow"></span></div></section>
+    <section data-panel="overview">
+      <div id="health-summary" class="notice notice-good" style="margin-bottom:18px;">בודק את מצב המערכת…</div>
+      <div class="overview-grid"><div class="metric-card"><div class="metric-val" id="metric-sent">—</div><div class="metric-label">נשלחו</div></div><div class="metric-card"><div class="metric-val" id="metric-delivered">—</div><div class="metric-label">נמסרו</div></div><div class="metric-card"><div class="metric-val" id="metric-opened">—</div><div class="metric-label">נפתחו (אינדיקציה)</div></div><div class="metric-card"><div class="metric-val" id="metric-clicked">—</div><div class="metric-label">קליקים מאומתים</div></div><div class="metric-card"><div class="metric-val" id="metric-revenue">—</div><div class="metric-label">הכנסה משויכת</div></div></div>
+      <div class="panel"><div class="panel-header"><h2>ה־Flows — מה קורה בכל אחד</h2><span class="eyebrow" id="flows-updated"></span></div><div class="panel-body"><p class="section-intro">לחצי על Flow כדי לראות בדיוק את הטריגר, מה עוצר אותו, ואת המיילים שבו.</p><div id="flow-cards" class="flow-grid"></div></div></div>
+      <div class="panel"><div class="panel-header"><h2 id="selected-flow-title">פרטי Flow</h2><a id="selected-flow-automation" target="_blank" rel="noopener noreferrer" hidden>פתיחה ב‑Resend</a></div><div id="selected-flow-detail" class="flow-detail"><p class="muted">בחרי Flow כדי לראות את השלבים שלו.</p></div></div>
+    </section>
+    <section data-panel="people" hidden><div class="panel"><div class="panel-header"><h2>מי קיבלה איזה מייל</h2><span class="eyebrow">גישה פנימית בלבד · ללא קישורי checkout</span></div><div class="panel-body"><p class="section-intro">כל שורה היא מייל שנשלח בפועל. “פתח” הוא אינדיקציה בלבד; Apple Mail וחסימות תמונות יכולים להפוך אותו לפחות מדויק. קליק נמדד בנפרד.</p><input id="people-search" class="input" style="max-width:380px" placeholder="חיפוש לפי אימייל, Flow או נושא…"><div class="table-wrap"><table class="table"><thead><tr><th>נמענת</th><th>Flow / מייל</th><th>מועד שליחה</th><th>סימנים</th><th>מה קורה אחר כך</th></tr></thead><tbody id="people-table"><tr><td colspan="5" class="muted">טוען…</td></tr></tbody></table></div></div></div></section>
+    <section data-panel="library" hidden><div class="panel"><div class="panel-header"><h2 id="library-title">ספריית המיילים</h2><span class="eyebrow">מוצג Flow אחד בכל פעם</span></div><div id="library-body" class="panel-body"><p class="muted">בחרי Flow בסקירה כדי לראות את המיילים שלו.</p></div></div></section>
+    <section data-panel="health" hidden><div class="panel"><div class="panel-header"><h2>בריאות, זיהוי ומעקב</h2><span id="health-status" class="eyebrow">בודק…</span></div><div id="health-body" class="panel-body"></div></div><div class="panel"><div class="panel-header"><h2>איך מתויגים ומודדים אנשים?</h2></div><div id="tracking-body" class="panel-body small-copy"></div></div></section>
   </main>
-
-  <script src="js/api.js"></script>
-  <script src="js/lifecycle-analytics.js"></script>
+  <script src="js/api.js"></script><script src="js/lifecycle-analytics.js"></script>
 </body>
 </html>

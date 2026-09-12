@@ -1,295 +1,96 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const statusEl = document.getElementById("lifecycle-status");
-  const rangeBadge = document.getElementById("range-badge");
-  const dateFrom = document.getElementById("date-from");
-  const dateTo = document.getElementById("date-to");
-  const btnApplyDates = document.getElementById("btn-apply-dates");
-  const rangeButtons = document.querySelectorAll("#range-buttons button");
-  const btnRefresh = document.getElementById("btn-refresh");
-
-  const metricSent = document.getElementById("metric-sent");
-  const metricDelivered = document.getElementById("metric-delivered");
-  const metricOpened = document.getElementById("metric-opened");
-  const metricProviderClicked = document.getElementById("metric-provider-clicked");
-  const metricFirstPartyClicked = document.getElementById("metric-first-party-clicked");
-  const metricFailed = document.getElementById("metric-failed");
-  const metricDeliveryRate = document.getElementById("metric-delivery-rate");
-  const metricOpenRate = document.getElementById("metric-open-rate");
-  const metricClickRate = document.getElementById("metric-click-rate");
-  const metricFirstPartyClickRate = document.getElementById("metric-first-party-click-rate");
-  const metricShopifyOrders = document.getElementById("metric-shopify-orders");
-  const metricShopifyRevenue = document.getElementById("metric-shopify-revenue");
-  const metricAttributedOrders = document.getElementById("metric-attributed-orders");
-  const metricAttributedRevenue = document.getElementById("metric-attributed-revenue");
-
-  const flowsUpdated = document.getElementById("flows-updated");
-  const flowTableBody = document.getElementById("flow-body");
-  const emailTableBody = document.getElementById("email-body");
-  const healthBanner = document.getElementById("health-banner");
-  const healthStatus = document.getElementById("health-status");
-  const healthBody = document.getElementById("health-body");
-
-  const state = {
-    currentDays: "30",
-    from: "",
-    to: "",
-    loadedAt: null,
+  const state = { currentDays: "7", selectedFlow: "abandoned_checkout", analytics: null, audience: null, health: null };
+  const $ = (selector) => document.querySelector(selector);
+  const safe = (value) => String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
+  const formatDate = (value) => value ? new Intl.DateTimeFormat("he-IL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
+  const formatMoney = (values = {}) => {
+    const entries = Object.entries(values || {});
+    return entries.length ? entries.map(([currency, amount]) => `${currency} ${Number(amount || 0).toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`).join(" · ") : "₪0.00";
+  };
+  const count = (flows, field) => flows.reduce((total, flow) => total + Number(flow.metrics?.[field] || 0), 0);
+  const getFlow = () => (state.analytics?.flows || []).find((flow) => flow.flow === state.selectedFlow) || null;
+  const activityFor = (flow) => (state.audience?.flowActivity || []).find((item) => item.flow === flow) || {};
+  const flowStatus = (flow) => {
+    if (String(flow.status).toLowerCase() === "enabled") return { label: "פעיל", className: "status-live", explanation: "שולח כאשר הטריגר והתנאים מתקיימים." };
+    if (["abandoned_cart", "browse_abandonment"].includes(flow.flow)) return { label: "ממתין לזיהוי", className: "status-paused", explanation: "כבוי עד שיש זיהוי אמין והסכמה לשיווק; לא נשלח לאורחת אנונימית." };
+    return { label: "מושהה", className: "status-paused", explanation: "לא ישלח עד שיופעל ב‑Resend." };
   };
 
-  function setStatus(message, isError = false) {
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    statusEl.style.color = isError ? "var(--accent)" : "var(--green)";
+  function showView(view) {
+    document.querySelectorAll("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== view; });
+    document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   }
 
-  function setRangeLabel(custom = null) {
-    if (!rangeBadge) return;
-    if (custom) {
-      rangeBadge.textContent = custom;
-      return;
-    }
-    if (state.currentDays === "all") {
-      rangeBadge.textContent = "Range: all available";
-      return;
-    }
-    rangeBadge.textContent = `Range: last ${state.currentDays} days`;
-  }
-
-  function buildQueryParams() {
-    if (state.from || state.to) {
-      const q = new URLSearchParams();
-      if (state.from) q.set("from", state.from);
-      if (state.to) q.set("to", state.to);
-      return q.toString();
-    }
-    if (state.currentDays !== "all" && state.currentDays !== "custom") {
-      return `from=${encodeURIComponent(defaultFromIso(parseInt(state.currentDays, 10)))}&to=${encodeURIComponent(new Date().toISOString())}`;
-    }
-    return "";
-  }
-
-  function defaultFromIso(daysBack) {
-    const from = new Date();
-    from.setDate(from.getDate() - daysBack);
-    return from.toISOString();
-  }
-
-  function safeText(value) {
-    return String(value ?? "").replace(/[&<>'"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[c]));
-  }
-
-  function formatRate(value) {
-    return `${Number(value || 0).toFixed(2)}%`;
-  }
-
-  function formatMoneyByCurrency(values = {}) {
-    const keys = Object.keys(values || {});
-    if (keys.length === 0) return "₪0";
-    return keys
-      .map((currency) => {
-        const amount = Number(values[currency] || 0);
-        return `${currency || "ILS"} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      })
-      .join(" | ");
-  }
-
-  function formatMoney(values = {}, fallbackCurrency = "ILS") {
-    const keys = Object.keys(values || {});
-    if (keys.length === 0) return `${fallbackCurrency}0.00`;
-    const first = values[Object.keys(values)[0]];
-    const currency = Object.keys(values)[0] ?? fallbackCurrency;
-    return `${currency} ${Number(first || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-
-  function setTotalsCard(metrics, totals) {
-    if (!metrics) return;
-    const flows = metrics.flows || [];
-    const totalsAggregate = flows.reduce((acc, flow) => {
-      const flowMetrics = flow.metrics || {};
-      acc.sent += Number(flowMetrics.sent || 0);
-      acc.delivered += Number(flowMetrics.delivered || 0);
-      acc.opened += Number(flowMetrics.opened || 0);
-      acc.providerClicked += Number(flowMetrics.providerClicked || 0);
-      acc.firstPartyClicked += Number(flowMetrics.firstPartyClicked || 0);
-      acc.failed += Number(flowMetrics.failed || 0) + Number(flowMetrics.suppressed || 0);
-    return acc;
-    }, {
-      sent: 0,
-      delivered: 0,
-      opened: 0,
-      providerClicked: 0,
-      firstPartyClicked: 0,
-      failed: 0,
-    });
-
-    metricSent.textContent = totalsAggregate.sent.toLocaleString();
-    metricDelivered.textContent = totalsAggregate.delivered.toLocaleString();
-    metricOpened.textContent = totalsAggregate.opened.toLocaleString();
-    metricProviderClicked.textContent = totalsAggregate.providerClicked.toLocaleString();
-    metricFirstPartyClicked.textContent = totalsAggregate.firstPartyClicked.toLocaleString();
-    metricFailed.textContent = totalsAggregate.failed.toLocaleString();
-    metricDeliveryRate.textContent = totalsAggregate.sent > 0
-      ? formatRate((totalsAggregate.delivered / totalsAggregate.sent) * 100)
-      : "0%";
-    metricOpenRate.textContent = totalsAggregate.delivered > 0
-      ? formatRate((totalsAggregate.opened / totalsAggregate.delivered) * 100)
-      : "0%";
-    metricClickRate.textContent = totalsAggregate.delivered > 0
-      ? formatRate((totalsAggregate.providerClicked / totalsAggregate.delivered) * 100)
-      : "0%";
-    metricFirstPartyClickRate.textContent = totalsAggregate.delivered > 0
-      ? formatRate((totalsAggregate.firstPartyClicked / totalsAggregate.delivered) * 100)
-      : "0%";
-
-    if (totals) {
-      metricShopifyOrders.textContent = Number(totals.shopifyOrders || 0).toLocaleString();
-      metricShopifyRevenue.textContent = formatMoneyByCurrency(totals.shopifyRevenueByCurrency || {});
-      metricAttributedOrders.textContent = Number(totals.firstPartyAttributedOrders || 0).toLocaleString();
-      metricAttributedRevenue.textContent = formatMoneyByCurrency(totals.firstPartyAttributedRevenueByCurrency || {});
-    }
-  }
-
-  function setHealth() {
-    return API.get("/api/lifecycle/admin/health")
-      .then((health) => {
-        healthBanner.style.display = "block";
-        if (!health || health.ok === false) {
-          healthStatus.textContent = "Health unavailable";
-          healthStatus.style.color = "var(--accent)";
-          healthBody.innerHTML = `<p class=\"muted\">Worker health endpoint unavailable or unauthorized.</p>`;
-          return;
-        }
-        const status = health.status || "unknown";
-        healthStatus.textContent = status.toUpperCase();
-        healthStatus.style.color = status === "ok" ? "var(--green)" : "var(--accent)";
-        healthBody.innerHTML = `
-          <div class=\"grid-4\" style=\"grid-template-columns: repeat(4, 1fr);\">
-            <div><strong>${health.workerAlive ? "Worker" : "Worker"}</strong><br><span class=\"muted\">${health.workerAlive ? "up" : "down"}</span></div>
-            <div><strong>Last Shopify Sync</strong><br><span class=\"muted\">${health.shopify?.lastSync || "n/a"}</span></div>
-            <div><strong>Emails /24h</strong><br><span class=\"muted\">${health.lifecycle?.emailsSentLast24h || 0}</span></div>
-            <div><strong>Recoveries /24h</strong><br><span class=\"muted\">${health.lifecycle?.recoveriesLast24h || 0}</span></div>
-          </div>
-        `;
-      })
-      .catch(() => {
-        healthBanner.style.display = "block";
-        healthStatus.textContent = "Health unavailable";
-        healthStatus.style.color = "var(--accent)";
-        healthBody.innerHTML = `<p class=\"muted\">Worker health endpoint could not be reached.</p>`;
-      });
-  }
-
-  function setFlowRows(flows) {
-    const totalEmails = flows.reduce((acc, flow) => acc + (flow.emails?.length || 0), 0);
-    flowsUpdated.textContent = `Loaded ${flows.length} flows · ${totalEmails} emails`;
-
-    flowTableBody.innerHTML = flows.map((flow) => {
-      const metrics = flow.metrics || {};
-      const revenue = formatMoneyByCurrency(metrics.attributedRevenueByCurrency || {});
-      return `
-        <tr>
-          <td><strong>${safeText(flow.name || flow.flow || "")}</strong></td>
-          <td><span class="badge badge-kind">${safeText((flow.status || "unknown").toUpperCase())}</span></td>
-          <td>${Number(metrics.sent || 0).toLocaleString()}</td>
-          <td>${Number(metrics.delivered || 0).toLocaleString()}</td>
-          <td>${formatRate(metrics.openRate || 0)} (${Number(metrics.opened || 0)})</td>
-          <td>${formatRate(metrics.clickRate || 0)} (${Number(metrics.providerClicked || 0)})</td>
-          <td>${formatRate(metrics.firstPartyClickRate || 0)} (${Number(metrics.firstPartyClicked || 0)})</td>
-          <td>${Number(metrics.attributedOrders || 0).toLocaleString()}</td>
-          <td>${revenue || "—"}</td>
-          <td><a href="${safeText(flow.automationUrl || "#")}" target="_blank" rel="noopener noreferrer">${flow.automationUrl ? "Open automation" : "N/A"}</a></td>
-        </tr>
-      `;
+  function renderOverview() {
+    const flows = state.analytics?.flows || [];
+    const totals = state.analytics?.totals || {};
+    $("#metric-sent").textContent = count(flows, "sent").toLocaleString("he-IL");
+    $("#metric-delivered").textContent = count(flows, "delivered").toLocaleString("he-IL");
+    $("#metric-opened").textContent = count(flows, "opened").toLocaleString("he-IL");
+    $("#metric-clicked").textContent = count(flows, "firstPartyClicked").toLocaleString("he-IL");
+    $("#metric-revenue").textContent = formatMoney(totals.firstPartyAttributedRevenueByCurrency || {});
+    $("#flows-updated").textContent = `${flows.length} Flows · ${flows.reduce((sum, flow) => sum + (flow.emails?.length || 0), 0)} מיילים מתוכננים`;
+    $("#flow-cards").innerHTML = flows.map((flow) => {
+      const status = flowStatus(flow); const activity = activityFor(flow.flow); const metrics = flow.metrics || {};
+      const next = String(flow.status).toLowerCase() === "enabled" && activity.nextScheduledAt ? `השלב הבא: ${formatDate(activity.nextScheduledAt)}` : status.explanation;
+      return `<button class="flow-card ${flow.flow === state.selectedFlow ? "selected" : ""}" data-flow="${safe(flow.flow)}"><div class="flow-card-top"><span class="badge ${status.className}">${status.label}</span><span class="eyebrow">${Number(flow.plannedEmails || flow.emails?.length || 0)} מיילים</span></div><h3>${safe(flow.name)}</h3><p class="muted">${safe(next)}</p><div class="flow-card-stats"><span>${Number(metrics.sent || 0)} נשלחו</span><span>${Number(activity.peopleWaiting || 0)} ממתינות</span><span>${Number(metrics.firstPartyClicked || 0)} קליקים</span></div></button>`;
     }).join("");
-
-    const emails = [];
-    for (const flow of flows) {
-      for (const email of (flow.emails || [])) {
-        emails.push({ ...email, flowName: flow.name, flowStatus: flow.status, automationUrl: flow.automationUrl });
-      }
-    }
-
-    if (emails.length === 0) {
-      emailTableBody.innerHTML = `<tr><td colspan=\"12\" class=\"muted\">No emails returned yet.</td></tr>`;
-      return;
-    }
-
-    emailTableBody.innerHTML = emails.map((email) => {
-      const metrics = email.metrics || {};
-      const revenue = formatMoneyByCurrency(metrics.attributedRevenueByCurrency || {});
-      const templateLink = email.templateUrl
-        ? `<a href="${safeText(email.templateUrl)}" target="_blank" rel="noopener noreferrer">Template</a>`
-        : "N/A";
-      return `
-        <tr>
-          <td>${safeText(email.flowName || "")}</td>
-          <td>#${Number(email.number || 0)} · ${safeText(email.timing || "")}</td>
-          <td>${safeText(email.subject || "")}</td>
-          <td>${safeText(email.timing || "")}</td>
-          <td>${Number(metrics.sent || 0).toLocaleString()}</td>
-          <td>${Number(metrics.delivered || 0).toLocaleString()}</td>
-          <td>${formatRate(metrics.openRate || 0)} (${Number(metrics.opened || 0)})</td>
-          <td>${formatRate(metrics.clickRate || 0)} (${Number(metrics.providerClicked || 0)})</td>
-          <td>${formatRate(metrics.firstPartyClickRate || 0)} (${Number(metrics.firstPartyClicked || 0)})</td>
-          <td>${Number(metrics.attributedOrders || 0).toLocaleString()}</td>
-          <td>${revenue || "—"}</td>
-          <td>${templateLink}</td>
-        </tr>
-      `;
-    }).join("");
+    document.querySelectorAll("[data-flow]").forEach((button) => button.addEventListener("click", () => { state.selectedFlow = button.dataset.flow; renderOverview(); renderFlowDetail(); renderLibrary(); }));
   }
 
-  async function loadReports() {
-    setStatus("Loading...");
-    setRangeLabel(state.currentDays === "all" ? null : `Range: last ${state.currentDays} days`);
+  function renderFlowDetail() {
+    const flow = getFlow(); if (!flow) return;
+    const status = flowStatus(flow); const activity = activityFor(flow.flow); const metrics = flow.metrics || {};
+    $("#selected-flow-title").textContent = flow.name;
+    const automation = $("#selected-flow-automation"); automation.hidden = !flow.automationUrl; automation.href = flow.automationUrl || "#";
+    $("#selected-flow-detail").innerHTML = `<div class="flow-detail-head"><div><span class="badge ${status.className}">${status.label}</span><p class="muted" style="margin-top:8px">${safe(status.explanation)}</p></div><button class="btn btn-sm" id="open-library">ספריית המיילים</button></div><div class="flow-detail-meta"><div><b>מה מפעיל אותו</b><span class="muted">${safe(flow.trigger || "מוגדר ב‑Automation")}</span></div><div><b>מה עוצר אותו</b><span class="muted">${safe(flow.exit || "רכישה, recovery, או suppression לפי ה‑Flow")}</span></div><div><b>מצב חי</b><span class="muted">${Number(metrics.sent || 0)} נשלחו · ${Number(activity.peopleWaiting || 0)} ממתינות${activity.nextScheduledAt ? ` · הבא ${formatDate(activity.nextScheduledAt)}` : ""}</span></div></div><ol class="step-list">${(flow.emails || []).map((email) => { const metric = email.metrics || {}; return `<li><span class="step-number">${Number(email.number)}</span><div><strong>${safe(email.title || `מייל ${email.number}`)}</strong><div class="step-subject">${safe(email.subject || "")} · ${safe(email.timing || "")}</div></div><span class="muted">${Number(metric.sent || 0)} נשלחו</span></li>`; }).join("")}</ol>`;
+    $("#open-library").addEventListener("click", () => showView("library"));
+  }
 
+  function renderPeople() {
+    const query = String($("#people-search")?.value || "").trim().toLowerCase();
+    const rows = (state.audience?.messages || []).filter((row) => `${row.recipient} ${row.flowName} ${row.subject}`.toLowerCase().includes(query));
+    $("#people-table").innerHTML = rows.length ? rows.map((row) => {
+      const signals = [`<span class="signal ok">נשלח</span>`];
+      if (row.openedAt) signals.push(`<span class="signal neutral">נפתח</span>`);
+      if (row.providerClickedAt || row.firstPartyClickedAt) signals.push(`<span class="signal ok">נלחץ</span>`);
+      const next = row.nextScheduledAt ? `מייל נוסף מתוכנן: ${formatDate(row.nextScheduledAt)}` : "אין מייל מתוזמן נוסף כרגע";
+      return `<tr><td class="person-cell"><strong>${safe(row.recipient)}</strong>${row.firstName ? `<br><span class="muted">${safe(row.firstName)}</span>` : ""}</td><td><strong>${safe(row.flowName)}</strong><br><span class="muted">#${Number(row.emailNumber)} · ${safe(row.emailTitle)}</span></td><td>${formatDate(row.sentAt)}</td><td>${signals.join("")}</td><td class="muted">${safe(next)}</td></tr>`;
+    }).join("") : `<tr><td colspan="5" class="muted">לא נמצאו מיילים לפי החיפוש.</td></tr>`;
+  }
+
+  function renderLibrary() {
+    const flow = getFlow(); if (!flow) return;
+    $("#library-title").textContent = `ספריית המיילים · ${flow.name}`;
+    $("#library-body").innerHTML = `<p class="section-intro">כאן רואים את התכנון והביצועים של ה־Flow הנבחר — לא את כל 39 המיילים יחד.</p><div class="table-wrap"><table class="table"><thead><tr><th>שלב</th><th>נושא</th><th>תזמון</th><th>נשלח / נמסר</th><th>פתיחה / קליק</th><th></th></tr></thead><tbody>${(flow.emails || []).map((email) => { const m = email.metrics || {}; return `<tr><td><strong>#${Number(email.number)}</strong><br><span class="muted">${safe(email.title || "")}</span></td><td>${safe(email.subject || "—")}</td><td>${safe(email.timing || "—")}</td><td>${Number(m.sent || 0)} / ${Number(m.delivered || 0)}</td><td>${Number(m.opened || 0)} / ${Number(m.firstPartyClicked || 0)}</td><td>${email.templateUrl ? `<a href="${safe(email.templateUrl)}" target="_blank" rel="noopener noreferrer">Template</a>` : "—"}</td></tr>`; }).join("")}</tbody></table></div>`;
+  }
+
+  function renderHealth() {
+    const health = state.health || {}; const lifecycle = health.lifecycle || {}; const tracking = state.audience?.contactTracking || {};
+    const good = health.status === "ok";
+    $("#health-summary").className = `notice ${good ? "notice-good" : "notice-warn"}`;
+    $("#health-summary").innerHTML = good ? `<strong>המערכת פעילה.</strong> סנכרון Shopify אחרון: ${safe(health.shopify?.lastSync || "—")} · נשלחו ב־24 השעות האחרונות: ${Number(lifecycle.emailsSentLast24h || 0)} · Recoveries: ${Number(lifecycle.recoveriesLast24h || 0)}.` : `<strong>נדרשת בדיקה.</strong> מצב Worker: ${safe(health.status || "לא ידוע")}.`;
+    $("#health-status").textContent = String(health.status || "unknown").toUpperCase();
+    $("#health-body").innerHTML = `<div class="flow-detail-meta"><div><b>Worker</b><span class="muted">${health.workerAlive ? "פועל" : "לא זמין"}</span></div><div><b>Shopify sync אחרון</b><span class="muted">${safe(health.shopify?.lastSync || "—")}</span></div><div><b>אירוע Resend אחרון</b><span class="muted">${safe(health.resend?.lastEvent || "—")}</span></div></div>`;
+    $("#tracking-body").innerHTML = `<p><strong>לא — כרגע אין “tags” או custom properties שנכתבים ל־Resend כשנמענת פותחת או לוחצת.</strong> המקור המהימן הוא ${safe(tracking.sourceOfTruth || "D1")}. פתיחה וקליק מגיעים מ־${safe(tracking.openSignal || "Resend")}, ונשמרים במסך האנשים ובדוחות.</p><p>מה כן מסתנכרן ל־Resend: <strong>unsubscribe, hard bounce, complaint ו‑suppression</strong> — כך שנמענת לא ממשיכה לקבל מיילים שיווקיים כאשר אסור לשלוח לה. Contact tags/properties מסומנים כרגע כ־${safe(tracking.resendContactTags || "not configured")}; זה לא חוסם את ה־Flows או את המדידה, אבל אפשר להוסיף בשלב הבא שכבת סגמנטציה ל־Resend אם תהיה לה תועלת ברורה.</p>`;
+  }
+
+  async function load() {
+    $("#lifecycle-status").textContent = "טוען…";
     try {
-      const params = buildQueryParams();
-      const query = params ? `?${params}` : "";
-      const [flows, analytics, health] = await Promise.all([
-        API.get(`/api/lifecycle/admin/flows`),
-        API.get(`/api/lifecycle/admin/analytics${query}`),
-        setHealth(),
-      ]);
-
-      if (!flows.ok || !analytics.ok) {
-        throw new Error("Lifecycle admin endpoints returned not-ok");
-      }
-
-      const totals = analytics.totals || {};
-      setTotalsCard(analytics, totals);
-      setFlowRows(analytics.flows || []);
-      state.loadedAt = new Date().toLocaleTimeString();
-      setStatus(`Loaded at ${state.loadedAt}`, false);
-    } catch (err) {
-      setStatus(`Load failed: ${err.message}`, true);
-    }
+      const from = state.currentDays === "all" ? "" : `?from=${encodeURIComponent(new Date(Date.now() - Number(state.currentDays) * 86400000).toISOString())}&to=${encodeURIComponent(new Date().toISOString())}`;
+      const [flows, analytics, audience, health] = await Promise.all([API.get("/api/lifecycle/admin/flows"), API.get(`/api/lifecycle/admin/analytics${from}`), API.get("/api/lifecycle/admin/audience?limit=100"), API.get("/api/lifecycle/admin/health")]);
+      if (!flows.ok || !analytics.ok || !audience.ok) throw new Error("Lifecycle data is unavailable");
+      state.analytics = analytics; state.audience = audience; state.health = health;
+      $("#range-badge").textContent = state.currentDays === "all" ? "כל הנתונים הזמינים" : `${state.currentDays} הימים האחרונים`;
+      renderOverview(); renderFlowDetail(); renderPeople(); renderLibrary(); renderHealth();
+      $("#lifecycle-status").textContent = `עודכן ${new Date().toLocaleTimeString("he-IL")}`;
+    } catch (error) { $("#lifecycle-status").textContent = `טעינה נכשלה: ${error.message}`; }
   }
 
-  rangeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      rangeButtons.forEach((btn) => btn.classList.remove("btn-primary", "active"));
-      button.classList.add("btn-primary", "active");
-      state.currentDays = button.dataset.days || "30";
-      state.from = "";
-      state.to = "";
-      dateFrom.value = "";
-      dateTo.value = "";
-      setRangeLabel();
-      loadReports();
-    });
-  });
-
-  btnApplyDates?.addEventListener("click", () => {
-    rangeButtons.forEach((btn) => btn.classList.remove("btn-primary", "active"));
-    state.currentDays = "custom";
-    state.from = dateFrom.value ? new Date(`${dateFrom.value}T00:00:00.000Z`).toISOString() : "";
-    state.to = dateTo.value ? new Date(`${dateTo.value}T23:59:59.999Z`).toISOString() : "";
-    setRangeLabel(`${dateFrom.value || "…"} → ${dateTo.value || "…"}`);
-    loadReports();
-  });
-
-  btnRefresh?.addEventListener("click", () => loadReports());
-
-  loadReports();
+  document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
+  document.querySelectorAll("#range-buttons button").forEach((button) => button.addEventListener("click", () => { document.querySelectorAll("#range-buttons button").forEach((item) => item.classList.remove("btn-primary", "active")); button.classList.add("btn-primary", "active"); state.currentDays = button.dataset.days; load(); }));
+  $("#btn-refresh").addEventListener("click", load);
+  $("#people-search").addEventListener("input", renderPeople);
+  load();
 });

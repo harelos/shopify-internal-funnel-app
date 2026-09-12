@@ -1,5 +1,5 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
-import { lifecycleAnalytics, lifecycleFlowCatalog } from "./analytics";
+import { lifecycleAnalytics, lifecycleAudienceActivity, lifecycleFlowCatalog } from "./analytics";
 import { decryptSensitive, hashPayload } from "./crypto";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { consumeClickToken, isoNow, setHealth } from "./db";
@@ -165,6 +165,10 @@ export async function handleLifecycleRequest(
       const code = error instanceof Error ? error.message : "analytics_failed";
       return json({ ok: false, error: code.slice(0, 100) }, code === "analytics_invalid_range" ? 400 : 500);
     }
+  }
+  if (url.pathname === "/api/lifecycle/admin/audience" && request.method === "GET") {
+    if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
+    return json(await lifecycleAudienceActivity(env, url));
   }
   if (url.pathname === "/api/lifecycle/admin/run" && request.method === "POST") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });

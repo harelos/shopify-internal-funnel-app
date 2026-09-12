@@ -94,6 +94,29 @@ interface OrderRow {
   revenue: number;
 }
 
+interface AudienceMessageRow {
+  id: number;
+  flow: LifecycleFlow;
+  email_number: number;
+  status: string;
+  entity_type: string;
+  entity_id: string;
+  recipient: string | null;
+  first_name: string | null;
+  sent_at: string | null;
+  scheduled_at: string | null;
+  clicked_at: string | null;
+  opened_at: string | null;
+  provider_clicked_at: string | null;
+  next_scheduled_at: string | null;
+}
+
+interface AudienceFlowRow {
+  flow: LifecycleFlow;
+  active_people: number;
+  next_scheduled_at: string | null;
+}
+
 interface EmailMetrics {
   scheduled: number;
   triggered: number;
@@ -395,6 +418,10 @@ export async function lifecycleAnalytics(
     return {
       flow,
       name: flowEntry.name,
+      plannedEmails: flowEntry.plannedEmails,
+      trigger: flowEntry.trigger,
+      exit: flowEntry.exit,
+      kpi: flowEntry.kpi,
       status: flowEntry.status,
       automationId: flowEntry.automationId,
       automationUrl: flowEntry.automationUrl,
@@ -441,5 +468,108 @@ export async function lifecycleAnalytics(
       customerEntityIdentifiersReturned: false,
       resendResourceIdentifiersReturned: true,
     },
+  };
+}
+
+function contentEmail(flow: LifecycleFlow, emailNumber: number): ContentEmail | null {
+  const content = contentFlows.find(item => item.name === CONTENT_NAMES[flow]);
+  return content?.emails.find(email => email.number === emailNumber) ?? null;
+}
+
+/**
+ * Recipient-level activity is intentionally separate from aggregate analytics.
+ * It is returned only by the private admin route and never includes a checkout
+ * recovery URL, a Shopify token, or a public customer identifier.
+ */
+export async function lifecycleAudienceActivity(
+  env: LifecycleEnv,
+  url: URL,
+): Promise<Record<string, unknown>> {
+  const parsedLimit = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(100, Math.max(1, Math.floor(parsedLimit))) : 50;
+  const [messageResult, activeFlowResult] = await Promise.all([
+    env.DB.prepare(
+      `SELECT t.id, t.flow, t.email_number, t.status, t.entity_type, t.entity_id,
+              COALESCE(NULLIF(i.email, ''), NULLIF(a.email, ''), NULLIF(o.email, '')) AS recipient,
+              COALESCE(i.first_name, a.first_name, o.first_name) AS first_name,
+              t.sent_at, t.scheduled_at, t.clicked_at,
+              MAX(CASE WHEN e.event_type = 'email.opened' THEN e.occurred_at END) AS opened_at,
+              MAX(CASE WHEN e.event_type = 'email.clicked' THEN e.occurred_at END) AS provider_clicked_at,
+              (
+                SELECT MIN(next_step.scheduled_at)
+                FROM automation_tracking next_step
+                WHERE next_step.entity_type = t.entity_type
+                  AND next_step.entity_id = t.entity_id
+                  AND next_step.status = 'SCHEDULED'
+              ) AS next_scheduled_at
+       FROM automation_tracking t
+       LEFT JOIN lifecycle_identity_links i
+         ON t.entity_type = 'identity' AND t.entity_id = i.identity_id
+       LEFT JOIN abandoned_checkouts a
+         ON t.entity_type = 'checkout' AND t.entity_id = a.shopify_checkout_id
+       LEFT JOIN lifecycle_orders o
+         ON t.entity_type = 'order' AND t.entity_id = o.shopify_order_id
+       LEFT JOIN email_delivery_events e
+         ON e.resend_email_id = t.resend_email_id AND e.status = 'PROCESSED'
+       WHERE t.sent_at IS NOT NULL
+         AND COALESCE(NULLIF(i.email, ''), NULLIF(a.email, ''), NULLIF(o.email, '')) IS NOT NULL
+       GROUP BY t.id
+       ORDER BY t.sent_at DESC
+       LIMIT ?`,
+    ).bind(limit).all<AudienceMessageRow>(),
+    env.DB.prepare(
+      `SELECT flow,
+              COUNT(DISTINCT entity_type || ':' || entity_id) AS active_people,
+              MIN(scheduled_at) AS next_scheduled_at
+       FROM automation_tracking
+       WHERE status IN ('SCHEDULED', 'TRIGGERED')
+       GROUP BY flow`,
+    ).all<AudienceFlowRow>(),
+  ]);
+  const activityByFlow = new Map(rows(activeFlowResult).map(row => [row.flow, row]));
+  const messages = rows(messageResult).map((message) => {
+    const content = contentEmail(message.flow, message.email_number);
+    return {
+      recipient: message.recipient,
+      firstName: message.first_name,
+      flow: message.flow,
+      flowName: CONTENT_NAMES[message.flow],
+      emailNumber: message.email_number,
+      emailTitle: content?.title ?? `Email ${message.email_number}`,
+      subject: content?.subject ?? null,
+      status: message.status,
+      sentAt: message.sent_at,
+      openedAt: message.opened_at,
+      providerClickedAt: message.provider_clicked_at,
+      firstPartyClickedAt: message.clicked_at,
+      nextScheduledAt: message.next_scheduled_at,
+    };
+  });
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    privacy: {
+      adminOnly: true,
+      recoveryUrlReturned: false,
+      checkoutTokenReturned: false,
+    },
+    contactTracking: {
+      resendContactTags: "not_configured",
+      resendContactProperties: "not_configured",
+      sourceOfTruth: "D1 private lifecycle activity",
+      unsubscribeAndSuppressionSync: "enabled",
+      openSignal: "verified_resend_webhook",
+      clickSignal: "verified_resend_webhook_and_first_party_redirect",
+    },
+    flowActivity: FLOW_ORDER.map(flow => {
+      const row = activityByFlow.get(flow);
+      return {
+        flow,
+        name: CONTENT_NAMES[flow],
+        peopleWaiting: Number(row?.active_people ?? 0),
+        nextScheduledAt: row?.next_scheduled_at ?? null,
+      };
+    }),
+    messages,
   };
 }
