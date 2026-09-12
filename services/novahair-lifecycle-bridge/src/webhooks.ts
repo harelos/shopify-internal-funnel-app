@@ -1,5 +1,5 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
-import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
+import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex, sha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
 import {
   cancelEntitySchedules,
   incrementUsageOnce,
@@ -662,7 +662,7 @@ export async function processMarketingCapture(
   const emailHash = await hashEmail(email, config.hashKey);
   const identityId = `identity:${emailHash}`;
   const visitor = text(body.visitorId, 300);
-  const visitorHash = visitor ? await hashPayload(visitor) : null;
+  const visitorHash = visitor ? await sha256Hex(visitor) : null;
   const firstName = text(body.firstName ?? body.first_name, 100);
   await env.DB.prepare(
     `INSERT INTO lifecycle_identity_links (

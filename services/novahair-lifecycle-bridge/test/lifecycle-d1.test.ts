@@ -8,6 +8,7 @@ import { replenishmentOffsetDays } from "../src/flow-specs";
 import { classifyResendResponse, dispatchResendContactUpdates, sendLifecycleEvent } from "../src/resend";
 import { syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders, upsertCheckout } from "../src/shopify";
 import { handleResendWebhook, processFulfillmentObservation, processShopifyLifecycleWebhook } from "../src/webhooks";
+import { processLifecycleIdentityClaims, processStorefrontLifecycleEvents } from "../src/storefront";
 import { checkoutFixture, TEST_EMAIL, testDatabase, testEnv } from "./helpers/d1";
 
 test("D1 migration installs lifecycle state, idempotency, attribution, health, and indexes", async () => {
@@ -21,9 +22,89 @@ test("D1 migration installs lifecycle state, idempotency, attribution, health, a
       "scheduled_lifecycle_events", "lifecycle_orders", "lifecycle_attribution",
       "lifecycle_click_tokens", "lifecycle_usage_counters", "lifecycle_usage_event_receipts",
       "resend_contact_updates", "resend_resources",
+      "lifecycle_identity_claims", "storefront_lifecycle_events", "storefront_lifecycle_state",
     ]) assert.ok(names.has(name), name);
     const indexes = await db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_lifecycle_%'").first("count");
     assert.ok(Number(indexes) >= 10);
+  } finally {
+    await dispose();
+  }
+});
+
+test("known storefront identity drives browse, cart, and checkout suppression without duplicate runs", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db);
+  const visitorHash = "8f57ef019f730817c7b1fb6a4499f8d8b882d2a96be4434c5b8e37db1bca4d13";
+  try {
+    await db.prepare(
+      `INSERT INTO lifecycle_identity_claims
+       (claim_id, shopify_customer_id, email, first_name, visitor_hash, consent_state,
+        source, occurred_at, next_attempt_at, created_at)
+       VALUES ('claim-1', 'gid://shopify/Customer/9001', ?, 'Test', ?, 'SUBSCRIBED',
+        'TEST', '2026-09-12T10:00:00.000Z', '2026-09-12T10:00:00.000Z', '2026-09-12T10:00:00.000Z')`,
+    ).bind(TEST_EMAIL, visitorHash).run();
+    assert.deepEqual(
+      await processLifecycleIdentityClaims(env, new Date("2026-09-12T10:00:00.000Z")),
+      { processed: 1, pending: 0 },
+    );
+
+    const insertEvent = async (id: string, name: string, occurredAt: string) => db.prepare(
+      `INSERT INTO storefront_lifecycle_events
+       (event_id, visitor_hash, shopify_customer_id, event_name, occurred_at,
+        product_handle, product_name, payload_hash, next_attempt_at, created_at)
+       VALUES (?, ?, 'gid://shopify/Customer/9001', ?, ?, 'novahair', 'NovaHair', ?, ?, ?)`,
+    ).bind(id, visitorHash, name, occurredAt, id, occurredAt, occurredAt).run();
+
+    await insertEvent("view-1", "product_viewed", "2026-09-12T10:05:00.000Z");
+    assert.deepEqual(
+      await processStorefrontLifecycleEvents(env, new Date("2026-09-12T10:05:00.000Z")),
+      { processed: 1, pendingIdentity: 0 },
+    );
+    const browse = await db.prepare(
+      "SELECT status, due_at FROM scheduled_lifecycle_events WHERE idempotency_key = 'storefront:view-1:browse_abandonment:trigger'",
+    ).first<{ status: string; due_at: string }>();
+    assert.deepEqual(browse, { status: "PENDING", due_at: "2026-09-12T14:05:00.000Z" });
+
+    await insertEvent("cart-1", "product_added_to_cart", "2026-09-12T10:15:00.000Z");
+    await processStorefrontLifecycleEvents(env, new Date("2026-09-12T10:15:00.000Z"));
+    assert.equal(
+      await db.prepare("SELECT status FROM scheduled_lifecycle_events WHERE idempotency_key = 'storefront:view-1:browse_abandonment:trigger'").first("status"),
+      "CANCELLED",
+    );
+    assert.equal(
+      await db.prepare("SELECT due_at FROM scheduled_lifecycle_events WHERE idempotency_key = 'storefront:cart-1:abandoned_cart:trigger'").first("due_at"),
+      "2026-09-12T12:15:00.000Z",
+    );
+
+    await insertEvent("checkout-1", "checkout_started", "2026-09-12T10:25:00.000Z");
+    await processStorefrontLifecycleEvents(env, new Date("2026-09-12T10:25:00.000Z"));
+    assert.equal(
+      await db.prepare("SELECT status FROM scheduled_lifecycle_events WHERE idempotency_key = 'storefront:cart-1:abandoned_cart:trigger'").first("status"),
+      "CANCELLED",
+    );
+    assert.equal(
+      await db.prepare("SELECT stage FROM storefront_lifecycle_state WHERE visitor_hash = ?").bind(visitorHash).first("stage"),
+      "CHECKOUT",
+    );
+  } finally {
+    await dispose();
+  }
+});
+
+test("anonymous storefront activity is retained for a later verified identity and never schedules email early", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db);
+  try {
+    await db.prepare(
+      `INSERT INTO storefront_lifecycle_events
+       (event_id, visitor_hash, event_name, occurred_at, product_handle, payload_hash, next_attempt_at, created_at)
+       VALUES ('anonymous-view', 'anonymous-hash', 'product_viewed', '2026-09-12T11:00:00.000Z',
+        'novahair', 'payload-hash', '2026-09-12T11:00:00.000Z', '2026-09-12T11:00:00.000Z')`,
+    ).run();
+    const result = await processStorefrontLifecycleEvents(env, new Date("2026-09-12T11:00:00.000Z"));
+    assert.deepEqual(result, { processed: 0, pendingIdentity: 1 });
+    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events").first("count")), 0);
+    assert.equal(Number(await db.prepare("SELECT attempts FROM storefront_lifecycle_events WHERE event_id = 'anonymous-view'").first("attempts")), 1);
   } finally {
     await dispose();
   }
@@ -634,7 +715,7 @@ test("paid-order polling is idempotent, starts post-purchase, and prevents a lat
       await db.prepare("SELECT shopify_checkout_id FROM lifecycle_orders WHERE shopify_order_id = ?").bind("gid://shopify/Order/800").first("shopify_checkout_id"),
       correlatedCheckoutId,
     );
-    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 2);
+    assert.equal(Number(await db.prepare("SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE event_name = 'shopify.post_purchase_started'").first("count")), 4);
 
     const checkoutId = "gid://shopify/AbandonedCheckout/AFTER-ORDER";
     await upsertCheckout(env, checkoutFixture(checkoutId, { createdAt: "2026-09-08T01:59:30.000Z" }), new Date("2026-09-08T02:11:00.000Z"));

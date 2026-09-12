@@ -27,6 +27,7 @@ interface IdentityRow {
   identity_id: string;
   shopify_customer_id: string | null;
   email: string;
+  email_hash: string;
   first_name: string | null;
   consent_state: ConsentState;
   last_product_handle: string | null;
@@ -290,10 +291,20 @@ async function checkoutEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Pro
 
 async function identityEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promise<Dispatchable | null> {
   const identity = await env.DB.prepare(
-    `SELECT identity_id, shopify_customer_id, email, first_name, consent_state, last_product_handle
+    `SELECT identity_id, shopify_customer_id, email, email_hash, first_name, consent_state, last_product_handle
      FROM lifecycle_identity_links WHERE identity_id = ?`,
   ).bind(row.entity_id).first<IdentityRow>();
-  if (!identity || identity.consent_state !== "SUBSCRIBED" || !canDispatchTo(env, identity.email)) return null;
+  if (!identity || !canDispatchTo(env, identity.email)) return null;
+  const isStop = row.event_name === "lifecycle.browse_stop" || row.event_name === "lifecycle.cart_stop";
+  if (!isStop && (identity.consent_state !== "SUBSCRIBED" || await localSuppression(env, identity.email_hash))) return null;
+  if (!isStop && (row.flow === "abandoned_cart" || row.flow === "browse_abandonment")) {
+    const state = await env.DB.prepare(
+      `SELECT stage FROM storefront_lifecycle_state
+       WHERE identity_id = ? ORDER BY last_event_at DESC LIMIT 1`,
+    ).bind(identity.identity_id).first<{ stage: string }>();
+    const expected = row.flow === "abandoned_cart" ? "CART" : "BROWSE";
+    if (!state || state.stage !== expected) return null;
+  }
   const config = lifecycleConfig(env);
   const target = safeStorefrontUrl(
     storefrontDomain(config),
@@ -501,6 +512,14 @@ async function afterSuccessfulDispatch(
   } else if (row.entity_type === "order" && row.event_name === "shopify.post_purchase_started") {
     await env.DB.prepare(
       "UPDATE lifecycle_orders SET post_purchase_started_at = ?, updated_at = ? WHERE shopify_order_id = ?",
+    ).bind(now, now, row.entity_id).run();
+  } else if (row.entity_type === "identity" && row.event_name === "storefront.cart_abandoned") {
+    await env.DB.prepare(
+      "UPDATE storefront_lifecycle_state SET cart_triggered_at = ?, updated_at = ? WHERE identity_id = ? AND stage = 'CART'",
+    ).bind(now, now, row.entity_id).run();
+  } else if (row.entity_type === "identity" && row.event_name === "storefront.product_browsed") {
+    await env.DB.prepare(
+      "UPDATE storefront_lifecycle_state SET browse_triggered_at = ?, updated_at = ? WHERE identity_id = ? AND stage = 'BROWSE'",
     ).bind(now, now, row.entity_id).run();
   }
   await recordAutomationTracking(env, row, dispatchable, now);

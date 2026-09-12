@@ -10,6 +10,7 @@ export interface EmailScheduleSpec {
 export interface FlowScheduleSpec {
   flow: LifecycleFlow;
   triggerEvent: string;
+  triggerDelayMinutes?: number;
   emails: EmailScheduleSpec[];
 }
 
@@ -51,21 +52,23 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
   abandoned_cart: {
     flow: "abandoned_cart",
     triggerEvent: "storefront.cart_abandoned",
+    triggerDelayMinutes: 2 * 60,
     emails: [
-      { number: 1, offsetMinutes: 2 * 60, content: "e01_cart_reminder" },
-      { number: 2, offsetMinutes: 12 * 60, content: "e02_shade_confidence" },
-      { number: 3, offsetMinutes: 2 * day, content: "e03_proof" },
-      { number: 4, offsetMinutes: 4 * day, content: "e04_faq" },
-      { number: 5, offsetMinutes: 7 * day, content: "e05_final_cart" },
+      { number: 1, offsetMinutes: 0, content: "e01_cart_reminder" },
+      { number: 2, offsetMinutes: 10 * 60, content: "e02_shade_confidence" },
+      { number: 3, offsetMinutes: 46 * 60, content: "e03_proof" },
+      { number: 4, offsetMinutes: 94 * 60, content: "e04_faq" },
+      { number: 5, offsetMinutes: 166 * 60, content: "e05_final_cart" },
     ],
   },
   browse_abandonment: {
     flow: "browse_abandonment",
     triggerEvent: "storefront.product_browsed",
+    triggerDelayMinutes: 4 * 60,
     emails: [
-      { number: 1, offsetMinutes: 4 * 60, content: "e01_shade_curiosity" },
-      { number: 2, offsetMinutes: 28 * 60, content: "e02_product_fit" },
-      { number: 3, offsetMinutes: 3 * day, content: "e03_proof_next_step" },
+      { number: 1, offsetMinutes: 0, content: "e01_shade_curiosity" },
+      { number: 2, offsetMinutes: day, content: "e02_product_fit" },
+      { number: 3, offsetMinutes: 68 * 60, content: "e03_proof_next_step" },
     ],
   },
   post_purchase: {

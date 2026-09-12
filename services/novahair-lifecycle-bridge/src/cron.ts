@@ -5,6 +5,7 @@ import { monitorResendQuota } from "./quota";
 import { dispatchResendContactUpdates } from "./resend";
 import { ensureLifecycleWebhooks, syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
 import { reconcilePostPurchaseTransitUpdates } from "./webhooks";
+import { processLifecycleIdentityClaims, processStorefrontLifecycleEvents } from "./storefront";
 import type { LifecycleEnv, ScheduledControllerLike } from "./types";
 
 function syncIsDue(lastSync: string | null, now: Date, intervalMinutes: number): boolean {
@@ -64,6 +65,8 @@ export async function runLifecycleCron(
     if (syncIsDue(lastConsentSync, now, config.syncIntervalMinutes)) {
       await syncCustomerConsent(env, now);
     }
+    await processLifecycleIdentityClaims(env, now);
+    await processStorefrontLifecycleEvents(env, now);
     await dispatchResendContactUpdates(env, now);
     await dispatchDueLifecycleEvents(env, now, owner);
     await monitorDeliveryWatch(env, now);
