@@ -7,6 +7,7 @@ import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
 import { extractDiscountCodes, extractPopupAttribution } from "../lib/popup-attribution.js";
 import { capturePostHogServerEvent } from "../lib/posthog-server.js";
+import { recordStorefrontLifecycleEvent } from "../lib/lifecycle-storefront.js";
 import {
   normalizePaidOrderWebhook,
   normalizeShopifyPixelEvent,
@@ -415,15 +416,17 @@ router.post("/api/shopify/pixel", async (req, res) => {
 
   const context: FunnelContext = {
     shopDomain,
-    visitorId: textValue(rawContext.visitorId),
+    visitorId: textValue(rawContext.visitorId) ?? textValue(rawContext.shopifyClientId),
     funnelId: textValue(rawContext.funnelId),
     stepId: textValue(rawContext.stepId),
     variantId: textValue(rawContext.variantId),
+    shopifyCustomerId: textValue(rawContext.shopifyCustomerId),
   };
   const normalized = normalizeShopifyPixelEvent({
     id: eventInput?.id,
     name: eventInput?.name,
     timestamp: eventInput?.timestamp,
+    clientId: eventInput?.clientId,
     data: eventInput?.data,
   }, context);
   if (!normalized.accepted) return res.status(400).json({ accepted: false, error: "Unsupported Shopify Pixel event." });
@@ -432,10 +435,17 @@ router.post("/api/shopify/pixel", async (req, res) => {
     const shop = await configuredShop();
     if (!shop) return res.status(503).json({ accepted: false, error: "Shopify domain is not configured." });
     const visitor = context.visitorId ? await resolveBrowserVisitor(shop.id, context.visitorId) : null;
+    const analyticsName = normalized.value.name === "PRODUCT_VIEWED"
+      ? "product_viewed"
+      : normalized.value.name === "CART_ACTIVITY"
+        ? String(normalized.value.payload.platformEventName)
+        : normalized.value.name === "CART_CHECKOUT_STARTED"
+          ? "checkout_started"
+          : "checkout_completed";
     const eventResult = await createEventOnce(normalized.value.eventKey, {
       shopId: shop.id,
       eventKey: normalized.value.eventKey,
-      name: normalized.value.name === "CART_CHECKOUT_STARTED" ? "checkout_started" : "checkout_completed",
+      name: analyticsName,
       source: "PIXEL",
       occurredAt: normalized.value.occurredAt ?? new Date(),
       visitorId: visitor?.id ?? null,
@@ -446,6 +456,24 @@ router.post("/api/shopify/pixel", async (req, res) => {
       payload: JSON.stringify(normalized.value.payload),
       isTest: false,
     });
+
+    if (["product_viewed", "product_added_to_cart", "product_removed_from_cart", "cart_viewed", "checkout_started", "checkout_completed"].includes(analyticsName)) {
+      await recordStorefrontLifecycleEvent({
+        eventId: normalized.value.eventKey,
+        eventName: analyticsName as "product_viewed" | "product_added_to_cart" | "product_removed_from_cart" | "cart_viewed" | "checkout_started" | "checkout_completed",
+        visitorId: normalized.value.visitorId,
+        shopifyCustomerId: context.shopifyCustomerId,
+        occurredAt: normalized.value.occurredAt,
+        productHandle: normalized.value.productHandle,
+        productName: normalized.value.productName,
+        productImage: normalized.value.productImage,
+        variantId: normalized.value.variantId,
+        variantName: normalized.value.variantName,
+        quantity: normalized.value.quantity,
+        cartId: normalized.value.cartId,
+        checkoutId: normalized.value.checkoutToken,
+      });
+    }
 
     if (eventResult.duplicate) return res.json({ accepted: true, duplicate: true });
 

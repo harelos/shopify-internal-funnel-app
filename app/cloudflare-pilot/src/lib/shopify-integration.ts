@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export type ShopifyIntegrationEventName =
+  | "PRODUCT_VIEWED"
+  | "CART_ACTIVITY"
   | "CART_CHECKOUT_STARTED"
   | "CHECKOUT_COMPLETED_OBSERVED"
   | "SHOPIFY_ORDER_PAID";
@@ -15,6 +17,12 @@ export interface ShopifyIntegrationEvent {
   funnelId?: string;
   stepId?: string;
   variantId?: string;
+  productHandle?: string;
+  productName?: string;
+  productImage?: string;
+  variantName?: string;
+  quantity?: number;
+  cartId?: string;
   checkoutToken?: string;
   orderGid?: string;
   currency?: string;
@@ -33,12 +41,14 @@ export interface FunnelContext {
   funnelId?: string;
   stepId?: string;
   variantId?: string;
+  shopifyCustomerId?: string;
 }
 
 export interface ShopifyPixelEventInput {
   id?: unknown;
   name?: unknown;
   timestamp?: unknown;
+  clientId?: unknown;
   data?: unknown;
 }
 
@@ -74,7 +84,12 @@ function dateValue(value: unknown): Date | undefined {
 function normalizeDomain(value: string): string { return value.trim().toLowerCase().replace(/\/$/, ""); }
 
 function checkoutToken(data: Record<string, unknown> | undefined, checkout: Record<string, unknown> | undefined): string | undefined {
-  return nestedString(checkout, "token") ?? nestedString(data, "checkout_token");
+  return nestedString(data, "checkoutToken") ?? nestedString(checkout, "token") ?? nestedString(data, "checkout_token");
+}
+
+function nonnegativeNumber(value: unknown): number | undefined {
+  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  return Number.isFinite(number) && number >= 0 ? Number(number) : undefined;
 }
 
 function orderGid(data: Record<string, unknown> | undefined, order: Record<string, unknown> | undefined): string | undefined {
@@ -97,11 +112,15 @@ export function normalizeShopifyPixelEvent(input: ShopifyPixelEventInput, contex
   const checkout = record(data?.checkout);
   const order = record(data?.order);
   const token = checkoutToken(data, checkout);
-  const normalizedName = name === "checkout_started"
-    ? "CART_CHECKOUT_STARTED"
-    : name === "checkout_completed"
-      ? "CHECKOUT_COMPLETED_OBSERVED"
-      : undefined;
+  const normalizedName = name === "product_viewed"
+    ? "PRODUCT_VIEWED"
+    : ["product_added_to_cart", "product_removed_from_cart", "cart_viewed"].includes(name)
+      ? "CART_ACTIVITY"
+      : name === "checkout_started"
+        ? "CART_CHECKOUT_STARTED"
+        : name === "checkout_completed"
+          ? "CHECKOUT_COMPLETED_OBSERVED"
+          : undefined;
 
   if (!normalizedName) return { accepted: false, reason: "pixel_event_not_used_for_funnel_reporting" };
 
@@ -111,16 +130,28 @@ export function normalizeShopifyPixelEvent(input: ShopifyPixelEventInput, contex
     name: normalizedName,
     shopDomain: context.shopDomain,
     occurredAt: dateValue(input.timestamp),
-    visitorId: context.visitorId,
+    visitorId: context.visitorId ?? stringValue(input.clientId),
     funnelId: context.funnelId,
     stepId: context.stepId,
     variantId: context.variantId,
+    productHandle: nestedString(data, "productHandle"),
+    productName: nestedString(data, "productName"),
+    productImage: nestedString(data, "productImage"),
+    variantName: nestedString(data, "variantName"),
+    quantity: nonnegativeNumber(data?.quantity),
+    cartId: nestedString(data, "cartId"),
     checkoutToken: token,
-    orderGid: normalizedName === "CHECKOUT_COMPLETED_OBSERVED" ? orderGid(data, order) : undefined,
+    orderGid: normalizedName === "CHECKOUT_COMPLETED_OBSERVED"
+      ? orderGid(data, order) ?? nestedString(data, "orderId")
+      : undefined,
     payload: {
       platformEventName: name,
       hasCheckoutToken: Boolean(token),
       hasOrderId: Boolean(orderGid(data, order)),
+      hasKnownCustomer: Boolean(context.shopifyCustomerId),
+      ...(nestedString(data, "productHandle") ? { productHandle: nestedString(data, "productHandle")! } : {}),
+      ...(nestedString(data, "productName") ? { productName: nestedString(data, "productName")! } : {}),
+      ...(nestedString(data, "variantName") ? { variantName: nestedString(data, "variantName")! } : {}),
     },
   };
   return { accepted: true, value: event };

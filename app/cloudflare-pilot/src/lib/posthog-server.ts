@@ -20,3 +20,20 @@ export async function capturePostHogServerEvent(
     return false;
   }
 }
+
+/**
+ * Merges the browser's anonymous PostHog history into a stable, pseudonymous
+ * customer key. Email and raw Shopify customer IDs are deliberately excluded.
+ */
+export async function identifyPostHogServerUser(
+  anonymousDistinctId: string,
+  customerKey: string,
+  properties: Record<string, string | number | boolean | null> = {},
+): Promise<boolean> {
+  if (!anonymousDistinctId.trim() || !customerKey.trim()) return false;
+  return capturePostHogServerEvent("$identify", customerKey, {
+    "$anon_distinct_id": anonymousDistinctId,
+    identity_source: "shopify_verified_customer",
+    ...properties,
+  });
+}

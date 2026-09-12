@@ -5,6 +5,8 @@ import { analyticsDataContract, analyticsModeForRequest, isTestForMode } from ".
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { sendNovaHairConciergeSummary, sendNovaHairOtp } from "../lib/smtp-email.js";
+import { enqueueLifecycleIdentityClaim } from "../lib/lifecycle-storefront.js";
+import { identifyPostHogServerUser } from "../lib/posthog-server.js";
 import {
   POPUP_EVENTS,
   POPUP_VERSION,
@@ -247,6 +249,21 @@ router.post("/popup/customer/capture", async (req, res) => {
         customerKey,
       },
     }, req.query as Record<string, unknown>, "SHOPIFY_ADMIN");
+    if (normalized.visitorId) {
+      await enqueueLifecycleIdentityClaim({
+        claimId: `popup-capture:${persisted.event.id}`,
+        visitorId: normalized.visitorId,
+        shopifyCustomerId: customer.id,
+        email,
+        consentState: req.body?.marketingConsent === true ? "SUBSCRIBED" : "NOT_SUBSCRIBED",
+        source: "SHOPIFY_POPUP_CAPTURE",
+        occurredAt: normalized.occurredAt,
+      });
+      await identifyPostHogServerUser(normalized.visitorId, customerKey, {
+        customer_type: customer.orders.nodes.length > 0 ? "returning" : "lead",
+        marketing_state: req.body?.marketingConsent === true ? "subscribed" : "not_subscribed",
+      });
+    }
     return res.json({ saved: true, customerToken: customerSessionToken(customer.id), duplicateLead: persisted.duplicate });
   } catch (error: any) {
     console.error("[NOVA AI CUSTOMER CAPTURE FAILED]", String(error?.message || error).slice(0, 500));
@@ -484,6 +501,21 @@ router.post("/popup/confirm-lead", async (req, res) => {
       },
     };
     const persisted = await persistPopupEvent(confirmedInput, req.query as Record<string, unknown>, "SHOPIFY_ADMIN");
+    if (normalized.visitorId) {
+      await enqueueLifecycleIdentityClaim({
+        claimId: `popup-confirm:${persisted.event.id}`,
+        visitorId: normalized.visitorId,
+        shopifyCustomerId: customer.id,
+        email: normalizedEmail(req.body?.email) ?? undefined,
+        consentState: "SUBSCRIBED",
+        source: "SHOPIFY_POPUP_CONFIRMED",
+        occurredAt: normalized.occurredAt,
+      });
+      await identifyPostHogServerUser(normalized.visitorId, customerKey, {
+        customer_type: "lead",
+        marketing_state: "subscribed",
+      });
+    }
     return res.json({ confirmed: true, duplicateLead: persisted.duplicate, eventId: persisted.event.id });
   } catch (error: any) {
     console.error("Popup lead verification failed.", {
