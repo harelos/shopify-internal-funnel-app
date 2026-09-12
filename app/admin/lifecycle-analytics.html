@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>NovaHair Lifecycle Email Analytics</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a href="index.html" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span class="brand-name">NovaHair Lifecycle Email Analytics</span>
+      </div>
+      <div class="top-actions">
+        <a href="analytics.html" class="btn">Funnel Analytics</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h1>Lifecycle Email Performance</h1>
+        <p class="muted">Sent / Delivered / Opened / Clicked and lifecycle attribution by flow and email.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-primary" id="btn-refresh">Refresh now</button>
+        <span id="lifecycle-status" class="eyebrow">Loading</span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-header">
+        <h2>Date Range</h2>
+        <span class="eyebrow" id="range-badge">Default: last 30 days</span>
+      </div>
+      <div class="panel-body" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <label class="eyebrow">From</label>
+        <input class="input" style="width:150px; margin:0;" type="date" id="date-from">
+        <label class="eyebrow">To</label>
+        <input class="input" style="width:150px; margin:0;" type="date" id="date-to">
+        <button class="btn btn-sm btn-primary" id="btn-apply-dates">Apply</button>
+        <div id="range-buttons" style="display:flex; gap:6px; margin-left:4px;">
+          <button class="btn btn-sm btn-primary active" data-days="7">7d</button>
+          <button class="btn btn-sm" data-days="30">30d</button>
+          <button class="btn btn-sm" data-days="90">90d</button>
+          <button class="btn btn-sm" data-days="all">All</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="health-banner" class="panel" style="margin-bottom:18px; display:none;">
+      <div class="panel-header">
+        <h2>Worker Health</h2>
+        <span class="eyebrow" id="health-status">Reading...</span>
+      </div>
+      <div class="panel-body" id="health-body">
+        <p class="muted">Worker health is loaded from the private API.</p>
+      </div>
+    </div>
+
+    <div class="grid-4" style="grid-template-columns: repeat(6, 1fr); margin-bottom:18px;">
+      <div class="metric-card"><div class="metric-val" id="metric-sent">0</div><div class="metric-label">Sent</div></div>
+      <div class="metric-card"><div class="metric-val" id="metric-delivered">0</div><div class="metric-label">Delivered</div></div>
+      <div class="metric-card"><div class="metric-val" id="metric-opened">0</div><div class="metric-label">Opened</div></div>
+      <div class="metric-card"><div class="metric-val" id="metric-provider-clicked">0</div><div class="metric-label">Resend Clicked</div></div>
+      <div class="metric-card"><div class="metric-val" id="metric-first-party-clicked">0</div><div class="metric-label">First-party Clicked</div></div>
+      <div class="metric-card"><div class="metric-val" id="metric-failed">0</div><div class="metric-label">Failed + Suppressed</div></div>
+    </div>
+
+    <div class="grid-4" style="grid-template-columns: repeat(4, 1fr); margin-bottom:18px;">
+      <div class="metric-card">
+        <div class="metric-val" id="metric-delivery-rate">0%</div><div class="metric-label">Delivery Rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-open-rate">0%</div><div class="metric-label">Open Rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-click-rate">0%</div><div class="metric-label">Resend Click Rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="metric-first-party-click-rate">0%</div><div class="metric-label">First-party Click Rate</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:18px;">
+      <div class="metric-card">
+        <div class="metric-label" style="margin-bottom:6px;">Shopify Orders</div>
+        <div id="metric-shopify-orders" class="metric-val">0</div>
+        <div id="metric-shopify-revenue" class="muted" style="font-size:12px; margin-top:6px;">₪0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label" style="margin-bottom:6px;">1st-party attributed orders</div>
+        <div id="metric-attributed-orders" class="metric-val">0</div>
+        <div id="metric-attributed-revenue" class="muted" style="font-size:12px; margin-top:6px;">₪0</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-header">
+        <h2>Flows</h2>
+        <span class="eyebrow" id="flows-updated"></span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table" id="flow-table">
+          <thead>
+            <tr>
+              <th>Flow</th>
+              <th>Status</th>
+              <th>Sent</th>
+              <th>Delivered</th>
+              <th>Open</th>
+              <th>Resend Click</th>
+              <th>1st-Party Click</th>
+              <th>Attributed Orders</th>
+              <th>Attributed Revenue</th>
+              <th>Automation</th>
+            </tr>
+          </thead>
+          <tbody id="flow-body">
+            <tr><td colspan="10" class="muted">Loading flows…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Emails</h2>
+        <span class="eyebrow">39 emails total</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table" id="email-table">
+          <thead>
+            <tr>
+              <th>Flow</th>
+              <th>Step</th>
+              <th>Subject</th>
+              <th>Timing</th>
+              <th>Sent</th>
+              <th>Delivered</th>
+              <th>Open</th>
+              <th>Resend Click</th>
+              <th>1st-Party Click</th>
+              <th>Attributed Orders</th>
+              <th>Attributed Revenue</th>
+              <th>Template</th>
+            </tr>
+          </thead>
+          <tbody id="email-body">
+            <tr><td colspan="12" class="muted">Loading emails…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/lifecycle-analytics.js"></script>
+</body>
+</html>

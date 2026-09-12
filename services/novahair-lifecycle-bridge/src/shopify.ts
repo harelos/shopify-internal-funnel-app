@@ -97,6 +97,11 @@ const PAID_ORDERS_QUERY = `query NovaHairPaidOrders(
         nodes { id title variantTitle sku quantity image { url altText } product { id handle } }
         pageInfo { hasNextPage endCursor }
       }
+      shippingAddress {
+        countryCode
+        countryCodeV2
+        country
+      }
       fulfillments(first: 20) {
         id
         displayStatus
@@ -631,6 +636,9 @@ function orderPayload(node: ShopifyOrderNode): ShopifyOrderWebhook {
     financial_status: node.displayFinancialStatus?.toLowerCase() ?? null,
     marketing_consent_state: emailAddress?.marketingState ?? "UNKNOWN",
     test: node.test,
+    shipping_country_code: node.shippingAddress?.countryCode ?? null,
+    shipping_country_code_v2: node.shippingAddress?.countryCodeV2 ?? null,
+    shipping_country: node.shippingAddress?.country ?? null,
     line_items: node.lineItems.nodes.map(item => ({
       product_id: item.product?.id ?? null,
       product_handle: item.product?.handle ?? null,

@@ -26,12 +26,13 @@ The static preview is intentionally not connected to Shopify and does not
 accept payment. Product, price, delivery, review, and policy fields marked with
 brackets are owner-verification placeholders.
 
-## Local app
+## Internal app and lifecycle analytics
 
-The Node/TypeScript app lives in `app/` and is memory-backed until the owner
-provisions the approved Railway/PostgreSQL service. It supports local funnel
-creation, renaming, ordered steps, HTML import, safe preview, deterministic
-assignments, synthetic events, analytics, and CSV/JSON reports.
+The Node/TypeScript app lives in `app/`. The existing Railway production
+service hosts the internal control room and the private NovaHair lifecycle
+analytics dashboard. It supports local funnel creation, renaming, ordered
+steps, HTML import, safe preview, deterministic assignments, synthetic events,
+analytics, and CSV/JSON reports.
 
 ```powershell
 cd app
@@ -39,8 +40,15 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The dashboard is visibly marked local-only and
-synthetic. The app does not connect to a Shopify store by default.
+For production, open the authenticated app host at:
+
+https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html
+
+The analytics page reads sanitized flow, email, delivery, click, health, and
+Shopify-attribution data through the app's server-side proxy. It never exposes
+the Worker token or customer recovery URLs. For local development, open
+`http://localhost:3000`; the app does not connect to a Shopify store by
+default.
 
 To see the seeded example inside the running software, open:
 
@@ -58,7 +66,8 @@ order events, while observed checkout starts remain a separate metric.
 
 ## Railway status
 
-Railway connection work is delegated to Maria Anjelica TBG. No Railway project,
-PostgreSQL database, Shopify app, theme, webhook, or production deployment is
-claimed by this repository until those resources are owner-provisioned and
-verified.
+The existing Railway `funnel-app` production service is deployed and verified.
+The lifecycle analytics dashboard deployment is healthy, and the app's
+server-only `LIFECYCLE_WORKER_URL` and `LIFECYCLE_ADMIN_TOKEN` are configured
+in Railway secrets/variables. The lifecycle Worker remains the source of truth
+for D1, Resend, Shopify lifecycle state, and email attribution.

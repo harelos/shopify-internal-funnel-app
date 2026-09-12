@@ -136,7 +136,13 @@ test("test activation cutoff prevents historical checkouts from entering a new l
 });
 
 function orderRequest(payload: Record<string, unknown>, eventId: string, topic = "orders/paid") {
-  const raw = JSON.stringify(payload);
+  const withShipping = {
+    shipping_country_code: "IL",
+    shipping_country_code_v2: "IL",
+    shipping_country: "ישראל",
+    ...payload,
+  } as Record<string, unknown>;
+  const raw = JSON.stringify(withShipping);
   return hmacSha256Base64("test_shopify_webhook_secret", raw).then(hmac => new Request("https://worker.test/webhooks/shopify", {
     method: "POST",
     headers: {
@@ -602,6 +608,11 @@ test("paid-order polling is idempotent, starts post-purchase, and prevents a lat
       pageInfo: { hasNextPage: false, endCursor: null },
     },
     currentTotalPriceSet: { presentmentMoney: { amount: "189.00", currencyCode: "ILS" } },
+    shippingAddress: {
+      country: "Israel",
+      countryCode: "IL",
+      countryCodeV2: "IL",
+    },
   };
   const fetcher: typeof fetch = async () => Response.json({
     data: { orders: { nodes: [node], pageInfo: { hasNextPage: false, endCursor: null } } },

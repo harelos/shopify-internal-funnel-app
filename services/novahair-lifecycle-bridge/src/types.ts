@@ -220,6 +220,13 @@ export interface ShopifyOrderWebhook {
   current_total_price?: string | number;
   financial_status?: string | null;
   marketing_consent_state?: ConsentState;
+  shipping_country_code?: string | null;
+  shipping_country_code_v2?: string | null;
+  shipping_country?: string | null;
+  shipping_address?: {
+    country_code?: string | null;
+    country?: string | null;
+  };
   test?: boolean;
   line_items?: Array<{
     product_id?: number | string | null;
@@ -275,6 +282,11 @@ export interface ShopifyOrderNode {
     };
   }>;
   currentTotalPriceSet: { presentmentMoney: ShopifyMoney };
+  shippingAddress?: {
+    country: string | null;
+    countryCode: string | null;
+    countryCodeV2: string | null;
+  };
 }
 
 export interface ShopifyFulfillmentEventWebhook {

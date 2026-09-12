@@ -12,6 +12,7 @@ import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
+import lifecycleAdminRoutes from "./routes/lifecycle-admin.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
@@ -83,6 +84,7 @@ app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", shopifyRoutes);
+app.use("/api", lifecycleAdminRoutes);
 
 // Root redirect to Admin
 app.get("/", (_req, res) => {
@@ -91,7 +93,7 @@ app.get("/", (_req, res) => {
 
 export default app;
 
-const port = Number(process.env.APP_PORT ?? 3000);
+const port = Number(process.env.PORT ?? process.env.APP_PORT ?? 3000);
 app.listen(port, async () => {
   console.log(`\n  Shopify Funnel Builder running at http://localhost:${port}/admin/\n`);
   // Demo data is destructive during a partial seed, so it must be explicitly

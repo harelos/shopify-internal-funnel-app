@@ -149,6 +149,21 @@ The free-plan alert thresholds are approximately 70 emails/day (warning), 90/day
 
 For a production incident, prefer disabling dispatch or the affected automation over deleting state. D1 is the recovery ledger. Do not replay an `UNCERTAIN` Resend event blindly because Events do not provide the same documented idempotency contract as email sends.
 
+## Current verification — 2026-09-12
+
+- Cloudflare OAuth is active for the owner account and the live Worker deployment is present.
+- The production D1 database has migration `0015_order_shipping_country.sql` applied; `shipping_country_code` and its index were verified remotely, with no migrations pending.
+- The live Worker Cron has recorded successful Shopify sync/API calls, and the current D1 health counters show zero open errors, dead schedules, or uncertain Resend events.
+- Resend currently reports 10 recent transactional messages. D1 has received 9 `email.sent`, 9 `email.delivered`, 10 `email.opened`, and 4 `email.clicked` webhook events; duplicate event IDs remain idempotent.
+- All six automations and the verified sending domain are still present. Four automations are enabled; Browse and Cart remain identity-gated.
+- The analytics UI and server-side proxy now exist in `app/admin/lifecycle-analytics.html`, `app/admin/js/lifecycle-analytics.js`, and `app/src/routes/lifecycle-admin.ts`. The existing Railway `funnel-app` production service is deployed and verified at `https://funnel-app-production-e22d.up.railway.app/admin/lifecycle-analytics.html`. Authenticated production checks returned `200` for the page, health proxy, flows endpoint, and analytics endpoint; the response contained all 6 flows and 39 email definitions with no customer PII. The app suite is 8/8, the Worker suite is 40/40, and both TypeScript builds pass.
+
 ## Remaining product work
 
-The backend analytics contract is complete; the visual dashboard still needs to be embedded in the internal application. Follow [ANALYTICS-INTEGRATION.md](./ANALYTICS-INTEGRATION.md). The only intentionally unavailable flows are Browse and Cart, pending a consented identity design in the storefront/PostHog integration.
+The production analytics surface is now available from the authenticated
+Railway app URL above. The direct Worker admin URL intentionally returns `404`
+without authorization and is not a dashboard link. The only intentionally
+unavailable lifecycle flows are Browse and Cart, pending a consented identity
+design in the storefront/PostHog integration. Follow
+[ANALYTICS-INTEGRATION.md](./ANALYTICS-INTEGRATION.md) for the app acceptance
+checklist.

@@ -54,8 +54,12 @@ SHOPIFY_LIVE_CONNECT=true
 SHOPIFY_REQUIRE_AUTH=true
 SHOPIFY_APP_PROXY_URL
 SHOPIFY_APP_PROXY_PATH=/apps/funnels
+LIFECYCLE_WORKER_URL
+LIFECYCLE_ADMIN_TOKEN
 DATABASE_URL
 ```
+
+The lifecycle analytics page is available at `/admin/lifecycle-analytics.html` after the app is running. `LIFECYCLE_WORKER_URL` should point to `https://novahair-lifecycle-bridge.tigerbrands-funnel.workers.dev`; `LIFECYCLE_ADMIN_TOKEN` is server-only and must be configured in the app host's secret manager. The page reads sanitized flow, email, delivery, click, health, and Shopify-attribution data through the app's authenticated server proxy.
 
 `SHOPIFY_ACCESS_TOKEN` is only needed for the non-embedded Admin-created fallback. A Custom Distribution embedded app obtains an online Admin API token by exchanging the verified App Bridge session token. Every Shopify secret must be set in the host secret manager, never committed and never copied from the exposed handoff.
 

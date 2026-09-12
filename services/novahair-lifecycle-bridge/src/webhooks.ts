@@ -78,6 +78,34 @@ function money(value: string | number | null | undefined): number | null {
   return Number.isFinite(amount) && amount >= 0 ? Number(amount.toFixed(2)) : null;
 }
 
+function normalizeCountryCode(value: string | null | undefined): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  if (raw === "il" || raw === "IL") return "IL";
+  const normalized = raw.toUpperCase();
+  if (normalized === "ISR" || normalized === "ישראל") return "IL";
+  return normalized;
+}
+
+function shippingCountryCode(payload: ShopifyOrderWebhook): string | null {
+  const candidates = [
+    payload.shipping_country_code,
+    payload.shipping_country_code_v2,
+    payload.shipping_country,
+    payload.shipping_address?.country_code,
+    payload.shipping_address?.country,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeCountryCode(candidate);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
+function isIsraeliShipping(payload: ShopifyOrderWebhook): boolean {
+  return shippingCountryCode(payload) === "IL";
+}
+
 function orderMerchandise(payload: ShopifyOrderWebhook): {
   productName: string | null;
   shade: string | null;
@@ -180,11 +208,13 @@ export async function processFulfillmentObservation(
   const current = isoNow(now);
   const order = await env.DB.prepare(
     `SELECT shopify_order_id, consent_state, delivered_at
+       , shipping_country_code
      FROM lifecycle_orders WHERE shopify_order_id = ?`,
   ).bind(observation.shopifyOrderId).first<{
     shopify_order_id: string;
     consent_state: ConsentState;
     delivered_at: string | null;
+    shipping_country_code: string | null;
   }>();
   if (!order) return { processed: false };
 
@@ -263,7 +293,7 @@ export async function processFulfillmentObservation(
   // Re-run this idempotent reconciliation for duplicate deliveries too. If a prior
   // attempt failed after recording the receipt, a webhook retry must repair every
   // missing schedule instead of treating the receipt as fully processed.
-  if (deliveredAt && order.consent_state === "SUBSCRIBED") {
+  if (deliveredAt && order.consent_state === "SUBSCRIBED" && order.shipping_country_code === "IL") {
     for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "delivered")) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${spec.number}`,
@@ -316,6 +346,7 @@ export async function processPaidOrder(
     ? suppliedConsent
     : await consentForEmail(env, emailHash, exactCheckoutId);
   const merchandise = orderMerchandise(payload);
+  const isDomesticOrder = isIsraeliShipping(payload);
   const existing = await env.DB.prepare(
     "SELECT shopify_order_id FROM lifecycle_orders WHERE email_hash = ? AND shopify_order_id <> ? LIMIT 1",
   ).bind(emailHash, gid).first<{ shopify_order_id: string }>();
@@ -326,12 +357,12 @@ export async function processPaidOrder(
   ).toISOString();
 
   await env.DB.prepare(
-    `INSERT INTO lifecycle_orders (
+       `INSERT INTO lifecycle_orders (
        shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash,
        first_name, consent_state, completed_at, bundle, quantity, shade, product_name,
        purchased_product_ids_json, purchased_product_handles_json, total, currency,
-       replenishment_due_at, repeat_purchase, payload_hash, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       shipping_country_code, replenishment_due_at, repeat_purchase, payload_hash, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(shopify_order_id) DO UPDATE SET
        shopify_checkout_id = excluded.shopify_checkout_id,
        shopify_customer_id = excluded.shopify_customer_id,
@@ -348,6 +379,7 @@ export async function processPaidOrder(
        purchased_product_handles_json = excluded.purchased_product_handles_json,
        total = excluded.total,
        currency = excluded.currency,
+       shipping_country_code = excluded.shipping_country_code,
        replenishment_due_at = excluded.replenishment_due_at,
        repeat_purchase = excluded.repeat_purchase,
        payload_hash = excluded.payload_hash,
@@ -365,11 +397,12 @@ export async function processPaidOrder(
     merchandise.quantity,
     merchandise.shade,
     merchandise.productName,
-    JSON.stringify(merchandise.purchasedProductIds),
-    JSON.stringify(merchandise.purchasedProductHandles),
-    money(payload.current_total_price ?? payload.total_price),
-    text(payload.presentment_currency ?? payload.currency)?.toUpperCase(),
-    replenishmentDueAt,
+      JSON.stringify(merchandise.purchasedProductIds),
+      JSON.stringify(merchandise.purchasedProductHandles),
+      money(payload.current_total_price ?? payload.total_price),
+      text(payload.presentment_currency ?? payload.currency)?.toUpperCase(),
+      shippingCountryCode(payload),
+      replenishmentDueAt,
     repeatPurchase ? 1 : 0,
     await hashPayload(payload),
     current,
@@ -397,7 +430,7 @@ export async function processPaidOrder(
     });
   }
 
-  if (consentState === "SUBSCRIBED") {
+  if (consentState === "SUBSCRIBED" && isDomesticOrder) {
     for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "purchase")) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${gid}:post_purchase:email:${spec.number}`,
