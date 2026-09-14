@@ -11,7 +11,10 @@ const flowSpecs = Object.values(FLOW_SPECS);
 const automations = buildAutomationBlueprints(flowSpecs);
 if (automations.length !== 6) throw new Error(`expected_6_automations_received_${automations.length}`);
 const templateManifest = JSON.parse(await readFile(join(root, "dist", "templates", "manifest.json"), "utf8"));
-const subjects = new Map(templateManifest.templates.map(template => [template.alias, template.subject]));
+const shipmentManifest = JSON.parse(await readFile(join(root, "dist", "templates", "shipment-v2-manifest.json"), "utf8"));
+const subjects = new Map(
+  [...templateManifest.templates, ...shipmentManifest.templates].map(template => [template.alias, template.subject]),
+);
 const workflows = automations.map(automation => ({
   name: automation.name,
   status: "disabled",

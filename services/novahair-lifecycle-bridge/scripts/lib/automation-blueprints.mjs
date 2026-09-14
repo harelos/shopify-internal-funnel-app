@@ -32,7 +32,7 @@ export const EVENT_DEFINITIONS = [
   { name: "shopify.checkout_recovered", schema: { ...COMMON_SCHEMA, checkout_id: "string", customer_id: "string" } },
   { name: "shopify.purchase_completed", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA } },
   { name: "shopify.marketing_subscribed", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...ctaSchema(10) } },
-  { name: "shopify.post_purchase_started", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", email_number: "number", ...MERCHANDISE_SCHEMA, ...ctaSchema(1, true) } },
+  { name: "shopify.post_purchase_started", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", email_number: "number", tracking_number: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(1, true) } },
   { name: "shopify.replenishment_due", schema: { ...COMMON_SCHEMA, order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(4) } },
   { name: "storefront.cart_abandoned", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(5) } },
   { name: "storefront.product_browsed", schema: { ...COMMON_SCHEMA, customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(3) } },
@@ -51,6 +51,20 @@ function duration(minutes) {
 
 function templateConfig(flow, number, checkoutRouting = false) {
   const suffix = String(number).padStart(2, "0");
+  if (flow === "post_purchase" && (number === 3 || number === 4)) {
+    return {
+      template: {
+        id: `novahair-post-purchase-e${suffix}-v2`,
+        variables: {
+          CUSTOMER_NAME: { var: "event.first_name" },
+          TRACKING_URL: { var: "event.cta_url" },
+          TRACKING_NUMBER: { var: "event.tracking_number" },
+        },
+      },
+      from: "__RESEND_FROM__",
+      reply_to: "__RESEND_REPLY_TO__",
+    };
+  }
   return {
     template: {
       id: `novahair_${flow}_e${suffix}`,

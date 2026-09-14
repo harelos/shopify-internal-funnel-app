@@ -11,6 +11,7 @@ import {
   setHealth,
 } from "./db";
 import { emailSpec, FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
+import { brandedTrackingDestination, staticLifecycleDestination } from "./lifecycle-links";
 import { noteDispatchFailure, sendLifecycleEvent } from "./resend";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "./url";
 import type {
@@ -55,6 +56,7 @@ interface OrderRow {
   tracking_status: string | null;
   tracking_available_at: string | null;
   tracking_url_encrypted: string | null;
+  tracking_number_encrypted: string | null;
 }
 
 const ACTIVE_CROSS_SELLS = [
@@ -180,7 +182,7 @@ async function nativeFlowUrls(
     entityType: string;
     entityId: string;
     flow: LifecycleFlow;
-    target: string;
+    fallbackTarget: string;
     payload: NormalizedLifecyclePayload;
   },
 ): Promise<void> {
@@ -191,7 +193,11 @@ async function nativeFlowUrls(
       entityId: input.entityId,
       flow: input.flow,
       emailNumber: spec.number,
-      target: input.target,
+      target: staticLifecycleDestination(
+        lifecycleConfig(env).storefrontDomain,
+        input.flow,
+        spec.number,
+      ) ?? input.fallbackTarget,
     });
   }
 }
@@ -324,7 +330,7 @@ async function identityEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Pro
     entityType: "identity",
     entityId: identity.identity_id,
     flow: row.flow,
-    target,
+    fallbackTarget: target,
     payload,
   });
   return { flow: row.flow, emailNumber: 0, event: { event: row.event_name, email: identity.email, payload } };
@@ -335,7 +341,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     `SELECT shopify_order_id, shopify_checkout_id, shopify_customer_id, email, email_hash, first_name,
             consent_state, completed_at, bundle, quantity, shade, product_name, total, currency,
             purchased_product_ids_json, purchased_product_handles_json, delivered_at, tracking_status,
-            tracking_available_at, ready_for_pickup_at, tracking_url_encrypted
+            tracking_available_at, ready_for_pickup_at, tracking_url_encrypted, tracking_number_encrypted
      FROM lifecycle_orders WHERE shopify_order_id = ?`,
   ).bind(row.entity_id).first<OrderRow>();
   if (!order?.email || !canDispatchTo(env, order.email)) return null;
@@ -387,17 +393,30 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
   if (row.event_name === "shopify.post_purchase_started") {
     const crossSellHandle = row.email_number === 9 ? eligibleCrossSellHandle(order) : null;
     if (row.email_number === 9 && !crossSellHandle) return null;
-    const trackingTarget = order.tracking_url_encrypted
+    const carrierTrackingTarget = order.tracking_url_encrypted
       ? await decryptSensitive(order.tracking_url_encrypted, config.dataKey).catch(() => null)
       : null;
-    const safeTrackingTarget = trackingTarget && /^https:\/\//i.test(trackingTarget) ? trackingTarget : null;
-    const target = (row.email_number === 3 || row.email_number === 4) && safeTrackingTarget
-      ? safeTrackingTarget
-      : row.email_number === 6
-      ? safeStorefrontUrl(storefrontDomain(config), "/pages/contact")
+    const safeCarrierTrackingTarget = carrierTrackingTarget && /^https:\/\//i.test(carrierTrackingTarget)
+      ? carrierTrackingTarget
+      : null;
+    const rawTrackingNumber = order.tracking_number_encrypted
+      ? await decryptSensitive(order.tracking_number_encrypted, config.dataKey).catch(() => null)
+      : null;
+    const brandedTrackingTarget = rawTrackingNumber
+      ? brandedTrackingDestination(storefrontDomain(config), rawTrackingNumber)
+      : null;
+    if ((row.email_number === 3 || row.email_number === 4) && !brandedTrackingTarget && !safeCarrierTrackingTarget) {
+      return null;
+    }
+    if ((row.email_number === 3 || row.email_number === 4) && rawTrackingNumber) {
+      payload.tracking_number = rawTrackingNumber;
+    }
+    const target = row.email_number === 3 || row.email_number === 4
+      ? brandedTrackingTarget ?? safeCarrierTrackingTarget!
       : row.email_number === 9
         ? safeStorefrontUrl(storefrontDomain(config), `/products/${encodeURIComponent(crossSellHandle ?? "")}`)
-        : safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales-staging");
+        : staticLifecycleDestination(storefrontDomain(config), "post_purchase", row.email_number)
+          ?? safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales-staging");
     payload.cta_url = await trackingUrl(env, {
       entityType: "order",
       entityId: order.shopify_order_id,
@@ -417,7 +436,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
       entityType: "order",
       entityId: order.shopify_order_id,
       flow: row.flow,
-      target: safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales"),
+      fallbackTarget: safeStorefrontUrl(storefrontDomain(config), "/pages/novahair-sales-staging"),
       payload,
     });
   }

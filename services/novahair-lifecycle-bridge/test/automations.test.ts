@@ -58,6 +58,10 @@ test("post-purchase automation routes D1-released emails and contains no guessed
   const conditions = flow.steps.filter((step: { type: string }) => step.type === "condition");
   assert.equal(conditions.length, 9);
   assert.ok(conditions.every((step: { config: { field: string } }) => step.config.field === "event.email_number"));
+  const trackingSend = flow.steps.find((step: { key: string }) => step.key === "send_e03");
+  assert.equal(trackingSend.config.template.id, "novahair-post-purchase-e03-v2");
+  assert.deepEqual(trackingSend.config.template.variables.TRACKING_URL, { var: "event.cta_url" });
+  assert.deepEqual(trackingSend.config.template.variables.TRACKING_NUMBER, { var: "event.tracking_number" });
 });
 
 test("purchase and stage-advance stop events guard earlier native flows", () => {

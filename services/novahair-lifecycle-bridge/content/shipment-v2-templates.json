@@ -12,13 +12,15 @@
       "body": [
         "היי [שם פרטי],",
         "יש עדכון חדש להזמנה שלך. המשלוח קיבל פרטי מעקב.",
+        "מספר המעקב שלך: {{TRACKING_NUMBER}}",
         "המידע בקישור מתעדכן לפי חברת המשלוחים, ולעיתים יש פער בין סריקה אחת לבאה.",
         "[כפתור: למעקב אחר המשלוח | TRACKING_URL]",
         "אם משהו לא ברור, אפשר לענות למייל הזה."
       ],
       "variables": [
         { "key": "CUSTOMER_NAME", "type": "string", "fallbackValue": "יקרה" },
-        { "key": "TRACKING_URL", "type": "string" }
+        { "key": "TRACKING_URL", "type": "string" },
+        { "key": "TRACKING_NUMBER", "type": "string" }
       ]
     },
     {
@@ -32,13 +34,15 @@
       "body": [
         "היי [שם פרטי],",
         "שמנו לב שלא התקבל עדכון חדש למשלוח בזמן שציפינו.",
+        "מספר המעקב שלך: {{TRACKING_NUMBER}}",
         "אנחנו בודקות את המצב מול נתוני המשלוח ונעדכן אם יהיה שינוי שדורש ממך פעולה.",
         "[כפתור: למצב המשלוח | TRACKING_URL]",
         "אם את מעדיפה שנבדוק את ההזמנה באופן אישי, פשוט עני למייל הזה."
       ],
       "variables": [
         { "key": "CUSTOMER_NAME", "type": "string", "fallbackValue": "יקרה" },
-        { "key": "TRACKING_URL", "type": "string" }
+        { "key": "TRACKING_URL", "type": "string" },
+        { "key": "TRACKING_NUMBER", "type": "string" }
       ]
     }
   ]

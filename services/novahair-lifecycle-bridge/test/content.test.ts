@@ -74,6 +74,7 @@ test("V2 shipment drafts use a dedicated tracking destination rather than a gene
   assert.equal(shipmentManifest.count, 2);
   for (const template of shipmentManifest.templates) {
     assert.match(template.html, /href="\{\{\{TRACKING_URL\}\}\}"/);
+    assert.match(template.html, /\{\{TRACKING_NUMBER\}\}/);
     assert.doesNotMatch(template.html, /href="\{\{\{CTA_URL\}\}\}"/);
     assert.match(template.html, /<html lang="he" dir="rtl">/);
   }

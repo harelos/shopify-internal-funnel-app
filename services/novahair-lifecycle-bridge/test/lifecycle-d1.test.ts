@@ -407,6 +407,31 @@ test("event-driven shipment messages schedule once only after a reliable trackin
     assert.deepEqual(rows.results?.map(row => row.email_number), [1, 2, 3, 4]);
     assert.equal(rows.results?.find(row => row.email_number === 3)?.due_at, "2026-09-10T10:00:00.000Z");
     assert.equal(rows.results?.find(row => row.email_number === 4)?.due_at, "2026-09-18T10:00:00.000Z");
+    await db.prepare(
+      `UPDATE scheduled_lifecycle_events SET status = 'CANCELLED'
+       WHERE idempotency_key <> ? AND status = 'PENDING'`,
+    ).bind("order:gid://shopify/Order/904:post_purchase:email:3").run();
+    let outbound: Record<string, any> | null = null;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (_input, init) => {
+      outbound = JSON.parse(String(init?.body ?? "{}"));
+      return Response.json({ id: "resend-event-904" });
+    };
+    try {
+      assert.deepEqual(
+        await dispatchDueLifecycleEvents(env, new Date("2026-09-10T10:01:00.000Z"), "tracking-link-test"),
+        { leased: 1, sent: 1, cancelled: 0, failed: 0 },
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    assert.equal(outbound?.payload?.tracking_number, "TRACKING-SECRET-904");
+    const clickToken = String(outbound?.payload?.cta_url ?? "").split("/").pop();
+    const encryptedTarget = await db.prepare(
+      "SELECT target_url FROM lifecycle_click_tokens WHERE token = ?",
+    ).bind(clickToken).first<string>("target_url");
+    assert.ok(encryptedTarget);
+    assert.doesNotMatch(encryptedTarget, /TRACKING-SECRET-904/);
     const stored = JSON.stringify(await db.prepare(
       "SELECT * FROM lifecycle_orders WHERE shopify_order_id = ?",
     ).bind("gid://shopify/Order/904").first());

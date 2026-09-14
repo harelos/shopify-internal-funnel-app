@@ -4,6 +4,11 @@ import { decryptSensitive, hashPayload } from "./crypto";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { consumeClickToken, isoNow, setHealth } from "./db";
 import { isLifecycleAdmin, lifecycleHealth } from "./health";
+import {
+  brandedTrackingDestination,
+  safeCompletedCheckoutDestination,
+  staticLifecycleDestination,
+} from "./lifecycle-links";
 import { dispatchResendContactUpdates } from "./resend";
 import {
   ensureLifecycleWebhooks,
@@ -13,6 +18,8 @@ import {
 } from "./shopify";
 import { handleResendWebhook } from "./webhooks";
 import type { LifecycleEnv } from "./types";
+import type { ClickTokenRow } from "./db";
+import { appendLifecycleUtm } from "./url";
 
 function json(body: unknown, status = 200): Response {
   return Response.json(body, {
@@ -21,11 +28,50 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+async function currentClickDestination(
+  env: LifecycleEnv,
+  row: ClickTokenRow,
+  storedTarget: string,
+): Promise<string> {
+  const config = lifecycleConfig(env);
+  if (row.flow === "abandoned_checkout") {
+    const checkout = await env.DB.prepare(
+      "SELECT state, completed_at FROM abandoned_checkouts WHERE shopify_checkout_id = ?",
+    ).bind(row.entity_id).first<{ state: string; completed_at: string | null }>();
+    if (checkout && (checkout.completed_at || checkout.state !== "ABANDONED")) {
+      return safeCompletedCheckoutDestination(config.storefrontDomain);
+    }
+    return storedTarget;
+  }
+  if (row.flow === "post_purchase" && (row.email_number === 3 || row.email_number === 4)) {
+    const order = await env.DB.prepare(
+      `SELECT tracking_number_encrypted, tracking_url_encrypted
+       FROM lifecycle_orders WHERE shopify_order_id = ?`,
+    ).bind(row.entity_id).first<{
+      tracking_number_encrypted: string | null;
+      tracking_url_encrypted: string | null;
+    }>();
+    const trackingNumber = order?.tracking_number_encrypted
+      ? await decryptSensitive(order.tracking_number_encrypted, config.dataKey).catch(() => null)
+      : null;
+    if (trackingNumber) return brandedTrackingDestination(config.storefrontDomain, trackingNumber);
+    const carrierUrl = order?.tracking_url_encrypted
+      ? await decryptSensitive(order.tracking_url_encrypted, config.dataKey).catch(() => null)
+      : null;
+    if (carrierUrl && /^https:\/\//i.test(carrierUrl)) return carrierUrl;
+    return staticLifecycleDestination(config.storefrontDomain, "post_purchase", 6)
+      ?? safeCompletedCheckoutDestination(config.storefrontDomain);
+  }
+  return staticLifecycleDestination(config.storefrontDomain, row.flow, row.email_number) ?? storedTarget;
+}
+
 async function handleClick(env: LifecycleEnv, token: string): Promise<Response> {
   if (!/^[A-Za-z0-9_-]{24,64}$/.test(token)) return new Response("Not found", { status: 404 });
   const row = await consumeClickToken(env.DB, token);
   if (!row) return new Response("Link expired", { status: 410 });
-  const target = await decryptSensitive(row.target_url, lifecycleConfig(env).dataKey);
+  const storedTarget = await decryptSensitive(row.target_url, lifecycleConfig(env).dataKey);
+  const currentTarget = await currentClickDestination(env, row, storedTarget);
+  const target = appendLifecycleUtm(currentTarget, row.flow, row.utm_content).url;
   const parsed = new URL(target);
   if (
     parsed.searchParams.get("utm_source") !== "resend"

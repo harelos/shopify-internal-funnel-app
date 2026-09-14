@@ -10,6 +10,7 @@ import {
   verifySvixSignature,
 } from "../src/crypto";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "../src/url";
+import { brandedTrackingDestination, staticLifecycleDestination } from "../src/lifecycle-links";
 
 test("UTMs preserve every original recovery query value and fragment", () => {
   const original = "https://jacobfelipe.myshopify.com/checkouts/cn/abc/recover?key=sensitive-token&locale=he&item=1&item=2#payment";
@@ -63,4 +64,33 @@ test("Shopify and Svix signatures validate raw payloads and reject tampering", a
 test("storefront URL allowlist parser rejects unsafe hosts and protocols", () => {
   assert.equal(safeStorefrontUrl("tigerbrandsglobal.com", "/pages/novahair-sales"), "https://tigerbrandsglobal.com/pages/novahair-sales");
   assert.throws(() => safeStorefrontUrl("tigerbrandsglobal.com/path", "/"));
+});
+
+test("lifecycle CTA matrix resolves each semantic email destination", () => {
+  const domain = "tigerbrandsglobal.com";
+  assert.equal(
+    staticLifecycleDestination(domain, "welcome", 5),
+    "https://tigerbrandsglobal.com/pages/novahair-shade-guide",
+  );
+  assert.equal(
+    staticLifecycleDestination(domain, "welcome", 3),
+    "https://tigerbrandsglobal.com/blogs/beauty-guide/novahair-instructions-how-to-use",
+  );
+  assert.equal(
+    staticLifecycleDestination(domain, "post_purchase", 1),
+    "https://tigerbrandsglobal.com/blogs/beauty-guide/novahair-instructions-how-to-use",
+  );
+  assert.equal(
+    staticLifecycleDestination(domain, "post_purchase", 6),
+    "https://tigerbrandsglobal.com/pages/contact",
+  );
+  assert.equal(staticLifecycleDestination(domain, "post_purchase", 3), null);
+  assert.equal(staticLifecycleDestination(domain, "abandoned_checkout", 1), null);
+});
+
+test("branded 17TRACK destination contains only the encoded per-order tracking number", () => {
+  const target = new URL(brandedTrackingDestination("tigerbrandsglobal.com", "CJ-12345"));
+  assert.equal(target.origin + target.pathname, "https://tigerbrandsglobal.com/apps/17TRACK");
+  assert.equal(target.searchParams.get("nums"), "CJ-12345");
+  assert.throws(() => brandedTrackingDestination("tigerbrandsglobal.com", "bad number & email@example.com"));
 });
