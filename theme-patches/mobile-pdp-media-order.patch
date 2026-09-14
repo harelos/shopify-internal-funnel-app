@@ -1,0 +1,50 @@
+--- assets/base.css (live)
++++ assets/base.css (patched)
+@@ -3606,11 +3606,15 @@
+   direction: rtl !important;
+   text-align: right !important;
+ }
+-.product__media-wrapper {
+-  order: 2 !important;
+-}
+-.product__info-wrapper {
+-  order: 1 !important;
++/* Product media/info order is a DESKTOP-only concern. Unscoped, these rules pushed the
++   product image below the entire info column on mobile. Scoped to >=750px. */
++@media screen and (min-width: 750px) {
++  .product__media-wrapper {
++    order: 2 !important;
++  }
++  .product__info-wrapper {
++    order: 1 !important;
++  }
+ }
+ 
+ 
+@@ -3632,14 +3636,18 @@
+   text-align: right !important;
+ }
+ 
+-.product__media-wrapper {
+-  order: 2 !important;
+-  float: right !important;
+-}
+-
+-.product__info-wrapper {
+-  order: 1 !important;
+-  float: right !important;
++/* Product media/info order is a DESKTOP-only concern. Unscoped, these rules pushed the
++   product image below the entire info column on mobile. Scoped to >=750px. */
++@media screen and (min-width: 750px) {
++  .product__media-wrapper {
++    order: 2 !important;
++    float: right !important;
++  }
++
++  .product__info-wrapper {
++    order: 1 !important;
++    float: right !important;
++  }
+ }
+ 
+ .grid, .product-grid, .card__content, .card-information {
