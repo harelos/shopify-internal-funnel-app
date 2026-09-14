@@ -227,3 +227,46 @@ No defects worth touching. The elements my scan flagged as overflowing are the
 closed cart drawer and menu submenu parked off-canvas, which is correct behaviour.
 The handful of small tap targets are shared header and footer links, not page
 content. **Recommendation: leave both pages alone.**
+
+---
+
+# Truthful savings — 14 Sep 2026
+
+Auditing every live product's pricing exposed a bug in this section and a broader
+honesty problem.
+
+## The bug: millilitres were being counted as bottles
+
+The unit parser summed every number it found. On Copper Peptide that meant:
+
+| Variant | Parser read | Printed | Reality |
+|---|---|---|---|
+| `מארז זוגי 1+1 (60 מ"ל)` | 1+1+60 = **62** | ₪2.26/unit, "97% off" | 2 bottles |
+| `מארז 3 בקבוקים 2+1 חינם (90 מ"ל)` | 3+2+1+90 = **96** | ₪1.89/unit, "98% off" | 3 bottles |
+
+Fixed. The parser now drops anything in brackets (a volume, not a count), ignores
+values that only state a volume, and when the value already names its own count
+(`3 בקבוקים 2+1 חינם`) that stated count wins over the promo arithmetic.
+
+## The honesty problem: savings were measured against compare-at
+
+A compare-at price is only meaningful if it was genuinely charged. Two changes:
+
+**Pack badges now measure the real thing.** The saving is computed against what she
+would pay buying the smallest pack repeatedly, using only this product's own
+prices. True by construction.
+
+| | Was (vs compare-at) | Now (vs real单 price) |
+|---|---|---|
+| OCEAURA 2+2 | 40% | **20%** |
+| OCEAURA 3+3 | 43% | **31%** |
+| Copper 1+1 | 31% | **15%** |
+| Copper 3-pack | 37% | **26%** |
+
+**Crossed-out prices are off by default.** The strikethrough and the `% off` badge
+now render only when the product has `nova.compare_at_verified` ticked, a new
+boolean metafield. Unset means no crossed-out price anywhere on the page. Tick it
+only on products where the higher price was really charged.
+
+Verified on the preview: OCEAURA shows 20% / 31% with no strikethrough, Copper
+Peptide shows ₪70.15 and ₪60.62 per bottle at 15% / 26%.

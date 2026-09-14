@@ -177,9 +177,17 @@
         {%- endif -%}
 
         {%- liquid
+          comment
+            A crossed-out price and a "% off" badge are only honest if the
+            compare-at price was genuinely charged at some point. Shopify cannot
+            know that, so the owner confirms it per product with the
+            nova.compare_at_verified metafield. Unset means no crossed-out price
+            and no percentage, which is the safe default.
+          endcomment
           assign v = p.selected_or_first_available_variant
+          assign cap_ok = p.metafields.nova.compare_at_verified.value
           assign show_was = false
-          if v.compare_at_price > v.price
+          if v.compare_at_price > v.price and cap_ok
             assign show_was = true
           endif
         -%}
@@ -243,6 +251,53 @@
 
               {%- if oi == ladder_index -%}
                 {%- comment -%} ---- pack ladder ---- {%- endcomment -%}
+                {%- comment -%}
+                  Baseline pass. The honest saving on a multi-pack is not the
+                  gap to a compare-at price, it is what she would pay buying the
+                  smallest pack over and over. That comparison uses only this
+                  product's own real prices, so it is true by construction.
+                {%- endcomment -%}
+                {%- liquid
+                  assign base_per = 0
+                  assign base_units = 0
+                  for value in option.values
+                    assign clean = value | split: '(' | first
+                    assign is_volume = false
+                    if clean contains 'מ"ל' or clean contains 'מ״ל' or clean contains 'ml' or clean contains 'גרם'
+                      assign is_volume = true
+                    endif
+                    assign has_bottle_noun = false
+                    if clean contains 'בקבוק' or clean contains 'יחיד'
+                      assign has_bottle_noun = true
+                    endif
+                    assign u = 0
+                    unless is_volume
+                      assign parts = clean | replace: '+', ' + ' | split: ' '
+                      for w in parts
+                        assign n = w | times: 1
+                        if n > 0
+                          if clean contains '+' and has_bottle_noun == false
+                            assign u = u | plus: n
+                          elsif u == 0
+                            assign u = n
+                          endif
+                        endif
+                      endfor
+                    endunless
+                    if u > 0
+                      for cand in p.variants
+                        if cand.options[oi] == value
+                          assign cand_per = cand.price | divided_by: u
+                          if base_units == 0 or u < base_units
+                            assign base_units = u
+                            assign base_per = cand_per
+                          endif
+                          break
+                        endif
+                      endfor
+                    endif
+                  endfor
+                -%}
                 <div class="nova-opt">
                   <div class="nova-opt__label">{{ option.name }}</div>
                   <div class="nova-packs">
@@ -257,28 +312,51 @@
                         endfor
 
                         comment
-                          How many units are in this pack? An Israeli "2+2" means
-                          two paid plus two free, so the pack holds four and the
-                          numbers must be summed. "בקבוק 2" holds two, so there
-                          the first number is the answer. Getting this wrong
-                          prints a per-unit price that is not true.
+                          How many real units are in this pack?
+                          Anything in brackets is a volume, not a count, so it is
+                          dropped first: "מארז זוגי 1+1 (60 מ״ל)" is two bottles,
+                          not sixty two. A value that only states a volume, like
+                          "בקבוק 100 מ״ל", has no countable unit at all.
+                          "2+2" is two paid plus two free, so the numbers are
+                          summed to four. But when the value already names the
+                          count itself, as in "3 בקבוקים 2+1 חינם", that stated
+                          count wins and the promo maths is ignored: it is three
+                          bottles, not six.
                         endcomment
-                        assign units = 0
-                        assign words = value | replace: '+', ' + ' | split: ' '
-                        assign summing = false
-                        if value contains '+'
-                          assign summing = true
+                        assign clean = value | split: '(' | first
+                        assign is_volume = false
+                        if clean contains 'מ"ל' or clean contains 'מ״ל' or clean contains 'ml' or clean contains 'גרם'
+                          assign is_volume = true
                         endif
-                        for w in words
-                          assign n = w | times: 1
-                          if n > 0
-                            if summing
-                              assign units = units | plus: n
-                            elsif units == 0
-                              assign units = n
+                        assign has_bottle_noun = false
+                        if clean contains 'בקבוק' or clean contains 'יחיד'
+                          assign has_bottle_noun = true
+                        endif
+                        assign units = 0
+                        unless is_volume
+                          assign words = clean | replace: '+', ' + ' | split: ' '
+                          for w in words
+                            assign n = w | times: 1
+                            if n > 0
+                              if clean contains '+' and has_bottle_noun == false
+                                assign units = units | plus: n
+                              elsif units == 0
+                                assign units = n
+                              endif
                             endif
+                          endfor
+                        endunless
+
+                        comment
+                          True saving against buying the smallest pack repeatedly.
+                        endcomment
+                        assign true_pct = 0
+                        if match and units > base_units and base_per > 0
+                          assign would_pay = base_per | times: units
+                          if would_pay > match.price
+                            assign true_pct = would_pay | minus: match.price | times: 100.0 | divided_by: would_pay | round
                           endif
-                        endfor
+                        endif
                       -%}
                       <label class="nova-pack">
                         <input
@@ -292,9 +370,14 @@
                           <span class="nova-pack__main">
                             <span class="nova-pack__name">
                               {{ value }}
-                              {%- if match and match.compare_at_price > match.price -%}
-                                {%- assign pp = match.compare_at_price | minus: match.price | times: 100.0 | divided_by: match.compare_at_price | round -%}
-                                <span class="nova-pack__tag nova-pack__tag--save">{{ section.settings.save_prefix }} {{ pp }}%</span>
+                              {%- comment -%}
+                                The badge reports the true saving against this
+                                product's own smallest pack, not a compare-at
+                                price. Smaller number, but one that survives
+                                a customer checking it.
+                              {%- endcomment -%}
+                              {%- if true_pct > 0 -%}
+                                <span class="nova-pack__tag nova-pack__tag--save">{{ section.settings.save_prefix }} {{ true_pct }}%</span>
                               {%- endif -%}
                             </span>
                             {%- if match and units > 1 -%}
@@ -306,7 +389,7 @@
                           {%- if match -%}
                             <span class="nova-pack__price">
                               <span class="nova-pack__now">{{ match.price | money }}</span>
-                              {%- if match.compare_at_price > match.price -%}
+                              {%- if match.compare_at_price > match.price and cap_ok -%}
                                 <s class="nova-pack__was">{{ match.compare_at_price | money }}</s>
                               {%- endif -%}
                             </span>
@@ -597,8 +680,8 @@
             "available": {{ var.available }},
             "url": {{ var.url | json }},
             "price": {{ var.price | money | strip_html | json }},
-            "compare_at": {% if var.compare_at_price > var.price %}{{ var.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
-            "save_badge": {% if var.compare_at_price > var.price %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
+            "compare_at": {% if var.compare_at_price > var.price and cap_ok %}{{ var.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
+            "save_badge": {% if var.compare_at_price > var.price and cap_ok %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
             "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %},
             "low_stock": {% if var.inventory_management != blank and var.inventory_policy == 'deny' and var.inventory_quantity > 0 and var.inventory_quantity <= section.settings.low_stock_threshold %}{{ section.settings.low_stock_text | replace: '[n]', var.inventory_quantity | json }}{% else %}null{% endif %}
           }{%- unless forloop.last -%},{%- endunless -%}
