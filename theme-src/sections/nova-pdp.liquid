@@ -170,7 +170,24 @@
           </div>
         {%- endif -%}
 
-        <h1 class="nova-title">{{ p.title | escape }}</h1>
+        {%- comment -%}
+          Titles in this catalogue are written "BRAND — product name" with an em
+          dash. That dash reads as machine-written, and it also forces the H1
+          onto a second line on a phone. Splitting on it lifts the brand into a
+          small eyebrow and leaves the H1 short enough to sit on one line, with
+          no dash anywhere and no words rewritten.
+        {%- endcomment -%}
+        {%- assign name_parts = p.title | split: ' — ' -%}
+        {%- if name_parts.size < 2 -%}
+          {%- assign name_parts = p.title | split: ' - ' -%}
+        {%- endif -%}
+        {%- if name_parts.size > 1 -%}
+          <p class="nova-brand">{{ name_parts[0] | strip | escape }}</p>
+          {%- assign name_rest = name_parts | slice: 1, 9 | join: ' ' -%}
+          <h1 class="nova-title">{{ name_rest | strip | escape }}</h1>
+        {%- else -%}
+          <h1 class="nova-title">{{ p.title | escape }}</h1>
+        {%- endif -%}
 
         {%- if sub != blank -%}
           <p class="nova-sub">{{ sub }}</p>
@@ -193,9 +210,9 @@
         -%}
 
         <div class="nova-price">
-          <span class="nova-price__now" data-nova-price-now>{{ v.price | money }}</span>
+          <span class="nova-price__now" data-nova-price-now>{% render 'nova-money', cents: v.price, symbol: section.settings.currency_symbol %}</span>
           <s class="nova-price__was" data-nova-price-was {% unless show_was %}hidden{% endunless %}>
-            {%- if show_was %}{{ v.compare_at_price | money }}{% endif -%}
+            {%- if show_was %}{% render 'nova-money', cents: v.compare_at_price, symbol: section.settings.currency_symbol %}{% endif -%}
           </s>
           <span class="nova-price__save" data-nova-price-save {% unless show_was %}hidden{% endunless %}>
             {%- if show_was -%}
@@ -382,15 +399,16 @@
                             </span>
                             {%- if match and units > 1 -%}
                               <span class="nova-pack__note">
-                                {{ match.price | divided_by: units | money }} {{ section.settings.per_unit_label }}
+                                {%- assign unit_price = match.price | divided_by: units -%}
+                                {% render 'nova-money', cents: unit_price, symbol: section.settings.currency_symbol %} {{ section.settings.per_unit_label }}
                               </span>
                             {%- endif -%}
                           </span>
                           {%- if match -%}
                             <span class="nova-pack__price">
-                              <span class="nova-pack__now">{{ match.price | money }}</span>
+                              <span class="nova-pack__now">{% render 'nova-money', cents: match.price, symbol: section.settings.currency_symbol %}</span>
                               {%- if match.compare_at_price > match.price and cap_ok -%}
-                                <s class="nova-pack__was">{{ match.compare_at_price | money }}</s>
+                                <s class="nova-pack__was">{% render 'nova-money', cents: match.compare_at_price, symbol: section.settings.currency_symbol %}</s>
                               {%- endif -%}
                             </span>
                           {%- endif -%}
@@ -644,9 +662,9 @@
   {%- comment -%} ---------- STICKY BUY BAR ---------- {%- endcomment -%}
   <div class="nova-sticky" data-nova-sticky>
     <span class="nova-sticky__price">
-      <span class="nova-sticky__now" data-nova-sticky-now>{{ v.price | money }}</span>
+      <span class="nova-sticky__now" data-nova-sticky-now>{% render 'nova-money', cents: v.price, symbol: section.settings.currency_symbol %}</span>
       <s class="nova-sticky__was" data-nova-sticky-was {% unless show_was %}hidden{% endunless %}>
-        {%- if show_was %}{{ v.compare_at_price | money }}{% endif -%}
+        {%- if show_was %}{% render 'nova-money', cents: v.compare_at_price, symbol: section.settings.currency_symbol %}{% endif -%}
       </s>
     </span>
     <button
@@ -679,8 +697,8 @@
             "options": {{ var.options | json }},
             "available": {{ var.available }},
             "url": {{ var.url | json }},
-            "price": {{ var.price | money | strip_html | json }},
-            "compare_at": {% if var.compare_at_price > var.price and cap_ok %}{{ var.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
+            "price": {% capture m_now %}{% render 'nova-money', cents: var.price, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_now | strip_html | strip | json }},
+            "compare_at": {% if var.compare_at_price > var.price and cap_ok %}{% capture m_was %}{% render 'nova-money', cents: var.compare_at_price, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_was | strip_html | strip | json }}{% else %}null{% endif %},
             "save_badge": {% if var.compare_at_price > var.price and cap_ok %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
             "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %},
             "low_stock": {% if var.inventory_management != blank and var.inventory_policy == 'deny' and var.inventory_quantity > 0 and var.inventory_quantity <= section.settings.low_stock_threshold %}{{ section.settings.low_stock_text | replace: '[n]', var.inventory_quantity | json }}{% else %}null{% endif %}
@@ -758,6 +776,13 @@
       "id": "per_unit_label",
       "default": "ליחידה",
       "label": "Per unit label"
+    },
+    {
+      "type": "text",
+      "id": "currency_symbol",
+      "default": "₪",
+      "label": "Currency symbol",
+      "info": "Printed before the amount. Leave empty to use the shop money format, which currently prints 130.18 NIS rather than ₪130.18."
     },
     {
       "type": "text",

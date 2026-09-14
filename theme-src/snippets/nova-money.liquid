@@ -1,0 +1,19 @@
+{%- comment -%}
+  nova-money.liquid
+
+  Renders a price with a real currency symbol.
+
+  The shop's money format is still "{{amount}} NIS", which prints "130.18 NIS"
+  instead of "₪130.18". That setting lives in Settings > General and has no
+  Admin API, so until it is changed by hand this snippet puts the correct symbol
+  on the product page rather than waiting.
+
+  Pass `symbol` blank to fall back to the shop's own format.
+
+  Usage: {% render 'nova-money', cents: variant.price, symbol: '₪' %}
+{%- endcomment -%}
+{%- if symbol != blank -%}
+  {{- symbol }}{{ cents | money_without_currency -}}
+{%- else -%}
+  {{- cents | money -}}
+{%- endif -%}

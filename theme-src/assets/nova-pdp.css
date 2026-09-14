@@ -28,7 +28,8 @@
   text-align: right;
   background: var(--nh-white);
   color: var(--nh-text);
-  font-size: 16px;
+  /* Typography floor: mobile body sits at 17-19px. 16 was under it. */
+  font-size: 17px;
   line-height: 1.6;
   padding-bottom: 92px; /* clearance for the sticky bar */
 }
@@ -162,38 +163,58 @@
 .nova-rating { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--nh-text-soft); }
 .nova-rating__stars { color: var(--nh-gold); letter-spacing: 1px; font-size: 13px; }
 
-.nova-title {
-  font-size: 23px;
-  line-height: 1.32;
-  font-weight: 700;
-  margin: 0 0 8px;
-  color: var(--nh-espresso);
-  letter-spacing: -0.01em;
+/* Brand sits above the name as a quiet eyebrow, so the H1 carries only the
+   product and can hold one line on a phone. No dash anywhere. */
+.nova-brand {
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nh-muted);
+  margin: 0 0 6px;
+  font-weight: 600;
 }
-@media screen and (min-width: 750px) { .nova-title { font-size: 28px; } }
 
-.nova-sub { font-size: 14.5px; line-height: 1.62; color: var(--nh-text-soft); margin: 0 0 16px; }
+.nova-title {
+  /* Scales with the viewport instead of wrapping. At 375px this lands near
+     20px, which keeps a typical product name on a single line. */
+  font-size: clamp(20px, 5.4vw, 28px);
+  line-height: 1.25;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--nh-espresso);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.nova-sub { font-size: 15px; line-height: 1.6; color: var(--nh-text-soft); margin: 0 0 16px; }
 
 /* --- price --------------------------------------------------------------- */
-.nova-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 9px; margin-bottom: 4px; }
-.nova-price__now { font-size: 26px; font-weight: 700; color: var(--nh-espresso); }
-.nova-price__was { font-size: 15px; color: var(--nh-muted); text-decoration: line-through; }
-.nova-price__save { background: var(--nh-good); color: #fff; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 2px; }
-.nova-price__note { font-size: 12px; color: var(--nh-muted); margin: 0 0 18px; }
+.nova-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+.nova-price__now {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--nh-espresso);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  /* The symbol and the amount are one unit and must never split. */
+  white-space: nowrap;
+}
+.nova-price__was { font-size: 15px; color: var(--nh-muted); text-decoration: line-through; white-space: nowrap; }
+.nova-price__save { background: var(--nh-good); color: #fff; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 2px; white-space: nowrap; }
+.nova-price__note { font-size: 12.5px; color: var(--nh-muted); margin: 0 0 16px; }
 
 /* --- delivery window, stock, payment, policies --------------------------- */
+/* Quiet line, not a boxed panel. A bordered tinted card here competes with the
+   pack ladder and the CTA for attention it does not need. */
 .nova-deliver {
   display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  font-size: 12.5px;
-  line-height: 1.5;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--nh-text-soft);
-  background: var(--nh-sand);
-  border: 1px solid var(--nh-border);
-  border-radius: 3px;
-  padding: 9px 11px;
-  margin: 0 0 16px;
+  padding: 0;
+  margin: 0 0 18px;
 }
 .nova-deliver svg { width: 17px; height: 17px; flex: none; color: var(--nh-bronze); margin-top: 1px; }
 .nova-deliver b { color: var(--nh-espresso); font-weight: 700; white-space: nowrap; }
@@ -222,10 +243,11 @@
 .nova-swatch { position: relative; }
 .nova-swatch input { position: absolute; opacity: 0; width: 0; height: 0; }
 
+/* Touch target floor: 44px minimum for a standalone control. */
 .nova-swatch__dot {
   display: block;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--nh-white);
   box-shadow: 0 0 0 1px var(--nh-border);
@@ -243,10 +265,10 @@
 .nova-pill input { position: absolute; opacity: 0; width: 0; height: 0; }
 .nova-pill__label {
   display: block;
-  padding: 9px 15px;
+  padding: 11px 16px;
   border: 1px solid var(--nh-border);
   border-radius: 3px;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   background: var(--nh-white);
   color: var(--nh-text);
@@ -279,24 +301,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 13px 14px;
   cursor: pointer;
   background: var(--nh-white);
   border-inline-start: 3px solid transparent;
+  min-height: 56px;
 }
 .nova-pack input:checked + .nova-pack__body { background: var(--nh-bronze-soft); border-inline-start-color: var(--nh-bronze); }
 .nova-pack input:focus-visible + .nova-pack__body { outline: 2px solid var(--nh-bronze); outline-offset: -2px; }
 .nova-pack input:disabled + .nova-pack__body { opacity: 0.45; cursor: not-allowed; }
 
 .nova-pack__main { min-width: 0; }
-.nova-pack__name { font-size: 14px; font-weight: 700; color: var(--nh-espresso); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.nova-pack__note { font-size: 11.5px; color: var(--nh-muted); margin-top: 2px; }
+.nova-pack__name { font-size: 14.5px; font-weight: 700; color: var(--nh-espresso); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nova-pack__note { font-size: 12px; color: var(--nh-muted); margin-top: 2px; }
 .nova-pack__tag { background: var(--nh-espresso); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 2px; font-weight: 700; }
 .nova-pack__tag--save { background: var(--nh-good); }
 
 .nova-pack__price { text-align: left; white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
-.nova-pack__now { font-size: 15px; font-weight: 700; color: var(--nh-espresso); display: block; }
-.nova-pack__was { font-size: 11.5px; color: var(--nh-muted); text-decoration: line-through; display: block; }
+.nova-pack__now { font-size: 16px; font-weight: 700; color: var(--nh-espresso); display: block; }
+.nova-pack__was { font-size: 12px; color: var(--nh-muted); text-decoration: line-through; display: block; }
 .nova-pack__unit { font-size: 11px; color: var(--nh-text-soft); display: block; margin-top: 1px; }
 
 /* --- CTA ----------------------------------------------------------------- */
@@ -308,15 +331,21 @@
   border: 0;
   border-radius: 3px;
   padding: 15px 18px;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   text-align: center;
   line-height: 1.3;
+  min-height: 48px;
+  /* A primary commerce CTA must never wrap, clip or hyphenate. */
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
   transition: background 0.15s ease;
 }
 .nova-cta:hover:not(:disabled) { background: var(--nh-bronze-dark); }
+.nova-cta:active:not(:disabled) { background: var(--nh-bronze-dark); transform: translateY(1px); }
 .nova-cta:focus-visible { outline: 3px solid var(--nh-espresso); outline-offset: 2px; }
 .nova-cta:disabled { background: var(--nh-muted); cursor: not-allowed; }
 
@@ -325,9 +354,9 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px 12px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--nh-text-soft);
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -355,15 +384,15 @@
 @media screen and (min-width: 750px) { .nova-sticky { display: none; } }
 
 .nova-sticky__price { flex: none; font-variant-numeric: tabular-nums; }
-.nova-sticky__now { font-size: 16px; font-weight: 700; color: var(--nh-espresso); display: block; line-height: 1.2; }
+.nova-sticky__now { font-size: 17px; font-weight: 700; color: var(--nh-espresso); display: block; line-height: 1.2; white-space: nowrap; }
 .nova-sticky__was { font-size: 11px; color: var(--nh-muted); text-decoration: line-through; }
-.nova-sticky .nova-cta { padding: 12px 14px; font-size: 14.5px; }
+.nova-sticky .nova-cta { padding: 12px 16px; font-size: 15px; }
 
 /* --- content sections ---------------------------------------------------- */
 .nova-sec { padding: 30px 0; border-top: 1px solid var(--nh-border); }
 .nova-sec--sand { background: var(--nh-sand); }
 .nova-sec__eyebrow { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--nh-bronze-dark); margin: 0 0 6px; font-weight: 700; }
-.nova-sec__title { font-size: 19px; line-height: 1.34; font-weight: 700; color: var(--nh-espresso); margin: 0 0 14px; }
+.nova-sec__title { font-size: 20px; line-height: 1.3; font-weight: 700; color: var(--nh-espresso); margin: 0 0 14px; text-wrap: balance; }
 @media screen and (min-width: 750px) { .nova-sec__title { font-size: 23px; } }
 
 /* routine steps */
@@ -375,23 +404,24 @@
   background: var(--nh-bronze); color: #fff;
   display: grid; place-items: center; font-size: 12.5px; font-weight: 700;
 }
-.nova-step__t { font-size: 13.5px; font-weight: 700; color: var(--nh-espresso); margin: 0 0 2px; }
-.nova-step__d { font-size: 12.5px; color: var(--nh-text-soft); margin: 0; line-height: 1.55; }
+.nova-step__t { font-size: 14px; font-weight: 700; color: var(--nh-espresso); margin: 0 0 2px; }
+.nova-step__d { font-size: 13px; color: var(--nh-text-soft); margin: 0; line-height: 1.55; }
 
 /* collapsibles */
 .nova-acc { border-top: 1px solid var(--nh-border); }
 .nova-acc__item { border-bottom: 1px solid var(--nh-border); }
 .nova-acc__item > summary {
-  list-style: none; cursor: pointer; padding: 14px 2px;
-  font-size: 14.5px; font-weight: 700; color: var(--nh-espresso);
+  list-style: none; cursor: pointer; padding: 15px 2px;
+  font-size: 15px; font-weight: 700; color: var(--nh-espresso);
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 48px;
 }
 .nova-acc__item > summary::-webkit-details-marker { display: none; }
 .nova-acc__item > summary::after {
   content: '+'; font-weight: 400; font-size: 20px; color: var(--nh-bronze); flex: none; line-height: 1;
 }
 .nova-acc__item[open] > summary::after { content: '\2212'; }
-.nova-acc__body { padding: 0 2px 16px; font-size: 14px; line-height: 1.7; color: var(--nh-text-soft); }
+.nova-acc__body { padding: 0 2px 16px; font-size: 15px; line-height: 1.7; color: var(--nh-text-soft); }
 .nova-acc__body > *:first-child { margin-top: 0; }
 .nova-acc__body > *:last-child { margin-bottom: 0; }
 .nova-acc__body img { max-width: 100%; height: auto; }
