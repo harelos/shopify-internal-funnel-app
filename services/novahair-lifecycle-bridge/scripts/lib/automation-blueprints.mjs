@@ -27,7 +27,7 @@ function ctaSchema(count, single = false) {
 export const EVENT_DEFINITIONS = [
   {
     name: "shopify.checkout_abandoned",
-    schema: { ...COMMON_SCHEMA, checkout_id: "string", customer_id: "string", first_name: "string", email_number: "number", ...MERCHANDISE_SCHEMA, ...ctaSchema(1, true) },
+    schema: { ...COMMON_SCHEMA, checkout_id: "string", customer_id: "string", first_name: "string", email_number: "number", secondary_cta_url: "string", ...MERCHANDISE_SCHEMA, ...ctaSchema(1, true) },
   },
   { name: "shopify.checkout_recovered", schema: { ...COMMON_SCHEMA, checkout_id: "string", customer_id: "string" } },
   { name: "shopify.purchase_completed", schema: { ...COMMON_SCHEMA, checkout_id: "string", order_id: "string", customer_id: "string", first_name: "string", ...MERCHANDISE_SCHEMA } },
@@ -65,16 +65,20 @@ function templateConfig(flow, number, checkoutRouting = false) {
       reply_to: "__RESEND_REPLY_TO__",
     };
   }
+  const variables = {
+    CUSTOMER_NAME: { var: "event.first_name" },
+    CTA_URL: { var: checkoutRouting ? "event.cta_url" : `event.cta_url_e${suffix}` },
+    PRODUCT_NAME: { var: "event.product_name" },
+    VARIANT: { var: "event.variant" },
+    BUNDLE: { var: "event.bundle" },
+  };
+  if (flow === "abandoned_checkout" && (number === 4 || number === 8)) {
+    variables.SECONDARY_CTA_URL = { var: "event.secondary_cta_url" };
+  }
   return {
     template: {
       id: `novahair_${flow}_e${suffix}`,
-      variables: {
-        CUSTOMER_NAME: { var: "event.first_name" },
-        CTA_URL: { var: checkoutRouting ? "event.cta_url" : `event.cta_url_e${suffix}` },
-        PRODUCT_NAME: { var: "event.product_name" },
-        VARIANT: { var: "event.variant" },
-        BUNDLE: { var: "event.bundle" },
-      },
+      variables,
     },
     from: "__RESEND_FROM__",
     reply_to: "__RESEND_REPLY_TO__",

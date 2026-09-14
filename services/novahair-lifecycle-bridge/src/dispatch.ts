@@ -11,7 +11,7 @@ import {
   setHealth,
 } from "./db";
 import { emailSpec, FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
-import { brandedTrackingDestination, staticLifecycleDestination } from "./lifecycle-links";
+import { brandedTrackingDestination, secondaryLifecycleDestination, staticLifecycleDestination } from "./lifecycle-links";
 import { noteDispatchFailure, sendLifecycleEvent } from "./resend";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "./url";
 import type {
@@ -288,6 +288,18 @@ async function checkoutEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Pro
     isTest,
   });
   payload.cta_url = ctaUrl;
+  if (row.email_number === 4 || row.email_number === 8) {
+    const secondaryKey = row.email_number === 4 ? "howTo" : "shippingPolicy";
+    const secondaryTarget = secondaryLifecycleDestination(
+      lifecycleConfig(env).storefrontDomain,
+      secondaryKey,
+    );
+    payload.secondary_cta_url = appendLifecycleUtm(
+      secondaryTarget,
+      "abandoned_checkout",
+      `e${String(row.email_number).padStart(2, "0")}-secondary`,
+    ).url;
+  }
   return {
     flow: "abandoned_checkout",
     emailNumber: row.email_number,

@@ -10,7 +10,7 @@ import {
   verifySvixSignature,
 } from "../src/crypto";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "../src/url";
-import { brandedTrackingDestination, staticLifecycleDestination } from "../src/lifecycle-links";
+import { brandedTrackingDestination, secondaryLifecycleDestination, staticLifecycleDestination } from "../src/lifecycle-links";
 
 test("UTMs preserve every original recovery query value and fragment", () => {
   const original = "https://jacobfelipe.myshopify.com/checkouts/cn/abc/recover?key=sensitive-token&locale=he&item=1&item=2#payment";
@@ -86,6 +86,24 @@ test("lifecycle CTA matrix resolves each semantic email destination", () => {
   );
   assert.equal(staticLifecycleDestination(domain, "post_purchase", 3), null);
   assert.equal(staticLifecycleDestination(domain, "abandoned_checkout", 1), null);
+});
+
+test("welcome E07 button label matches its destination page", () => {
+  assert.equal(
+    staticLifecycleDestination("tigerbrandsglobal.com", "welcome", 7),
+    "https://tigerbrandsglobal.com/pages/novahair-shade-guide",
+  );
+});
+
+test("secondary lifecycle destinations resolve to the honest storefront pages", () => {
+  assert.equal(
+    secondaryLifecycleDestination("tigerbrandsglobal.com", "howTo"),
+    "https://tigerbrandsglobal.com/blogs/beauty-guide/novahair-instructions-how-to-use",
+  );
+  assert.equal(
+    secondaryLifecycleDestination("tigerbrandsglobal.com", "shippingPolicy"),
+    "https://tigerbrandsglobal.com/policies/shipping-policy",
+  );
 });
 
 test("branded 17TRACK destination contains only the encoded per-order tracking number", () => {

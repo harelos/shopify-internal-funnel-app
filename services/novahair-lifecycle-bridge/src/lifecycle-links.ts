@@ -9,6 +9,8 @@ const PATHS = {
   howTo: "/blogs/beauty-guide/novahair-instructions-how-to-use",
   contact: "/pages/contact",
   tracking: "/apps/17TRACK",
+  shippingPolicy: "/policies/shipping-policy",
+  refundPolicy: "/policies/refund-policy",
 } as const;
 
 const STATIC_DESTINATIONS: Partial<Record<LifecycleFlow, Record<number, keyof typeof PATHS>>> = {
@@ -19,7 +21,7 @@ const STATIC_DESTINATIONS: Partial<Record<LifecycleFlow, Record<number, keyof ty
     4: "sales",
     5: "shadeGuide",
     6: "sales",
-    7: "faq",
+    7: "shadeGuide",
     8: "howTo",
     9: "productInfo",
     10: "sales",
@@ -72,4 +74,11 @@ export function brandedTrackingDestination(storefrontDomain: string, trackingNum
 
 export function safeCompletedCheckoutDestination(storefrontDomain: string): string {
   return safeStorefrontUrl(storefrontDomain, PATHS.sales);
+}
+
+export function secondaryLifecycleDestination(
+  storefrontDomain: string,
+  key: keyof typeof PATHS,
+): string {
+  return safeStorefrontUrl(storefrontDomain, PATHS[key]);
 }

@@ -99,6 +99,7 @@ export interface NormalizedLifecyclePayload {
   customer_id?: string;
   first_name?: string;
   cta_url?: string;
+  secondary_cta_url?: string;
   tracking_number?: string;
   product_name?: string;
   product_image?: string;

@@ -58,14 +58,25 @@ test("approved subject, preview, copy, and CTA are retained", () => {
   }
 });
 
-test("all customer-facing commercial links resolve only through CTA_URL", () => {
+test("all customer-facing commercial links resolve only through approved template variables", () => {
+  const SECONDARY_ALLOWED = new Set([
+    "novahair_abandoned_checkout_e04",
+    "novahair_abandoned_checkout_e08",
+  ]);
+  const APPROVED = new Set(["{{{CTA_URL}}}", "{{{RESEND_UNSUBSCRIBE_URL}}}"]);
   for (const template of manifest.templates) {
     const hrefs = [...template.html.matchAll(/href="([^"]+)"/g)].map(match => match[1]);
     assert.ok(hrefs.length >= 1);
+    const allowed = new Set(APPROVED);
+    if (SECONDARY_ALLOWED.has(template.alias)) allowed.add("{{{SECONDARY_CTA_URL}}}");
     for (const href of hrefs) {
-      assert.ok(["{{{CTA_URL}}}", "{{{RESEND_UNSUBSCRIBE_URL}}}"].includes(href), `${template.alias}: ${href}`);
+      assert.ok(allowed.has(href), `${template.alias}: ${href}`);
     }
   }
+  const e04 = manifest.templates.find(t => t.alias === "novahair_abandoned_checkout_e04")!;
+  assert.match(e04.html, /href="\{\{\{SECONDARY_CTA_URL\}\}\}"/);
+  const e08 = manifest.templates.find(t => t.alias === "novahair_abandoned_checkout_e08")!;
+  assert.match(e08.html, /href="\{\{\{SECONDARY_CTA_URL\}\}\}"/);
 });
 
 test("V2 shipment drafts use a dedicated tracking destination rather than a generic commercial CTA", async () => {
