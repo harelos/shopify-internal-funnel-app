@@ -181,6 +181,37 @@
 .nova-price__save { background: var(--nh-good); color: #fff; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 2px; }
 .nova-price__note { font-size: 12px; color: var(--nh-muted); margin: 0 0 18px; }
 
+/* --- delivery window, stock, payment, policies --------------------------- */
+.nova-deliver {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--nh-text-soft);
+  background: var(--nh-sand);
+  border: 1px solid var(--nh-border);
+  border-radius: 3px;
+  padding: 9px 11px;
+  margin: 0 0 16px;
+}
+.nova-deliver svg { width: 17px; height: 17px; flex: none; color: var(--nh-bronze); margin-top: 1px; }
+.nova-deliver b { color: var(--nh-espresso); font-weight: 700; white-space: nowrap; }
+
+.nova-low {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nh-bronze-dark);
+  margin: 0 0 10px;
+}
+
+.nova-pay { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.nova-pay__icon { height: 22px; width: auto; display: block; }
+
+.nova-policy { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; margin: 10px 0 0; font-size: 12px; }
+.nova-policy a { color: var(--nh-text-soft); text-decoration: underline; text-underline-offset: 2px; }
+.nova-policy a:hover { color: var(--nh-espresso); }
+
 /* --- option / shade picker ----------------------------------------------- */
 .nova-opt { margin-bottom: 18px; }
 .nova-opt__label { font-size: 13px; font-weight: 700; color: var(--nh-espresso); margin-bottom: 8px; display: flex; gap: 6px; }

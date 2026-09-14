@@ -63,6 +63,17 @@
   assign rating = p.metafields.nova.rating.value
   assign rating_count = p.metafields.nova.rating_count.value
   assign form_id = 'nova-form-' | append: section.id
+
+  comment
+    Delivery window. Baymard's Consideration & Purchase study found 60% of users
+    look for the return policy on the product page itself, and hiding delivery
+    and shipping cost until checkout is one of the best documented causes of
+    abandonment. These are calendar days from today and are labelled as an
+    estimate, not a promise.
+  endcomment
+  assign today = 'now' | date: '%s' | plus: 0
+  assign ship_from = section.settings.ship_min_days | times: 86400 | plus: today | date: '%-d.%-m'
+  assign ship_to = section.settings.ship_max_days | times: 86400 | plus: today | date: '%-d.%-m'
 -%}
 
 <div class="nova-pdp" data-nova-pdp id="nova-pdp-{{ section.id }}">
@@ -187,6 +198,24 @@
         </div>
         {%- if section.settings.price_note != blank -%}
           <p class="nova-price__note">{{ section.settings.price_note }}</p>
+        {%- endif -%}
+
+        {%- comment -%}
+          Delivery and shipping-cost clarity, in the buy box rather than buried
+          in a banner or left to checkout.
+        {%- endcomment -%}
+        {%- if section.settings.show_delivery and section.settings.ship_max_days > 0 -%}
+          <p class="nova-deliver">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M1.8 5.2h9.4v8.3H1.8z" /><path d="M11.2 8h3.3l2.7 2.7v2.8h-6z" />
+              <circle cx="5.6" cy="15.1" r="1.6" /><circle cx="14.1" cy="15.1" r="1.6" />
+            </svg>
+            <span>
+              {{ section.settings.delivery_label }}
+              <b>{{ ship_from }} {{ section.settings.delivery_to_word }} {{ ship_to }}</b>
+              {%- if section.settings.free_ship_note != blank %} · {{ section.settings.free_ship_note }}{% endif -%}
+            </span>
+          </p>
         {%- endif -%}
 
         {%- if chips != blank -%}
@@ -368,6 +397,16 @@
             <p class="nova-soldout">{{ section.settings.soldout_note }}</p>
           {%- endunless -%}
 
+          {%- comment -%}
+            Honest low stock only. This reads the real tracked inventory of the
+            selected variant and stays hidden unless it is genuinely at or below
+            the threshold. It is not a countdown and there is no invented number:
+            with CJ stock in the thousands this line simply never appears, which
+            is the correct behaviour. Fake scarcity measurably costs more trust
+            than it buys.
+          {%- endcomment -%}
+          <p class="nova-low" data-nova-low hidden></p>
+
           <button
             type="submit"
             name="add"
@@ -391,6 +430,31 @@
               </li>
             {%- endfor -%}
           </ul>
+        {%- endif -%}
+
+        {%- comment -%}
+          Payment marks come from the shop's actually enabled payment types, so
+          this can never advertise a method the checkout does not accept.
+        {%- endcomment -%}
+        {%- if section.settings.show_payment_icons and shop.enabled_payment_types.size > 0 -%}
+          <ul class="nova-pay" aria-label="{{ section.settings.payment_label }}">
+            {%- for type in shop.enabled_payment_types -%}
+              <li>{{ type | payment_type_svg_tag: class: 'nova-pay__icon' }}</li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+
+        {%- comment -%} Direct links to the real policies, not a vague promise. {%- endcomment -%}
+        {%- capture policy_links -%}
+          {%- if shop.shipping_policy.body != blank -%}
+            <a href="{{ shop.shipping_policy.url }}">{{ shop.shipping_policy.title }}</a>
+          {%- endif -%}
+          {%- if shop.refund_policy.body != blank -%}
+            <a href="{{ shop.refund_policy.url }}">{{ shop.refund_policy.title }}</a>
+          {%- endif -%}
+        {%- endcapture -%}
+        {%- if policy_links != blank -%}
+          <p class="nova-policy">{{ policy_links }}</p>
         {%- endif -%}
       </div>
     </div>
@@ -535,7 +599,8 @@
             "price": {{ var.price | money | strip_html | json }},
             "compare_at": {% if var.compare_at_price > var.price %}{{ var.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
             "save_badge": {% if var.compare_at_price > var.price %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
-            "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %}
+            "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %},
+            "low_stock": {% if var.inventory_management != blank and var.inventory_policy == 'deny' and var.inventory_quantity > 0 and var.inventory_quantity <= section.settings.low_stock_threshold %}{{ section.settings.low_stock_text | replace: '[n]', var.inventory_quantity | json }}{% else %}null{% endif %}
           }{%- unless forloop.last -%},{%- endunless -%}
         {%- endfor -%}
       ]
@@ -634,6 +699,83 @@
       "id": "thumb_label",
       "default": "תמונה",
       "label": "Thumbnail aria-label prefix"
+    },
+    {
+      "type": "header",
+      "content": "Delivery, stock and payment"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_delivery",
+      "default": true,
+      "label": "Show estimated delivery window"
+    },
+    {
+      "type": "range",
+      "id": "ship_min_days",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "default": 5,
+      "unit": "d",
+      "label": "Earliest delivery, calendar days"
+    },
+    {
+      "type": "range",
+      "id": "ship_max_days",
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "default": 12,
+      "unit": "d",
+      "label": "Latest delivery, calendar days"
+    },
+    {
+      "type": "text",
+      "id": "delivery_label",
+      "default": "זמן אספקה מוערך:",
+      "label": "Delivery label"
+    },
+    {
+      "type": "text",
+      "id": "delivery_to_word",
+      "default": "עד",
+      "label": "Word between the two dates"
+    },
+    {
+      "type": "text",
+      "id": "free_ship_note",
+      "default": "משלוח לכל הארץ",
+      "label": "Shipping note beside the dates"
+    },
+    {
+      "type": "range",
+      "id": "low_stock_threshold",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 10,
+      "label": "Show low stock at or below",
+      "info": "Reads real tracked inventory. Set to 0 to never show it. This is not a countdown and never invents a number."
+    },
+    {
+      "type": "text",
+      "id": "low_stock_text",
+      "default": "נותרו [n] יחידות במלאי",
+      "label": "Low stock text",
+      "info": "[n] is replaced with the real remaining quantity."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "default": true,
+      "label": "Show accepted payment marks"
+    },
+    {
+      "type": "text",
+      "id": "payment_label",
+      "default": "אמצעי תשלום",
+      "label": "Payment marks aria-label"
     },
     {
       "type": "header",

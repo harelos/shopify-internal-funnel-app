@@ -135,6 +135,14 @@
       }.bind(this)
     );
 
+    // Real remaining stock for this variant, or nothing at all. Liquid decided
+    // whether the number qualifies; this only shows what it was given.
+    var low = this.root.querySelector('[data-nova-low]');
+    if (low) {
+      low.textContent = v.low_stock || '';
+      low.hidden = !v.low_stock;
+    }
+
     if (v.media_index != null) this.goToSlide(v.media_index);
 
     if (v.url && window.history && window.history.replaceState) {
@@ -194,10 +202,14 @@
     var anchor = this.root.querySelector('[data-nova-cta]');
     if (!bar || !anchor || !('IntersectionObserver' in window)) return;
 
+    // Show the bar whenever the real Add to cart is off screen, including
+    // before the shopper has reached it. On a phone the buy box starts below
+    // the fold, so waiting until they scroll past it leaves the first screen
+    // with no visible way to buy.
     var io = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (e) {
-          bar.classList.toggle('is-visible', !e.isIntersecting && e.boundingClientRect.top < 0);
+          bar.classList.toggle('is-visible', !e.isIntersecting);
         });
       },
       { threshold: 0 }

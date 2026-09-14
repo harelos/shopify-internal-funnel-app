@@ -114,3 +114,56 @@ a release candidate.
 Unchanged and still worth doing: money format still renders `131.44 NIS` instead of
 `₪131.44` (Settings → General, no API for it), the popup's English placeholder, and
 repointing the losing 7-reasons ad sets.
+
+---
+
+# Above-the-fold pass — 14 Sep 2026
+
+Grounded in Baymard's Product Page UX research (30,000+ usability scores, 110+ PDP
+guidelines; only 38% of mobile sites rate "decent" or better) and their
+Consideration & Purchase study, where **60% of users look for the return policy on
+the product page itself**.
+
+Baymard's first-viewport set is: title, price, star rating, key variant selector,
+one primary CTA, and a one-line delivery/returns promise. The buy box had the
+first five. It was missing the delivery and returns layer entirely.
+
+## Added
+
+| Element | Where the data comes from |
+|---|---|
+| Estimated delivery window | Computed dates from two theme settings, labelled an estimate, not a promise |
+| Shipping note beside the dates | Theme setting |
+| Accepted payment marks | `shop.enabled_payment_types` — cannot advertise a method checkout does not take |
+| Direct links to shipping and refund policy | The store's real policy pages, rendered only when the policy has content |
+| Low stock line | Real tracked inventory of the selected variant, at or below a threshold |
+| Sticky buy bar from first paint | Shows whenever the real Add to cart is off screen |
+
+## On the low stock line
+
+It reads `inventory_quantity` of the selected variant and stays hidden unless the
+number genuinely sits at or below the threshold. With CJ stock in the thousands it
+**never appears**, which is the correct behaviour. It is not a countdown, not a
+"47 people are viewing", and it never invents a number.
+
+That is deliberate. The research is blunt: merchants who use both fake and real
+scarcity end up converting **worse than merchants who use neither**, because the
+fake version destroys the trust the real version depends on.
+
+## Measured after, 375×812
+
+- Announcement bar: one line, 304px span in a 315px container
+- Delivery box: one line, 343px wide, 39px tall
+- Payment marks: 10, single row. Policy links: single row
+- Sticky buy bar: visible from first paint, stays through scroll
+- No horizontal overflow, no console errors from the section
+
+## Deployment verdict
+
+A full checksum diff of the staging theme against live settles it: staging is
+**missing 12 files that exist on live** (`nh-mobile-*.png`, `nh-gallery-10-colorist*`,
+`novahair-classic-commerce-config.js`, `novahair-full-page-experiment.js`,
+`novahair-live-sticky-visibility-fix.css/js`) and two more differ
+(`component-menu-drawer.css`, `novahair-funnel-variant-map.js`). It can never be
+published. The only safe path to live remains pasting the four new files into the
+live theme, which is additive and touches nothing existing.
