@@ -167,3 +167,63 @@ A full checksum diff of the staging theme against live settles it: staging is
 (`component-menu-drawer.css`, `novahair-funnel-variant-map.js`). It can never be
 published. The only safe path to live remains pasting the four new files into the
 live theme, which is additive and touches nothing existing.
+
+---
+
+# Protected pages and the corrected preview model — 14 Sep 2026
+
+## Two pages must never be switched to the nova template
+
+**ElasticDream** (`מסיכת-קולגן-לילה-elasticdream`, id `9671746683175`) has an empty
+`templateSuffix`, so it looks like a default-template product. It is not. Line 1 of
+`sections/main-product.liquid` hard-branches it:
+
+```liquid
+{% if product.id == 9671746683175 or product.handle contains 'elasticdream' or product.handle contains 'אלסטידרים' %}{% render 'elasticdream-cro-pdp' %}{% endif %}
+{% unless product.id == 9671746683175 or ... %}
+  ...the entire normal product page, lines 2-750...
+{% endunless %}
+```
+
+**BiotinRoot** (`biotinroot-hair-loss-spray`) uses `templateSuffix: hairloss-pdp`,
+and the staging copy uses `hairloss-pdp-staging`. Both have their own templates and
+sections and were never affected.
+
+Also on custom templates and out of scope: the NovaHair kit (`novahair-v4`) and
+IDEO (`ideo-v3`, archived).
+
+## The preview model was wrong and is fixed
+
+Overwriting the preview theme's `templates/product.json` with nova made every
+default-template product render nova, which silently bypassed ElasticDream's
+custom page. That is exactly the regression to avoid.
+
+`templates/product.json` in the preview theme has been restored to the live
+version, so **preview now matches live for every product**. Nova is previewed
+on demand instead:
+
+```
+/products/<handle>?view=nova
+```
+
+`?view=` renders `templates/product.nova.json` for that one request without
+touching product data, so nothing is switched until it is deliberately switched.
+The same URL works on the live theme once the four files are pasted in, which
+means the new page can be checked against real products before any product is
+migrated.
+
+## Mobile health of the two protected pages
+
+Measured on the live theme at 375×812:
+
+| | ElasticDream | BiotinRoot |
+|---|---|---|
+| Horizontal overflow | none (375 = 375) | none (375 = 375) |
+| Page height | 4,170px | 8,967px |
+| Images | 29 | 22 |
+| Tap targets under 40px | 9 of 111 | 7 of 118 |
+
+No defects worth touching. The elements my scan flagged as overflowing are the
+closed cart drawer and menu submenu parked off-canvas, which is correct behaviour.
+The handful of small tap targets are shared header and footer links, not page
+content. **Recommendation: leave both pages alone.**
