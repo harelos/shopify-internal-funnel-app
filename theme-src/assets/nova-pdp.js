@@ -23,6 +23,7 @@
     this.bindSticky();
     this.bindQuantity();
     this.update();
+    this.ready = true;
   }
 
   NovaPdp.prototype.readData = function () {
@@ -143,7 +144,10 @@
       low.hidden = !v.low_stock;
     }
 
-    if (v.media_index != null) this.goToSlide(v.media_index);
+    // Follow the variant's own image, but not on first paint. The default
+    // shade usually has a swatch assigned, and jumping to it on load means the
+    // shopper never sees the opening shot. Only move once she picks a shade.
+    if (this.ready && v.media_index != null) this.goToSlide(v.media_index);
 
     if (v.url && window.history && window.history.replaceState) {
       window.history.replaceState({}, '', v.url);
@@ -171,8 +175,14 @@
         if (ticking) return;
         ticking = true;
         window.requestAnimationFrame(function () {
-          var i = Math.round(self.track.scrollLeft / self.track.clientWidth);
-          self.markThumb(Math.abs(i));
+          // Stride is the slide plus the gap, not the track width, or the
+          // index drifts by one after a few slides. RTL tracks report a
+          // negative scrollLeft, hence the abs.
+          var stride = self.track.children[1]
+            ? Math.abs(self.track.children[1].offsetLeft - self.track.children[0].offsetLeft)
+            : self.track.clientWidth;
+          var i = Math.round(Math.abs(self.track.scrollLeft) / (stride || 1));
+          self.markThumb(i);
           ticking = false;
         });
       },

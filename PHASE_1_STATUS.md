@@ -270,3 +270,57 @@ only on products where the higher price was really charged.
 
 Verified on the preview: OCEAURA shows 20% / 31% with no strikethrough, Copper
 Peptide shows ₪70.15 and ₪60.62 per bottle at 15% / 26%.
+
+---
+
+# NovaHair site product page — 14 Sep 2026
+
+The funnel was not touched. Only product `9882294354215`
+(`novahair-שמפו-לצביעת-שיער-הצעה-חדשה`), the site listing, was changed.
+
+## Gallery
+
+Seven images taken from the funnel gallery, chosen to carry **no package or offer
+numbers**. Excluded on purpose:
+
+| Image | Why excluded |
+|---|---|
+| `novahair-gallery-v1-06` | "4 בקבוקים ב-239 ₪ / 59.75 ₪ לבקבוק" — offer pricing |
+| `novahair-gallery-v1-07` | "4 בקבוקים + ערכת צביעה במתנה" — package offer |
+| `novahair-gallery-v1-05` | bundle-mixing concept, meaningless on a single bottle |
+
+Two existing images were removed because they sit on **black backgrounds**, which
+render as black squares in the white `contain` tiles and break the consistency
+across products. The files remain in Shopify Files and can be re-added.
+
+Final order: hook → shades → 10 minutes → how-to → five per-shade shots →
+two testimonials → service strip. 12 images, featured image is now the hook shot.
+
+## A bug this surfaced
+
+The gallery opened on slide 5 instead of the hero, because the default שחור
+variant has that swatch as its featured image and `update()` followed it on first
+paint. Now the gallery follows the variant image only after the shopper actively
+picks a shade. Also fixed the scroll-to-thumbnail mapping, which divided by the
+track width instead of the slide stride and drifted by one after a few slides.
+
+## True numbers
+
+No change to price data. The template already suppresses a crossed-out price and a
+percentage badge unless `nova.compare_at_verified` is ticked, so the page now shows
+a clean ₪130.18 instead of a ₪199.82 strikethrough that nobody was ever charged.
+
+## Two things for the owner to decide
+
+1. **Shade pricing is inconsistent**: שחור is ₪130.18 while the other five shades
+   are ₪143.67, for the same bottle. Probably unintended.
+2. `novahair-gallery-v1-08` carries a **"60 ימי אחריות"** claim. It is the brand's
+   own funnel claim, but confirm it applies to site orders before this ships.
+
+## Template switch
+
+Verified safe: requesting `?view=zzz-does-not-exist` returns **200 with the default
+template**, so Shopify falls back gracefully when an alternate template is missing.
+Setting `templateSuffix` to `nova` therefore cannot break the live page. It should
+still be done at the same time as the file paste, otherwise the product renders
+stock Dawn in the gap, which is worse than what it has now.
