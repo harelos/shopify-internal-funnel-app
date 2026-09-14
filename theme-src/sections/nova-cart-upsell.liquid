@@ -1,0 +1,80 @@
+{%- comment -%}
+  The suggestion block that appears inside the cart drawer.
+
+  Rendered through Shopify's recommendations endpoint, so the products come from
+  Shopify's own related-product logic:
+
+    /recommendations/products?section_id=nova-cart-upsell&product_id=123&intent=related
+
+  That logic needs order history to be good, and this store's new catalogue has
+  none yet. So when it returns nothing the section falls back to the product's
+  own collection, which is always relevant and always available. Ulta's
+  "Frequently bought together" is the pattern being followed: two or three items,
+  a real price, and one tap to add.
+{%- endcomment -%}
+
+{%- liquid
+  assign items = recommendations.products
+
+  if items == blank or items.size == 0
+    assign source = recommendations.products.first
+    assign fallback = collections['hair-care'].products
+    if fallback.size == 0
+      assign fallback = collections['all'].products
+    endif
+    assign items = fallback
+  endif
+
+  assign shown = 0
+-%}
+
+{%- if items.size > 0 -%}
+  <aside class="nova-upsell" data-nova-upsell dir="rtl">
+    <p class="nova-upsell__head">משלים את הטיפול</p>
+    <ul class="nova-upsell__list">
+      {%- for item in items limit: 6 -%}
+        {%- if shown >= 3 -%}{%- break -%}{%- endif -%}
+        {%- unless item.available -%}{%- continue -%}{%- endunless -%}
+        {%- assign v = item.selected_or_first_available_variant -%}
+        {%- assign shown = shown | plus: 1 -%}
+
+        <li class="nova-upsell__item" data-nova-upsell-item>
+          <a class="nova-upsell__media" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
+            {%- if item.featured_media -%}
+              {{ item.featured_media | image_url: width: 160 | image_tag:
+                   widths: '80,160', sizes: '64px', loading: 'lazy',
+                   alt: item.featured_media.alt | default: item.title | escape }}
+            {%- endif -%}
+          </a>
+
+          <div class="nova-upsell__body">
+            {%- assign parts = item.title | split: ' - ' -%}
+            {%- if parts.size > 1 -%}
+              {%- assign name = parts | slice: 1, 9 | join: ' ' -%}
+            {%- else -%}
+              {%- assign name = item.title -%}
+            {%- endif -%}
+            <a class="nova-upsell__name" href="{{ item.url }}">{{ name | strip | escape }}</a>
+            <span class="nova-upsell__price">
+              {%- render 'nova-money', cents: v.price, symbol: '₪' -%}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="nova-upsell__add"
+            data-nova-upsell-add="{{ v.id }}"
+            aria-label="הוסיפי {{ name | strip | escape }} לסל"
+          >הוסיפי</button>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </aside>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Nova cart upsell",
+  "settings": []
+}
+{% endschema %}

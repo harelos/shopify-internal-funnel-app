@@ -446,3 +446,276 @@
   .nova-sticky { transition: none; }
   .nova-cta { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Suggestion block inside the cart drawer.
+   Injected by nova-cart.js after an add to cart, so it is styled here rather
+   than in the drawer's own stylesheet, which we do not own.
+   --------------------------------------------------------------------------- */
+
+.nova-upsell {
+  direction: rtl;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--nh-line, #e8e0d6);
+  border-radius: 12px;
+  background: var(--nh-sand, #faf7f2);
+}
+
+.nova-upsell__head {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--nh-espresso, #1a1a1a);
+}
+
+.nova-upsell__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+.nova-upsell__item {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 9px;
+}
+
+.nova-upsell__media { display: block; }
+
+.nova-upsell__media img {
+  display: block;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;      /* never crop a product */
+  border-radius: 6px;
+  background: var(--nh-sand, #faf7f2);
+}
+
+.nova-upsell__body { min-inline-size: 0; display: grid; gap: 2px; }
+
+.nova-upsell__name {
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--nh-espresso, #1a1a1a);
+  text-decoration: none;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.nova-upsell__name:hover { text-decoration: underline; }
+
+.nova-upsell__price {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--nh-espresso, #1a1a1a);
+}
+
+.nova-upsell__add {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--nh-bronze, #e07a28);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nh-bronze, #e07a28);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;      /* the label must never wrap */
+  cursor: pointer;
+}
+
+.nova-upsell__add:hover { background: var(--nh-bronze, #e07a28); color: #fff; }
+.nova-upsell__add[aria-busy="true"] { opacity: .55; pointer-events: none; }
+
+.nova-cart-error {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #a02020;
+}
+
+.nova-cta.is-loading { opacity: .72; }
+
+/* ---------------------------------------------------------------------------
+   Mechanism, timeline and fit.
+   Three new cognitive jobs, so three different treatments. The dark band is the
+   attention reset between the buy decision and the argument for it.
+   --------------------------------------------------------------------------- */
+
+.nova-sec--dark {
+  background: var(--nh-espresso, #1a1a1a);
+  color: #f6f1ea;                 /* set explicitly; never inherit across a theme flip */
+}
+
+.nova-mech { padding-block: 34px; text-align: center; }
+
+.nova-mech__title {
+  margin: 0 auto 12px;
+  max-width: 22ch;
+  font-size: clamp(22px, 5.6vw, 30px);
+  line-height: 1.2;
+  text-wrap: balance;
+  color: #fff;
+}
+
+.nova-mech__body {
+  margin: 0 auto;
+  max-width: 46ch;
+  font-size: 17px;
+  line-height: 1.65;
+  color: #ddd3c7;
+}
+
+/* timeline ---------------------------------------------------------------- */
+.nova-time { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.nova-time__row {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 14px 16px;
+  border: 1px solid var(--nh-line, #e8e0d6);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.nova-time__when {
+  font-weight: 700;
+  color: var(--nh-bronze, #e07a28);
+  font-size: 15px;
+}
+
+.nova-time__what { min-inline-size: 0; font-size: 16px; line-height: 1.55; }
+
+/* fit --------------------------------------------------------------------- */
+.nova-fit { display: grid; gap: 14px; }
+
+.nova-fit__col {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--nh-line, #e8e0d6);
+}
+
+.nova-fit__head {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
+.nova-fit__col--yes .nova-fit__head { color: var(--nh-good, #1d6b4a); }
+.nova-fit__col--no .nova-fit__head { color: var(--nh-muted, #6b6259); }
+
+.nova-fit__list { margin: 0; padding-inline-start: 1.15em; display: grid; gap: 6px; }
+.nova-fit__list li { font-size: 16px; line-height: 1.5; }
+.nova-fit__col--no .nova-fit__list li { color: var(--nh-muted, #6b6259); }
+
+@media screen and (min-width: 750px) {
+  .nova-fit { grid-template-columns: 1fr 1fr; }
+  .nova-mech { padding-block: 52px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Pairs well with, directly under the add-to-cart button.
+   Nineteen of twenty leading beauty PDPs carry a companion block and nine put
+   it exactly here, before any benefit copy, because intent peaks at the button.
+   --------------------------------------------------------------------------- */
+
+.nova-pairs {
+  margin: 16px 0 0;
+  padding: 14px 15px;
+  border: 1px solid var(--nh-line, #e8e0d6);
+  border-radius: 12px;
+  background: var(--nh-sand, #faf7f2);
+}
+
+.nova-pairs__head {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--nh-espresso, #1a1a1a);
+}
+
+.nova-pairs__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+.nova-pairs__item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.nova-pairs__media img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 7px;
+  background: var(--nh-sand, #faf7f2);
+}
+
+.nova-pairs__body { min-inline-size: 0; display: grid; gap: 2px; }
+
+.nova-pairs__name {
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--nh-espresso, #1a1a1a);
+  text-decoration: none;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.nova-pairs__price {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.nova-pairs__add {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1.5px solid var(--nh-bronze, #e07a28);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nh-bronze, #e07a28);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nova-pairs__add:hover { background: var(--nh-bronze, #e07a28); color: #fff; }
+.nova-pairs__add[aria-busy="true"] { opacity: .55; pointer-events: none; }
+
+/* what is in it ----------------------------------------------------------- */
+.nova-ing { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.nova-ing__row {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  border-inline-start: 3px solid var(--nh-bronze, #e07a28);
+  background: var(--nh-sand, #faf7f2);
+  border-radius: 0 10px 10px 0;
+}
+
+.nova-ing__name { font-weight: 700; font-size: 16px; }
+.nova-ing__what { font-size: 16px; line-height: 1.55; color: var(--nh-muted, #6b6259); }
+
+@media screen and (min-width: 750px) {
+  .nova-ing { grid-template-columns: 1fr 1fr; }
+}
+
+/* the same companions block, cloned into the cart drawer */
+.nova-pairs--in-drawer { margin: 0 0 14px; }

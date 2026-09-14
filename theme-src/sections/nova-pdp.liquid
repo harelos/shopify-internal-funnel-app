@@ -20,6 +20,7 @@
 
 {{ 'nova-pdp.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'nova-pdp.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'nova-cart.js' | asset_url }}" defer="defer"></script>
 
 {%- liquid
   assign p = product
@@ -257,6 +258,7 @@
           enctype="multipart/form-data"
           id="{{ form_id }}"
           data-nova-form
+          data-nova-product-id="{{ p.id }}"
         >
           <input type="hidden" name="id" value="{{ v.id }}" data-nova-variant-id>
           <input type="hidden" name="form_type" value="product">
@@ -519,6 +521,52 @@
           </button>
         </form>
 
+        {%- comment -%}
+          ---------- PAIRS WELL WITH ----------
+          Two or three companions, right under the button. Named products with a
+          real price and their own add link, not a carousel of "related items".
+          Fed by a metafield so the pairing is a merchandising decision rather
+          than whatever the recommendation engine guesses on a store with no
+          order history yet.
+        {%- endcomment -%}
+        {%- assign mf_pairs = p.metafields.nova.pairs.value -%}
+        {%- if mf_pairs != blank -%}
+          {%- assign pair_shown = 0 -%}
+          <aside class="nova-pairs">
+            <p class="nova-pairs__head">{{ p.metafields.nova.pairs_title | default: 'מתאים במיוחד עם' }}</p>
+            <ul class="nova-pairs__list">
+              {%- for handle in mf_pairs -%}
+                {%- if pair_shown >= 3 -%}{%- break -%}{%- endif -%}
+                {%- assign pp = all_products[handle] -%}
+                {%- if pp == blank or pp.available == false -%}{%- continue -%}{%- endif -%}
+                {%- assign pv = pp.selected_or_first_available_variant -%}
+                {%- assign pair_shown = pair_shown | plus: 1 -%}
+                {%- assign pparts = pp.title | split: ' - ' -%}
+                {%- if pparts.size > 1 -%}
+                  {%- assign pname = pparts | slice: 1, 9 | join: ' ' -%}
+                {%- else -%}
+                  {%- assign pname = pp.title -%}
+                {%- endif -%}
+                <li class="nova-pairs__item">
+                  <a class="nova-pairs__media" href="{{ pp.url }}" tabindex="-1" aria-hidden="true">
+                    {%- if pp.featured_media -%}
+                      {{ pp.featured_media | image_url: width: 160 | image_tag:
+                           widths: '80,160', sizes: '64px', loading: 'lazy',
+                           alt: pp.featured_media.alt | default: pp.title | escape }}
+                    {%- endif -%}
+                  </a>
+                  <div class="nova-pairs__body">
+                    <a class="nova-pairs__name" href="{{ pp.url }}">{{ pname | strip | escape }}</a>
+                    <span class="nova-pairs__price">{% render 'nova-money', cents: pv.price, symbol: '₪' %}</span>
+                  </div>
+                  <button type="button" class="nova-pairs__add" data-nova-upsell-add="{{ pv.id }}"
+                          aria-label="הוסיפי {{ pname | strip | escape }} לסל">הוסיפי</button>
+                </li>
+              {%- endfor -%}
+            </ul>
+          </aside>
+        {%- endif -%}
+
         {%- assign reassure = section.blocks | where: 'type', 'reassurance' -%}
         {%- if reassure.size > 0 -%}
           <ul class="nova-reassure">
@@ -562,6 +610,113 @@
   </div>
 
   {%- comment -%}
+    ---------- WHAT IS IN IT ----------
+    Format per entry: "Ingredient | what it does". One sentence, present tense,
+    no hedging. Three or four is the evidenced count; more reads as a label.
+  {%- endcomment -%}
+  {%- assign mf_ing = p.metafields.nova.ingredients.value -%}
+  {%- if mf_ing != blank -%}
+    <section class="nova-sec">
+      <div class="nova-pdp__wrap">
+        <h2 class="nova-sec__title">{{ p.metafields.nova.ingredients_title | default: 'מה יש בפנים' }}</h2>
+        <ul class="nova-ing">
+          {%- for entry in mf_ing -%}
+            {%- assign parts = entry | split: '|' -%}
+            <li class="nova-ing__row">
+              <span class="nova-ing__name">{{ parts[0] | strip }}</span>
+              {%- if parts.size > 1 -%}
+                <span class="nova-ing__what">{{ parts[1] | strip }}</span>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%}
+    ---------- WHY IT WORKS ----------
+    The section heading is carried per product and has to state a claim, not
+    label a box. "How it works" tells the reader nothing; "the colour sits on
+    the root, not on the length" is an argument she can disagree with, which is
+    what makes her read the paragraph under it.
+    Format: "Claim heading | paragraph".
+  {%- endcomment -%}
+  {%- assign mf_mech = p.metafields.nova.mechanism.value -%}
+  {%- if mf_mech != blank -%}
+    {%- assign mech = mf_mech | split: '|' -%}
+    <section class="nova-sec nova-sec--dark">
+      <div class="nova-pdp__wrap nova-mech">
+        <h2 class="nova-mech__title">{{ mech[0] | strip }}</h2>
+        {%- if mech.size > 1 -%}
+          <p class="nova-mech__body">{{ mech[1] | strip }}</p>
+        {%- endif -%}
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%}
+    ---------- WHAT TO EXPECT ----------
+    Beauty products fail in the customer's head at week two, when nothing has
+    visibly happened yet and she decides it did not work. Saying in advance what
+    is normal prevents that, and it lowers returns.
+    Format per entry: "When | What happens".
+  {%- endcomment -%}
+  {%- assign mf_expect = p.metafields.nova.expect.value -%}
+  {%- if mf_expect != blank -%}
+    <section class="nova-sec">
+      <div class="nova-pdp__wrap">
+        <h2 class="nova-sec__title">{{ p.metafields.nova.expect_title | default: 'מה קורה ומתי' }}</h2>
+        <ol class="nova-time">
+          {%- for entry in mf_expect -%}
+            {%- assign parts = entry | split: '|' -%}
+            <li class="nova-time__row">
+              <span class="nova-time__when">{{ parts[0] | strip }}</span>
+              {%- if parts.size > 1 -%}
+                <span class="nova-time__what">{{ parts[1] | strip }}</span>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ol>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%}
+    ---------- IS THIS FOR ME ----------
+    Both columns matter. Saying plainly who the product is not for is the
+    cheapest trust the page can buy, and it stops the wrong customer ordering
+    and then returning.
+  {%- endcomment -%}
+  {%- assign mf_yes = p.metafields.nova.fit_yes.value -%}
+  {%- assign mf_no = p.metafields.nova.fit_no.value -%}
+  {%- if mf_yes != blank or mf_no != blank -%}
+    <section class="nova-sec nova-sec--sand">
+      <div class="nova-pdp__wrap">
+        <h2 class="nova-sec__title">{{ p.metafields.nova.fit_title | default: 'למי זה מתאים' }}</h2>
+        <div class="nova-fit">
+          {%- if mf_yes != blank -%}
+            <div class="nova-fit__col nova-fit__col--yes">
+              <p class="nova-fit__head">מתאים לך אם</p>
+              <ul class="nova-fit__list">
+                {%- for line in mf_yes -%}<li>{{ line | strip }}</li>{%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+          {%- if mf_no != blank -%}
+            <div class="nova-fit__col nova-fit__col--no">
+              <p class="nova-fit__head">פחות מתאים אם</p>
+              <ul class="nova-fit__list">
+                {%- for line in mf_no -%}<li>{{ line | strip }}</li>{%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%}
     ---------- ROUTINE ----------
     Per-product metafield wins over the template blocks, so a second product does
     not need a second template. Format per entry: "Title | Text".
@@ -573,8 +728,9 @@
         {%- if section.settings.steps_eyebrow != blank -%}
           <p class="nova-sec__eyebrow">{{ section.settings.steps_eyebrow }}</p>
         {%- endif -%}
-        {%- if section.settings.steps_title != blank -%}
-          <h2 class="nova-sec__title">{{ section.settings.steps_title }}</h2>
+        {%- assign steps_title = p.metafields.nova.steps_title | default: section.settings.steps_title -%}
+        {%- if steps_title != blank -%}
+          <h2 class="nova-sec__title">{{ steps_title }}</h2>
         {%- endif -%}
         <ol class="nova-steps">
           {%- for entry in mf_steps -%}
@@ -639,7 +795,7 @@
           {%- if mf_faq != blank -%}
             {%- for entry in mf_faq -%}
               {%- assign parts = entry | split: '|' -%}
-              <details class="nova-acc__item">
+              <details class="nova-acc__item" open>
                 <summary>{{ parts[0] | strip }}</summary>
                 {%- if parts.size > 1 -%}
                   <div class="nova-acc__body rte">{{ parts[1] | strip }}</div>
