@@ -66,6 +66,45 @@
   assign form_id = 'nova-form-' | append: section.id
 
   comment
+    ---------- TODAY'S PROMOTION ----------
+    Shopify applies an automatic discount to the cart line, not to the product's
+    price, so without this the page advertises the full price and the customer
+    only discovers the saving after she has already decided. That is the wrong
+    order. The page reads the same calendar the promotion page reads and shows
+    what she will actually pay, while Shopify still does the real arithmetic at
+    checkout. Nothing here changes a price, so a missed job can never leave a
+    product stranded at a sale price.
+  endcomment
+
+  assign promo_cal = shop.metafields.nova.promo_calendar.value
+  assign promo_today = 'now' | date: '%Y-%m-%d'
+  assign deal_pct = 0
+  assign deal_kind = ''
+
+  for pd in promo_cal.days
+    if pd.date == promo_today and pd.handle == p.handle
+      unless pd.dark
+        assign deal_pct = pd.percent_off
+        assign deal_kind = 'day'
+      endunless
+      break
+    endif
+  endfor
+
+  for pw in promo_cal.weeks
+    if promo_today >= pw.from and promo_today <= pw.to
+      for pc in p.collections
+        if pc.handle == pw.collection and pw.percent > deal_pct
+          assign deal_pct = pw.percent
+          assign deal_kind = 'week'
+        endif
+      endfor
+    endif
+  endfor
+
+  assign deal_keep = 100 | minus: deal_pct
+
+  comment
     Delivery window. Baymard's Consideration & Purchase study found 60% of users
     look for the return policy on the product page itself, and hiding delivery
     and shipping cost until checkout is one of the best documented causes of
@@ -208,21 +247,42 @@
           if v.compare_at_price > v.price and cap_ok
             assign show_was = true
           endif
+
+          comment
+            A live promotion outranks a compare-at price. Both at once would be
+            two different savings claims about the same product.
+          endcomment
+          assign price_now = v.price
+          assign price_was = v.compare_at_price
+          if deal_pct > 0
+            assign price_now = v.price | times: deal_keep | divided_by: 100
+            assign price_was = v.price
+            assign show_was = true
+          endif
         -%}
 
         <div class="nova-price">
-          <span class="nova-price__now" data-nova-price-now>{% render 'nova-money', cents: v.price, symbol: section.settings.currency_symbol %}</span>
+          <span class="nova-price__now" data-nova-price-now>{% render 'nova-money', cents: price_now, symbol: section.settings.currency_symbol %}</span>
           <s class="nova-price__was" data-nova-price-was {% unless show_was %}hidden{% endunless %}>
-            {%- if show_was %}{% render 'nova-money', cents: v.compare_at_price, symbol: section.settings.currency_symbol %}{% endif -%}
+            {%- if show_was %}{% render 'nova-money', cents: price_was, symbol: section.settings.currency_symbol %}{% endif -%}
           </s>
           <span class="nova-price__save" data-nova-price-save {% unless show_was %}hidden{% endunless %}>
             {%- if show_was -%}
-              {%- assign pct = v.compare_at_price | minus: v.price | times: 100.0 | divided_by: v.compare_at_price | round -%}
+              {%- assign pct = price_was | minus: price_now | times: 100.0 | divided_by: price_was | round -%}
               {{ section.settings.save_prefix }} {{ pct }}%
             {%- endif -%}
           </span>
         </div>
         {%- if section.settings.price_note != blank -%}
+          {%- if deal_pct > 0 -%}
+            <p class="nova-deal-flag">
+              {%- if deal_kind == 'day' -%}
+                המבצע של היום. המחיר הזה בתוקף עד חצות ומתעדכן אוטומטית בסל.
+              {%- else -%}
+                מבצע השבוע. המחיר הזה מתעדכן אוטומטית בסל.
+              {%- endif -%}
+            </p>
+          {%- endif -%}
           <p class="nova-price__note">{{ section.settings.price_note }}</p>
         {%- endif -%}
 
@@ -820,7 +880,7 @@
     <span class="nova-sticky__price">
       <span class="nova-sticky__now" data-nova-sticky-now>{% render 'nova-money', cents: v.price, symbol: section.settings.currency_symbol %}</span>
       <s class="nova-sticky__was" data-nova-sticky-was {% unless show_was %}hidden{% endunless %}>
-        {%- if show_was %}{% render 'nova-money', cents: v.compare_at_price, symbol: section.settings.currency_symbol %}{% endif -%}
+        {%- if show_was %}{% render 'nova-money', cents: price_was, symbol: section.settings.currency_symbol %}{% endif -%}
       </s>
     </span>
     <button
@@ -853,9 +913,22 @@
             "options": {{ var.options | json }},
             "available": {{ var.available }},
             "url": {{ var.url | json }},
-            "price": {% capture m_now %}{% render 'nova-money', cents: var.price, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_now | strip_html | strip | json }},
-            "compare_at": {% if var.compare_at_price > var.price and cap_ok %}{% capture m_was %}{% render 'nova-money', cents: var.compare_at_price, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_was | strip_html | strip | json }}{% else %}null{% endif %},
-            "save_badge": {% if var.compare_at_price > var.price and cap_ok %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
+            {%- liquid
+              assign v_now = var.price
+              assign v_was = var.compare_at_price
+              assign v_show = false
+              if var.compare_at_price > var.price and cap_ok
+                assign v_show = true
+              endif
+              if deal_pct > 0
+                assign v_now = var.price | times: deal_keep | divided_by: 100
+                assign v_was = var.price
+                assign v_show = true
+              endif
+            -%}
+            "price": {% capture m_now %}{% render 'nova-money', cents: v_now, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_now | strip_html | strip | json }},
+            "compare_at": {% if v_show %}{% capture m_was %}{% render 'nova-money', cents: v_was, symbol: section.settings.currency_symbol %}{% endcapture %}{{ m_was | strip_html | strip | json }}{% else %}null{% endif %},
+            "save_badge": {% if v_show %}{% assign vp = v_was | minus: v_now | times: 100.0 | divided_by: v_was | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
             "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %},
             "low_stock": {% if var.inventory_management != blank and var.inventory_policy == 'deny' and var.inventory_quantity > 0 and var.inventory_quantity <= section.settings.low_stock_threshold %}{{ section.settings.low_stock_text | replace: '[n]', var.inventory_quantity | json }}{% else %}null{% endif %}
           }{%- unless forloop.last -%},{%- endunless -%}

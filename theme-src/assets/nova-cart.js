@@ -30,6 +30,42 @@
     return document.querySelector('cart-drawer');
   }
 
+  /* Body scroll lock.
+
+     On iOS, overflow:hidden on body does not stop touch scrolling once an inner
+     scroller hits its end, which is why scrolling the drawer dragged the page
+     behind it and exposed a grey band. position:fixed does stop it, but it also
+     jumps the page to the top, so the scroll position is saved and restored. */
+  var lockedAt = 0;
+
+  function lockPage() {
+    if (document.body.classList.contains('nova-drawer-open')) return;
+    lockedAt = window.scrollY || window.pageYOffset || 0;
+    document.body.style.top = (-lockedAt) + 'px';
+    document.documentElement.classList.add('nova-drawer-open');
+    document.body.classList.add('nova-drawer-open');
+  }
+
+  function unlockPage() {
+    if (!document.body.classList.contains('nova-drawer-open')) return;
+    document.documentElement.classList.remove('nova-drawer-open');
+    document.body.classList.remove('nova-drawer-open');
+    document.body.style.top = '';
+    window.scrollTo(0, lockedAt);
+  }
+
+  /* The drawer is opened and closed by the theme's own code, so watch the class
+     it toggles rather than trying to intercept every path into it. */
+  function watchDrawer() {
+    var cart = drawer();
+    if (!cart || cart.dataset.novaLockBound) return;
+    cart.dataset.novaLockBound = '1';
+    new MutationObserver(function () {
+      if (cart.classList.contains('active')) lockPage();
+      else unlockPage();
+    }).observe(cart, { attributes: true, attributeFilter: ['class'] });
+  }
+
   function cartAddUrl() {
     var base = (window.routes && window.routes.cart_add_url) || '/cart/add';
     return base.indexOf('.js') === -1 ? base + '.js' : base;
@@ -224,6 +260,7 @@
   }
 
   function init() {
+    watchDrawer();
     document.querySelectorAll('[data-nova-form]').forEach(bind);
     // the "pairs well with" block sits on the page itself, under the button,
     // and uses the same add control as the one inside the drawer

@@ -1,0 +1,133 @@
+/*
+  Store-wide refinements. Loaded from theme.liquid, so it does not reach the
+  NovaHair funnel, which renders from its own layout.
+
+  The problem it fixes: on a 375px phone the announcement bar and header
+  together took 179px, more than a fifth of the screen, before a single word of
+  the page. A 90px logo in a 128px bar is a supermarket header, not a beauty
+  one. Premium beauty headers are quiet and short: a smaller mark, thinner
+  rules, more letter-spacing, less ink.
+*/
+
+/* --------------------------------------------------------------- announcement */
+
+.announcement-bar,
+.utility-bar {
+  --nova-ann-size: 12.5px;
+}
+
+.announcement-bar__message,
+.utility-bar .announcement-bar__message {
+  padding-block: 9px;
+  font-size: var(--nova-ann-size);
+  letter-spacing: .055em;
+  line-height: 1.35;
+  font-weight: 500;
+  white-space: nowrap;          /* the old text wrapped to two rows here */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the promotion link should read as a link without shouting */
+.announcement-bar__link .announcement-bar__message {
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+/* --------------------------------------------------------------------- header */
+
+.header {
+  padding-block: 10px;
+}
+
+/* The logo is the loudest thing in the bar and it does not need to be.
+   Beauty brands run a small mark and let the products carry the page. */
+.header__heading-link {
+  padding: 0;
+}
+
+.header__heading-logo,
+.header__heading-link img {
+  max-width: 58px;
+  height: auto;
+}
+
+/* a hairline, not a rule */
+.header-wrapper--border-bottom {
+  border-bottom: 1px solid rgba(26, 26, 26, .08);
+}
+
+/* icons sit lighter */
+.header__icon,
+.header__icon .icon {
+  --nova-icon: 21px;
+}
+
+.header__icon .icon {
+  width: var(--nova-icon);
+  height: var(--nova-icon);
+}
+
+.header__icon,
+.header__icon--cart {
+  height: 40px;
+  width: 40px;           /* still a 40px tap target, just less drawn ink */
+}
+
+.cart-count-bubble {
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
+  letter-spacing: 0;
+}
+
+/* desktop nav: spaced and quiet rather than bold and tight */
+@media screen and (min-width: 990px) {
+  .header {
+    padding-block: 14px;
+  }
+
+  .header__heading-logo,
+  .header__heading-link img {
+    max-width: 72px;
+  }
+
+  .header__inline-menu .header__menu-item {
+    font-size: 14px;
+    letter-spacing: .04em;
+    padding-block: 10px;
+  }
+}
+
+/* --------------------------------------------------- collection grid polish */
+
+/* Product photography is now cut out on a warm tile, so a card border fights
+   it. Let the tile be the card. */
+.card--standard .card__inner,
+.card-wrapper .card__inner {
+  border: 0;
+}
+
+.card__media img,
+.card-wrapper img {
+  object-fit: contain;      /* never crop a product */
+}
+
+.card__heading,
+.card-information .card__heading {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.price,
+.card-information .price {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-bar *,
+  .header * { transition: none !important; animation: none !important; }
+}

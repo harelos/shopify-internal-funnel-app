@@ -85,11 +85,14 @@ def run():
                      % day.get("dark_title"))
         live = shopify.gql(DISC_Q, {"q": "NovaDeal"})["automaticDiscountNodes"]["nodes"]
         for n in live:
-            a = n["automaticDiscount"]
-            if a.get("status") == "ACTIVE" and a.get("startsAt", "")[:10] == today:
-                issues.append("A discount is ACTIVE on a dark day: %s" % a["title"])
+            a = n["automaticDiscount"] or {}
+            if not a.get("startsAt"):
+                continue
+            when = dt.datetime.fromisoformat(a["startsAt"].replace("Z", "+00:00")).astimezone(IL)
+            if a.get("status") == "ACTIVE" and when.strftime("%Y-%m-%d") == today:
+                issues.append("A discount is ACTIVE on a dark day: %s" % a.get("title"))
     else:
-        handle = day["handle"]
+        handle = (day.get("handles") or [day.get("handle")])[0]
         pn = shopify.gql(PROD_Q, {"q": "handle:%s" % handle})["products"]["nodes"]
         if not pn:
             issues.append("Today's product '%s' does not exist." % handle)
@@ -110,9 +113,23 @@ def run():
                               % p["totalInventory"])
 
         # the discount that actually changes the price
-        live = shopify.gql(DISC_Q, {"q": "NovaDeal %s" % today})["automaticDiscountNodes"]["nodes"]
-        match = [n for n in live
-                 if n["automaticDiscount"].get("startsAt", "")[:10] == today]
+        # Shopify returns startsAt in UTC. A window that opens at midnight in
+        # Israel therefore comes back stamped with the previous date, which is
+        # why comparing the raw prefix reported a missing discount that was in
+        # fact running. Compare the actual instant instead.
+        live = shopify.gql(DISC_Q, {"q": "NovaDeal"})["automaticDiscountNodes"]["nodes"]
+        match = []
+        for n in live:
+            a = n["automaticDiscount"] or {}
+            t = a.get("title") or ""
+            if not t.startswith("NovaDeal ") or t.startswith("NovaDeal week"):
+                continue
+            starts = a.get("startsAt")
+            if not starts:
+                continue
+            when = dt.datetime.fromisoformat(starts.replace("Z", "+00:00")).astimezone(IL)
+            if when.strftime("%Y-%m-%d") == today:
+                match.append(n)
         if not match:
             issues.append("No automatic discount is scheduled for today. The page would "
                           "advertise a price the cart does not honour.")

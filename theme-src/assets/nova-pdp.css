@@ -719,3 +719,54 @@
 
 /* the same companions block, cloned into the cart drawer */
 .nova-pairs--in-drawer { margin: 0 0 14px; }
+
+/* today's promotion, stated on the product page rather than only in the cart */
+.nova-deal-flag {
+  margin: 8px 0 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(224, 122, 40, .10);
+  border-inline-start: 3px solid var(--nh-bronze, #e07a28);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--nh-espresso, #1a1a1a);
+}
+
+/* ---------------------------------------------------------------------------
+   Cart drawer scroll containment.
+
+   Reported on an iPhone: scrolling inside the drawer scrolled the page behind
+   it, and the page behind then showed as a grey band. The theme only adds
+   overflow:hidden to body, which iOS Safari ignores for touch scrolling once
+   the inner scroller reaches its end. These two rules stop the scroll from
+   chaining out of the drawer, and the body lock below stops the page moving at
+   all while the drawer is open.
+   --------------------------------------------------------------------------- */
+
+cart-drawer .drawer__inner,
+cart-drawer .drawer__contents,
+cart-drawer .cart-items,
+cart-drawer [class*="drawer__cart-items"] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+cart-drawer #CartDrawer-Overlay,
+cart-drawer .drawer__overlay {
+  overscroll-behavior: none;
+  touch-action: none;      /* the dimmed area behind should not scroll at all */
+}
+
+/* Set by nova-cart.js while the drawer is open. position:fixed is the only
+   reliable body lock on iOS; the saved scroll position is restored on close. */
+html.nova-drawer-open,
+body.nova-drawer-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.nova-drawer-open {
+  position: fixed;
+  inset-inline: 0;
+  width: 100%;
+}

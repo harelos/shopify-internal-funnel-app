@@ -71,61 +71,90 @@
       </div>
 
     {%- else -%}
-      {%- assign p = all_products[day.handle] -%}
-      {%- if p != blank and p.available -%}
-        {%- assign v = p.selected_or_first_available_variant -%}
-        {%- assign was = v.price -%}
-        {%- assign now_price = was | times: day.keep_percent | divided_by: 100 -%}
-        {%- assign saved = was | minus: now_price -%}
-
-        <article class="nd-card nd-today">
-          <div class="nd-flag">
-            <span class="nd-flag-label">{{ day.label | default: 'המבצע של היום' | escape }}</span>
-            <span class="nd-flag-date">{{ day.date | date: '%d.%m' }}</span>
-          </div>
-
-          <a class="nd-media" href="{{ p.url }}">
-            {%- if p.featured_media -%}
-              {{ p.featured_media | image_url: width: 900 | image_tag:
-                   widths: '400,600,900', sizes: '(min-width: 750px) 420px, 92vw',
-                   loading: 'eager', fetchpriority: 'high',
-                   alt: p.featured_media.alt | default: p.title | escape }}
-            {%- endif -%}
-          </a>
-
-          <div class="nd-body">
-            {%- assign parts = p.title | split: ' - ' -%}
-            {%- if parts.size > 1 -%}
-              <p class="nd-brand">{{ parts[0] | strip | escape }}</p>
-              <h2 class="nd-name">{{ parts | slice: 1, 9 | join: ' ' | strip | escape }}</h2>
-            {%- else -%}
-              <h2 class="nd-name">{{ p.title | escape }}</h2>
-            {%- endif -%}
-
-            {%- if day.line != blank -%}
-              <p class="nd-line">{{ day.line | escape }}</p>
-            {%- endif -%}
-
-            <p class="nd-prices">
-              <span class="nd-now">{% render 'nova-money', cents: now_price, symbol: '₪' %}</span>
-              <s class="nd-was">{% render 'nova-money', cents: was, symbol: '₪' %}</s>
-              <span class="nd-save">חיסכון {% render 'nova-money', cents: saved, symbol: '₪' %}</span>
-            </p>
-
-            <p class="nd-terms">המחיר מתעדכן בסל. המבצע בתוקף היום בלבד, עד חצות.</p>
-            <a class="nd-btn" href="{{ p.url }}">למוצר</a>
-          </div>
-        </article>
-      {%- else -%}
-        {%- comment -%}
-          The scheduled product is not on sale right now. Never show a dead offer:
-          fall back to the running week deal, which always points at a collection.
-        {%- endcomment -%}
-        <div class="nd-card nd-card--quiet">
-          <h2 class="nd-quiet-title">מבצע היום אזל</h2>
-          <p class="nd-quiet-body">המבצע של היום נגמר במלאי. המבצע השבועי עדיין פעיל.</p>
-        </div>
+      {%- comment -%}
+        A day can be one hero, three products around a theme, or a routine
+        bought together. One SKU a day for two weeks is monotonous and it never
+        moves the basket, so the calendar carries a kind and this renders each
+        one differently.
+      {%- endcomment -%}
+      {%- assign handles = day.handles | default: nil -%}
+      {%- if handles == nil or handles == blank -%}
+        {%- assign handles = day.handle | split: ',' -%}
       {%- endif -%}
+
+      {%- assign shown_any = false -%}
+      {%- assign bundle_now = 0 -%}
+      {%- assign bundle_was = 0 -%}
+
+      <article class="nd-card nd-day nd-day--{{ day.kind | default: 'product' }}">
+        <div class="nd-flag">
+          <span class="nd-flag-label">{{ day.label | default: 'המבצע של היום' | escape }}</span>
+          <span class="nd-flag-date">{{ day.date | date: '%d.%m' }}</span>
+        </div>
+
+        <div class="nd-day__head">
+          <h2 class="nd-day__title">{{ day.headline | default: '' | escape }}</h2>
+          {%- if day.line != blank -%}
+            <p class="nd-day__line">{{ day.line | escape }}</p>
+          {%- endif -%}
+        </div>
+
+        <ul class="nd-items nd-items--{{ handles.size }}">
+          {%- for h in handles -%}
+            {%- assign dh = h | strip -%}
+            {%- assign dp = all_products[dh] -%}
+            {%- if dp == blank or dp.available == false -%}{%- continue -%}{%- endif -%}
+            {%- assign dv = dp.selected_or_first_available_variant -%}
+            {%- assign was = dv.price -%}
+            {%- assign now_price = was | times: day.keep_percent | divided_by: 100 -%}
+            {%- assign bundle_was = bundle_was | plus: was -%}
+            {%- assign bundle_now = bundle_now | plus: now_price -%}
+            {%- assign shown_any = true -%}
+
+            <li class="nd-item">
+              <a class="nd-item__media" href="{{ dp.url }}" tabindex="-1" aria-hidden="true">
+                {%- if dp.featured_media -%}
+                  {{ dp.featured_media | image_url: width: 600 | image_tag:
+                       widths: '200,400,600', sizes: '(min-width: 750px) 240px, 40vw',
+                       loading: 'eager',
+                       alt: dp.featured_media.alt | default: dp.title | escape }}
+                {%- endif -%}
+              </a>
+              <div class="nd-item__body">
+                {%- assign np = dp.title | split: ' - ' -%}
+                {%- if np.size > 1 -%}
+                  <p class="nd-item__brand">{{ np[0] | strip | escape }}</p>
+                  <a class="nd-item__name" href="{{ dp.url }}">{{ np | slice: 1, 9 | join: ' ' | strip | escape }}</a>
+                {%- else -%}
+                  <a class="nd-item__name" href="{{ dp.url }}">{{ dp.title | escape }}</a>
+                {%- endif -%}
+                <p class="nd-item__prices">
+                  <span class="nd-item__now">{% render 'nova-money', cents: now_price, symbol: '₪' %}</span>
+                  <s class="nd-item__was">{% render 'nova-money', cents: was, symbol: '₪' %}</s>
+                </p>
+                <a class="nd-item__cta" href="{{ dp.url }}">למוצר</a>
+              </div>
+            </li>
+          {%- endfor -%}
+        </ul>
+
+        {%- if shown_any -%}
+          {%- if handles.size > 1 -%}
+            {%- assign bundle_save = bundle_was | minus: bundle_now -%}
+            <div class="nd-day__total">
+              <span class="nd-day__total-label">
+                {%- if day.kind == 'bundle' -%}השגרה המלאה{%- else -%}שלושתם יחד{%- endif -%}
+              </span>
+              <span class="nd-day__total-now">{% render 'nova-money', cents: bundle_now, symbol: '₪' %}</span>
+              <s class="nd-day__total-was">{% render 'nova-money', cents: bundle_was, symbol: '₪' %}</s>
+              <span class="nd-save">חיסכון {% render 'nova-money', cents: bundle_save, symbol: '₪' %}</span>
+            </div>
+          {%- endif -%}
+          <p class="nd-terms">המחיר מתעדכן אוטומטית בסל. המבצע בתוקף היום בלבד, עד חצות.</p>
+        {%- else -%}
+          <p class="nd-terms">המבצע של היום אזל במלאי. המבצע השבועי עדיין פעיל.</p>
+        {%- endif -%}
+      </article>
     {%- endif -%}
 
     {%- comment -%} Tomorrow and the day after, the reason to come back. {%- endcomment -%}

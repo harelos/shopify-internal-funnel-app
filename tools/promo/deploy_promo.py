@@ -58,7 +58,7 @@ mutation disc($automaticBasicDiscount: DiscountAutomaticBasicInput!) {
 LIST_DISCOUNTS = """
 query list($q: String!) {
   automaticDiscountNodes(first: 100, query: $q) {
-    nodes { id automaticDiscount { ... on DiscountAutomatic { __typename } } }
+    nodes { id automaticDiscount { ... on DiscountAutomaticBasic { title } } }
   }
 }"""
 
@@ -133,35 +133,70 @@ def existing_titles():
     return len(got)
 
 
+DELETE = """
+mutation del($id: ID!) {
+  discountAutomaticDelete(id: $id) {
+    deletedAutomaticDiscountId
+    userErrors { field message }
+  }
+}"""
+
+
+def clear_discounts():
+    """Remove the programme's own discounts before rebuilding the calendar.
+
+    Only ones titled NovaDeal, and only ones this programme created. A day with
+    two overlapping discounts would apply whichever Shopify picked, which is
+    not a thing to leave to chance.
+    """
+    got = shopify.gql(LIST_DISCOUNTS, {"q": "NovaDeal"})["automaticDiscountNodes"]["nodes"]
+    n = 0
+    for node in got:
+        a = node.get("automaticDiscount") or {}
+        title = a.get("title") or ""
+        if not title.startswith("NovaDeal"):
+            continue
+        r = shopify.gql(DELETE, {"id": node["id"]})["discountAutomaticDelete"]
+        if not r["userErrors"]:
+            n += 1
+    print("  removed %d existing NovaDeal discounts" % n)
+
+
 def make_discounts():
     made, skipped = 0, []
 
-    for date, handle, off, line, teaser in DAYS:
-        if handle is None:
+    for date, kind, off, headline, line, handles in DAYS:
+        if kind == "dark" or not handles:
             continue
-        gid = product_gid(handle)
-        if not gid:
-            skipped.append("%s %s (product not found)" % (date, handle))
+        gids = []
+        for h in handles:
+            g = product_gid(h)
+            if g:
+                gids.append(g)
+            else:
+                skipped.append("%s %s (product not found)" % (date, h))
+        if not gids:
             continue
         y, m, dd = date.split("-")
         nxt = "%s-%s-%02d" % (y, m, int(dd) + 1) if int(dd) < 30 else "2026-10-01"
-        title = "NovaDeal %s %s" % (date, handle)
+        title = "NovaDeal %s %s" % (date, headline)
         d = shopify.gql(CREATE_DISCOUNT, {"automaticBasicDiscount": {
             "title": title,
             "startsAt": "%sT00:00:00%s" % (date, IL),
             "endsAt": "%sT00:00:00%s" % (nxt, IL),
             "customerGets": {
                 "value": {"percentage": off / 100.0},
-                "items": {"products": {"productsToAdd": [gid]}},
+                "items": {"products": {"productsToAdd": gids}},
             },
             "combinesWith": {"orderDiscounts": False, "productDiscounts": False,
                              "shippingDiscounts": True},
         }})["discountAutomaticBasicCreate"]
         if d["userErrors"]:
-            skipped.append("%s %s: %s" % (date, handle, d["userErrors"]))
+            skipped.append("%s %s: %s" % (date, headline, d["userErrors"]))
             continue
         made += 1
-        print("    %s  %2d%% off  %s" % (date, off, handle))
+        print("    %s  %2d%% off  %-8s %s (%d products)"
+              % (date, off, kind, headline, len(gids)))
 
     for w in WEEKS:
         cg = collection_gid(w["collection"])
@@ -218,6 +253,7 @@ if __name__ == "__main__":
     define_metafield()
     push_calendar()
     print("discounts")
+    clear_discounts()
     make_discounts()
     print("page")
     make_page()
