@@ -480,6 +480,37 @@ export async function processPaidOrder(
 
   await purchaseGlobalStop(env, emailHash, gid, completedAt);
 
+  // Persist order attribution on any first-party clicks that could have driven this
+  // order. Matches by exact checkout id first (strongest), then by recipient email
+  // hash within a 30-day pre-purchase window. Only fills rows that have not yet
+  // been credited, so a later purchase never overwrites an earlier credited one.
+  if (exactCheckoutId) {
+    await env.DB.prepare(
+      `UPDATE lifecycle_attribution
+         SET shopify_order_id = ?,
+             order_completed_at = ?,
+             updated_at = ?
+       WHERE order_completed_at IS NULL
+         AND clicked_at IS NOT NULL
+         AND shopify_checkout_id = ?
+         AND julianday(clicked_at) <= julianday(?)
+         AND julianday(clicked_at) >= julianday(?) - 30`,
+    ).bind(gid, completedAt, current, exactCheckoutId, completedAt, completedAt).run();
+  }
+  if (emailHash) {
+    await env.DB.prepare(
+      `UPDATE lifecycle_attribution
+         SET shopify_order_id = ?,
+             order_completed_at = ?,
+             updated_at = ?
+       WHERE order_completed_at IS NULL
+         AND clicked_at IS NOT NULL
+         AND recipient_hash = ?
+         AND julianday(clicked_at) <= julianday(?)
+         AND julianday(clicked_at) >= julianday(?) - 30`,
+    ).bind(gid, completedAt, current, emailHash, completedAt, completedAt).run();
+  }
+
   const immediateEvents = [
     { eventName: "shopify.purchase_completed", flow: "post_purchase" },
     { eventName: "lifecycle.browse_stop", flow: "browse_abandonment" },
