@@ -1,0 +1,35 @@
+{
+  "sections": {
+    "main": {
+      "type": "nova-pdp",
+      "blocks": {
+        "trust-1": { "type": "trust_item", "settings": { "text": "משלוח לכל נקודה בארץ" } },
+        "trust-2": { "type": "trust_item", "settings": { "text": "מותגים מקוריים" } },
+        "trust-3": { "type": "trust_item", "settings": { "text": "שירות לקוחות בעברית" } },
+        "reassure-1": { "type": "reassurance", "settings": { "text": "תשלום מאובטח" } },
+        "reassure-2": { "type": "reassurance", "settings": { "text": "שירות לקוחות בעברית" } }
+      },
+      "block_order": ["trust-1", "trust-2", "trust-3", "reassure-1", "reassure-2"],
+      "settings": {
+        "ladder_option": 0,
+        "show_quantity": true,
+        "cta_text": "הוסיפי לסל",
+        "soldout_text": "אזל מהמלאי",
+        "unavailable_text": "הצירוף הזה לא זמין",
+        "soldout_note": "המוצר אזל כרגע. אפשר לבחור גוון אחר או לחזור לקולקציית השיער.",
+        "quantity_label": "כמות",
+        "save_prefix": "חיסכון",
+        "per_unit_label": "ליחידה",
+        "price_note": "המחיר כולל מע\"מ. המשלוח מחושב בקופה.",
+        "rating_noun": "ביקורות",
+        "media_badge": "",
+        "thumb_label": "תמונה",
+        "steps_eyebrow": "השגרה",
+        "steps_title": "איפה זה נמצא בשגרה שלך",
+        "details_title": "פרטים ושאלות",
+        "description_label": "על המוצר"
+      }
+    }
+  },
+  "order": ["main"]
+}

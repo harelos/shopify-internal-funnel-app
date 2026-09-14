@@ -1,0 +1,376 @@
+/* ==========================================================================
+   nova-pdp.css
+   One reusable product page. Tokens lifted from the NovaHair sales page that
+   converts cold mobile social traffic at 4.03%, so the PDP and the funnel
+   look like the same brand.
+
+   Everything is scoped under .nova-pdp because base.css carries storewide
+   RTL !important overrides that would otherwise reach in.
+   ========================================================================== */
+
+.nova-pdp {
+  --nh-bronze: #e07a28;
+  --nh-bronze-dark: #c05621;
+  --nh-bronze-soft: #fff7f1;
+  --nh-espresso: #1a1a1a;
+  --nh-sand: #faf7f2;
+  --nh-cream: #fdfbf8;
+  --nh-blush: #fbe3d1;
+  --nh-gold: #d4af37;
+  --nh-text: #262626;
+  --nh-text-soft: #555555;
+  --nh-muted: #888888;
+  --nh-border: #e8dfd5;
+  --nh-white: #ffffff;
+  --nh-good: #1d6b4a;
+
+  direction: rtl;
+  text-align: right;
+  background: var(--nh-white);
+  color: var(--nh-text);
+  font-size: 16px;
+  line-height: 1.6;
+  padding-bottom: 92px; /* clearance for the sticky bar */
+}
+
+@media screen and (min-width: 750px) {
+  .nova-pdp { padding-bottom: 0; }
+}
+
+.nova-pdp *,
+.nova-pdp *::before,
+.nova-pdp *::after { box-sizing: border-box; }
+
+.nova-pdp__wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* --- announcement / trust strip ----------------------------------------- */
+.nova-trustbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
+  padding: 9px 14px;
+  background: var(--nh-sand);
+  border-bottom: 1px solid var(--nh-border);
+  font-size: 12px;
+  color: var(--nh-text-soft);
+}
+
+.nova-trustbar__item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.nova-trustbar__item svg { width: 14px; height: 14px; flex: none; color: var(--nh-bronze); }
+
+/* --- layout -------------------------------------------------------------- */
+.nova-pdp__top { display: block; }
+
+@media screen and (min-width: 750px) {
+  .nova-pdp__top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+    padding-top: 28px;
+  }
+  .nova-pdp__media { position: sticky; top: 20px; }
+}
+
+/* --- gallery ------------------------------------------------------------- */
+.nova-gallery { position: relative; }
+
+.nova-gallery__track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nova-gallery__track::-webkit-scrollbar { display: none; }
+
+.nova-gallery__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  background: var(--nh-sand);
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.nova-gallery__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nova-gallery__thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+.nova-gallery__thumbs::-webkit-scrollbar { display: none; }
+
+.nova-gallery__thumb {
+  flex: none;
+  width: 62px;
+  height: 62px;
+  border: 1px solid var(--nh-border);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--nh-sand);
+  padding: 0;
+  cursor: pointer;
+}
+.nova-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nova-gallery__thumb[aria-current='true'] { border-color: var(--nh-espresso); border-width: 2px; }
+.nova-gallery__thumb:focus-visible { outline: 2px solid var(--nh-bronze); outline-offset: 2px; }
+
+.nova-gallery__badge {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: 10px;
+  background: rgba(26, 26, 26, 0.84);
+  color: #fff;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 2px;
+  z-index: 2;
+}
+
+/* --- info column --------------------------------------------------------- */
+.nova-info { padding-top: 16px; }
+@media screen and (min-width: 750px) { .nova-info { padding-top: 0; } }
+
+.nova-rating { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: var(--nh-text-soft); }
+.nova-rating__stars { color: var(--nh-gold); letter-spacing: 1px; font-size: 13px; }
+
+.nova-title {
+  font-size: 23px;
+  line-height: 1.32;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--nh-espresso);
+  letter-spacing: -0.01em;
+}
+@media screen and (min-width: 750px) { .nova-title { font-size: 28px; } }
+
+.nova-sub { font-size: 14.5px; line-height: 1.62; color: var(--nh-text-soft); margin: 0 0 16px; }
+
+/* --- price --------------------------------------------------------------- */
+.nova-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 9px; margin-bottom: 4px; }
+.nova-price__now { font-size: 26px; font-weight: 700; color: var(--nh-espresso); }
+.nova-price__was { font-size: 15px; color: var(--nh-muted); text-decoration: line-through; }
+.nova-price__save { background: var(--nh-good); color: #fff; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 2px; }
+.nova-price__note { font-size: 12px; color: var(--nh-muted); margin: 0 0 18px; }
+
+/* --- option / shade picker ----------------------------------------------- */
+.nova-opt { margin-bottom: 18px; }
+.nova-opt__label { font-size: 13px; font-weight: 700; color: var(--nh-espresso); margin-bottom: 8px; display: flex; gap: 6px; }
+.nova-opt__label span { font-weight: 400; color: var(--nh-text-soft); }
+
+.nova-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.nova-swatch { position: relative; }
+.nova-swatch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.nova-swatch__dot {
+  display: block;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--nh-white);
+  box-shadow: 0 0 0 1px var(--nh-border);
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+}
+.nova-swatch input:checked + .nova-swatch__dot { box-shadow: 0 0 0 2px var(--nh-espresso); }
+.nova-swatch input:focus-visible + .nova-swatch__dot { outline: 2px solid var(--nh-bronze); outline-offset: 3px; }
+.nova-swatch input:disabled + .nova-swatch__dot { opacity: 0.35; cursor: not-allowed; }
+
+/* text pills, for options that are not colours */
+.nova-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.nova-pill { position: relative; }
+.nova-pill input { position: absolute; opacity: 0; width: 0; height: 0; }
+.nova-pill__label {
+  display: block;
+  padding: 9px 15px;
+  border: 1px solid var(--nh-border);
+  border-radius: 3px;
+  font-size: 13.5px;
+  cursor: pointer;
+  background: var(--nh-white);
+  color: var(--nh-text);
+}
+.nova-pill input:checked + .nova-pill__label { border-color: var(--nh-espresso); background: var(--nh-sand); font-weight: 700; }
+.nova-pill input:focus-visible + .nova-pill__label { outline: 2px solid var(--nh-bronze); outline-offset: 2px; }
+.nova-pill input:disabled + .nova-pill__label { opacity: 0.4; text-decoration: line-through; cursor: not-allowed; }
+
+/* --- benefit chips ------------------------------------------------------- */
+.nova-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; padding: 0; list-style: none; }
+.nova-chip {
+  background: var(--nh-bronze-soft);
+  color: var(--nh-bronze-dark);
+  border: 1px solid var(--nh-blush);
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  line-height: 1.35;
+}
+
+/* --- pack ladder --------------------------------------------------------- */
+.nova-packs { border: 1px solid var(--nh-border); border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+
+.nova-pack { position: relative; display: block; border-bottom: 1px solid var(--nh-border); }
+.nova-pack:last-child { border-bottom: 0; }
+.nova-pack input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.nova-pack__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: var(--nh-white);
+  border-inline-start: 3px solid transparent;
+}
+.nova-pack input:checked + .nova-pack__body { background: var(--nh-bronze-soft); border-inline-start-color: var(--nh-bronze); }
+.nova-pack input:focus-visible + .nova-pack__body { outline: 2px solid var(--nh-bronze); outline-offset: -2px; }
+.nova-pack input:disabled + .nova-pack__body { opacity: 0.45; cursor: not-allowed; }
+
+.nova-pack__main { min-width: 0; }
+.nova-pack__name { font-size: 14px; font-weight: 700; color: var(--nh-espresso); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nova-pack__note { font-size: 11.5px; color: var(--nh-muted); margin-top: 2px; }
+.nova-pack__tag { background: var(--nh-espresso); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 2px; font-weight: 700; }
+.nova-pack__tag--save { background: var(--nh-good); }
+
+.nova-pack__price { text-align: left; white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
+.nova-pack__now { font-size: 15px; font-weight: 700; color: var(--nh-espresso); display: block; }
+.nova-pack__was { font-size: 11.5px; color: var(--nh-muted); text-decoration: line-through; display: block; }
+.nova-pack__unit { font-size: 11px; color: var(--nh-text-soft); display: block; margin-top: 1px; }
+
+/* --- CTA ----------------------------------------------------------------- */
+.nova-cta {
+  display: block;
+  width: 100%;
+  background: var(--nh-bronze);
+  color: #fff;
+  border: 0;
+  border-radius: 3px;
+  padding: 15px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.3;
+  transition: background 0.15s ease;
+}
+.nova-cta:hover:not(:disabled) { background: var(--nh-bronze-dark); }
+.nova-cta:focus-visible { outline: 3px solid var(--nh-espresso); outline-offset: 2px; }
+.nova-cta:disabled { background: var(--nh-muted); cursor: not-allowed; }
+
+.nova-reassure {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  font-size: 11.5px;
+  color: var(--nh-text-soft);
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.nova-reassure li { display: inline-flex; align-items: center; gap: 4px; }
+.nova-reassure svg { width: 13px; height: 13px; color: var(--nh-good); flex: none; }
+
+/* --- sticky mobile bar --------------------------------------------------- */
+.nova-sticky {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--nh-white);
+  border-top: 1px solid var(--nh-border);
+  box-shadow: 0 -2px 14px rgba(26, 26, 26, 0.09);
+  padding: 9px 14px calc(9px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(110%);
+  transition: transform 0.22s ease;
+}
+.nova-sticky.is-visible { transform: translateY(0); }
+
+@media screen and (min-width: 750px) { .nova-sticky { display: none; } }
+
+.nova-sticky__price { flex: none; font-variant-numeric: tabular-nums; }
+.nova-sticky__now { font-size: 16px; font-weight: 700; color: var(--nh-espresso); display: block; line-height: 1.2; }
+.nova-sticky__was { font-size: 11px; color: var(--nh-muted); text-decoration: line-through; }
+.nova-sticky .nova-cta { padding: 12px 14px; font-size: 14.5px; }
+
+/* --- content sections ---------------------------------------------------- */
+.nova-sec { padding: 30px 0; border-top: 1px solid var(--nh-border); }
+.nova-sec--sand { background: var(--nh-sand); }
+.nova-sec__eyebrow { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--nh-bronze-dark); margin: 0 0 6px; font-weight: 700; }
+.nova-sec__title { font-size: 19px; line-height: 1.34; font-weight: 700; color: var(--nh-espresso); margin: 0 0 14px; }
+@media screen and (min-width: 750px) { .nova-sec__title { font-size: 23px; } }
+
+/* routine steps */
+.nova-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+@media screen and (min-width: 750px) { .nova-steps { grid-template-columns: repeat(3, 1fr); } }
+.nova-step { display: flex; gap: 11px; align-items: flex-start; background: var(--nh-white); border: 1px solid var(--nh-border); border-radius: 4px; padding: 13px; }
+.nova-step__n {
+  flex: none; width: 25px; height: 25px; border-radius: 50%;
+  background: var(--nh-bronze); color: #fff;
+  display: grid; place-items: center; font-size: 12.5px; font-weight: 700;
+}
+.nova-step__t { font-size: 13.5px; font-weight: 700; color: var(--nh-espresso); margin: 0 0 2px; }
+.nova-step__d { font-size: 12.5px; color: var(--nh-text-soft); margin: 0; line-height: 1.55; }
+
+/* collapsibles */
+.nova-acc { border-top: 1px solid var(--nh-border); }
+.nova-acc__item { border-bottom: 1px solid var(--nh-border); }
+.nova-acc__item > summary {
+  list-style: none; cursor: pointer; padding: 14px 2px;
+  font-size: 14.5px; font-weight: 700; color: var(--nh-espresso);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.nova-acc__item > summary::-webkit-details-marker { display: none; }
+.nova-acc__item > summary::after {
+  content: '+'; font-weight: 400; font-size: 20px; color: var(--nh-bronze); flex: none; line-height: 1;
+}
+.nova-acc__item[open] > summary::after { content: '\2212'; }
+.nova-acc__body { padding: 0 2px 16px; font-size: 14px; line-height: 1.7; color: var(--nh-text-soft); }
+.nova-acc__body > *:first-child { margin-top: 0; }
+.nova-acc__body > *:last-child { margin-bottom: 0; }
+.nova-acc__body img { max-width: 100%; height: auto; }
+.nova-acc__body table { width: 100%; }
+.nova-acc__body ul, .nova-acc__body ol { padding-inline-start: 20px; }
+
+/* Reachable combination, but that variant is out of stock. Distinct from
+   :disabled, which marks a combination no variant can satisfy at all. */
+.nova-swatch.is-unavailable .nova-swatch__dot,
+.nova-pack.is-unavailable .nova-pack__body { opacity: 0.5; }
+.nova-pill.is-unavailable .nova-pill__label { opacity: 0.55; text-decoration: line-through; }
+
+/* --- utilities ----------------------------------------------------------- */
+.nova-pdp .visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.nova-soldout { font-size: 13px; color: var(--nh-bronze-dark); background: var(--nh-bronze-soft); border: 1px solid var(--nh-blush); padding: 10px 12px; border-radius: 3px; margin-bottom: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nova-sticky { transition: none; }
+  .nova-cta { transition: none; }
+}

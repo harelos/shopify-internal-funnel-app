@@ -1,0 +1,744 @@
+{%- comment -%}
+  nova-pdp.liquid
+
+  ONE product page for the whole hair catalogue.
+
+  The theme already carries five hand-built PDP sections (novahair-pdp-v2,
+  hairloss-pdp, hairloss-pdp-staging, elasticdream-cro-pdp, ideo-skin-memory-pdp,
+  ideo-v3-pdp) at 34-56KB each, one per product. That is why adding a product
+  means rebuilding a page. This section is driven by product data, product
+  metafields and theme-editor blocks instead, so a new product needs no new code.
+
+  Block order follows the NovaHair sales page, which converts cold mobile social
+  traffic at 4.03% while these product pages convert at 0.00%.
+
+  Per-product content comes from the `nova` metafield namespace. Every field is
+  optional and the section degrades cleanly when one is missing. Nothing here
+  invents a rating, a review or a discount: prices come from the variants and
+  proof renders only when the metafield holds a real value.
+{%- endcomment -%}
+
+{{ 'nova-pdp.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'nova-pdp.js' | asset_url }}" defer="defer"></script>
+
+{%- liquid
+  assign p = product
+
+  comment
+    Which option is a pack ladder rather than a shade picker?
+    Setting 0 means auto: an option qualifies when it has 2+ values and EVERY
+    value carries a number, e.g. "1+1 / 2+2 / 3+3" or "בקבוק 1 / מארז 2".
+    A shade list like "שחור / חום" has no numbers and stays a swatch picker,
+    so one template serves the whole catalogue.
+  endcomment
+
+  assign ladder_index = -1
+  if section.settings.ladder_option > 0
+    assign ladder_index = section.settings.ladder_option | minus: 1
+  else
+    for option in p.options_with_values
+      assign this_index = forloop.index0
+      assign value_count = option.values.size
+      assign numeric_count = 0
+      for value in option.values
+        assign words = value | replace: '+', ' ' | replace: '(', ' ' | replace: ')', ' ' | replace: 'x', ' ' | split: ' '
+        assign found = 0
+        for w in words
+          assign n = w | times: 1
+          if n > 0
+            assign found = 1
+            break
+          endif
+        endfor
+        assign numeric_count = numeric_count | plus: found
+      endfor
+      if ladder_index < 0 and value_count > 1 and numeric_count == value_count
+        assign ladder_index = this_index
+      endif
+    endfor
+  endif
+
+  assign sub = p.metafields.nova.subtitle.value
+  assign chips = p.metafields.nova.chips.value
+  assign rating = p.metafields.nova.rating.value
+  assign rating_count = p.metafields.nova.rating_count.value
+  assign form_id = 'nova-form-' | append: section.id
+-%}
+
+<div class="nova-pdp" data-nova-pdp id="nova-pdp-{{ section.id }}">
+  {%- if section.blocks.size > 0 -%}
+    {%- assign trust_items = section.blocks | where: 'type', 'trust_item' -%}
+    {%- if trust_items.size > 0 -%}
+      <div class="nova-trustbar">
+        {%- for b in trust_items -%}
+          <span class="nova-trustbar__item" {{ b.shopify_attributes }}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M8 1.5 14 4v4c0 3.2-2.4 5.6-6 6.5C4.4 13.6 2 11.2 2 8V4l6-2.5Z" />
+              <path d="m5.5 8 1.8 1.8L10.8 6" />
+            </svg>
+            {{ b.settings.text }}
+          </span>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+
+  <div class="nova-pdp__wrap">
+    <div class="nova-pdp__top">
+      {%- comment -%} ---------- MEDIA. First in DOM and first on mobile. ---------- {%- endcomment -%}
+      <div class="nova-pdp__media">
+        <div class="nova-gallery">
+          {%- if section.settings.media_badge != blank -%}
+            <span class="nova-gallery__badge">{{ section.settings.media_badge }}</span>
+          {%- endif -%}
+
+          <div class="nova-gallery__track" data-nova-track>
+            {%- if p.media.size > 0 -%}
+              {%- for media in p.media -%}
+                {%- liquid
+                  assign alt_text = media.alt | default: p.title
+                  if forloop.first
+                    assign ld = 'eager'
+                  else
+                    assign ld = 'lazy'
+                  endif
+                -%}
+                <div class="nova-gallery__slide">
+                  {{
+                    media
+                    | image_url: width: 1200
+                    | image_tag:
+                      loading: ld,
+                      widths: '375, 550, 750, 1100, 1200',
+                      sizes: '(min-width: 750px) 52vw, 100vw',
+                      alt: alt_text
+                  }}
+                </div>
+              {%- endfor -%}
+            {%- else -%}
+              <div class="nova-gallery__slide">{{ 'product-1' | placeholder_svg_tag }}</div>
+            {%- endif -%}
+          </div>
+
+          {%- if p.media.size > 1 -%}
+            <div class="nova-gallery__thumbs">
+              {%- for media in p.media -%}
+                <button
+                  type="button"
+                  class="nova-gallery__thumb"
+                  data-nova-thumb
+                  aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                  aria-label="{{ section.settings.thumb_label }} {{ forloop.index }}"
+                >
+                  {{ media | image_url: width: 160 | image_tag: loading: 'lazy', widths: '80, 160', alt: '' }}
+                </button>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+
+      {%- comment -%} ---------- INFO ---------- {%- endcomment -%}
+      <div class="nova-info">
+        {%- comment -%}
+          Proof renders only when the metafield actually holds a number.
+          No placeholder rating, ever.
+        {%- endcomment -%}
+        {%- if rating != blank and rating > 0 -%}
+          <div class="nova-rating">
+            {%- assign full = rating | round -%}
+            <span class="nova-rating__stars" aria-hidden="true">
+              {%- for i in (1..5) -%}{% if i <= full %}★{% else %}☆{% endif %}{%- endfor -%}
+            </span>
+            <span>
+              {{ rating }}
+              {%- if rating_count != blank and rating_count > 0 %}
+                · {{ rating_count }} {{ section.settings.rating_noun }}
+              {%- endif -%}
+            </span>
+          </div>
+        {%- endif -%}
+
+        <h1 class="nova-title">{{ p.title | escape }}</h1>
+
+        {%- if sub != blank -%}
+          <p class="nova-sub">{{ sub }}</p>
+        {%- endif -%}
+
+        {%- liquid
+          assign v = p.selected_or_first_available_variant
+          assign show_was = false
+          if v.compare_at_price > v.price
+            assign show_was = true
+          endif
+        -%}
+
+        <div class="nova-price">
+          <span class="nova-price__now" data-nova-price-now>{{ v.price | money }}</span>
+          <s class="nova-price__was" data-nova-price-was {% unless show_was %}hidden{% endunless %}>
+            {%- if show_was %}{{ v.compare_at_price | money }}{% endif -%}
+          </s>
+          <span class="nova-price__save" data-nova-price-save {% unless show_was %}hidden{% endunless %}>
+            {%- if show_was -%}
+              {%- assign pct = v.compare_at_price | minus: v.price | times: 100.0 | divided_by: v.compare_at_price | round -%}
+              {{ section.settings.save_prefix }} {{ pct }}%
+            {%- endif -%}
+          </span>
+        </div>
+        {%- if section.settings.price_note != blank -%}
+          <p class="nova-price__note">{{ section.settings.price_note }}</p>
+        {%- endif -%}
+
+        {%- if chips != blank -%}
+          <ul class="nova-chips">
+            {%- for c in chips -%}
+              <li class="nova-chip">{{ c }}</li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+
+        <form
+          action="{{ routes.cart_add_url }}"
+          method="post"
+          enctype="multipart/form-data"
+          id="{{ form_id }}"
+          data-nova-form
+        >
+          <input type="hidden" name="id" value="{{ v.id }}" data-nova-variant-id>
+          <input type="hidden" name="form_type" value="product">
+          <input type="hidden" name="utf8" value="✓">
+
+          {%- unless p.has_only_default_variant -%}
+            {%- for option in p.options_with_values -%}
+              {%- assign oi = forloop.index0 -%}
+
+              {%- if oi == ladder_index -%}
+                {%- comment -%} ---- pack ladder ---- {%- endcomment -%}
+                <div class="nova-opt">
+                  <div class="nova-opt__label">{{ option.name }}</div>
+                  <div class="nova-packs">
+                    {%- for value in option.values -%}
+                      {%- liquid
+                        assign match = false
+                        for cand in p.variants
+                          if cand.options[oi] == value
+                            assign match = cand
+                            break
+                          endif
+                        endfor
+
+                        comment
+                          How many units are in this pack? An Israeli "2+2" means
+                          two paid plus two free, so the pack holds four and the
+                          numbers must be summed. "בקבוק 2" holds two, so there
+                          the first number is the answer. Getting this wrong
+                          prints a per-unit price that is not true.
+                        endcomment
+                        assign units = 0
+                        assign words = value | replace: '+', ' + ' | split: ' '
+                        assign summing = false
+                        if value contains '+'
+                          assign summing = true
+                        endif
+                        for w in words
+                          assign n = w | times: 1
+                          if n > 0
+                            if summing
+                              assign units = units | plus: n
+                            elsif units == 0
+                              assign units = n
+                            endif
+                          endif
+                        endfor
+                      -%}
+                      <label class="nova-pack">
+                        <input
+                          type="radio"
+                          name="nova-opt-{{ section.id }}-{{ oi }}"
+                          value="{{ value | escape }}"
+                          data-nova-option="{{ oi }}"
+                          {% if option.selected_value == value %}checked{% endif %}
+                        >
+                        <span class="nova-pack__body">
+                          <span class="nova-pack__main">
+                            <span class="nova-pack__name">
+                              {{ value }}
+                              {%- if match and match.compare_at_price > match.price -%}
+                                {%- assign pp = match.compare_at_price | minus: match.price | times: 100.0 | divided_by: match.compare_at_price | round -%}
+                                <span class="nova-pack__tag nova-pack__tag--save">{{ section.settings.save_prefix }} {{ pp }}%</span>
+                              {%- endif -%}
+                            </span>
+                            {%- if match and units > 1 -%}
+                              <span class="nova-pack__note">
+                                {{ match.price | divided_by: units | money }} {{ section.settings.per_unit_label }}
+                              </span>
+                            {%- endif -%}
+                          </span>
+                          {%- if match -%}
+                            <span class="nova-pack__price">
+                              <span class="nova-pack__now">{{ match.price | money }}</span>
+                              {%- if match.compare_at_price > match.price -%}
+                                <s class="nova-pack__was">{{ match.compare_at_price | money }}</s>
+                              {%- endif -%}
+                            </span>
+                          {%- endif -%}
+                        </span>
+                      </label>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- else -%}
+                {%- comment -%} ---- swatches when the option carries real swatch data, pills otherwise ---- {%- endcomment -%}
+                {%- assign has_swatch = false -%}
+                {%- for value in option.values -%}
+                  {%- if value.swatch -%}{%- assign has_swatch = true -%}{%- break -%}{%- endif -%}
+                {%- endfor -%}
+
+                <div class="nova-opt">
+                  <div class="nova-opt__label">
+                    {{ option.name }}<span data-nova-selected-label="{{ oi }}">{{ option.selected_value }}</span>
+                  </div>
+
+                  {%- if has_swatch -%}
+                    <div class="nova-swatches">
+                      {%- for value in option.values -%}
+                        <label class="nova-swatch">
+                          <input
+                            type="radio"
+                            name="nova-opt-{{ section.id }}-{{ oi }}"
+                            value="{{ value | escape }}"
+                            data-nova-option="{{ oi }}"
+                            {% if option.selected_value == value %}checked{% endif %}
+                          >
+                          <span class="visually-hidden">{{ value }}</span>
+                          <span
+                            class="nova-swatch__dot"
+                            title="{{ value | escape }}"
+                            {% if value.swatch.image %}
+                              style="background-image:url({{ value.swatch.image | image_url: width: 96 }})"
+                            {% elsif value.swatch.color %}
+                              style="background-color:{{ value.swatch.color }}"
+                            {% endif %}
+                          ></span>
+                        </label>
+                      {%- endfor -%}
+                    </div>
+                  {%- else -%}
+                    <div class="nova-pills">
+                      {%- for value in option.values -%}
+                        <label class="nova-pill">
+                          <input
+                            type="radio"
+                            name="nova-opt-{{ section.id }}-{{ oi }}"
+                            value="{{ value | escape }}"
+                            data-nova-option="{{ oi }}"
+                            {% if option.selected_value == value %}checked{% endif %}
+                          >
+                          <span class="nova-pill__label">{{ value }}</span>
+                        </label>
+                      {%- endfor -%}
+                    </div>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endunless -%}
+
+          {%- if section.settings.show_quantity and ladder_index < 0 -%}
+            <div class="nova-opt">
+              <div class="nova-opt__label">{{ section.settings.quantity_label }}</div>
+              <div class="nova-pills">
+                <button type="button" class="nova-pill__label" data-nova-qty-step="-1" aria-label="-">−</button>
+                <input
+                  class="nova-pill__label"
+                  style="width:64px;text-align:center"
+                  type="number"
+                  name="quantity"
+                  value="1"
+                  min="1"
+                  inputmode="numeric"
+                  data-nova-qty
+                >
+                <button type="button" class="nova-pill__label" data-nova-qty-step="1" aria-label="+">+</button>
+              </div>
+            </div>
+          {%- endif -%}
+
+          {%- unless p.available -%}
+            <p class="nova-soldout">{{ section.settings.soldout_note }}</p>
+          {%- endunless -%}
+
+          <button
+            type="submit"
+            name="add"
+            class="nova-cta"
+            data-nova-cta
+            {% unless p.available %}disabled{% endunless %}
+          >
+            {%- if p.available -%}{{ section.settings.cta_text }}{%- else -%}{{ section.settings.soldout_text }}{%- endif -%}
+          </button>
+        </form>
+
+        {%- assign reassure = section.blocks | where: 'type', 'reassurance' -%}
+        {%- if reassure.size > 0 -%}
+          <ul class="nova-reassure">
+            {%- for b in reassure -%}
+              <li {{ b.shopify_attributes }}>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="m3 8.4 3.2 3.2L13 5" />
+                </svg>
+                {{ b.settings.text }}
+              </li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%}
+    ---------- ROUTINE ----------
+    Per-product metafield wins over the template blocks, so a second product does
+    not need a second template. Format per entry: "Title | Text".
+  {%- endcomment -%}
+  {%- assign mf_steps = p.metafields.nova.steps.value -%}
+  {%- if mf_steps != blank -%}
+    <section class="nova-sec nova-sec--sand">
+      <div class="nova-pdp__wrap">
+        {%- if section.settings.steps_eyebrow != blank -%}
+          <p class="nova-sec__eyebrow">{{ section.settings.steps_eyebrow }}</p>
+        {%- endif -%}
+        {%- if section.settings.steps_title != blank -%}
+          <h2 class="nova-sec__title">{{ section.settings.steps_title }}</h2>
+        {%- endif -%}
+        <ol class="nova-steps">
+          {%- for entry in mf_steps -%}
+            {%- assign parts = entry | split: '|' -%}
+            <li class="nova-step">
+              <span class="nova-step__n">{{ forloop.index }}</span>
+              <span>
+                <span class="nova-step__t">{{ parts[0] | strip }}</span>
+                {%- if parts.size > 1 -%}
+                  <p class="nova-step__d">{{ parts[1] | strip }}</p>
+                {%- endif -%}
+              </span>
+            </li>
+          {%- endfor -%}
+        </ol>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- assign steps = section.blocks | where: 'type', 'step' -%}
+  {%- if mf_steps == blank and steps.size > 0 -%}
+    <section class="nova-sec nova-sec--sand">
+      <div class="nova-pdp__wrap">
+        {%- if section.settings.steps_eyebrow != blank -%}
+          <p class="nova-sec__eyebrow">{{ section.settings.steps_eyebrow }}</p>
+        {%- endif -%}
+        {%- if section.settings.steps_title != blank -%}
+          <h2 class="nova-sec__title">{{ section.settings.steps_title }}</h2>
+        {%- endif -%}
+        <ol class="nova-steps">
+          {%- for b in steps -%}
+            <li class="nova-step" {{ b.shopify_attributes }}>
+              <span class="nova-step__n">{{ forloop.index }}</span>
+              <span>
+                <span class="nova-step__t">{{ b.settings.title }}</span>
+                <p class="nova-step__d">{{ b.settings.text }}</p>
+              </span>
+            </li>
+          {%- endfor -%}
+        </ol>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%} ---------- DETAILS + FAQ ---------- {%- endcomment -%}
+  {%- assign rows = section.blocks | where: 'type', 'accordion' -%}
+  {%- assign mf_faq = p.metafields.nova.faq.value -%}
+  {%- if p.description != blank or rows.size > 0 or mf_faq != blank -%}
+    <section class="nova-sec">
+      <div class="nova-pdp__wrap">
+        {%- if section.settings.details_title != blank -%}
+          <h2 class="nova-sec__title">{{ section.settings.details_title }}</h2>
+        {%- endif -%}
+        <div class="nova-acc">
+          {%- if p.description != blank -%}
+            <details class="nova-acc__item" open>
+              <summary>{{ section.settings.description_label }}</summary>
+              <div class="nova-acc__body rte">{{ p.description }}</div>
+            </details>
+          {%- endif -%}
+          {%- comment -%} Per-product FAQ, format per entry: "Question | Answer". {%- endcomment -%}
+          {%- if mf_faq != blank -%}
+            {%- for entry in mf_faq -%}
+              {%- assign parts = entry | split: '|' -%}
+              <details class="nova-acc__item">
+                <summary>{{ parts[0] | strip }}</summary>
+                {%- if parts.size > 1 -%}
+                  <div class="nova-acc__body rte">{{ parts[1] | strip }}</div>
+                {%- endif -%}
+              </details>
+            {%- endfor -%}
+          {%- endif -%}
+
+          {%- for b in rows -%}
+            <details class="nova-acc__item" {{ b.shopify_attributes }}>
+              <summary>{{ b.settings.question }}</summary>
+              <div class="nova-acc__body rte">{{ b.settings.answer }}</div>
+            </details>
+          {%- endfor -%}
+        </div>
+      </div>
+    </section>
+  {%- endif -%}
+
+  {%- comment -%} ---------- STICKY BUY BAR ---------- {%- endcomment -%}
+  <div class="nova-sticky" data-nova-sticky>
+    <span class="nova-sticky__price">
+      <span class="nova-sticky__now" data-nova-sticky-now>{{ v.price | money }}</span>
+      <s class="nova-sticky__was" data-nova-sticky-was {% unless show_was %}hidden{% endunless %}>
+        {%- if show_was %}{{ v.compare_at_price | money }}{% endif -%}
+      </s>
+    </span>
+    <button
+      type="submit"
+      form="{{ form_id }}"
+      name="add"
+      class="nova-cta"
+      data-nova-sticky-cta
+      {% unless p.available %}disabled{% endunless %}
+    >
+      {%- if p.available -%}{{ section.settings.cta_text }}{%- else -%}{{ section.settings.soldout_text }}{%- endif -%}
+    </button>
+  </div>
+
+  {%- comment -%}
+    Money strings are rendered here by Liquid so the JS never formats currency.
+  {%- endcomment -%}
+  <script type="application/json" data-nova-variants>
+    {
+      "strings": {
+        "add": {{ section.settings.cta_text | json }},
+        "soldout": {{ section.settings.soldout_text | json }},
+        "unavailable": {{ section.settings.unavailable_text | json }}
+      },
+      "variants": [
+        {%- for var in p.variants -%}
+          {
+            "id": {{ var.id }},
+            "title": {{ var.title | json }},
+            "options": {{ var.options | json }},
+            "available": {{ var.available }},
+            "url": {{ var.url | json }},
+            "price": {{ var.price | money | strip_html | json }},
+            "compare_at": {% if var.compare_at_price > var.price %}{{ var.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
+            "save_badge": {% if var.compare_at_price > var.price %}{% assign vp = var.compare_at_price | minus: var.price | times: 100.0 | divided_by: var.compare_at_price | round %}{{ section.settings.save_prefix | append: ' ' | append: vp | append: '%' | json }}{% else %}null{% endif %},
+            "media_index": {% if var.featured_media %}{{ var.featured_media.position | minus: 1 }}{% else %}null{% endif %}
+          }{%- unless forloop.last -%},{%- endunless -%}
+        {%- endfor -%}
+      ]
+    }
+  </script>
+</div>
+
+{% schema %}
+{
+  "name": "Nova product page",
+  "tag": "section",
+  "class": "nova-pdp-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Buy box"
+    },
+    {
+      "type": "range",
+      "id": "ladder_option",
+      "min": 0,
+      "max": 3,
+      "step": 1,
+      "default": 0,
+      "label": "Pack ladder option",
+      "info": "0 = auto: any option whose values all carry a number (1+1, 2+2) becomes a pack ladder, and a shade list stays a swatch picker. Set 1-3 to force a specific option."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quantity",
+      "default": true,
+      "label": "Show quantity stepper when there is no pack ladder"
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "default": "הוסיפי לסל",
+      "label": "Add to cart text"
+    },
+    {
+      "type": "text",
+      "id": "soldout_text",
+      "default": "אזל מהמלאי",
+      "label": "Sold out text"
+    },
+    {
+      "type": "text",
+      "id": "unavailable_text",
+      "default": "הצירוף הזה לא זמין",
+      "label": "Unavailable combination text"
+    },
+    {
+      "type": "text",
+      "id": "soldout_note",
+      "default": "המוצר אזל כרגע. אפשר לבחור גוון אחר או לחזור לקולקציה.",
+      "label": "Sold out note"
+    },
+    {
+      "type": "text",
+      "id": "quantity_label",
+      "default": "כמות",
+      "label": "Quantity label"
+    },
+    {
+      "type": "text",
+      "id": "save_prefix",
+      "default": "חיסכון",
+      "label": "Savings badge prefix"
+    },
+    {
+      "type": "text",
+      "id": "per_unit_label",
+      "default": "ליחידה",
+      "label": "Per unit label"
+    },
+    {
+      "type": "text",
+      "id": "price_note",
+      "default": "כולל מע\"מ. המשלוח מחושב בקופה.",
+      "label": "Price note"
+    },
+    {
+      "type": "text",
+      "id": "rating_noun",
+      "default": "ביקורות",
+      "label": "Rating count noun"
+    },
+    {
+      "type": "text",
+      "id": "media_badge",
+      "label": "Badge over the gallery",
+      "info": "Leave empty to hide."
+    },
+    {
+      "type": "text",
+      "id": "thumb_label",
+      "default": "תמונה",
+      "label": "Thumbnail aria-label prefix"
+    },
+    {
+      "type": "header",
+      "content": "Routine"
+    },
+    {
+      "type": "text",
+      "id": "steps_eyebrow",
+      "default": "השגרה",
+      "label": "Eyebrow"
+    },
+    {
+      "type": "text",
+      "id": "steps_title",
+      "default": "איפה זה נמצא בשגרה שלך",
+      "label": "Title"
+    },
+    {
+      "type": "header",
+      "content": "Details"
+    },
+    {
+      "type": "text",
+      "id": "details_title",
+      "default": "פרטים ושאלות",
+      "label": "Title"
+    },
+    {
+      "type": "text",
+      "id": "description_label",
+      "default": "על המוצר",
+      "label": "Description row label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "trust_item",
+      "name": "Trust bar item",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "default": "משלוח לכל נקודה בארץ",
+          "label": "Text"
+        }
+      ]
+    },
+    {
+      "type": "reassurance",
+      "name": "Reassurance line",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "default": "החלפת גוון בלי עלות",
+          "label": "Text"
+        }
+      ]
+    },
+    {
+      "type": "step",
+      "name": "Routine step",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "default": "שלב",
+          "label": "Title"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Text"
+        }
+      ]
+    },
+    {
+      "type": "accordion",
+      "name": "Details / FAQ row",
+      "limit": 12,
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Label"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Content"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Nova product page",
+      "blocks": [
+        { "type": "trust_item" },
+        { "type": "reassurance" }
+      ]
+    }
+  ]
+}
+{% endschema %}
