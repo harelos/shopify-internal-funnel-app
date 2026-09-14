@@ -10,3 +10,5 @@ Thumbs.db
 local-*.png
 .chrome-preview-profile*/
 .wrangler/
+__pycache__/
+*.pyc

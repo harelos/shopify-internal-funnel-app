@@ -1,0 +1,214 @@
+{%- comment -%}
+  The promotion page. One rotating offer a day, plus the week's running offer.
+
+  The page rotates itself. The schedule lives in a shop metafield and this
+  section picks today's row out of it on every request, so nothing has to edit
+  the page at midnight and nothing breaks if a scheduled job misses a run.
+
+  Two days in the schedule are marked dark. On Yom Kippur the country stops,
+  and a store running a sale through it reads as tone deaf, so the page shows a
+  quiet holding state instead of an offer.
+
+  The real price change is done by Shopify automatic discounts with their own
+  start and end timestamps. This section only tells the customer what is on.
+{%- endcomment -%}
+
+{{ 'nova-deals.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign cal = shop.metafields.nova.promo_calendar.value
+  assign today = 'now' | date: '%Y-%m-%d'
+  assign now_hour = 'now' | date: '%H' | times: 1
+
+  assign day_count = 0
+  if cal.days
+    assign day_count = cal.days.size
+  endif
+
+  assign today_index = -1
+  for d in cal.days
+    if d.date == today
+      assign today_index = forloop.index0
+      break
+    endif
+  endfor
+-%}
+
+<section class="nova-deals" dir="rtl">
+  <header class="nd-head">
+    <p class="nd-eyebrow">{{ cal.eyebrow | default: 'מבצעי ספטמבר' | escape }}</p>
+    <h1 class="nd-title">{{ cal.title | default: 'שבועיים של טיפוח' | escape }}</h1>
+    {%- if cal.intro != blank -%}
+      <p class="nd-intro">{{ cal.intro | escape }}</p>
+    {%- endif -%}
+  </header>
+
+  {%- if today_index == -1 -%}
+    {%- comment -%} Outside the run. Say so plainly instead of showing a stale offer. {%- endcomment -%}
+    <div class="nd-card nd-card--quiet">
+      <h2 class="nd-quiet-title">{{ cal.closed_title | default: 'המבצעים חזרו למדף' | escape }}</h2>
+      <p class="nd-quiet-body">{{ cal.closed_body | default: 'הסבב הנוכחי הסתיים. הקטלוג המלא פתוח כרגיל.' | escape }}</p>
+      <a class="nd-btn" href="/collections/all">לקטלוג המלא</a>
+    </div>
+
+  {%- else -%}
+    {%- assign day = cal.days[today_index] -%}
+
+    {%- if day.dark -%}
+      <div class="nd-card nd-card--quiet">
+        <h2 class="nd-quiet-title">{{ day.dark_title | escape }}</h2>
+        <p class="nd-quiet-body">{{ day.dark_body | escape }}</p>
+        {%- assign next_live = -1 -%}
+        {%- for d in cal.days offset: today_index -%}
+          {%- unless d.dark -%}
+            {%- assign next_live = forloop.index0 | plus: today_index -%}
+            {%- break -%}
+          {%- endunless -%}
+        {%- endfor -%}
+        {%- if next_live > -1 -%}
+          <p class="nd-quiet-next">המבצעים ממשיכים ב{{ cal.days[next_live].date | date: '%d.%m' }}.</p>
+        {%- endif -%}
+      </div>
+
+    {%- else -%}
+      {%- assign p = all_products[day.handle] -%}
+      {%- if p != blank and p.available -%}
+        {%- assign v = p.selected_or_first_available_variant -%}
+        {%- assign was = v.price -%}
+        {%- assign now_price = was | times: day.keep_percent | divided_by: 100 -%}
+        {%- assign saved = was | minus: now_price -%}
+
+        <article class="nd-card nd-today">
+          <div class="nd-flag">
+            <span class="nd-flag-label">{{ day.label | default: 'המבצע של היום' | escape }}</span>
+            <span class="nd-flag-date">{{ day.date | date: '%d.%m' }}</span>
+          </div>
+
+          <a class="nd-media" href="{{ p.url }}">
+            {%- if p.featured_media -%}
+              {{ p.featured_media | image_url: width: 900 | image_tag:
+                   widths: '400,600,900', sizes: '(min-width: 750px) 420px, 92vw',
+                   loading: 'eager', fetchpriority: 'high',
+                   alt: p.featured_media.alt | default: p.title | escape }}
+            {%- endif -%}
+          </a>
+
+          <div class="nd-body">
+            {%- assign parts = p.title | split: ' - ' -%}
+            {%- if parts.size > 1 -%}
+              <p class="nd-brand">{{ parts[0] | strip | escape }}</p>
+              <h2 class="nd-name">{{ parts | slice: 1, 9 | join: ' ' | strip | escape }}</h2>
+            {%- else -%}
+              <h2 class="nd-name">{{ p.title | escape }}</h2>
+            {%- endif -%}
+
+            {%- if day.line != blank -%}
+              <p class="nd-line">{{ day.line | escape }}</p>
+            {%- endif -%}
+
+            <p class="nd-prices">
+              <span class="nd-now">{% render 'nova-money', cents: now_price, symbol: '₪' %}</span>
+              <s class="nd-was">{% render 'nova-money', cents: was, symbol: '₪' %}</s>
+              <span class="nd-save">חיסכון {% render 'nova-money', cents: saved, symbol: '₪' %}</span>
+            </p>
+
+            <p class="nd-terms">המחיר מתעדכן בסל. המבצע בתוקף היום בלבד, עד חצות.</p>
+            <a class="nd-btn" href="{{ p.url }}">למוצר</a>
+          </div>
+        </article>
+      {%- else -%}
+        {%- comment -%}
+          The scheduled product is not on sale right now. Never show a dead offer:
+          fall back to the running week deal, which always points at a collection.
+        {%- endcomment -%}
+        <div class="nd-card nd-card--quiet">
+          <h2 class="nd-quiet-title">מבצע היום אזל</h2>
+          <p class="nd-quiet-body">המבצע של היום נגמר במלאי. המבצע השבועי עדיין פעיל.</p>
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- comment -%} Tomorrow and the day after, the reason to come back. {%- endcomment -%}
+    {%- assign shown = 0 -%}
+    {%- assign upcoming = '' -%}
+    {%- for d in cal.days offset: today_index -%}
+      {%- unless forloop.first -%}
+        {%- if shown < 2 -%}
+          {%- if upcoming == '' -%}
+            {%- assign upcoming = 'yes' -%}
+          {%- endif -%}
+          {%- assign shown = shown | plus: 1 -%}
+        {%- endif -%}
+      {%- endunless -%}
+    {%- endfor -%}
+
+    {%- if upcoming == 'yes' -%}
+      <section class="nd-next">
+        <h3 class="nd-next-head">מה בהמשך</h3>
+        <ul class="nd-next-list">
+          {%- assign shown = 0 -%}
+          {%- for d in cal.days offset: today_index -%}
+            {%- unless forloop.first -%}
+              {%- if shown < 2 -%}
+                <li class="nd-next-item">
+                  <span class="nd-next-date">{{ d.date | date: '%d.%m' }}</span>
+                  <span class="nd-next-what">
+                    {%- if d.dark -%}
+                      {{ d.dark_title | escape }}
+                    {%- else -%}
+                      {{ d.teaser | default: 'מבצע היום' | escape }}
+                    {%- endif -%}
+                  </span>
+                </li>
+                {%- assign shown = shown | plus: 1 -%}
+              {%- endif -%}
+            {%- endunless -%}
+          {%- endfor -%}
+        </ul>
+      </section>
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- comment -%} The offer that runs all week, for anyone who missed today's. {%- endcomment -%}
+  {%- assign wk = blank -%}
+  {%- for w in cal.weeks -%}
+    {%- if today >= w.from and today <= w.to -%}
+      {%- assign wk = w -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- if wk != blank -%}
+    <section class="nd-week">
+      <p class="nd-week-eyebrow">המבצע השבועי</p>
+      <h3 class="nd-week-title">{{ wk.title | escape }}</h3>
+      <p class="nd-week-body">{{ wk.body | escape }}</p>
+      <p class="nd-week-dates">בתוקף {{ wk.from | date: '%d.%m' }} עד {{ wk.to | date: '%d.%m' }}</p>
+      <a class="nd-btn nd-btn--ghost" href="{{ wk.url }}">{{ wk.cta | default: 'לאוסף' | escape }}</a>
+    </section>
+  {%- endif -%}
+
+  {%- if cal.schedule_visible -%}
+    <section class="nd-cal">
+      <h3 class="nd-cal-head">לוח המבצעים</h3>
+      <ul class="nd-cal-list">
+        {%- for d in cal.days -%}
+          <li class="nd-cal-row{% if d.date == today %} is-today{% endif %}{% if d.dark %} is-dark{% endif %}">
+            <span class="nd-cal-date">{{ d.date | date: '%d.%m' }}</span>
+            <span class="nd-cal-what">
+              {%- if d.dark -%}{{ d.dark_title | escape }}{%- else -%}{{ d.teaser | escape }}{%- endif -%}
+            </span>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </section>
+  {%- endif -%}
+</section>
+
+{% schema %}
+{
+  "name": "Nova deals",
+  "settings": [],
+  "presets": [{ "name": "Nova deals" }]
+}
+{% endschema %}
