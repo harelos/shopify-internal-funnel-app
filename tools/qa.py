@@ -18,7 +18,12 @@ MENUS = """
 { menus(first: 30) { nodes { handle
     items { title url items { title url items { title url } } } } } }"""
 
-COLS = "{ collections(first: 100) { nodes { handle title productsCount { count } } } }"
+PUBS = "{ publications(first: 20) { nodes { id name } } }"
+
+COLS = """
+query c($pub: ID!) { collections(first: 100) { nodes { handle title
+  publishedOnPublication(publicationId: $pub)
+  products(first: 100) { nodes { status } } } } }"""
 PRODS = '{ products(first: 250, query: "status:active") { nodes { handle } } }'
 
 
@@ -57,11 +62,19 @@ def run():
     print("  %d menu links, %d bad" % (len(urls), len([f for f in fails])))
 
     print()
-    print("2. every collection, and its product count on the page")
-    cols = shopify.gql(COLS)["collections"]["nodes"]
+    print("2. every published collection, and the products it actually shows")
+    pub = [p["id"] for p in shopify.gql(PUBS)["publications"]["nodes"]
+           if "online store" in p["name"].lower()][0]
+    cols = shopify.gql(COLS, {"pub": pub})["collections"]["nodes"]
+    empties = []
     for c in sorted(cols, key=lambda r: r["handle"]):
         if c["handle"] == "frontpage":
             continue
+        # an app's own collection is not meant to have a storefront URL
+        if not c["publishedOnPublication"]:
+            print("  --  %-30s not published to the storefront, skipped" % c["handle"][:30])
+            continue
+        live = sum(1 for p in c["products"]["nodes"] if p["status"] == "ACTIVE")
         u = "%s/collections/%s" % (BASE, urllib.parse.quote(c["handle"]))
         code = head(u)
         checked += 1
@@ -69,14 +82,31 @@ def run():
             fails.append((c["handle"], code))
             print("  FAIL %-3s %s" % (code, c["handle"]))
             continue
-        html = body(u)
-        m = re.search(r"(\d+)\s*מוצרים", html)
-        shown = int(m.group(1)) if m else None
-        flag = ""
-        if shown is not None and shown != c["productsCount"]["count"]:
-            flag = "  <-- admin says %d" % c["productsCount"]["count"]
-            fails.append((c["handle"], "count %s vs %s" % (shown, c["productsCount"]["count"])))
-        print("  ok  %-30s %s on page%s" % (c["handle"][:30], shown, flag))
+        # follow pagination: the grid pages at 16, so a 23-product mission
+        # legitimately shows part of itself on page one
+        shown, page = set(), 1
+        while page <= 10:
+            html = body(u if page == 1 else "%s?page=%d" % (u, page))
+            found = set(re.findall(r'href="(/products/[^"?#]+)', html))
+            if not found - shown:
+                break
+            shown |= found
+            if "?page=%d" % (page + 1) not in html:
+                break
+            page += 1
+        shown = len(shown)
+        if live == 0:
+            empties.append(c["handle"])
+            print("  --  %-30s published but every product in it is archived" % c["handle"][:30])
+            continue
+        if shown < live:
+            fails.append((c["handle"], "shows %d of %d active" % (shown, live)))
+            print("  FAIL %-30s shows %d of %d active" % (c["handle"][:30], shown, live))
+        else:
+            print("  ok  %-30s %d active products" % (c["handle"][:30], live))
+    if empties:
+        print("  note: %d published collections are empty shells: %s"
+              % (len(empties), ", ".join(empties)))
 
     print()
     print("3. the pages the funnel and the campaign live on")

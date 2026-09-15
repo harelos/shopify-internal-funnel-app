@@ -13,3 +13,4 @@ local-*.png
 __pycache__/
 *.pyc
 research/brands.db
+tools/qa-report.txt
