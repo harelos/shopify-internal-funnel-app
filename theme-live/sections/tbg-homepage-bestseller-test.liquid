@@ -1,0 +1,400 @@
+{{ 'tbg-homepage-bestseller-test.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'product-form.js' | asset_url }}" defer="defer"></script>
+
+<section class="tbg-home-b" dir="rtl" data-section-id="{{ section.id }}">
+  <div class="tbg-home-b__hero-carousel" aria-label="באנרים ראשיים">
+    <div class="tbg-home-b__hero-track" dir="ltr">
+      <article class="tbg-home-b__hero" id="HeroSlideNova-{{ section.id }}">
+        <picture class="tbg-home-b__hero-picture">
+          <source media="(max-width: 749px)" srcset="{{ 'tbg-home-hero-novahair-mobile-v4.webp' | asset_url }}">
+          <img
+            class="tbg-home-b__hero-image"
+            src="{{ 'tbg-home-hero-novahair-editorial-v5.webp' | asset_url }}"
+            width="2880"
+            height="1646"
+            loading="eager"
+            fetchpriority="high"
+            alt=""
+          >
+        </picture>
+        <div class="tbg-home-b__hero-inner">
+          <div class="tbg-home-b__hero-copy">
+            <p class="tbg-home-b__eyebrow">{{ section.settings.hero_campaign_label }}</p>
+            <h1>{{ section.settings.hero_heading }}</h1>
+            <p class="tbg-home-b__hero-text">{{ section.settings.hero_text }}</p>
+            {%- if section.settings.hero_trust_line != blank -%}<p class="tbg-home-b__hero-trust">{{ section.settings.hero_trust_line }}</p>{%- endif -%}
+            <div class="tbg-home-b__hero-actions">
+              <a class="tbg-home-b__button" href="{{ section.settings.hero_link }}">{{ section.settings.hero_button }}</a>
+              <a class="tbg-home-b__button tbg-home-b__button--outline" href="#bestsellers-{{ section.id }}">לרבי־המכר</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="tbg-home-b__hero tbg-home-b__hero--night" id="HeroSlideEdit-{{ section.id }}">
+        <picture class="tbg-home-b__hero-picture">
+          <source media="(max-width: 749px)" srcset="{{ 'tbg-home-hero-night-mobile-v1.webp' | asset_url }}">
+          <img class="tbg-home-b__hero-image" src="{{ 'tbg-home-campaign-night-reset-v2.webp' | asset_url }}" width="1600" height="900" loading="lazy" decoding="async" alt="">
+        </picture>
+        <div class="tbg-home-b__hero-inner">
+          <div class="tbg-home-b__hero-copy">
+            <p class="tbg-home-b__eyebrow">TIGER EDIT · טקס ערב</p>
+            <h2>לסגור את היום, כמו שאת אוהבת.</h2>
+            <p class="tbg-home-b__hero-text">רגע קטן של טיפוח, עם בחירות שמרגישות נעימות ופשוטות יותר לשגרה.</p>
+            <p class="tbg-home-b__hero-trust">מדריכים ומוצרים שנבחרו כדי לעשות לך סדר.</p>
+            <div class="tbg-home-b__hero-actions">
+              <a class="tbg-home-b__button tbg-home-b__button--light" href="/products/מסיכת-קולגן-לילה-elasticdream">לטקס הערב</a>
+              <a class="tbg-home-b__button tbg-home-b__button--outline" href="#TigerEditTitle-{{ section.id }}">ל־Tiger Edit</a>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+    <nav class="tbg-home-b__hero-dots" aria-label="בחירת באנר">
+      <button type="button" aria-current="true"><span class="visually-hidden">NovaHair</span></button>
+      <button type="button"><span class="visually-hidden">Tiger Edit</span></button>
+    </nav>
+  </div>
+
+  <div class="tbg-home-b__trust" aria-label="יתרונות הקנייה">
+    <div class="tbg-home-b__trust-item">
+      <img src="{{ 'icon-lock.svg' | asset_url }}" width="28" height="28" alt="" loading="eager">
+      <span><strong>קנייה מאובטחת</strong><small>תשלום מוגן וברור</small></span>
+    </div>
+    <div class="tbg-home-b__trust-item">
+      <img src="{{ 'icon-truck.svg' | asset_url }}" width="28" height="28" alt="" loading="eager">
+      <span><strong>משלוח לכל נקודה בארץ</strong><small>מגיעים אלייך, בכל מקום</small></span>
+    </div>
+    <div class="tbg-home-b__trust-item">
+      <img src="{{ 'icon-chat-bubble.svg' | asset_url }}" width="28" height="28" alt="" loading="eager">
+      <span><strong>שירות לקוחות</strong><small>עזרה לפני ואחרי הקנייה</small></span>
+    </div>
+    <div class="tbg-home-b__trust-item">
+      <img src="{{ 'icon-check-mark.svg' | asset_url }}" width="28" height="28" alt="" loading="eager">
+      <span><strong>בחירה שקופה</strong><small>מחיר ותנאים במקום אחד</small></span>
+    </div>
+  </div>
+
+  {%- assign promotion_blocks = section.blocks | where: 'type', 'promotion' -%}
+  {%- if promotion_blocks.size > 0 -%}
+    <section class="tbg-home-b__section tbg-home-b__promotions" aria-labelledby="PromotionsTitle-{{ section.id }}">
+      <div class="tbg-home-b__section-heading">
+        <div>
+          <h2 id="PromotionsTitle-{{ section.id }}">{{ section.settings.promotions_heading }}</h2>
+        </div>
+      </div>
+      <div class="tbg-home-b__promotion-rail">
+        {%- for block in promotion_blocks -%}
+          <article class="tbg-home-b__promotion-card" {{ block.shopify_attributes }}>
+            {%- if block.settings.label != blank -%}<p>{{ block.settings.label }}</p>{%- endif -%}
+            <h3>{{ block.settings.title }}</h3>
+            {%- if block.settings.text != blank -%}<span>{{ block.settings.text }}</span>{%- endif -%}
+            {%- if block.settings.button != blank and block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}">{{ block.settings.button }}</a>
+            {%- endif -%}
+          </article>
+        {%- endfor -%}
+      </div>
+    </section>
+  {%- endif -%}
+
+  <div class="tbg-home-b__section tbg-home-b__bestsellers" id="bestsellers-{{ section.id }}">
+    <div class="tbg-home-b__section-heading">
+      <div>
+        <h2>{{ section.settings.bestseller_heading }}</h2>
+      </div>
+      <a href="{{ routes.all_products_collection_url }}">לכל המוצרים</a>
+    </div>
+
+    <div class="tbg-home-b__products tbg-home-b__products--bestsellers">
+      {%- for i in (1..5) -%}
+        {%- assign product_setting_id = 'bestseller_product_' | append: i -%}
+        {%- assign product = section.settings[product_setting_id] -%}
+        {%- assign display_title = product.title | remove_first: "`" | split: ' — ' | first -%}
+        {%- if product != blank -%}<article class="tbg-home-b__product-card">
+          <a class="tbg-home-b__product-media" href="{{ product.url }}">
+            {% render 'tbg-home-product-image', product: product %}
+          </a>
+          <div class="tbg-home-b__product-copy">
+            <p class="tbg-home-b__vendor">{{ product.vendor }}</p>
+            <h3><a href="{{ product.url }}">{{ display_title }}</a></h3>
+            {%- if product.metafields.reviews.rating.value != blank -%}
+              <div class="tbg-home-b__rating" aria-label="דירוג {{ product.metafields.reviews.rating.value }} מתוך 5">
+                <span aria-hidden="true">★★★★★</span>
+                <small>{{ product.metafields.reviews.rating.value }}</small>
+              </div>
+            {%- else -%}
+              <p class="tbg-home-b__curated">נבחר בקפידה לחנות</p>
+            {%- endif -%}
+            <div class="tbg-home-b__price">{{ product.price | money_without_trailing_zeros }}</div>
+            {%- form 'product', product, class: 'tbg-home-b__product-form' -%}
+              <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+              <input type="hidden" name="quantity" value="1">
+              <button type="submit" {% unless product.available %}disabled{% endunless %}>
+                {%- if product.available -%}הוספה לסל{%- else -%}אזל מהמלאי{%- endif -%}
+              </button>
+            {%- endform -%}
+          </div>
+        </article>{%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <div class="tbg-home-b__section tbg-home-b__categories" id="categories-{{ section.id }}">
+    <div class="tbg-home-b__section-heading">
+      <div>
+        <p class="tbg-home-b__section-kicker">הדרך המהירה למה שחיפשת</p>
+        <h2>{{ section.settings.category_heading }}</h2>
+      </div>
+    </div>
+
+    <div class="tbg-home-b__category-grid">
+      {%- for i in (1..6) -%}
+        {%- liquid
+          case i
+            when 1
+              assign category = section.settings.category_1
+              assign category_label = section.settings.category_1_label
+            when 2
+              assign category = section.settings.category_2
+              assign category_label = section.settings.category_2_label
+            when 3
+              assign category = section.settings.category_3
+              assign category_label = section.settings.category_3_label
+            when 4
+              assign category = section.settings.category_4
+              assign category_label = section.settings.category_4_label
+            when 5
+              assign category = section.settings.category_5
+              assign category_label = section.settings.category_5_label
+            when 6
+              assign category = section.settings.category_6
+              assign category_label = section.settings.category_6_label
+          endcase
+        -%}
+        {%- if category != blank -%}
+          <a class="tbg-home-b__category-card" href="{{ category.url }}">
+            <div class="tbg-home-b__category-media">
+              {%- case i -%}
+                {%- when 1 -%}<img src="{{ 'tbg-home-category-face-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 2 -%}<img src="{{ 'tbg-home-category-hair-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 3 -%}<img src="{{ 'tbg-home-category-body-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- else -%}
+                  {%- if category.image != blank -%}{{ category.image | image_url: width: 760 | image_tag: loading: 'lazy', widths: '240, 400, 600, 760', sizes: '(max-width: 749px) 48vw, 16vw', alt: category_label | default: category.title }}{%- endif -%}
+              {%- endcase -%}
+            </div>
+            <div class="tbg-home-b__category-copy">
+              <h3>{{ category_label | default: category.title }}</h3>
+            </div>
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if section.settings.hero_link != blank -%}
+        <a class="tbg-home-b__category-card tbg-home-b__category-card--novahair" href="{{ section.settings.hero_link }}">
+          <div class="tbg-home-b__category-media">
+            <img src="{{ 'tbg-home-hero-novahair-editorial-v3.webp' | asset_url }}" width="600" height="450" loading="lazy" alt="NovaHair">
+          </div>
+          <div class="tbg-home-b__category-copy"><h3>NovaHair</h3><span>למוצר הדגל</span></div>
+        </a>
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- assign bundle_product = section.settings.bundle_product -%}
+  {%- if bundle_product != blank -%}
+    <div class="tbg-home-b__bundle-wrap">
+      <div class="tbg-home-b__bundle">
+        <div class="tbg-home-b__bundle-copy">
+          <p class="tbg-home-b__section-kicker">יותר בשגרה אחת</p>
+          <h2>{{ section.settings.bundle_heading }}</h2>
+          <p>{{ section.settings.bundle_text }}</p>
+          <a class="tbg-home-b__button tbg-home-b__button--light" href="{{ bundle_product.url }}">{{ section.settings.bundle_button }}</a>
+        </div>
+        <a class="tbg-home-b__bundle-media" href="{{ bundle_product.url }}" aria-label="{{ bundle_product.title | escape }}">
+          <img src="{{ 'tbg-home-campaign-night-reset-v2.webp' | asset_url }}" width="1600" height="900" loading="lazy" alt="{{ bundle_product.title | escape }}">
+        </a>
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="tbg-home-b__section tbg-home-b__new">
+    <div class="tbg-home-b__section-heading">
+      <div>
+        <h2>{{ section.settings.new_heading }}</h2>
+      </div>
+      <a href="{{ routes.all_products_collection_url }}?sort_by=created-descending">לכל החדשים</a>
+    </div>
+
+    <div class="tbg-home-b__products tbg-home-b__products--new">
+      {%- for i in (1..5) -%}
+        {%- assign product_setting_id = 'new_product_' | append: i -%}
+        {%- assign product = section.settings[product_setting_id] -%}
+        {%- assign display_title = product.title | remove_first: "`" | split: ' — ' | first -%}
+        {%- if product != blank -%}<article class="tbg-home-b__product-card tbg-home-b__product-card--compact">
+          <a class="tbg-home-b__product-media" href="{{ product.url }}">
+            {% render 'tbg-home-product-image', product: product %}
+          </a>
+          <div class="tbg-home-b__product-copy">
+            <p class="tbg-home-b__vendor">{{ product.vendor }}</p>
+            <h3><a href="{{ product.url }}">{{ display_title }}</a></h3>
+            <div class="tbg-home-b__price">{{ product.price | money_without_trailing_zeros }}</div>
+          </div>
+        </article>{%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <section class="tbg-home-b__kbeauty" aria-labelledby="KBeautyHomeTitle-{{ section.id }}">
+    <picture class="tbg-home-b__kbeauty-picture">
+      <source media="(max-width: 749px)" srcset="{{ 'tbg-kbeauty-hero-mobile-v1.webp' | asset_url }}">
+      <img src="{{ 'tbg-kbeauty-hero-desktop-v1.webp' | asset_url }}" width="1910" height="829" loading="lazy" alt="שתי נשים בשגרת טיפוח קוריאנית">
+    </picture>
+    <div class="tbg-home-b__kbeauty-copy">
+      <p>K-Beauty · מותגים מקוריים</p>
+      <h2 id="KBeautyHomeTitle-{{ section.id }}">הטיפוח הקוריאני שכולם מחפשים, בדרך שלך.</h2>
+      <span>מותגים מוכרים, מחירים בשקלים ושגרות קצרות שעושות סדר בין כל האפשרויות.</span>
+      <a class="tbg-home-b__button tbg-home-b__button--light" href="/collections/k-beauty">לקולקציית K-Beauty</a>
+    </div>
+  </section>
+
+  <section class="tbg-home-b__edit" aria-labelledby="TigerEditTitle-{{ section.id }}">
+    <div class="tbg-home-b__edit-intro">
+      <div>
+        <h2 id="TigerEditTitle-{{ section.id }}">{{ section.settings.edit_heading }}</h2>
+      </div>
+      <p>{{ section.settings.edit_text }}</p>
+      <span class="tbg-home-b__edit-edition" dir="ltr" aria-hidden="true">01 / 03</span>
+    </div>
+    {%- assign edit_blocks = section.blocks | where: 'type', 'edit' -%}
+    {%- if edit_blocks.size > 0 -%}<div class="tbg-home-b__edit-grid">
+      {%- for block in edit_blocks -%}
+        {%- assign edit_page = block.settings.page -%}
+        {%- if edit_page != blank -%}
+          <a class="tbg-home-b__edit-card{% if forloop.first %} tbg-home-b__edit-card--featured{% endif %}" href="{{ edit_page.url }}" {{ block.shopify_attributes }}>
+            <figure class="tbg-home-b__edit-media">
+              {%- case forloop.index -%}
+                {%- when 1 -%}<img src="{{ 'tbg-home-edit-color-guide-v2.webp' | asset_url }}" width="1200" height="900" loading="lazy" alt="{{ block.settings.label | default: edit_page.title | escape }}">
+                {%- when 2 -%}<img src="{{ 'tbg-home-edit-night-ritual-v2.webp' | asset_url }}" width="1200" height="900" loading="lazy" alt="{{ block.settings.label | default: edit_page.title | escape }}">
+                {%- else -%}<img src="{{ 'tbg-home-edit-hair-confidence-v2.webp' | asset_url }}" width="1200" height="900" loading="lazy" alt="{{ block.settings.label | default: edit_page.title | escape }}">
+              {%- endcase -%}
+            </figure>
+            <div class="tbg-home-b__edit-copy">
+              <span class="tbg-home-b__edit-meta">{% if forloop.first %}המדריך הנבחר{% else %}מדריך 0{{ forloop.index }}{% endif %}</span>
+              <h3>{{ block.settings.label | default: edit_page.title }}</h3>
+              <span class="tbg-home-b__edit-link">לקריאה <span aria-hidden="true">←</span></span>
+            </div>
+          </a>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>{%- endif -%}
+  </section>
+
+  {%- if section.settings.brands_heading != blank -%}
+    <section class="tbg-home-b__brands" aria-labelledby="BrandsTitle-{{ section.id }}">
+      <h2 id="BrandsTitle-{{ section.id }}">{{ section.settings.brands_heading }}</h2>
+      {%- assign brand_blocks = section.blocks | where: 'type', 'brand' -%}
+      {%- if brand_blocks.size > 0 -%}<div>{%- for block in brand_blocks -%}<span {{ block.shopify_attributes }}>{{ block.settings.name }}</span>{%- endfor -%}</div>{%- endif -%}
+    </section>
+  {%- endif -%}
+
+</section>
+
+<script>
+  (() => {
+    const root = document.querySelector('[data-section-id="{{ section.id }}"]');
+    const track = root?.querySelector('.tbg-home-b__hero-track');
+    const dots = [...(root?.querySelectorAll('.tbg-home-b__hero-dots button') || [])];
+    if (!track || dots.length < 2) return;
+
+    const setActive = (index) => dots.forEach((dot, dotIndex) => {
+      if (dotIndex === index) dot.setAttribute('aria-current', 'true');
+      else dot.removeAttribute('aria-current');
+    });
+
+    dots.forEach((dot, index) => dot.addEventListener('click', () => {
+      const direction = getComputedStyle(track).direction === 'rtl' ? -1 : 1;
+      track.scrollTo({ left: direction * index * track.clientWidth, behavior: 'smooth' });
+      setActive(index);
+    }));
+
+    track.addEventListener('scroll', () => {
+      const index = Math.round(Math.abs(track.scrollLeft) / Math.max(track.clientWidth, 1));
+      setActive(Math.min(dots.length - 1, Math.max(0, index)));
+    }, { passive: true });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Homepage B – Bestseller",
+  "tag": "section",
+  "class": "section tbg-homepage-b-test-section",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    { "type": "text", "id": "hero_campaign_label", "label": "שורת מותג", "default": "מבית TIGER BRANDS GLOBAL · משווק מורשה של NOVAHAIR" },
+    { "type": "text", "id": "hero_heading", "label": "כותרת", "default": "מוצרים אמיתיים. תוצאות שמרגישים. בשבילך." },
+    { "type": "textarea", "id": "hero_text", "label": "טקסט", "default": "מבחר טיפוח ושיער שנועד להפוך את הבחירה שלך לפשוטה, ברורה ובטוחה יותר." },
+    { "type": "text", "id": "hero_trust_line", "label": "שורת אמון" },
+    { "type": "text", "id": "hero_button", "label": "כפתור", "default": "גלי את סוד הצביעה של NOVAHAIR" },
+    { "type": "url", "id": "hero_link", "label": "קישור" },
+    { "type": "header", "content": "רבי־מכר" },
+    { "type": "text", "id": "bestseller_heading", "label": "כותרת", "default": "רבי־המכר שלנו" },
+    { "type": "product", "id": "bestseller_product_1", "label": "רב־מכר 1" },
+    { "type": "product", "id": "bestseller_product_2", "label": "רב־מכר 2" },
+    { "type": "product", "id": "bestseller_product_3", "label": "רב־מכר 3" },
+    { "type": "product", "id": "bestseller_product_4", "label": "רב־מכר 4" },
+    { "type": "product", "id": "bestseller_product_5", "label": "רב־מכר 5" },
+    { "type": "header", "content": "קטגוריות" },
+    { "type": "text", "id": "category_heading", "label": "כותרת", "default": "קני לפי קטגוריה" },
+    { "type": "collection", "id": "category_1", "label": "קטגוריה 1" },
+    { "type": "text", "id": "category_1_label", "label": "שם קטגוריה 1", "default": "טיפוח פנים" },
+    { "type": "collection", "id": "category_2", "label": "קטגוריה 2" },
+    { "type": "text", "id": "category_2_label", "label": "שם קטגוריה 2", "default": "טיפוח שיער" },
+    { "type": "collection", "id": "category_3", "label": "קטגוריה 3" },
+    { "type": "text", "id": "category_3_label", "label": "שם קטגוריה 3", "default": "טיפוח הגוף" },
+    { "type": "collection", "id": "category_4", "label": "קטגוריה 4" },
+    { "type": "text", "id": "category_4_label", "label": "שם קטגוריה 4" },
+    { "type": "collection", "id": "category_5", "label": "קטגוריה 5" },
+    { "type": "text", "id": "category_5_label", "label": "שם קטגוריה 5" },
+    { "type": "collection", "id": "category_6", "label": "קטגוריה 6" },
+    { "type": "text", "id": "category_6_label", "label": "שם קטגוריה 6" },
+    { "type": "header", "content": "הטבות השבוע" },
+    { "type": "text", "id": "promotions_heading", "label": "כותרת", "default": "יש יותר מאחורי כל הזמנה" },
+    { "type": "header", "content": "מארז" },
+    { "type": "product", "id": "bundle_product", "label": "מוצר מארז" },
+    { "type": "text", "id": "bundle_heading", "label": "כותרת", "default": "מארזים שנותנים יותר לשגרה שלך" },
+    { "type": "textarea", "id": "bundle_text", "label": "טקסט", "default": "כמה צעדים משלימים, בחירה אחת מסודרת — כדי שיהיה קל יותר להתחיל ולהתמיד." },
+    { "type": "text", "id": "bundle_button", "label": "כפתור", "default": "לצפייה במארז" },
+    { "type": "header", "content": "מוצרים נוספים" },
+    { "type": "text", "id": "new_heading", "label": "כותרת", "default": "חדש בחנות" },
+    { "type": "product", "id": "new_product_1", "label": "חדש 1" },
+    { "type": "product", "id": "new_product_2", "label": "חדש 2" },
+    { "type": "product", "id": "new_product_3", "label": "חדש 3" },
+    { "type": "product", "id": "new_product_4", "label": "חדש 4" },
+    { "type": "product", "id": "new_product_5", "label": "חדש 5" },
+    { "type": "header", "content": "Tiger Edit" },
+    { "type": "text", "id": "edit_heading", "label": "כותרת", "default": "מה באמת שווה להכניס לשגרה" },
+    { "type": "textarea", "id": "edit_text", "label": "טקסט", "default": "מדריכים, טקסים ובחירות שעברו אצלנו סינון אמיתי, כדי שתדעי מה נכנס לשגרה ומה נשאר בחוץ." },
+    { "type": "header", "content": "מותגים" },
+    { "type": "text", "id": "brands_heading", "label": "כותרת", "default": "מותגים שכדאי להכיר" }
+  ],
+  "blocks": [
+    { "type": "promotion", "name": "הטבה", "settings": [
+      { "type": "text", "id": "label", "label": "תווית" },
+      { "type": "text", "id": "title", "label": "כותרת", "default": "הטבה חדשה" },
+      { "type": "textarea", "id": "text", "label": "פירוט" },
+      { "type": "text", "id": "button", "label": "כפתור" },
+      { "type": "url", "id": "link", "label": "קישור" }
+    ] },
+    { "type": "edit", "name": "Tiger Edit", "settings": [
+      { "type": "page", "id": "page", "label": "עמוד תוכן" },
+      { "type": "text", "id": "label", "label": "שם" }
+    ] },
+    { "type": "brand", "name": "מותג", "settings": [
+      { "type": "text", "id": "name", "label": "שם המותג" }
+    ] }
+  ],
+  "max_blocks": 18,
+  "presets": [{ "name": "Homepage B – Bestseller" }]
+}
+{% endschema %}

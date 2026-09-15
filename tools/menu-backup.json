@@ -1,0 +1,93 @@
+{
+ "id": "gid://shopify/Menu/219203174695",
+ "handle": "main-menu",
+ "title": "Main menu",
+ "items": [
+  {
+   "id": "gid://shopify/MenuItem/787758514471",
+   "title": "דף הבית",
+   "type": "FRONTPAGE",
+   "url": "/",
+   "resourceId": null,
+   "tags": [],
+   "items": []
+  },
+  {
+   "id": "gid://shopify/MenuItem/787758547239",
+   "title": "טיפוח פנים",
+   "type": "COLLECTION",
+   "url": "/collections/%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%A4%D7%A0%D7%99%D7%9D",
+   "resourceId": "gid://shopify/Collection/483111436583",
+   "tags": [],
+   "items": [
+    {
+     "id": "gid://shopify/MenuItem/787758580007",
+     "title": "כל מוצרי הפנים",
+     "type": "COLLECTION",
+     "url": "/collections/%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%A4%D7%A0%D7%99%D7%9D",
+     "resourceId": "gid://shopify/Collection/483111436583",
+     "tags": []
+    },
+    {
+     "id": "gid://shopify/MenuItem/787758612775",
+     "title": "מסיכת קולגן לילה אלסטידרים",
+     "type": "PRODUCT",
+     "url": "/products/%D7%9E%D7%A1%D7%99%D7%9B%D7%AA-%D7%A7%D7%95%D7%9C%D7%92%D7%9F-%D7%9C%D7%99%D7%9C%D7%94-elasticdream",
+     "resourceId": "gid://shopify/Product/9671746683175",
+     "tags": []
+    },
+    {
+     "id": "gid://shopify/MenuItem/787758645543",
+     "title": "סרום חומצה היאלורונית 4 ב-1",
+     "type": "PRODUCT",
+     "url": "/products/%D7%A1%D7%A8%D7%95%D7%9D-%D7%97%D7%95%D7%9E%D7%A6%D7%94-%D7%94%D7%99%D7%9C%D7%95%D7%90%D7%A8%D7%A0%D7%99%D7%AA-4-%D7%91-1",
+     "resourceId": "gid://shopify/Product/9695478677799",
+     "tags": []
+    }
+   ]
+  },
+  {
+   "id": "gid://shopify/MenuItem/787758678311",
+   "title": "טיפוח השיער",
+   "type": "COLLECTION",
+   "url": "/collections/%D7%A7%D7%95%D7%9C%D7%A7%D7%A6%D7%99%D7%99%D7%AA-%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%94%D7%A9%D7%99%D7%A2%D7%A8-%D7%A9%D7%9C%D7%A0%D7%95",
+   "resourceId": "gid://shopify/Collection/483112354087",
+   "tags": [],
+   "items": [
+    {
+     "id": "gid://shopify/MenuItem/787758711079",
+     "title": "כל מוצרי השיער",
+     "type": "COLLECTION",
+     "url": "/collections/%D7%A7%D7%95%D7%9C%D7%A7%D7%A6%D7%99%D7%99%D7%AA-%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%94%D7%A9%D7%99%D7%A2%D7%A8-%D7%A9%D7%9C%D7%A0%D7%95",
+     "resourceId": "gid://shopify/Collection/483112354087",
+     "tags": []
+    },
+    {
+     "id": "gid://shopify/MenuItem/787758743847",
+     "title": "שמפו אמלה OCEAURA",
+     "type": "PRODUCT",
+     "url": "/products/%D7%A9%D7%9E%D7%A4%D7%95-%D7%9C%D7%A6%D7%9E%D7%99%D7%97%D7%AA-%D7%A9%D7%99%D7%A2%D7%A8-%D7%9E%D7%97%D7%95%D7%93%D7%A9",
+     "resourceId": "gid://shopify/Product/9566713905447",
+     "tags": []
+    },
+    {
+     "id": "gid://shopify/MenuItem/787758776615",
+     "title": "NOVAHAIR – שמפו צבע לשיער",
+     "type": "PAGE",
+     "url": "/pages/novahair",
+     "resourceId": "gid://shopify/Page/162777596199",
+     "tags": []
+    }
+   ]
+  },
+  {
+   "id": "gid://shopify/MenuItem/787758809383",
+   "title": "טיפוח הגוף",
+   "type": "COLLECTION",
+   "url": "/collections/%D7%A7%D7%95%D7%9C%D7%A7%D7%A6%D7%99%D7%99%D7%AA-%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%94%D7%92%D7%95%D7%A3-%D7%A9%D7%9C%D7%A0%D7%95",
+   "resourceId": "gid://shopify/Collection/483112419623",
+   "tags": [],
+   "items": []
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "t:sections.header.name",
+  "type": "header",
+  "sections": {
+    "announcement-bar": {
+      "type": "announcement-bar",
+      "blocks": {
+        "deals": {
+          "type": "announcement",
+          "settings": {
+            "text": "שבועיים של טיפוח · מבצע חדש כל יום",
+            "link": "\/pages\/deals"
+          }
+        },
+        "service": {
+          "type": "announcement",
+          "settings": {
+            "text": "משלוח לכל הארץ · שירות בעברית",
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "deals",
+        "service"
+      ],
+      "settings": {
+        "color_scheme": "scheme-4"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "logo_position": "middle-left",
+        "mobile_logo_position": "left",
+        "menu": "main-menu",
+        "menu_type_desktop": "dropdown",
+        "show_line_separator": true,
+        "color_scheme": "background-1",
+        "margin_bottom": 0,
+        "padding_top": 12,
+        "padding_bottom": 12
+      }
+    }
+  },
+  "order": [
+    "announcement-bar",
+    "header"
+  ]
+}

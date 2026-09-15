@@ -1,0 +1,117 @@
+{% comment %}theme-check-disable ImgLazyLoading{% endcomment %}
+{{ 'tbg-collection-experience.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign display_title = collection.title
+  assign eyebrow = 'נבחר בקפידה בשבילך'
+  assign hero_asset = 'tbg-home-edit-night-ritual-v2.webp'
+  assign fallback_description = 'מוצרים שנבחרו כדי להפוך את שגרת הטיפוח שלך לפשוטה, מדויקת ונעימה יותר.'
+
+  case collection.handle
+    when 'mission-roots'
+      assign eyebrow = 'NovaHair · צבע'
+      assign fallback_description = 'הצבע נשאר, השורש חוזר. זה מה שמכסה אותו בבית.'
+    when 'mission-scalp'
+      assign eyebrow = 'NovaHair · קרקפת'
+      assign fallback_description = 'מתחיל בקרקפת. סרומים, שמנים ותרסיסים לשורש.'
+    when 'mission-repair'
+      assign eyebrow = 'NovaHair · שיקום'
+      assign fallback_description = 'לשיער שעבר צביעה, שמש ומגהץ.'
+    when 'mission-tools'
+      assign eyebrow = 'NovaHair · כלים'
+      assign fallback_description = 'בלי חשמל. מה שמונע את הבלגן על הכיור.'
+    when 'mission-night'
+      assign eyebrow = 'NovaGlow · לילה'
+      assign fallback_description = 'המוצר הכי נמכר בחנות, ומה שנבנה סביבו.'
+    when 'mission-serums'
+      assign eyebrow = 'NovaGlow · סרומים'
+      assign fallback_description = 'היאלורוני, פפטידים, חומצות. לפי בעיה.'
+    when 'mission-body'
+      assign eyebrow = 'NovaGlow · גוף'
+      assign fallback_description = 'הפריטים הקטנים שנכנסים לסל ליד המסכה.'
+    when 'mission-protect'
+      assign eyebrow = 'NovaGlow · הגנה'
+      assign fallback_description = 'השלב שבא אחרי הסרום, לפני שיוצאים מהבית.'
+    when 'all'
+      assign display_title = 'כל המוצרים'
+      assign eyebrow = 'כל הבחירות במקום אחד'
+      assign fallback_description = 'מוצרי טיפוח ושיער שנבחרו בקפידה, עם מידע ברור ושירות לקוחות בעברית.'
+    when 'מוצרי-טיפוח-פנים'
+      assign eyebrow = 'טיפוח פנים'
+      assign hero_asset = 'tbg-home-category-face-editorial-v2.webp'
+      assign fallback_description = 'בחירות ממוקדות ללחות, זוהר ושגרה יומיומית שקל להתמיד בה.'
+    when 'קולקציית-מוצרי-טיפוח-השיער-שלנו'
+      assign eyebrow = 'טיפוח שיער'
+      assign hero_asset = 'tbg-home-category-hair-editorial-v2.webp'
+      assign fallback_description = 'מוצרים לשיער ולקרקפת שנבחרו כדי לעשות סדר בין כל האפשרויות.'
+    when 'קולקציית-מוצרי-טיפוח-הגוף-שלנו'
+      assign eyebrow = 'טיפוח הגוף'
+      assign hero_asset = 'tbg-home-category-body-editorial-v2.webp'
+      assign fallback_description = 'טיפוח יומיומי לגוף, עם מרקמים נעימים ובחירות פשוטות יותר.'
+  endcase
+-%}
+
+<section class="tbg-collection-hero" dir="rtl">
+  <div class="tbg-collection-hero__media">
+    <img
+      src="{{ hero_asset | asset_url }}"
+      width="1200"
+      height="1200"
+      loading="eager"
+      fetchpriority="high"
+      alt="{{ display_title | escape }}"
+    >
+  </div>
+  <div class="tbg-collection-hero__copy">
+    <p>{{ eyebrow }}</p>
+    <h1>{{ display_title | escape }}</h1>
+    <div class="tbg-collection-hero__description">
+      {%- if section.settings.show_collection_description and collection.description != blank -%}
+        {{ collection.description }}
+      {%- else -%}
+        <p>{{ fallback_description }}</p>
+      {%- endif -%}
+    </div>
+    <a href="#product-grid">לצפייה במוצרים</a>
+  </div>
+</section>
+
+{%- liquid
+  assign mission_handles = 'mission-roots,mission-scalp,mission-repair,mission-tools,mission-night,mission-serums,mission-body,mission-protect' | split: ','
+-%}
+<nav class="tbg-collection-nav" aria-label="קטגוריות מוצרים" dir="rtl">
+  <a href="/collections/all"{% if collection.handle == 'all' %} aria-current="page"{% endif %}>כל המוצרים</a>
+  {%- for h in mission_handles -%}
+    {%- assign m = collections[h] -%}
+    {%- if m != blank and m.products_count > 0 -%}
+      <a href="{{ m.url }}"{% if collection.handle == h %} aria-current="page"{% endif %}>{{ m.title | escape }}</a>
+    {%- endif -%}
+  {%- endfor -%}
+</nav>
+
+{% schema %}
+{
+  "name": "t:sections.main-collection-banner.name",
+  "class": "section tbg-collection-banner-section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_collection_description",
+      "default": true,
+      "label": "t:sections.main-collection-banner.settings.show_collection_description.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_image",
+      "default": false,
+      "label": "t:sections.main-collection-banner.settings.show_collection_image.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.all.colors.label",
+      "default": "scheme-1"
+    }
+  ]
+}
+{% endschema %}
