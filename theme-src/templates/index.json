@@ -1,0 +1,168 @@
+{
+  "sections": {
+    "homepage_bestseller_test": {
+      "type": "tbg-homepage-bestseller-test",
+      "settings": {
+        "hero_campaign_label": "מבית TIGER BRANDS GLOBAL · משווק מורשה של NOVAHAIR",
+        "hero_heading": "NovaHair. הצבע שלך, בבית.",
+        "hero_text": "צביעת שיער ביתית פשוטה יותר, עם מוצר הדגל שלנו ושירות של Tiger Brands Global.",
+        "hero_trust_line": "",
+        "hero_button": "גלי את סוד הצביעה של NOVAHAIR",
+        "hero_link": "/pages/novahair-sales-staging",
+        "bestseller_heading": "רבי־המכר שלנו",
+        "bestseller_product_1": "novahair-שמפו-לצביעת-שיער-הצעה-חדשה",
+        "bestseller_product_2": "מסיכת-קולגן-לילה-elasticdream",
+        "bestseller_product_3": "סרום-חומצה-הילוארנית-4-ב-1",
+        "bestseller_product_4": "ספריי-היירגלוס-לשיער",
+        "bestseller_product_5": "biotinroot-hair-loss-spray",
+        "category_heading": "קני לפי קטגוריה",
+        "category_1": "mission-roots",
+        "category_1_label": "כיסוי שורשים וצבע",
+        "category_2": "mission-scalp",
+        "category_2_label": "שיער דליל וקרקפת",
+        "category_3": "mission-repair",
+        "category_3_label": "שיקום, לחות וברק",
+        "promotions_heading": "יש יותר מאחורי כל הזמנה",
+        "bundle_product": "מסיכת-קולגן-לילה-elasticdream",
+        "bundle_heading": "טקס לילה קטן. בוקר שנראה אחרת.",
+        "bundle_text": "מסכת לילה ורודה ורכה שמשתלבת בשגרת הערב ועוזרת להתחיל את הבוקר עם מראה רענן יותר.",
+        "bundle_button": "לצפייה במסכת הלילה",
+        "new_heading": "חדש בחנות",
+        "new_product_1": "hairline-powder-instantly-conceals-hair-root-touch-up-hair-powder-for-thinning-hair-for-women-and-men",
+        "new_product_2": "medicube-pdrn-pink-peptide-serum",
+        "new_product_3": "skin-memory-serum",
+        "new_product_4": "beauty-of-joseon-glow-deep-serum-rice-alpha-arbutin",
+        "new_product_5": "beauty-of-joseon-ground-rice-and-honey-glow-mask",
+        "edit_heading": "מה באמת שווה להכניס לשגרה",
+        "edit_text": "מדריכים, טקסים ובחירות שעברו אצלנו סינון אמיתי, כדי שתדעי מה נכנס לשגרה ומה נשאר בחוץ.",
+        "brands_heading": "מותגים שכדאי להכיר",
+        "category_4": "mission-night",
+        "category_4_label": "מסכות לילה",
+        "category_5": "mission-serums",
+        "category_5_label": "סרומים ולחות",
+        "category_6": "mission-tools",
+        "category_6_label": "כלים ואביזרים"
+      },
+      "blocks": {
+        "promo_first_order": {
+          "type": "promotion",
+          "settings": {
+            "label": "הטבת הצטרפות",
+            "title": "10% להזמנה הראשונה",
+            "text": "השתמשי בקוד TODA10 בקופה וקבלי 10% הנחה על ההזמנה הראשונה.",
+            "button": "למימוש ההטבה",
+            "link": "/pages/tiger-club"
+          }
+        },
+        "promo_club": {
+          "type": "promotion",
+          "settings": {
+            "label": "TIGER CLUB",
+            "title": "הטבות לפני כולן",
+            "text": "מוצרים חדשים, מדריכי טיפוח והצעות לחברות המועדון ישירות למייל.",
+            "button": "להצטרפות חינם",
+            "link": "/pages/tiger-club"
+          }
+        },
+        "promo_support": {
+          "type": "promotion",
+          "settings": {
+            "label": "צריכה עזרה?",
+            "title": "שירות לקוחות איתך",
+            "text": "עזרה בבחירת מוצר, בהזמנה ובכל שאלה גם אחרי הקנייה.",
+            "button": "ליצירת קשר",
+            "link": "/pages/contact"
+          }
+        },
+        "edit_color": {
+          "type": "edit",
+          "settings": {
+            "page": "novahair-7-reasons",
+            "label": "7 סיבות לנסות את NovaHair"
+          }
+        },
+        "edit_night": {
+          "type": "edit",
+          "settings": {
+            "page": "elasticdream-7-reasons-build-20260828",
+            "label": "כך בונים טקס לילה רגוע לעור"
+          }
+        },
+        "edit_hair": {
+          "type": "edit",
+          "settings": {
+            "page": "novahair-advertorial",
+            "label": "מה כדאי לדעת לפני צביעת שיער בבית"
+          }
+        },
+        "brand_cosrx": {
+          "type": "brand",
+          "settings": {
+            "name": "COSRX"
+          }
+        },
+        "brand_anua": {
+          "type": "brand",
+          "settings": {
+            "name": "ANUA"
+          }
+        },
+        "brand_roundlab": {
+          "type": "brand",
+          "settings": {
+            "name": "ROUND LAB"
+          }
+        },
+        "brand_skin1004": {
+          "type": "brand",
+          "settings": {
+            "name": "SKIN1004"
+          }
+        },
+        "brand_beauty": {
+          "type": "brand",
+          "settings": {
+            "name": "Beauty of Joseon"
+          }
+        },
+        "brand_medicube": {
+          "type": "brand",
+          "settings": {
+            "name": "medicube"
+          }
+        },
+        "brand_laneige": {
+          "type": "brand",
+          "settings": {
+            "name": "LANEIGE"
+          }
+        },
+        "brand_dralthea": {
+          "type": "brand",
+          "settings": {
+            "name": "Dr. Althea"
+          }
+        }
+      },
+      "block_order": [
+        "promo_first_order",
+        "promo_club",
+        "promo_support",
+        "edit_color",
+        "edit_night",
+        "edit_hair",
+        "brand_cosrx",
+        "brand_anua",
+        "brand_roundlab",
+        "brand_skin1004",
+        "brand_beauty",
+        "brand_medicube",
+        "brand_laneige",
+        "brand_dralthea"
+      ]
+    }
+  },
+  "order": [
+    "homepage_bestseller_test"
+  ]
+}

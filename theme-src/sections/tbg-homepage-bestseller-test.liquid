@@ -176,9 +176,19 @@
           <a class="tbg-home-b__category-card" href="{{ category.url }}">
             <div class="tbg-home-b__category-media">
               {%- case i -%}
-                {%- when 1 -%}<img src="{{ 'tbg-home-category-face-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
-                {%- when 2 -%}<img src="{{ 'tbg-home-category-hair-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
-                {%- when 3 -%}<img src="{{ 'tbg-home-category-body-editorial-v2.webp' | asset_url }}" width="1200" height="1200" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- comment -%}
+                  Slots 1 to 6 now carry the mission photography. It was shot for
+                  the customer this store actually sells to, a woman of 40 to 55
+                  with grey regrowth, rather than the generic category stock that
+                  was here before. Falls through to the collection's own image if
+                  a slot is pointed somewhere unexpected.
+                {%- endcomment -%}
+                {%- when 1 -%}<img src="{{ 'tbg-mission-roots.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 2 -%}<img src="{{ 'tbg-mission-scalp.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 3 -%}<img src="{{ 'tbg-mission-repair.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 4 -%}<img src="{{ 'tbg-mission-night.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 5 -%}<img src="{{ 'tbg-mission-serums.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
+                {%- when 6 -%}<img src="{{ 'tbg-mission-tools.jpg' | asset_url }}" width="1000" height="1000" loading="lazy" alt="{{ category_label | default: category.title | escape }}">
                 {%- else -%}
                   {%- if category.image != blank -%}{{ category.image | image_url: width: 760 | image_tag: loading: 'lazy', widths: '240, 400, 600, 760', sizes: '(max-width: 749px) 48vw, 16vw', alt: category_label | default: category.title }}{%- endif -%}
               {%- endcase -%}

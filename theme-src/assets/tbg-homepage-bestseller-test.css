@@ -466,8 +466,30 @@ body:has(.tbg-home-b) #TigerClubFooter .field__label { color: #595551; }
 
   .tbg-home-b__hero-dots { position: static; padding: 14px 0 0; }
 
-  /* the trust row under the hero wrapped "בארץ" onto a line of its own */
-  .tbg-home-b__trust strong { text-wrap: balance; }
+  /* The trust row wrapped "בארץ" onto a line of its own. text-wrap: balance
+     is uneven across Safari versions, so this does not rely on it: the row
+     becomes a 2x2 grid, which both removes the sideways scroll and gives each
+     label enough width to sit on one line. The longest label was also shortened
+     to match the announcement bar, which already says משלוח לכל הארץ. */
+  .tbg-home-b__trust {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    padding: 0;
+    overflow: visible;
+    background: var(--line);
+  }
+  .tbg-home-b__trust-item {
+    min-width: 0;
+    min-height: 62px;
+    justify-content: flex-start;
+    padding: 12px 14px;
+    border-inline-end: 0;
+    background: #fff;
+  }
+  .tbg-home-b__trust-item img { width: 22px; height: 22px; }
+  .tbg-home-b__trust-item strong { font-size: 13px; }
+  .tbg-home-b__trust-item small { font-size: 11px; }
 }
 
 @media (max-width: 380px) {

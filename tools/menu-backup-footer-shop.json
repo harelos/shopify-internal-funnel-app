@@ -1,0 +1,43 @@
+{
+ "id": "gid://shopify/Menu/316376318247",
+ "handle": "footer-shop",
+ "title": "קטגוריות",
+ "items": [
+  {
+   "id": "gid://shopify/MenuItem/793898909991",
+   "title": "כל המוצרים",
+   "type": "HTTP",
+   "url": "https://tigerbrandsglobal.com/collections/all",
+   "resourceId": null,
+   "tags": [],
+   "items": []
+  },
+  {
+   "id": "gid://shopify/MenuItem/793898942759",
+   "title": "טיפוח פנים",
+   "type": "HTTP",
+   "url": "https://tigerbrandsglobal.com/collections/%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%A4%D7%A0%D7%99%D7%9D",
+   "resourceId": null,
+   "tags": [],
+   "items": []
+  },
+  {
+   "id": "gid://shopify/MenuItem/793898975527",
+   "title": "טיפוח השיער",
+   "type": "HTTP",
+   "url": "https://tigerbrandsglobal.com/collections/%D7%A7%D7%95%D7%9C%D7%A7%D7%A6%D7%99%D7%99%D7%AA-%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%94%D7%A9%D7%99%D7%A2%D7%A8-%D7%A9%D7%9C%D7%A0%D7%95",
+   "resourceId": null,
+   "tags": [],
+   "items": []
+  },
+  {
+   "id": "gid://shopify/MenuItem/793899008295",
+   "title": "טיפוח הגוף",
+   "type": "HTTP",
+   "url": "https://tigerbrandsglobal.com/collections/%D7%A7%D7%95%D7%9C%D7%A7%D7%A6%D7%99%D7%99%D7%AA-%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%94%D7%92%D7%95%D7%A3-%D7%A9%D7%9C%D7%A0%D7%95",
+   "resourceId": null,
+   "tags": [],
+   "items": []
+  }
+ ]
+}

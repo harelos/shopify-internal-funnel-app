@@ -21,7 +21,7 @@ import shopify
 BACKUP = os.path.join(HERE, "menu-backup.json")
 
 READ = """
-{ menus(first: 10, query: "handle:main-menu") { nodes { id handle title
+{ menus(first: 10, query: "handle:main-menu OR handle:footer-shop") { nodes { id handle title
     items { id title type url resourceId tags
       items { id title type url resourceId tags } } } } }"""
 
@@ -43,16 +43,20 @@ TREE = [
 ]
 
 
-def current():
-    return shopify.gql(READ)["menus"]["nodes"][0]
+def current(handle="main-menu"):
+    for m in shopify.gql(READ)["menus"]["nodes"]:
+        if m["handle"] == handle:
+            return m
+    raise SystemExit("menu not found: %s" % handle)
 
 
-def save_backup(menu):
-    if os.path.exists(BACKUP):
-        print("backup already exists, leaving it alone: %s" % BACKUP)
+def save_backup(menu, name="main"):
+    path = BACKUP if name == "main" else BACKUP.replace(".json", "-%s.json" % name)
+    if os.path.exists(path):
+        print("backup already exists, leaving it alone: %s" % path)
         return
-    json.dump(menu, open(BACKUP, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    print("backed up the live menu to %s" % BACKUP)
+    json.dump(menu, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("backed up the live menu to %s" % path)
 
 
 def to_input(items):
@@ -89,9 +93,23 @@ def build(cols):
     return items
 
 
+FOOTER = ["mission-roots", "mission-scalp", "mission-repair", "mission-tools",
+          "mission-night", "mission-serums"]
+
+
+def build_footer(cols):
+    """The footer shop column pointed at three legacy collections, one of which
+    had two products left in it."""
+    by_handle = {c["handle"]: c for c in cols}
+    return [{"title": by_handle[h]["title"], "type": "COLLECTION",
+             "resourceId": by_handle[h]["id"]}
+            for h in FOOTER if h in by_handle]
+
+
 def run(apply=False, restore=False):
     menu = current()
     save_backup(menu)
+    save_backup(current("footer-shop"), "footer-shop")
 
     if restore:
         old = json.load(open(BACKUP, encoding="utf-8"))
@@ -103,6 +121,17 @@ def run(apply=False, restore=False):
 
     cols = shopify.gql(COLLECTIONS)["collections"]["nodes"]
     items = build(cols)
+    foot = current("footer-shop")
+    foot_items = build_footer(cols)
+
+    print("\nproposed footer shop column:")
+    for it in foot_items:
+        print("  %s" % it["title"])
+    if apply:
+        r = shopify.gql(UPDATE, {"id": foot["id"], "title": foot["title"],
+                                 "handle": foot["handle"],
+                                 "items": foot_items})["menuUpdate"]
+        print("  -> %s" % ("updated" if not r["userErrors"] else r["userErrors"]))
 
     print("\nproposed main menu:")
     for it in items:
