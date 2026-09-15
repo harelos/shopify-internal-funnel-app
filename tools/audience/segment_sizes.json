@@ -1,0 +1,117 @@
+[
+ {
+  "name": "כל המנויים",
+  "query": "email_subscription_status = 'SUBSCRIBED'",
+  "size": 2663
+ },
+ {
+  "name": "כלל הלקוחות במאגר",
+  "query": "number_of_orders >= 0",
+  "size": 3642
+ },
+ {
+  "name": "קנו מסכת קולגן",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9671746683175)",
+  "size": 1018
+ },
+ {
+  "name": "קנו סרום היאלורוני",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9695478677799)",
+  "size": 558
+ },
+ {
+  "name": "קנו מסכה וגם סרום",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9671746683175) AND products_purchased MATCHES (id = 9695478677799)",
+  "size": 546
+ },
+ {
+  "name": "קנו מסכה בלבד",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9671746683175) AND NOT products_purchased MATCHES (id = 9695478677799)",
+  "size": 472
+ },
+ {
+  "name": "קנו שמפו אמלה",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9566713905447)",
+  "size": 749
+ },
+ {
+  "name": "קנו שמן קיק",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9608345944359)",
+  "size": 273
+ },
+ {
+  "name": "קנו אמלה וגם קיק",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9566713905447) AND products_purchased MATCHES (id = 9608345944359)",
+  "size": 241
+ },
+ {
+  "name": "קנו אמלה בלבד",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9566713905447) AND NOT products_purchased MATCHES (id = 9608345944359)",
+  "size": 508
+ },
+ {
+  "name": "קנו ערכת צביעה NovaHair",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 10341269274919)",
+  "size": 15
+ },
+ {
+  "name": "קנו גם טיפוח פנים וגם שיער",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND products_purchased MATCHES (id = 9671746683175) AND products_purchased MATCHES (id = 9566713905447)",
+  "size": 37
+ },
+ {
+  "name": "לקוחות חוזרים",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND number_of_orders > 1",
+  "size": 324
+ },
+ {
+  "name": "קנו פעם אחת בלבד",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND number_of_orders = 1",
+  "size": 1824
+ },
+ {
+  "name": "מנויים שמעולם לא קנו",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND number_of_orders = 0",
+  "size": 515
+ },
+ {
+  "name": "קנו ב-30 הימים האחרונים",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND last_order_date >= -30d",
+  "size": 15
+ },
+ {
+  "name": "קנו לפני 30 עד 90 יום",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND last_order_date < -30d AND last_order_date >= -90d",
+  "size": 2
+ },
+ {
+  "name": "רדומים 6 עד 12 חודשים",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND last_order_date < -180d AND last_order_date >= -365d",
+  "size": 55
+ },
+ {
+  "name": "רדומים מעל שנה",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND last_order_date < -365d",
+  "size": 2076
+ },
+ {
+  "name": "הוציאו מעל 300 שקל",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND amount_spent > 300",
+  "size": 276
+ },
+ {
+  "name": "הוציאו מעל 500 שקל",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND amount_spent > 500",
+  "size": 62
+ },
+ {
+  "name": "נטשו עגלה ב-30 יום",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND abandoned_checkout_date >= -30d",
+  "size": 6
+ },
+ {
+  "name": "נטשו עגלה ב-90 יום",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND abandoned_checkout_date >= -90d",
+  "size": 7
+ }
+]

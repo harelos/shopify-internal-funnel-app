@@ -1,145 +1,359 @@
-# September email plan
+# A send every day to the end of September
 
-The app on this store is **Shopify Messaging**, not classic Shopify Email. It
-lives at Apps → Messaging → Automations, and it sends Email, SMS and WhatsApp.
+Thirteen sends across the fifteen remaining days. Only Yom Kippur is dark.
+Each day goes to its own audience, cut from two years of order history, and
+each one rides the promotion day that matches what those people already own.
 
-**There is no Admin API for it.** I checked all 470 mutations in the schema: it
-exposes `segmentCreate`, `segmentUpdate` and `segmentDelete`, and the
-`marketingActivity*` family, which is for apps reporting their own external
-campaigns. Nothing composes or sends a message. So the audiences are built by
-API and the campaigns are assembled in the admin against them.
-
-I have not sent anything. Mass email to thousands of real people is not a thing
-to trigger without you looking at it first.
+**7,878 emails of the 10,000 monthly allowance. Average send 606 people.**
 
 ---
 
-## The real constraint
+## What two years of orders say
 
-| | |
+I pulled all **3,454 orders** (Sep 2024 to today) before writing anything.
+
+**The store runs on four SKUs.** Thirteen products have ever been ordered:
+
+| product | orders |
 |---|---|
-| allowance | 10,000 sends a month |
-| subscribers | **2,663** |
+| מסיכת קולגן לילה אלסטיק־דרים | 1,418 |
+| סרום חומצה היאלורונית 4 ב-1 | 1,021 |
+| שמפו אמלה OCEAURA | 1,008 |
+| שמן קיק שחור | 420 |
+| NOVAHAIR ערכת צביעה | 145 |
 
-That is **3.7 full sends**. The plan below uses 8,296 and leaves headroom. The
-constraint is not volume, it is relevance: a send to everyone costs a quarter of
-the month whether it earns anything or not.
+**There are two customer bases and they barely overlap.**
 
-Current Messaging performance, last 30 days: 22 sent, 4.75% click, **0 orders**.
-Worth knowing before adding volume.
+- skincare: mask 1,018 · serum 558 · **both 546**
+- hair: amla 749 · castor 273 · **both 241**
+- bought from **both sides: 37 people**
+
+Thirty-seven. That is the most useful number in the file, and it is what makes
+a daily send possible: these are not one list, they are five or six small
+lists that happen to share a checkout. It is also the biggest unworked
+opportunity in the store, because 1,018 skincare buyers have never been offered
+hair care and 749 hair buyers have never been offered skin care.
+
+**The store nearly died and is restarting.** 528 orders in March 2025, 2 in
+January 2026, nothing February to July, 28 in August, 68 in September so far.
+
+**Recency is barbelled.** 94 orders in the last 30 days, **2** in days 31-90,
+**0** in 91-180, **3,263** older than a year. There is no middle to work with.
+
+**₪614,746 revenue, AOV ₪178, repeat rate 12%** (324 of 2,663 subscribers have
+ordered twice). That last number is what the loyalty club is for.
 
 ---
 
-## Audiences (created, live in the admin)
+## The delivery question
 
-| segment | size | why this group |
-|---|---|---|
-| ספטמבר 26 · כל המנויים | 2,663 | the launch. Everyone who agreed to hear from us |
-| ספטמבר 26 · קנו בעבר ולא ב-90 יום | 2,131 | already trusted the store once. The catalogue is entirely new to them |
-| ספטמבר 26 · מנויים שמעולם לא קנו | 515 | subscribed and stopped. A dated offer is a low-risk first purchase |
-| ספטמבר 26 · לקוחות חוזרים | 324 | buy more than once. Different tone: first look, not a discount pitch |
-| ספטמבר 26 · נטשו עגלה ב-30 יום | 6 | too small to send to on its own. Fold into another audience |
-| nova hair buyers *(existed already)* | — | bought the colour product from the funnel |
+**The store records no delivery confirmations at all.** Of 82 parcels shipped in
+the last 60 days, not one has a `deliveredAt` and not one has an ETA. Nothing
+feeds tracking back into Shopify, so "has it arrived" cannot be asked.
 
-One note: `products_purchased` is rejected by `segmentCreate` in API 2026-07,
-so the NovaHair buyer segment could not be recreated by API. The store's
-existing "nova hair buyers" segment already does the job, so use that one.
+So: **no promotion to anyone who might still be waiting**, using time as the
+proxy. CJ to Israel runs 8 to 20 days, so every promotional audience below
+carries
+
+```
+(number_of_orders = 0 OR last_order_date < -14d)
+```
+
+It removes 11 people. Small, and right: a discount email to someone still
+waiting on a parcel is the fastest way to turn a customer into a complaint.
+
+They get `שוטף · ממתינות למשלוח` instead, which is a shipping update and
+nothing else, and which says plainly that we held the promotions back.
+
+**Two things to fix separately.** Four orders are 9 to 24 days old and still
+unshipped. And with no delivery tracking there can be no "how is it?" email,
+which is normally where a beauty store earns its second order.
 
 ---
 
-## The four sends
+## The schedule
 
-### 1 · Tue 16 Sep — the launch
-**To:** כל המנויים (2,663)
-**Subject:** `55 מוצרים חדשים בחנות, ומבצע חדש כל יום`
-**Preview:** `היום יום הצבע. שלוש דרכים לכסות שיער לבן בבית.`
+| date | day | time | audience | size | rides |
+|---|---|---|---|---|---|
+| 16.9 | רביעי | 09:00 | קוני אמלה בלבד | 508 | יום הצבע |
+| 17.9 | חמישי | 09:00 | קוני שמן קיק | 273 | שמן ארגן |
+| 18.9 | שישי | 08:30 | לקוחות חוזרים | 321 | שגרת החפיפה |
+| 19.9 | מוצ״ש | 20:30 | רדומות ≤180, שנה עד שנה וחצי | 155 | שמפו יומיומי |
+| **20-21.9** | | | **יום כיפור. שום דבר לא יוצא** | **0** | dark |
+| 22.9 | שלישי | 09:00 | מנויות שמעולם לא קנו | 515 | יום הקרקפת |
+| 23.9 | רביעי | 09:00 | רדומות ≤180, מעל שנה וחצי | 739 | קרם צבע עם מסרק |
+| 24.9 | חמישי | 09:00 | רדומות 180-260 | 814 | ערכת הצביעה המלאה |
+| 25.9 | שישי | 08:30 | רדומות מעל 260 | 368 | ערכת צביעה |
+| 26.9 | מוצ״ש | 20:30 | קוני אמלה וגם קיק | 241 | יום השמנים |
+| 27.9 | ראשון | 09:00 | קוני מסכה וגם סרום | 546 | פילינג גוף |
+| 28.9 | שני | 09:00 | קוני מסכה בלבד | 472 | יום הפנים |
+| 29.9 | שלישי | 09:00 | הוציאו מעל ₪300 | 274 | שמן בטאנה |
+| 30.9 | רביעי | 09:00 | הזדמנות אחרונה, כל המנויות | 2,652 | הסט לשיער פגום |
+
+**On the two Saturdays.** 19.9 and 26.9 are Shabbat. Both go out **motzei
+Shabbat at 20:30**, which is when an Israeli list is actually read, and 26.9 is
+also motzei chag of the first day of Sukkot. Friday sends go at 08:30, early
+enough to be read before the day closes down.
+
+**On Yom Kippur.** Nothing. Not a reduced send, not a quiet one, not the service
+email. This is the one day where the right number of emails is zero.
+
+---
+
+## Segments
+
+**Nine exist by API.** Five must be pasted in by hand: `segmentCreate` refuses
+any query containing `products_purchased MATCHES`, even though the query engine
+behind `customerSegmentMembers` accepts the identical string and returns a
+count. A genuine inconsistency in the Shopify API, not a permissions problem.
+
+Customers → Segments → Create segment:
+
+```
+ספט · קוני אמלה בלבד
+email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9566713905447) AND NOT products_purchased MATCHES (id = 9608345944359)
+
+ספט · קוני שמן קיק
+email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9608345944359)
+
+ספט · קוני אמלה וגם קיק
+email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9566713905447) AND products_purchased MATCHES (id = 9608345944359)
+
+ספט · קוני מסכה וגם סרום
+email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9671746683175) AND products_purchased MATCHES (id = 9695478677799)
+
+ספט · קוני מסכה בלבד
+email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9671746683175) AND NOT products_purchased MATCHES (id = 9695478677799)
+```
+
+The app also has **no protected-customer-data approval**, so it cannot read a
+single customer name, email or address. Everything here was built from
+order-level data and segment counts.
+
+---
+
+## The copy
+
+No em dash, female singular, nothing invented, one link each, no emoji in
+subject lines.
+
+### 16.9 · קוני אמלה בלבד (508) · יום הצבע
+**נושא:** `קנית אצלנו שמפו. מאז נוספו 55 מוצרים`
+**תצוגה:** `היום יום הצבע, שלוש דרכים לכסות שיער לבן בבית.`
 
 > שלום [שם],
 >
-> הוספנו לחנות 55 מוצרים חדשים לשיער ולעור, ורובם דברים שלא היו כאן קודם:
-> שמפו צבע, מסכות, שמני קרקפת וסדרת טיפוח פנים חדשה.
+> קנית אצלנו שמפו אמלה, ומאז לא היה לנו הרבה להציע לך. זה השתנה.
+> הוספנו 55 מוצרים חדשים: שמפו צבע, מסכות, שמני קרקפת ואביזרים.
 >
-> במקביל התחלנו שבועיים של מבצעים. כל יום מבצע אחר, עד חצות. יש ימים של מוצר
-> אחד, ימים של נושא שלם וימים של שגרה מלאה במחיר אחד.
+> היום **יום הצבע**, שלוש הדרכים לכסות שיער לבן בבית, כל אחת לסוג אחר
+> של סבלנות. 25% על שלושתן, היום בלבד.
 >
-> היום זה **יום הצבע**: שלוש הדרכים לכסות שיער לבן בבית, כל אחת לסוג אחר של
-> סבלנות. 25% על שלושתן.
->
-> **[לראות את המבצע של היום]** → /pages/deals
->
-> בערב יום כיפור ובמהלכו החנות שקטה ולא תקבלי מאיתנו שום דבר.
+> **[לראות את המבצע של היום]**
 
-### 2 · Tue 22 Sep — after the fast
-**To:** קנו בעבר ולא ב-90 יום (2,131)
-**Subject:** `אחרי הצום, הקרקפת היא הראשונה שמרגישה`
-**Preview:** `יום הקרקפת. 30% על הסרומים והמברשת.`
+### 17.9 · קוני שמן קיק (273) · שמן ארגן
+**נושא:** `שמן ארגן, לקצוות שספגו את כל הצביעות`
+**תצוגה:** `25% היום בלבד.`
 
 > שלום [שם],
 >
-> עברת אצלנו בעבר, ומאז החנות השתנתה כמעט לגמרי.
+> קנית אצלנו שמן קיק, אז את כבר יודעת מה שמן טוב עושה לשיער.
 >
-> היום **יום הקרקפת**, וזה לא מקרי. אחרי צום ויממה בלי לשתות כרגיל, הקרקפת
-> היא בדרך כלל הדבר הראשון שמרגיש יבש.
+> **שמן ארגן** עובד אחרת: קל יותר, נמרח על שיער לח לפני הייבוש,
+> ומיועד לקצוות ולא לקרקפת. שלוש טיפות, רק מאמצע ומטה.
 >
-> שלושה מוצרים ב-30%: סרום צמיחה לקו הפריקה, סרום ללא שטיפה לקרקפת יבשה,
+> היום ב-25%.
+>
+> **[לשמן הארגן]**
+
+### 18.9 · לקוחות חוזרים (321) · שגרת החפיפה
+**נושא:** `שמפו, מסכה ושמן. שלושת השלבים במחיר אחד`
+**תצוגה:** `30% על השגרה המלאה, היום בלבד.`
+
+> שלום [שם],
+>
+> קנית אצלנו יותר מפעם אחת, וזה אומר שאת כבר עובדת בשגרה
+> ולא במוצרים בודדים.
+>
+> היום בנינו בדיוק את זה: שמפו צמחי לקרקפת, מסכה היאלורונית לאורך,
+> ושמן ארגן לקצוות. שלושתם ב-30%.
+>
+> **[לשגרה המלאה]**
+
+### 19.9 · רדומות ≤180, שנה עד שנה וחצי (155) · שמפו יומיומי
+**נושא:** `השמפו לימים שבהם החפיפה רק צריכה לנקות`
+**תצוגה:** `25% עד חצות.`
+
+> שלום [שם],
+>
+> עבר קצת יותר משנה מאז שקנית אצלנו. בינתיים החלפנו כמעט את כל הקטלוג.
+>
+> לא כל חפיפה צריכה להיות טיפול. רוב החפיפות רק צריכות לנקות היטב
+> ולא להוריד את הגוון. זה השמפו לימים האלה, היום ב-25%.
+>
+> **[לשמפו]**
+
+### 22.9 · מנויות שמעולם לא קנו (515) · יום הקרקפת
+**נושא:** `אחרי הצום, הקרקפת היא הראשונה שמרגישה`
+**תצוגה:** `שלושה מוצרי קרקפת ב-30%.`
+
+> שלום [שם],
+>
+> את רשומה אצלנו ועוד לא קנית. זו הזדמנות טובה להתחיל בקטן.
+>
+> היום **יום הקרקפת**, ולא במקרה. אחרי צום ויממה בלי לשתות כרגיל,
+> הקרקפת היא בדרך כלל הדבר הראשון שמרגיש יבש.
+>
+> שלושה מוצרים ב-30%: סרום לקו הפריקה, סרום ללא שטיפה לקרקפת יבשה,
 > ומברשת הסיליקון שמפזרת אותם על העור במקום על השיער.
 >
-> **[לראות את המבצע של היום]** → /pages/deals
+> **[לראות את המבצע של היום]**
 
-### 3 · Thu 25 Sep — erev Sukkot
-**To:** מעולם לא קנו (515) + לקוחות חוזרים (324) = **839**
-**Subject:** `הכלים שהופכים צביעה ביתית למסודרת`
-**Preview:** `30% על ערכת הצביעה. היום בלבד.`
-
-> שלום [שם],
->
-> רוב הבלגן בצביעה ביתית לא מגיע מהצבע. הוא מגיע מכוס מהמטבח שנשפכת,
-> וממברשת רחבה מדי שמורחת על המצח.
->
-> היום 30% על ערכת הצביעה הביתית: קערה עם שוליים שמחזיקים, מברשת צרה לקו
-> השורש, ומסרק הפרדה.
->
-> **[לערכה]** → /products/novahair-coloring-kit
->
-> מחר מתחיל סוכות. המבצעים ממשיכים כל חול המועד.
-
-### 4 · Mon 29 Sep — the last days
-**To:** כל המנויים (2,663)
-**Subject:** `נשארו יומיים לשבועיים של טיפוח`
-**Preview:** `היום שמן בטאנה. מחר הסט המלא לשיער פגום.`
+### 23.9 · רדומות ≤180, מעל שנה וחצי (739) · קרם צבע עם מסרק
+**נושא:** `עבר יותר משנה וחצי. החנות נראית אחרת`
+**תצוגה:** `קרם צבע עם מסרק מובנה, 25% היום.`
 
 > שלום [שם],
 >
-> שבועיים של מבצעים נגמרים ב-30 בספטמבר.
+> קנית אצלנו פעם, ומאז עבר הרבה זמן. בינתיים החלפנו כמעט את כל הקטלוג.
 >
-> היום **שמן בטאנה** ב-30%, הטיפול השבועי לשיער שעבר צביעה והחלקה.
-> מחר, ליום האחרון, **הסט המלא**: שמפו קרטין, מסכת קרטין ושמן בטאנה יחד.
+> היום **קרם צבע עם מסרק מובנה**. המסרק מחובר לשפופרת, הקרם יוצא דרך
+> השיניים, ואת מעבירה אותו על קו השורש כמו שאת מסרקת.
+> בלי קערה, בלי מברשת, בלי כפפות.
 >
-> **[ללוח המבצעים]** → /pages/deals
+> 25% היום בלבד.
+>
+> **[לקרם הצבע]**
 
-**Total: 8,296 of 10,000.**
+### 24.9 · רדומות 180-260 (814) · ערכת הצביעה המלאה
+**נושא:** `הצבע, הכלים והשמפו שישמור עליו`
+**תצוגה:** `הערכה המלאה ב-30%, היום בלבד.`
+
+> שלום [שם],
+>
+> עבר זמן. אם את עדיין צובעת שורשים בבית, זה היום להצטייד.
+>
+> **הערכה המלאה** ב-30%: קרם הצבע עם המסרק, ערכת הכלים שמונעת את
+> הבלגן על הכיור, והשמפו הצמחי שמאריך את חיי הגוון בין צביעה לצביעה.
+>
+> **[לערכה המלאה]**
+
+### 25.9 · רדומות מעל 260 (368) · ערכת צביעה
+**נושא:** `רוב הבלגן בצביעה לא מגיע מהצבע`
+**תצוגה:** `ערכת הכלים ב-30%, לפני החג.`
+
+> שלום [שם],
+>
+> רוב הבלגן בצביעה ביתית מגיע מכוס מהמטבח שנשפכת, וממברשת רחבה מדי
+> שמורחת על המצח. בסוף יש יותר צבע על הכיור מאשר על השורש.
+>
+> **ערכת הצביעה** היא שלושת הכלים שבאמת עושים את העבודה: קערה עם
+> שוליים שמחזיקים, מברשת צרה לקו השורש, ומסרק להפרדת פסים.
+>
+> היום ב-30%. חג שמח.
+>
+> **[לערכה]**
+
+### 26.9 · קוני אמלה וגם קיק (241) · יום השמנים
+**נושא:** `שלושה שמנים, שלוש עבודות שונות`
+**תצוגה:** `קרקפת, אורך וקצוות. 25% על שלושתם.`
+
+> שלום [שם],
+>
+> קנית אצלנו גם שמפו וגם שמן, אז את כבר עובדת בשיטה.
+>
+> היום **יום השמנים**, ושלושתם עושים דברים שונים:
+> רוזמרין לקרקפת לפני החפיפה, בטאנה לאורך כטיפול שבועי,
+> וקוקוס כמסכה לשיער מתפרע.
+>
+> 25% על שלושתם.
+>
+> **[ליום השמנים]**
+
+### 27.9 · קוני מסכה וגם סרום (546) · פילינג גוף
+**נושא:** `הרחבנו את הטיפוח מהפנים לגוף`
+**תצוגה:** `פילינג גוף מאצ'ה, 30% היום.`
+
+> שלום [שם],
+>
+> קנית אצלנו גם מסכה וגם סרום, אז את מכירה את הקו לפנים.
+> הוספנו שורה חדשה לגוף.
+>
+> היום **פילינג גוף מאצ'ה** ב-30%. טיפ אחד משנה את התוצאה:
+> סוגרים את המים ומעסים על עור לח, לא מתחת לזרם.
+> מים זורמים מדללים את הגרגרים לפני שהספיקו לעשות משהו.
+>
+> **[לפילינג]**
+
+### 28.9 · קוני מסכה בלבד (472) · יום הפנים
+**נושא:** `קנית מסכה. מעולם לא ניסית סרום`
+**תצוגה:** `שלושה סרומים, שלוש בעיות. 25% היום.`
+
+> שלום [שם],
+>
+> קנית אצלנו מסכת לילה ומעולם לא ניסית סרום. ההבדל ביניהם פשוט:
+> מסכה עובדת בלילה, סרום עובד כל יום.
+>
+> היום **יום הפנים**, שלושת הסרומים של NovaGlow ב-25%:
+> PDRN ללחות ולעור עייף, פפטידי נחושת למרקם,
+> וחומצה אזלאית לאדמומיות ולכתמים שנשארים אחרי פצעונים.
+>
+> **[ליום הפנים]**
+
+### 29.9 · הוציאו מעל ₪300 (274) · שמן בטאנה
+**נושא:** `שמן בטאנה, לשיער שכבר עבר יותר מדי`
+**תצוגה:** `30% היום בלבד.`
+
+> שלום [שם],
+>
+> יש שיער שכבר אי אפשר לטפל בו עם מוצר יומי. הוא עבר צביעה, החלקה,
+> ועוד צביעה, והוא מרגיש קשיח למגע כבר בשורש.
+>
+> **שמן בטאנה** הוא טיפול שבועי ולא מוצר גימור. מחממים בין הידיים,
+> מורחים מאמצע ומטה, שעה עם מגבת, ואז חפיפה כפולה.
+>
+> היום ב-30%.
+>
+> **[לשמן בטאנה]**
+
+### 30.9 · הזדמנות אחרונה (2,652) · הסט לשיער פגום
+**נושא:** `היום האחרון של שבועיים של טיפוח`
+**תצוגה:** `הסט המלא לשיער פגום, 30%.`
+
+> שלום [שם],
+>
+> שבועיים של מבצעים נגמרים היום בחצות.
+>
+> לסיום, **הסט לשיער שעבר יותר מדי**: שמפו קרטין, מסכת קרטין
+> ושמן בטאנה. שלושתם ב-30%.
+>
+> **[ללוח המבצעים]**
+
+### שוטף · ממתינות למשלוח (11) — not a promotion
+**נושא:** `ההזמנה שלך בדרך`
+
+> שלום [שם],
+>
+> ההזמנה שלך יצאה. זמן האספקה הרגיל הוא 8 עד 20 ימי עסקים.
+>
+> אם עברו יותר מ-20 יום ועוד לא הגיע, כתבי לנו ונבדוק.
+>
+> לא שלחנו לך מבצעים השבוע בכוונה. נחזור אחרי שההזמנה תגיע.
 
 ---
 
-## Rules for whoever sends these
+## Rules
 
-- **Nothing goes out on 20 or 21 September.** Yom Kippur. Not a reduced send, not
-  a "quiet" one. Nothing. The promotion page goes dark those days too.
-- Send in the **morning, Israel time**, not the evening. These are read on a
-  phone between other things.
-- **One link per email.** Every one of these has a single destination.
-- Subject lines: **no emoji, no ALL CAPS, no exclamation marks.** They read as
-  spam in Hebrew and they are what the inbox filter looks at.
-- The body copy above is final. It follows the same rules as the product pages:
-  no em dash, female singular, nothing invented. Do not add a statistic, a
-  review count or a countdown to make it feel stronger.
+- **20 and 21 September: nothing.**
+- Weekday sends 09:00, Friday 08:30, Saturday 20:30 motzei Shabbat.
+- One link per email. Every one above has exactly one.
+- No emoji, no capitals, no exclamation marks in subject lines.
+- Do not add a review count, a statistic or a countdown.
 
 ---
 
-## Worth fixing before the next cycle
+## The one thing worth more than all thirteen
 
-The abandoned-checkout automation is **Inactive** and has 22 sends, 2% click and
-**0 orders** behind it. An abandoned-checkout flow is normally the single
-highest-earning automation a store has. Turning it back on and pointing it at a
-product page that now actually converts is likely worth more than all four
-campaigns above put together.
+The abandoned-checkout automation is **Inactive**, with 22 sends and **0 orders**
+behind it. That flow is normally the highest-earning automation a store has, and
+it now has a product page that converts to point at. Turning it on costs nothing.

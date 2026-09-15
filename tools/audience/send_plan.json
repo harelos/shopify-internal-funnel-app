@@ -1,0 +1,142 @@
+[
+ {
+  "date": "2026-09-16",
+  "dow": "רביעי",
+  "time": "09:00",
+  "name": "ספט · קוני אמלה בלבד",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9566713905447) AND NOT products_purchased MATCHES (id = 9608345944359)",
+  "size": 508,
+  "promo_day": "יום הצבע",
+  "why": "קנו שמפו לשיער ומעולם לא קנו שום דבר אחר לשיער."
+ },
+ {
+  "date": "2026-09-17",
+  "dow": "חמישי",
+  "time": "09:00",
+  "name": "ספט · קוני שמן קיק",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9608345944359)",
+  "size": 273,
+  "promo_day": "שמן ארגן לשיער",
+  "why": "כבר קנו שמן לשיער. יום של שמן הוא ההצעה שלהן."
+ },
+ {
+  "date": "2026-09-18",
+  "dow": "שישי",
+  "time": "08:30",
+  "name": "ספט · לקוחות חוזרים",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND number_of_orders > 1",
+  "size": 321,
+  "promo_day": "שגרת החפיפה המלאה",
+  "why": "מי שקנתה יותר מפעם אחת קונה שגרה ולא מוצר. יום החבילה שלה."
+ },
+ {
+  "date": "2026-09-19",
+  "dow": "מוצ״ש",
+  "time": "20:30",
+  "name": "ספט · רדומות עד 180, שנה עד שנה וחצי",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND last_order_date < -365d AND last_order_date >= -540d AND amount_spent <= 180",
+  "size": 155,
+  "promo_day": "שמפו יומיומי",
+  "why": "הפלח הרדום הקטן והטרי ביותר. מתאים לבדיקה במוצאי שבת."
+ },
+ {
+  "date": "2026-09-22",
+  "dow": "שלישי",
+  "time": "09:00",
+  "name": "ספט · מנויות שמעולם לא קנו",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND number_of_orders = 0",
+  "size": 515,
+  "promo_day": "יום הקרקפת",
+  "why": "נרשמו ולא קנו. מוצר קרקפת במחיר יום הוא קנייה ראשונה בסיכון נמוך."
+ },
+ {
+  "date": "2026-09-23",
+  "dow": "רביעי",
+  "time": "09:00",
+  "name": "ספט · רדומות עד 180, מעל שנה וחצי",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND last_order_date < -540d AND amount_spent <= 180",
+  "size": 739,
+  "promo_day": "קרם צבע עם מסרק",
+  "why": "הפלח הרדום הגדול והקר ביותר. הצעה קלה להיכנס אליה."
+ },
+ {
+  "date": "2026-09-24",
+  "dow": "חמישי",
+  "time": "09:00",
+  "name": "ספט · רדומות 180 עד 260",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND last_order_date < -365d AND amount_spent > 180 AND amount_spent <= 260",
+  "size": 814,
+  "promo_day": "ערכת הצביעה המלאה",
+  "why": "רדומות שכבר הוציאו מעל ממוצע. הצעה של ערכה שלמה."
+ },
+ {
+  "date": "2026-09-25",
+  "dow": "שישי",
+  "time": "08:30",
+  "name": "ספט · רדומות מעל 260",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND last_order_date < -365d AND amount_spent > 260",
+  "size": 368,
+  "promo_day": "ערכת צביעה ביתית",
+  "why": "הרדומות היקרות ביותר. שווה להן ערכה ולא מוצר בודד."
+ },
+ {
+  "date": "2026-09-26",
+  "dow": "מוצ״ש",
+  "time": "20:30",
+  "name": "ספט · קוני אמלה וגם קיק",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9566713905447) AND products_purchased MATCHES (id = 9608345944359)",
+  "size": 241,
+  "promo_day": "יום השמנים",
+  "why": "הקבוצה הכי מחויבת בצד השיער, ושלושה שמנים ביום אחד."
+ },
+ {
+  "date": "2026-09-27",
+  "dow": "ראשון",
+  "time": "09:00",
+  "name": "ספט · קוני מסכה וגם סרום",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9671746683175) AND products_purchased MATCHES (id = 9695478677799)",
+  "size": 546,
+  "promo_day": "פילינג גוף מאצ'ה",
+  "why": "קוני הטיפוח לפנים. פילינג גוף הוא ההרחבה הטבעית."
+ },
+ {
+  "date": "2026-09-28",
+  "dow": "שני",
+  "time": "09:00",
+  "name": "ספט · קוני מסכה בלבד",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND products_purchased MATCHES (id = 9671746683175) AND NOT products_purchased MATCHES (id = 9695478677799)",
+  "size": 472,
+  "promo_day": "יום הפנים",
+  "why": "קנו מסכה ומעולם לא סרום. יום שלושת הסרומים נועד להן."
+ },
+ {
+  "date": "2026-09-29",
+  "dow": "שלישי",
+  "time": "09:00",
+  "name": "ספט · הוציאו מעל 300 שקל",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d) AND amount_spent > 300",
+  "size": 274,
+  "promo_day": "שמן בטאנה 120",
+  "why": "הקהל שמוכן לשלם, והמוצר היקר בקטלוג."
+ },
+ {
+  "date": "2026-09-30",
+  "dow": "רביעי",
+  "time": "09:00",
+  "name": "ספט · הזדמנות אחרונה",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND (number_of_orders = 0 OR last_order_date < -14d)",
+  "size": 2652,
+  "promo_day": "הסט לשיער שעבר יותר מדי",
+  "why": "היום האחרון. השליחה הרחבה היחידה בתוכנית."
+ },
+ {
+  "date": "rolling",
+  "dow": "",
+  "time": "",
+  "name": "שוטף · ממתינות למשלוח",
+  "query": "email_subscription_status = 'SUBSCRIBED' AND last_order_date >= -14d",
+  "size": 11,
+  "promo_day": null,
+  "why": "עדכון משלוח. בלי מבצע."
+ }
+]
