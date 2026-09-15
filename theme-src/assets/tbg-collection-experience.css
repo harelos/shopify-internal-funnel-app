@@ -97,3 +97,24 @@
   .tbg-collection-hero__copy h1 { font-size: 25px; }
   .tbg-collection-nav a { padding: 10px 12px; font-size: 12px; }
 }
+
+/* --------------------------------------------------------------------------
+   Per-mission crop.
+
+   The hero renders as a 16:7 strip, and a single `center` works for none of
+   these photographs: the subject sits at a different height in each. Values
+   below were picked by rendering the actual strip at 30/40/50/60% for every
+   image and choosing, not by guessing. roots keeps the grey regrowth and the
+   mirror, scalp keeps her face above the part line, body keeps the hands and
+   the bowl, night keeps the lamp behind her.
+   -------------------------------------------------------------------------- */
+.tbg-collection-hero__media img { object-position: center 45%; }
+
+.tbg-collection-hero.collection-mission-roots .tbg-collection-hero__media img { object-position: center 30%; }
+.tbg-collection-hero.collection-mission-scalp   .tbg-collection-hero__media img { object-position: center 30%; }
+.tbg-collection-hero.collection-mission-repair  .tbg-collection-hero__media img { object-position: center 35%; }
+.tbg-collection-hero.collection-mission-tools   .tbg-collection-hero__media img { object-position: center 42%; }
+.tbg-collection-hero.collection-mission-night   .tbg-collection-hero__media img { object-position: center 50%; }
+.tbg-collection-hero.collection-mission-serums  .tbg-collection-hero__media img { object-position: center 40%; }
+.tbg-collection-hero.collection-mission-body    .tbg-collection-hero__media img { object-position: center 52%; }
+.tbg-collection-hero.collection-mission-protect .tbg-collection-hero__media img { object-position: center 40%; }

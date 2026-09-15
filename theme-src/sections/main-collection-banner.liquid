@@ -33,9 +33,11 @@
       assign eyebrow = 'NovaGlow · סרומים'
       assign fallback_description = 'היאלורוני, פפטידים, חומצות. לפי בעיה.'
     when 'mission-body'
+      assign hero_asset = 'tbg-mission-body.jpg'
       assign eyebrow = 'NovaGlow · גוף'
       assign fallback_description = 'הפריטים הקטנים שנכנסים לסל ליד המסכה.'
     when 'mission-protect'
+      assign hero_asset = 'tbg-mission-protect.jpg'
       assign eyebrow = 'NovaGlow · הגנה'
       assign fallback_description = 'השלב שבא אחרי הסרום, לפני שיוצאים מהבית.'
     when 'all'
@@ -45,7 +47,7 @@
   endcase
 -%}
 
-<section class="tbg-collection-hero" dir="rtl">
+<section class="tbg-collection-hero collection-{{ collection.handle | handle }}" dir="rtl">
   <div class="tbg-collection-hero__media">
     <img
       src="{{ hero_asset | asset_url }}"
@@ -82,6 +84,44 @@
     {%- endif -%}
   {%- endfor -%}
 </nav>
+
+<script>
+  /* Switching missions is a real navigation, so it costs a real page load.
+     Rather than rebuild it as an AJAX grid swap, which would put the back
+     button, the filters and the analytics at risk for a shelf that is already
+     fast, the next page is fetched the moment the customer shows intent:
+     hovering on a desktop, first touch on a phone, or tabbing to the pill.
+     By the time the click lands the document is usually already in cache.
+
+     Deliberately quiet about failure: a prefetch that does not happen costs
+     nothing, so nothing here throws or retries. */
+  (function () {
+    var nav = document.querySelector('.tbg-collection-nav');
+    if (!nav) return;
+
+    var c = navigator.connection || {};
+    if (c.saveData) return;
+    if (/2g/.test(c.effectiveType || '')) return;
+
+    var seen = {};
+    function prefetch(href) {
+      if (!href || seen[href]) return;
+      seen[href] = 1;
+      var l = document.createElement('link');
+      l.rel = 'prefetch';
+      l.as = 'document';
+      l.href = href;
+      document.head.appendChild(l);
+    }
+
+    ['mouseover', 'touchstart', 'focusin'].forEach(function (ev) {
+      nav.addEventListener(ev, function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a') : null;
+        if (a && a.href) prefetch(a.href);
+      }, { passive: true, capture: true });
+    });
+  })();
+</script>
 
 {% schema %}
 {
