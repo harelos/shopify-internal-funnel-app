@@ -1,0 +1,390 @@
+<title>מועדון הראשונות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@300;400;600;700&display=swap">
+<style>
+  :root{
+    --ink:#17130F;
+    --surface:#201B16;
+    --surface-2:#2A231C;
+    --line:#382F26;
+    --sand:#F4EFE7;
+    --muted:#A2937F;
+    --bronze:#E08A3C;
+    --bronze-dim:#8A5722;
+    --ok:#7FA87A;
+
+    --display:"Frank Ruhl Libre", "Times New Roman", serif;
+    --body:"Assistant", "Segoe UI", system-ui, sans-serif;
+
+    --max:52rem;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box; min-inline-size:0}
+
+  body{
+    background:var(--ink);
+    color:var(--sand);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.65;
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .page{direction:rtl; text-align:right; max-width:var(--max); margin:0 auto; padding:0 1.25rem 5rem}
+
+  /* ---------- masthead ---------- */
+  .mast{padding:4rem 0 3rem; border-bottom:1px solid var(--line)}
+  .eyebrow{
+    font-size:.74rem; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--bronze); font-weight:600; margin:0 0 1.1rem;
+  }
+  h1{
+    font-family:var(--display); font-weight:900;
+    font-size:clamp(2.6rem,9vw,4.2rem); line-height:1.02;
+    margin:0 0 1rem; text-wrap:balance; letter-spacing:-.01em;
+  }
+  .lede{font-size:1.16rem; color:var(--sand); max-width:34rem; margin:0 0 1.6rem; font-weight:300}
+  .lede b{font-weight:600; color:var(--bronze)}
+
+  .baseline{
+    display:flex; flex-wrap:wrap; gap:0 2.4rem;
+    padding-top:1.4rem; border-top:1px solid var(--line);
+  }
+  .fig{padding:.35rem 0}
+  .fig dt{font-size:.78rem; color:var(--muted); letter-spacing:.06em; margin:0}
+  .fig dd{
+    margin:.1rem 0 0; font-family:var(--display); font-weight:700;
+    font-size:1.75rem; line-height:1.15; font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- section frame ---------- */
+  section{padding:3.4rem 0; border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h2{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(1.55rem,4.4vw,2.1rem); line-height:1.2;
+    margin:0 0 .5rem; text-wrap:balance;
+  }
+  .sub{color:var(--muted); margin:0 0 1.9rem; max-width:36rem; font-size:1rem}
+
+  /* ---------- the fork ---------- */
+  .fork{display:grid; grid-template-columns:1fr 1fr; gap:.85rem}
+  @media (max-width:32rem){ .fork{grid-template-columns:1fr} }
+  .pick{
+    appearance:none; font:inherit; color:inherit; cursor:pointer;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:3px; padding:1.25rem 1.3rem; text-align:right;
+    display:block; width:100%; transition:border-color .15s, background .15s;
+  }
+  .pick:hover{border-color:var(--bronze-dim)}
+  .pick[aria-pressed="true"]{
+    background:var(--surface-2); border-color:var(--bronze);
+    box-shadow:inset 3px 0 0 var(--bronze);
+  }
+  .pick .nm{font-family:var(--display); font-weight:700; font-size:1.3rem; display:block}
+  .pick .ds{color:var(--muted); font-size:.92rem; display:block; margin-top:.2rem}
+  .pick:focus-visible{outline:2px solid var(--bronze); outline-offset:3px}
+
+  /* ---------- the ladder ---------- */
+  .ladder{list-style:none; margin:0; padding:0; position:relative}
+  .ladder::before{
+    content:""; position:absolute; top:1.5rem; bottom:2.2rem; right:1.05rem;
+    width:1px; background:var(--line);
+  }
+  .rung{position:relative; padding:0 3.3rem 2.1rem 0}
+  .rung:last-child{padding-bottom:0}
+  .num{
+    position:absolute; right:0; top:.05rem;
+    width:2.1rem; height:2.1rem; border-radius:50%;
+    display:grid; place-items:center;
+    background:var(--ink); border:1px solid var(--line);
+    font-family:var(--display); font-weight:700; font-size:1rem;
+    color:var(--muted); font-variant-numeric:tabular-nums;
+  }
+  .rung.live .num{border-color:var(--bronze); color:var(--bronze)}
+  .rung h3{
+    font-family:var(--display); font-weight:700; font-size:1.2rem;
+    margin:.15rem 0 .35rem;
+  }
+  .rung p{margin:0; color:var(--muted); font-size:.98rem}
+  .rung .gets{
+    margin:.7rem 0 0; padding:.75rem .95rem;
+    background:var(--surface); border-right:2px solid var(--bronze);
+    border-radius:0 3px 3px 0; color:var(--sand); font-size:.95rem;
+  }
+  .rung .gets b{font-weight:600}
+
+  /* ---------- the date ---------- */
+  .date-card{
+    display:flex; align-items:center; gap:1.4rem; flex-wrap:wrap;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:3px; padding:1.5rem 1.6rem;
+  }
+  .day{
+    font-family:var(--display); font-weight:900; font-size:4rem; line-height:.85;
+    color:var(--bronze); font-variant-numeric:tabular-nums;
+  }
+  .date-card .txt{flex:1 1 16rem}
+  .date-card p{margin:0; color:var(--muted); font-size:.97rem}
+  .date-card strong{color:var(--sand); font-weight:600; display:block; margin-bottom:.2rem; font-size:1.05rem}
+
+  /* ---------- replenishment ---------- */
+  .tablewrap{overflow-x:auto; margin-top:.4rem}
+  table{border-collapse:collapse; width:100%; font-size:.95rem; min-width:26rem}
+  th,td{text-align:right; padding:.72rem .6rem; border-bottom:1px solid var(--line); vertical-align:top}
+  th{
+    font-size:.74rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; border-bottom-color:var(--bronze-dim);
+  }
+  td:first-child{color:var(--sand); font-weight:400}
+  td.when{
+    color:var(--bronze); font-weight:600; white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  td.lasts{color:var(--muted)}
+  .note{margin:1rem 0 0; font-size:.86rem; color:var(--muted); max-width:34rem}
+
+  /* ---------- preference centre ---------- */
+  .prefs{display:grid; gap:.6rem}
+  .pref{
+    display:flex; align-items:flex-start; gap:.85rem;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:3px; padding:.95rem 1.1rem;
+  }
+  .pref input{
+    appearance:none; flex:0 0 auto; margin-top:.25rem;
+    width:1.1rem; height:1.1rem; border-radius:2px;
+    border:1px solid var(--muted); background:transparent; cursor:pointer;
+  }
+  .pref input:checked{background:var(--bronze); border-color:var(--bronze)}
+  .pref input:focus-visible{outline:2px solid var(--bronze); outline-offset:2px}
+  .pref label{cursor:pointer; font-size:.97rem}
+  .pref .hint{display:block; color:var(--muted); font-size:.87rem; margin-top:.12rem}
+
+  /* ---------- deliberately not built ---------- */
+  .nope{list-style:none; margin:0; padding:0; display:grid; gap:.9rem}
+  .nope li{
+    padding-right:1.5rem; position:relative; color:var(--muted); font-size:.98rem;
+  }
+  .nope li::before{
+    content:"—"; position:absolute; right:0; top:0; color:var(--bronze-dim);
+  }
+  .nope b{color:var(--sand); font-weight:600}
+
+  footer{
+    padding-top:2.4rem; margin-top:1rem; border-top:1px solid var(--line);
+    color:var(--muted); font-size:.87rem;
+  }
+  footer p{margin:0 0 .5rem}
+
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+</style>
+
+<div class="page">
+
+  <header class="mast">
+    <p class="eyebrow">מועדון לקוחות · הצעה לאוקטובר</p>
+    <h1>הראשונות</h1>
+    <p class="lede">
+      המועדון לא קיים כדי לתגמל את מי שכבר קונה. הוא קיים כדי להזיז קונה אחת
+      מהזמנה ראשונה לשנייה, ומשנייה לשלישית. <b>זה המספר היחיד שהוא אמור להזיז.</b>
+    </p>
+    <dl class="baseline">
+      <div class="fig"><dt>קונות חוזרות היום</dt><dd>324</dd></div>
+      <div class="fig"><dt>מתוך רשומות</dt><dd>2,663</dd></div>
+      <div class="fig"><dt>שיעור חזרה</dt><dd>12%</dd></div>
+      <div class="fig"><dt>ממוצע הזמנה</dt><dd>₪181</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <h2>קודם בוחרים עולם</h2>
+    <p class="sub">
+      לאורך שנתיים, 1,418 הזמנות היו פנים בלבד ו-1,192 היו שיער בלבד.
+      אף הזמנה אחת לא ערבבה בין השניים. אז הבחירה הזאת היא לא קישוט,
+      היא מה שקובע מה נשלח ומתי.
+    </p>
+    <div class="fork" role="group" aria-label="בחירת עולם">
+      <button class="pick" type="button" data-world="hair" aria-pressed="true">
+        <span class="nm">NovaHair</span>
+        <span class="ds">צבע, קרקפת, שיקום, כלים</span>
+      </button>
+      <button class="pick" type="button" data-world="skin" aria-pressed="false">
+        <span class="nm">NovaGlow</span>
+        <span class="ds">מסכות, סרומים, לחות</span>
+      </button>
+    </div>
+  </section>
+
+  <section>
+    <h2>הסולם</h2>
+    <p class="sub">
+      ההטבה לא יושבת על ההזמנה הראשונה, כי ההזמנה הראשונה כבר קרתה.
+      היא יושבת במקום שבו קונה הופכת להרגל.
+    </p>
+    <ol class="ladder">
+      <li class="rung live">
+        <span class="num">1</span>
+        <h3>נכנסת אוטומטית</h3>
+        <p>בלי טופס, בלי הרשמה נפרדת. מי שקנתה, בפנים.</p>
+        <div class="gets">מקבלת: <b>48 שעות לפני כולם</b> על כל מוצר חדש וכל מבצע.</div>
+      </li>
+      <li class="rung">
+        <span class="num">2</span>
+        <h3>ההזמנה שמחליטה</h3>
+        <p>כאן נשברות 88% מהלקוחות היום. התזכורת מגיעה לפי כמה זמן המוצר שקנתה באמת מחזיק.</p>
+        <div class="gets">מקבלת: <b>משלוח חינם, קבוע</b>. בממוצע הזמנה של ₪181, המשלוח הוא החיכוך שנשאר.</div>
+      </li>
+      <li class="rung">
+        <span class="num">3</span>
+        <h3>ההרגל</h3>
+        <p>מי שהזמינה שלוש פעמים כבר לא מתלבטת. זה המקום הכי זול בחנות להוציא בו מתנה.</p>
+        <div class="gets">מקבלת: <b>מוצר אמיתי מהקטלוג</b>, לא דוגמית. קרם ידיים ₪45 או סט מסרקים ₪49.</div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>תאריך קבוע, בלי הודעה</h2>
+    <p class="sub">פנטי עושה את זה בשלישי השני של החודש. מספר קבוע קל יותר לזכור ולהגיד בעברית.</p>
+    <div class="date-card">
+      <div class="day">11</div>
+      <div class="txt">
+        <p>
+          <strong>הצעה אחת לחברות בלבד, ב-11 בכל חודש.</strong>
+          בלי יוצא מן הכלל, ובלי להכריז על זה כל פעם מחדש אחרי החודשים הראשונים.
+          זה מה שיוצר הרגל, וזאת הסיבה להישאר רשומה בחודש שאין בו שום סיבה אחרת.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>תזכורת החידוש</h2>
+    <p class="sub">
+      זה החלק שמרוויח הכי הרבה, והוא <em>אוטומציה</em> ולא קמפיין. הוא רץ לבד,
+      לא אוכל את מכסת הקמפיינים החודשית, ומגיע ברגע היחיד שבו הלקוחה באמת
+      רוצה לשמוע מהחנות.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>מוצר</th><th>מחזיק</th><th>תזכורת</th></tr>
+        </thead>
+        <tbody id="repl"></tbody>
+      </table>
+    </div>
+    <p class="note" id="repl-note"></p>
+  </section>
+
+  <section>
+    <h2>מרכז ההעדפות</h2>
+    <p class="sub">
+      בלחיצה אחת, מתוך כל מייל. הסיבה שזה כאן: מועדון ששולח יותר מדי הורג את
+      עצמו, ו-14 שליחות ב-14 ימים זה בדיוק התרחיש הזה.
+    </p>
+    <div class="prefs">
+      <div class="pref">
+        <input type="checkbox" id="p1" checked>
+        <label for="p1">תזכורות חידוש
+          <span class="hint">רק על מוצרים שקניתי, בתזמון שלהם</span>
+        </label>
+      </div>
+      <div class="pref">
+        <input type="checkbox" id="p2" checked>
+        <label for="p2">ה-11 בחודש
+          <span class="hint">מייל אחד בחודש, בתאריך קבוע</span>
+        </label>
+      </div>
+      <div class="pref">
+        <input type="checkbox" id="p3">
+        <label for="p3">מוצרים חדשים ומבצעים
+          <span class="hint">כאן יושבת התדירות הגבוהה. כבוי כברירת מחדל</span>
+        </label>
+      </div>
+      <div class="pref">
+        <input type="checkbox" id="p4" checked>
+        <label for="p4">עדכוני משלוח
+          <span class="hint">נשלח, יצא מהמדינה, בדרך אלייך</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>מה בכוונה לא בנינו</h2>
+    <ul class="nope">
+      <li><b>אין נקודות.</b> עם 324 קונות חוזרות, פנקס נקודות הוא עמלה חודשית על אפליקציה ויתרה שאף אחת לא בודקת. תאריך קבוע ומשלוח חינם פותרים את אותה בעיה בחינם.</li>
+      <li><b>אין דרגות.</b> ספורה מחזיקה שלוש דרגות על מיליוני חברות. 324 לא מחזיקות שלוש.</li>
+      <li><b>אין הנחת חברות קבועה.</b> הנחה קבועה היא הורדת מחיר, לא מועדון. ברגע שהיא קיימת, אי אפשר לקחת אותה בחזרה.</li>
+      <li><b>אין יום הולדת</b> עד שנדע שזה רווחי, ואין תוכנית חברים־מביאים־חברים עד ששיעור החזרה יעלה. אין טעם להזמין עוד אנשים למשפך שדולף.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p><strong style="color:var(--sand)">מדד ההצלחה באוקטובר:</strong> המרה להזמנה שנייה ושיעור חזרה ב-60 ו-90 יום. לא מספר הנרשמות.</p>
+    <p>נקודת הפתיחה למדידה: 12%.</p>
+    <p style="margin-top:1rem">דמו. הנתונים על החנות אמיתיים, מתוך 3,446 הזמנות ששולמו מאז ספטמבר 2024. תזמוני החידוש נגזרו מהנפח ומאופן השימוש שכתוב בעמודי המוצר.</p>
+  </footer>
+
+</div>
+
+<script>
+  var DATA = {
+    hair: {
+      note: "התזמונים מבוססים על הנפח האמיתי של כל מוצר ועל אופן השימוש שכתוב בעמוד המוצר, לא על ממוצע קטגוריה.",
+      rows: [
+        ["שמפו צבע 200 מ\"ל", "8 עד 12 חפיפות צבע", "5 שבועות"],
+        ["ספריי כיסוי שורשים 75 מ\"ל", "חודשיים עד שלושה", "9 שבועות"],
+        ["סרום קרקפת 30 מ\"ל", "שימוש יומיומי", "6 שבועות"],
+        ["מסכת קרטין 47 גרם", "כשלושה טיפולים", "3 שבועות"],
+        ["שמן בטאנה 50 מ\"ל", "6 עד 8 טיפולים שבועיים", "7 שבועות"],
+        ["שמן ארגן 100 מ\"ל", "חודשים, ב-3 טיפות", "10 שבועות"]
+      ]
+    },
+    skin: {
+      note: "מוצרי הפנים הם חצי מהיחידות שנמכרו בחנות מאז ומעולם. התזמונים כאן נגזרו מהנפח ומתדירות השימוש, ויתעדכנו מעמודי המוצר.",
+      rows: [
+        ["מסיכת קולגן לילה", "2 עד 3 פעמים בשבוע", "8 שבועות"],
+        ["סרום היאלורוני 4 ב-1", "שימוש יומיומי", "6 שבועות"],
+        ["סרום PDRN 30 מ\"ל", "שימוש יומיומי", "6 שבועות"],
+        ["חומצה אזלאית 10%", "יומיומי, בערב", "7 שבועות"],
+        ["פפטידי נחושת 30 מ\"ל", "יומיומי", "6 שבועות"],
+        ["פילינג מאצ'ה", "פעמיים בשבוע", "10 שבועות"]
+      ]
+    }
+  };
+
+  var tbody = document.getElementById("repl");
+  var noteEl = document.getElementById("repl-note");
+  var picks = document.querySelectorAll(".pick");
+
+  function render(world) {
+    var d = DATA[world];
+    tbody.textContent = "";
+    d.rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      var a = document.createElement("td"); a.textContent = r[0];
+      var b = document.createElement("td"); b.className = "lasts"; b.textContent = r[1];
+      var c = document.createElement("td"); c.className = "when"; c.textContent = r[2];
+      tr.appendChild(a); tr.appendChild(b); tr.appendChild(c);
+      tbody.appendChild(tr);
+    });
+    noteEl.textContent = d.note;
+    picks.forEach(function (p) {
+      p.setAttribute("aria-pressed", String(p.dataset.world === world));
+    });
+    try { localStorage.setItem("nova-club-world", world); } catch (e) {}
+  }
+
+  picks.forEach(function (p) {
+    p.addEventListener("click", function () { render(p.dataset.world); });
+  });
+
+  var saved = "hair";
+  try { saved = localStorage.getItem("nova-club-world") || "hair"; } catch (e) {}
+  render(DATA[saved] ? saved : "hair");
+</script>

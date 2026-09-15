@@ -1,0 +1,280 @@
+<title>שבע קולקציות, שבע משימות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@300;400;600;700&display=swap">
+<style>
+  :root{
+    --sand:#FAF7F2;
+    --card:#FFFFFF;
+    --ink:#1A1A1A;
+    --muted:#6B6259;
+    --line:#E8E0D6;
+    --bronze:#C96A1E;
+    --bronze-soft:#F5E3D2;
+    --warn:#8A5A2B;
+    --display:"Frank Ruhl Libre","Times New Roman",serif;
+    --body:"Assistant","Segoe UI",system-ui,sans-serif;
+    color-scheme: light;
+  }
+  *{box-sizing:border-box; min-inline-size:0}
+  body{background:var(--sand); color:var(--ink); font-family:var(--body);
+       font-size:17px; line-height:1.65; font-weight:300; -webkit-font-smoothing:antialiased}
+  .page{direction:rtl; text-align:right; max-width:60rem; margin:0 auto; padding:0 1.25rem 5rem}
+
+  .eyebrow{font-size:.74rem; letter-spacing:.2em; text-transform:uppercase;
+           color:var(--bronze); font-weight:600; margin:0 0 1rem}
+  h1{font-family:var(--display); font-weight:900; font-size:clamp(2.2rem,7vw,3.4rem);
+     line-height:1.05; margin:0 0 1rem; text-wrap:balance}
+  .lede{font-size:1.14rem; max-width:38rem; margin:0 0 2rem}
+  .lede b{font-weight:600}
+  header{padding:3.6rem 0 2.6rem}
+
+  /* before / after */
+  .compare{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:.9rem}
+  @media (max-width:40rem){.compare{grid-template-columns:1fr}}
+  .col{background:var(--card); border:1px solid var(--line); border-radius:4px; padding:1.25rem 1.35rem}
+  .col.now{opacity:.82}
+  .col h2{font-family:var(--display); font-size:1.12rem; font-weight:700; margin:0 0 .15rem}
+  .col .cap{font-size:.8rem; color:var(--muted); margin:0 0 .9rem; letter-spacing:.03em}
+  .col ul{margin:0; padding:0; list-style:none; font-size:.95rem}
+  .col li{display:flex; justify-content:space-between; gap:1rem; padding:.34rem 0;
+          border-bottom:1px dotted var(--line)}
+  .col li:last-child{border-bottom:0}
+  .col li span:last-child{color:var(--muted); font-variant-numeric:tabular-nums; flex:0 0 auto}
+  .col.now li span:first-child{font-family:ui-monospace,"Consolas",monospace; font-size:.86rem}
+  .strike{text-decoration:line-through; text-decoration-color:var(--bronze); opacity:.7}
+  .verdict{font-size:.9rem; color:var(--muted); margin:0 0 3rem; padding-right:.1rem}
+  .verdict b{color:var(--ink); font-weight:600}
+
+  /* mission cards */
+  h2.sec{font-family:var(--display); font-weight:700; font-size:1.6rem; margin:0 0 .3rem}
+  .sec-sub{color:var(--muted); margin:0 0 1.5rem; max-width:36rem; font-size:1rem}
+
+  .brandrow{display:flex; align-items:baseline; gap:.7rem; margin:2.4rem 0 1rem}
+  .brandrow h3{font-family:var(--display); font-weight:700; font-size:1.3rem; margin:0}
+  .brandrow .rule{flex:1; height:1px; background:var(--line)}
+  .brandrow .n{font-size:.82rem; color:var(--muted); font-variant-numeric:tabular-nums}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+  @media (max-width:44rem){.grid{grid-template-columns:1fr}}
+
+  .mission{background:var(--card); border:1px solid var(--line); border-radius:4px;
+           overflow:hidden; display:flex; flex-direction:column}
+  .mission img{display:block; width:100%; height:auto; aspect-ratio:16/9; object-fit:cover}
+  .mbody{padding:1.1rem 1.25rem 1.25rem; display:flex; flex-direction:column; flex:1}
+  .mission h4{font-family:var(--display); font-weight:700; font-size:1.22rem; margin:0 0 .25rem}
+  .mission p{margin:0 0 .9rem; color:var(--muted); font-size:.95rem; flex:1}
+  .meta{display:flex; align-items:center; gap:.6rem; font-size:.86rem; color:var(--muted);
+        border-top:1px solid var(--line); padding-top:.75rem; font-variant-numeric:tabular-nums}
+  .meta .cnt{color:var(--ink); font-weight:600}
+  .meta button{margin-inline-start:auto; appearance:none; font:inherit; font-size:.86rem;
+               font-weight:600; color:var(--bronze); background:none; border:0; cursor:pointer;
+               padding:.25rem .1rem; border-bottom:1px solid transparent}
+  .meta button:hover{border-bottom-color:var(--bronze)}
+  .meta button:focus-visible{outline:2px solid var(--bronze); outline-offset:3px}
+
+  .items{border-top:1px solid var(--line); margin-top:.75rem; padding-top:.6rem}
+  .items[hidden]{display:none}
+  .items ol{margin:0; padding:0; list-style:none; font-size:.9rem}
+  .items li{display:flex; justify-content:space-between; gap:.9rem; padding:.3rem 0;
+            border-bottom:1px dotted var(--line)}
+  .items li:last-child{border-bottom:0}
+  .items li .pr{color:var(--muted); font-variant-numeric:tabular-nums; flex:0 0 auto}
+
+  /* held back */
+  .held{background:var(--bronze-soft); border:1px solid #E7CDB2; border-radius:4px;
+        padding:1.3rem 1.45rem; margin-top:1rem}
+  .held h4{font-family:var(--display); font-weight:700; font-size:1.15rem; margin:0 0 .3rem; color:var(--warn)}
+  .held p{margin:0 0 .85rem; font-size:.95rem; color:#6E5334}
+  .held ul{margin:0; padding:0; list-style:none; font-size:.92rem}
+  .held li{display:flex; justify-content:space-between; gap:1rem; padding:.3rem 0;
+           border-bottom:1px dotted #E0C2A3; color:#5C4526}
+  .held li:last-child{border-bottom:0}
+  .held .pr{font-variant-numeric:tabular-nums; flex:0 0 auto}
+
+  /* evidence */
+  .ev{margin-top:3.2rem; border-top:1px solid var(--line); padding-top:2rem}
+  .ev h2{font-family:var(--display); font-weight:700; font-size:1.35rem; margin:0 0 1rem}
+  .ev table{border-collapse:collapse; width:100%; font-size:.93rem}
+  .ev th,.ev td{text-align:right; padding:.6rem .5rem; border-bottom:1px solid var(--line); vertical-align:top}
+  .ev th{font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+         font-weight:600}
+  .ev td.nav{font-family:ui-monospace,"Consolas",monospace; font-size:.82rem; color:var(--muted)}
+  .ev .punch{margin:1.2rem 0 0; font-size:1rem}
+  .ev .punch b{font-weight:600}
+  .tablewrap{overflow-x:auto}
+
+  footer{margin-top:3rem; padding-top:1.6rem; border-top:1px solid var(--line);
+         color:var(--muted); font-size:.86rem}
+  footer p{margin:0 0 .45rem}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">ארכיטקטורת קטגוריות · הצעה</p>
+    <h1>שבע קולקציות שמתארות מוצר,<br>אפס שמתארות בעיה</h1>
+    <p class="lede">
+      66 מוצרים חיים בחנות עכשיו. הם מסודרים לפי <b>מה הדבר</b>, לא לפי
+      <b>מה הלקוחה מנסה לפתור</b>. שתי הקולקציות בעברית הן שאריות שחופפות לאנגליות.
+    </p>
+
+    <div class="compare">
+      <div class="col now">
+        <h2>היום</h2>
+        <p class="cap">לפי סוג מוצר</p>
+        <ul>
+          <li><span>hair-care</span><span>22</span></li>
+          <li><span>scalp-care</span><span>13</span></li>
+          <li><span>skin-care</span><span>11</span></li>
+          <li><span class="strike">קולקציית-מוצרי-טיפוח-השיער-שלנו</span><span>9</span></li>
+          <li><span>hair-color</span><span>6</span></li>
+          <li><span>hair-tools</span><span>6</span></li>
+          <li><span class="strike">מוצרי-טיפוח-פנים</span><span>3</span></li>
+        </ul>
+      </div>
+      <div class="col">
+        <h2>המוצע</h2>
+        <p class="cap">לפי מה שהלקוחה מנסה לפתור</p>
+        <ul id="after"></ul>
+      </div>
+    </div>
+    <p class="verdict">
+      אותם 66 מוצרים, בלי למחוק ובלי לייבא. <b>שינוי סידור, לא שינוי מלאי.</b>
+    </p>
+  </header>
+
+  <h2 class="sec">המשימות</h2>
+  <p class="sec-sub">לחץ על מספר המוצרים כדי לראות מה באמת נכנס לכל אחת. המחירים חיים מהחנות.</p>
+
+  <div id="brands"></div>
+
+  <section class="ev">
+    <h2>למה דווקא ככה</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>מותג</th><th>מדינה</th><th>הניווט העליון שלו</th></tr></thead>
+        <tbody>
+          <tr><td>Briogeo</td><td>ארה"ב</td><td class="nav">repair · scalp · style · curl · thicken · frizz · color</td></tr>
+          <tr><td>ELEVEN Australia</td><td>אוסטרליה</td><td class="nav">Shop by Product · <strong>Shop by Concern</strong></td></tr>
+          <tr><td>Davines</td><td>איטליה</td><td class="nav">Hair Quiz · Products · Hair Type</td></tr>
+          <tr><td>Dr. Fischer</td><td>ישראל</td><td class="nav">תינוקות וילדים · מוצרי פארם · לגוף ולשיער · הגנה מהשמש</td></tr>
+          <tr><td>KAVA KAVA</td><td>ישראל</td><td class="nav">סדרות טיפוח שיער · מוצרי חשמל · מארזים</td></tr>
+          <tr><td>Lavido</td><td>ישראל</td><td class="nav">כל המוצרים · הנמכרים ביותר · טיפוח פנים · טיפוח הגוף והשיער</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="punch">
+      מתוך 120 המותגים שנבדקו, <b>20 מנווטים לפי בעיה</b> ו-<b>43 מחזיקים קוויז</b>.
+      שלושת הישראליים מנווטים לפי סוג מוצר או לפי איבר בגוף. אף אחד מהם לא שואל
+      את הלקוחה מה מפריע לה.
+    </p>
+  </section>
+
+  <footer>
+    <p>דמו. 66 המוצרים, השמות והמחירים נמשכו מ-Shopify. שום דבר כאן לא נכתב לחנות.</p>
+    <p>תמונות הקטגוריות נוצרו ל-NovaHair. הדוגמניות בנות 40 עד 55, כי זה הקהל: אישה שמשלמת היום למספרה או צובעת בבית.</p>
+  </footer>
+
+</div>
+
+<script id="data" type="application/json">[{"key":"roots","title":"כיסוי שורשים וצבע בבית","brand":"NovaHair","line":"הצבע נשאר, השורש חוזר. זה מה שמכסה אותו בבית.","count":8,"lo":45.54,"hi":139.0,"items":[{"t":"קרם צבע עם מסרק","p":139.0},{"t":"שמפו צבע שחור","p":129.0},{"t":"שמפו צבע צמחי","p":129.0},{"t":"שמפו גוון אפור","p":119.0},{"t":"ספריי כיסוי שורשים","p":99.0},{"t":"סבון שמפו מכהה","p":89.0},{"t":"ערכת צביעה ביתית","p":59.0},{"t":"אבקת כיסוי שורשים מיידית","p":45.54}]},{"key":"scalp","title":"שיער דליל וקרקפת","brand":"NovaHair","line":"מתחיל בקרקפת. סרומים, שמנים ותרסיסים לשורש.","count":16,"lo":82.23,"hi":131.44,"items":[{"t":"שמפו אמלה טבעי לטיפוח וחיזוק השיער — OCEAURA","p":131.44},{"t":"ספריי ג'ינג'ר לקרקפת","p":129.0},{"t":"ספריי לקרקפת שמנה","p":129.0},{"t":"BiotinRoot — ספריי ביוטין לשיער ולקרקפת","p":129.0},{"t":"אמפולות לקרקפת","p":119.0},{"t":"סרום לקרקפת","p":109.0},{"t":"תרחיץ לחיזוק השורש","p":109.0},{"t":"סרום צמיחה לקרקפת","p":99.0},{"t":"סרום לשיער דליל","p":99.0},{"t":"ספריי ג'ינסנג","p":99.0},{"t":"שמן נים לקרקפת","p":99.0},{"t":"שמן רוזמרין","p":89.0},{"t":"שמן טיפולי לקרקפת","p":89.0},{"t":"שמן ג'ינג'ר לקרקפת","p":89.0},{"t":"שמן בצל וקצח","p":89.0},{"t":"סרום פפטידים ונחושת מרוכז לשיער ולקרקפת — Copper Peptide","p":82.23}]},{"key":"repair","title":"שיקום, לחות וברק","brand":"NovaHair","line":"לשיער שעבר צביעה, שמש ומגהץ. חפיפה, מסכה, שמן.","count":23,"lo":67.25,"hi":149.0,"items":[{"t":"סט שמפו ומרכך","p":149.0},{"t":"שמן בטאנה 120 מ\"ל","p":139.0},{"t":"שמפו פפטידים","p":119.0},{"t":"מסכת קרטין להחלקה","p":109.0},{"t":"מסכת חמאת שיאה","p":109.0},{"t":"מסכה היאלורונית","p":109.0},{"t":"שמן בטאנה 50 מ\"ל","p":109.0},{"t":"שמפו צמחי מחזק","p":109.0},{"t":"שמפו קרטין","p":109.0},{"t":"מסכת שיקום והזנה לשיער עם שמן ארגן","p":99.9},{"t":"שמן ארגן לשיער","p":99.0},{"t":"שמן החלקה לשיער","p":99.0},{"t":"שמפו לחיזוק השיער","p":99.0},{"t":"שמפו מעורר לקרקפת","p":99.0},{"t":"קרם החלקה ללא חום","p":99.0},{"t":"ספריי מי אורז","p":99.0},{"t":"סרום קרטין לשיער חלק, רך ומבריק","p":89.9},{"t":"שמן קוקוס לשיער","p":89.0},{"t":"שמפו יומיומי","p":89.0},{"t":"ספריי היירגלוס לשיער","p":79.9},{"t":"שמן זית לשיער ולגוף","p":79.0},{"t":"משחת עיצוב לשיער","p":79.0},{"t":"שמן קיק שחור טהור","p":67.25}]},{"key":"tools","title":"כלים ואביזרים","brand":"NovaHair","line":"בלי חשמל. מה שמונע את הבלגן על הכיור.","count":5,"lo":49.0,"hi":149.0,"items":[{"t":"מברשת מתנקה","p":149.0},{"t":"מברשת ווליום","p":119.0},{"t":"מקל תלתלים ללא חום","p":69.0},{"t":"מברשת עיסוי לקרקפת","p":59.0},{"t":"סט מסרקים","p":49.0}]},{"key":"night","title":"מסכות לילה","brand":"NovaGlow","line":"המוצר הכי נמכר בהיסטוריה של החנות, ומה שנבנה סביבו.","count":2,"lo":129.0,"hi":278.16,"items":[{"t":"ערכת טיפוח משולשת — מסכת לילה + שמפו OCEAURA + סרום היאלורוני","p":278.16},{"t":"מסיכת קולגן לילה אלסטיק-דרים","p":129.0}]},{"key":"serums","title":"סרומים ולחות","brand":"NovaGlow","line":"היאלורוני, פפטידים, חומצות. לפי בעיה ולא לפי מותג.","count":6,"lo":89.0,"hi":139.0,"items":[{"t":"סרום PDRN","p":139.0},{"t":"סרום פפטידי נחושת","p":129.0},{"t":"סרום חומצה אזלאית","p":119.0},{"t":"שמן פנים זהב ורוד","p":119.0},{"t":"סרום חומצה היאלורונית 4 ב-1 מרוכז — Mooyam","p":89.0},{"t":"סטיק לאזור העיניים","p":89.0}]},{"key":"body","title":"גוף וידיים","brand":"NovaGlow","line":"הפריטים הקטנים שנכנסים לסל ליד המסכה.","count":3,"lo":45.0,"hi":69.0,"items":[{"t":"פילינג גוף מאצ'ה","p":69.0},{"t":"פילינג גוף הדרים","p":69.0},{"t":"קרם ידיים אבוקדו","p":45.0}]},{"key":"held","title":"מוחזק מחוץ לקידום","brand":"רגולציה","line":"מוצרי הגנה מהשמש נשארו ברישוי מלא בישראל. מסלול ההודעה של 2025 לא חל עליהם.","count":3,"lo":89.0,"hi":99.0,"items":[{"t":"ג'ל הגנה היאלורוני","p":89.0},{"t":"קרם הגנה SPF 50","p":89.0},{"t":"מקדם הגנה ובסיס איפור","p":99.0}]}]</script>
+<script>
+  var DATA = JSON.parse(document.getElementById("data").textContent);
+  var IMG = {roots:"img/roots.jpg", scalp:"img/scalp.jpg", repair:"img/repair.jpg",
+             tools:"img/tools.jpg", night:"img/night.jpg", serums:"img/serums.jpg"};
+
+  function money(n){ return "₪" + (Math.abs(n - Math.round(n)) < 0.005 ? Math.round(n) : n.toFixed(2)); }
+
+  /* --- the "proposed" column of the comparison --- */
+  var after = document.getElementById("after");
+  DATA.filter(function(m){ return m.key !== "held"; }).forEach(function(m){
+    var li = document.createElement("li");
+    var a = document.createElement("span"); a.textContent = m.title;
+    var b = document.createElement("span"); b.textContent = m.count;
+    li.appendChild(a); li.appendChild(b); after.appendChild(li);
+  });
+
+  /* --- mission cards, grouped by brand --- */
+  var host = document.getElementById("brands");
+  ["NovaHair", "NovaGlow"].forEach(function(brand){
+    var ms = DATA.filter(function(m){ return m.brand === brand; });
+    if (!ms.length) return;
+
+    var row = document.createElement("div"); row.className = "brandrow";
+    var h3 = document.createElement("h3"); h3.textContent = brand;
+    var rule = document.createElement("div"); rule.className = "rule";
+    var n = document.createElement("span"); n.className = "n";
+    n.textContent = ms.reduce(function(s,m){ return s + m.count; }, 0) + " מוצרים";
+    row.appendChild(h3); row.appendChild(rule); row.appendChild(n);
+    host.appendChild(row);
+
+    var grid = document.createElement("div"); grid.className = "grid";
+    ms.forEach(function(m){
+      var card = document.createElement("article"); card.className = "mission";
+
+      if (IMG[m.key]) {
+        var im = document.createElement("img");
+        im.src = IMG[m.key]; im.alt = m.title;
+        im.width = 1100; im.height = 614;
+        im.loading = "lazy"; im.decoding = "async";
+        card.appendChild(im);
+      }
+
+      var body = document.createElement("div"); body.className = "mbody";
+      var h4 = document.createElement("h4"); h4.textContent = m.title;
+      var p = document.createElement("p"); p.textContent = m.line;
+      body.appendChild(h4); body.appendChild(p);
+
+      var meta = document.createElement("div"); meta.className = "meta";
+      var cnt = document.createElement("span"); cnt.className = "cnt";
+      cnt.textContent = m.count + " מוצרים";
+      var rng = document.createElement("span");
+      rng.textContent = money(m.lo) + " – " + money(m.hi);
+      var btn = document.createElement("button"); btn.type = "button";
+      btn.textContent = "הצג";
+      btn.setAttribute("aria-expanded", "false");
+      meta.appendChild(cnt); meta.appendChild(rng); meta.appendChild(btn);
+      body.appendChild(meta);
+
+      var wrap = document.createElement("div"); wrap.className = "items"; wrap.hidden = true;
+      var ol = document.createElement("ol");
+      m.items.forEach(function(it){
+        var li = document.createElement("li");
+        var t = document.createElement("span"); t.textContent = it.t;
+        var pr = document.createElement("span"); pr.className = "pr"; pr.textContent = money(it.p);
+        li.appendChild(t); li.appendChild(pr); ol.appendChild(li);
+      });
+      wrap.appendChild(ol); body.appendChild(wrap);
+
+      btn.addEventListener("click", function(){
+        var open = wrap.hidden;
+        wrap.hidden = !open;
+        btn.textContent = open ? "הסתר" : "הצג";
+        btn.setAttribute("aria-expanded", String(open));
+      });
+
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+    host.appendChild(grid);
+  });
+
+  /* --- the products held out of promotion --- */
+  var held = DATA.filter(function(m){ return m.key === "held"; })[0];
+  if (held) {
+    var box = document.createElement("div"); box.className = "held";
+    var h4 = document.createElement("h4"); h4.textContent = held.title;
+    var p = document.createElement("p"); p.textContent = held.line;
+    var ul = document.createElement("ul");
+    held.items.forEach(function(it){
+      var li = document.createElement("li");
+      var t = document.createElement("span"); t.textContent = it.t;
+      var pr = document.createElement("span"); pr.className = "pr"; pr.textContent = money(it.p);
+      li.appendChild(t); li.appendChild(pr); ul.appendChild(li);
+    });
+    box.appendChild(h4); box.appendChild(p); box.appendChild(ul);
+    host.appendChild(box);
+  }
+</script>
