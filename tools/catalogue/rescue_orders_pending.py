@@ -40,11 +40,18 @@ import io, json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-# ---------------------------------------------------------------- FILL THESE
-# Shopify admin -> Orders -> #4379 / #4365 -> shipping address -> postcode.
+# ---------------------------------------------------------------- POSTCODE
+# There is no real postcode on these orders and Harel chose the placeholder
+# 1234567 for both. That is an owner decision rather than a guess, which is the
+# distinction the rescue PRD draws, and it matches what already works: both
+# earlier parcels to these two addresses were delivered with no usable postcode
+# in CJ's record. Israeli last-mile routes on the street address.
+#
+# If a parcel ever does misroute, this line is the first thing to look at.
+PLACEHOLDER_ZIP = "1234567"
 ZIPS = {
-    "4379": "",     # מלי לוי, רבי יהודה הנשיא 16, פתח תקווה
-    "4365": "",     # לילך שמילוביץ, יצחק בן צבי 10, קרית מוצקין
+    "4379": PLACEHOLDER_ZIP,   # מלי לוי, רבי יהודה הנשיא 16, פתח תקווה
+    "4365": PLACEHOLDER_ZIP,   # לילך שמילוביץ, יצחק בן צבי 10, קרית מוצקין
 }
 # CJ requires an email on the order. The store's own address is used rather
 # than the customers', because their addresses are behind the same PII wall as
