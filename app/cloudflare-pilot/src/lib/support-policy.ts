@@ -42,6 +42,24 @@ export function evaluateSupportPolicy(text: string): SupportPolicyDecision {
   };
 }
 
+/**
+ * Topics the owner allows the AI to answer without reading it first.
+ *
+ * Widening this is a risk decision, not a code change: a wrong answer about a
+ * refund, a payment dispute or what the product does to someone's hair costs
+ * more than the time it saves. It is configurable so the owner can widen it
+ * deliberately, and it defaults to the two topics that can be answered entirely
+ * from verified order data and approved store facts.
+ */
+export function autoSendTopics(readEnv: (name: string) => string = () => ""): Set<string> {
+  const configured = String(readEnv("SUPPORT_AUTOSEND_TOPICS") || "")
+    .split(",").map(topic => topic.trim().toUpperCase()).filter(Boolean);
+  // These are never auto-sendable, whatever the configuration says.
+  const forbidden = new Set(["PRODUCT_SAFETY", "REFUND", "PAYMENT_DISPUTE", "DELIVERY_DISPUTE", "LEGAL", "REGULATORY"]);
+  const allowed = configured.length ? configured : ["GENERAL_SHIPPING", "ORDER_STATUS"];
+  return new Set(allowed.filter(topic => !forbidden.has(topic)));
+}
+
 export function mayAutoSend(input: {
   automationMode: string;
   policy: SupportPolicyDecision;
@@ -51,9 +69,12 @@ export function mayAutoSend(input: {
   messageAgeMinutes?: number;
   latestMessageIsInbound?: boolean;
   language?: string;
+  /** Defaults to the two topics answerable from verified facts alone. */
+  allowedTopics?: Set<string>;
 }): boolean {
   const canAnswerWithoutOrder = input.policy.topic === "GENERAL_SHIPPING";
-  const approvedAutoSendTopic = input.policy.topic === "GENERAL_SHIPPING" || input.policy.topic === "ORDER_STATUS";
+  const allowed = input.allowedTopics ?? new Set(["GENERAL_SHIPPING", "ORDER_STATUS"]);
+  const approvedAutoSendTopic = allowed.has(input.policy.topic);
   const recentEnough = input.messageAgeMinutes === undefined || input.messageAgeMinutes <= 72 * 60;
   const supportedLanguage = input.language === undefined || input.language === "HEBREW" || input.language === "MIXED";
   return input.automationMode === "AUTOSEND_LOW_RISK"

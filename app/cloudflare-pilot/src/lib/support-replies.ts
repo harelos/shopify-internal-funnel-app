@@ -1,4 +1,5 @@
 import type { SupportPolicyDecision } from "./support-policy.js";
+import { describeForCustomer, type ShipmentStatus } from "./cj-tracking.js";
 
 export interface DeterministicSupportDecision {
   decision: "REPLY" | "WAIT" | "ESCALATE";
@@ -127,17 +128,29 @@ export function deterministicLowRiskDecision(input: {
   if (order.cancelledAt || /REFUND|VOID/i.test(String(order.displayFinancialStatus || ""))) return null;
   const fulfillment = Array.isArray(order.fulfillments) ? order.fulfillments[0] : null;
   if (fulfillment?.deliveredAt || /DELIVERED/i.test(String(fulfillment?.displayStatus || ""))) return null;
-  const tracking = Array.isArray(fulfillment?.trackingInfo) ? fulfillment.trackingInfo.find((item: any) => item?.number) : null;
-  const trackingNumber = String(tracking?.number || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 60);
+  const trackingInfo = Array.isArray(fulfillment?.trackingInfo) ? fulfillment.trackingInfo.find((item: any) => item?.number) : null;
+  const trackingNumber = String(trackingInfo?.number || "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 60);
   const orderName = /^#\d+$/.test(String(order.name || "")) ? String(order.name) : "שלך";
   const lines = ["היי 🌷", ""];
-  if (trackingNumber) {
+  const tracking = (order.tracking && typeof order.tracking === "object" ? order.tracking : null) as ShipmentStatus | null;
+  const trackPage = `https://tigerbrandsglobal.com/apps/funnels/track?order=${encodeURIComponent(orderName.replace(/^#/, ""))}`;
+  if (tracking && tracking.delivered) return null;
+  if (trackingNumber && tracking && tracking.stage !== "UNKNOWN" && !tracking.exception) {
+    // The verified CJ event, in the customer's words, with what happens next.
+    lines.push(
+      `בדקתי עכשיו את הזמנה ${orderName} מול חברת המשלוחים: ${describeForCustomer(tracking)}`,
+      "",
+      `מספר המעקב: ${tracking.cjMailNo || trackingNumber}`,
+      "כל הסריקות, מעודכנות בזמן אמת:",
+      trackPage,
+    );
+  } else if (trackingNumber) {
     lines.push(
       `בדקתי את הזמנה ${orderName}. היא כבר קיבלה מספר מעקב ונמצאת בתהליך המשלוח.`,
       "",
       `מספר המעקב: ${trackingNumber}`,
       "אפשר לראות את העדכונים כאן:",
-      `https://tigerbrandsglobal.com/apps/17TRACK?nums=${encodeURIComponent(trackingNumber)}`,
+      trackPage,
       "",
       deliveryWindow
         ? `זמן המשלוח הרגיל הוא ${deliveryWindow.minimum}–${deliveryWindow.maximum} ימי עסקים. ברגע שחברת המשלוחים תעדכן סריקה חדשה, היא תופיע בקישור.`
@@ -161,7 +174,7 @@ export function deterministicLowRiskDecision(input: {
     confidence: 0.99,
     replyText: lines.join("\n"),
     reason: "Rendered from a verified Shopify order and approved store delivery facts.",
-    factsUsed: ["Verified Shopify fulfillment status", trackingNumber ? "Verified Shopify tracking number" : "No tracking number is present yet", deliveryWindow?.source].filter(Boolean) as string[],
+    factsUsed: ["Verified Shopify fulfillment status", trackingNumber ? "Verified Shopify tracking number" : "No tracking number is present yet", tracking?.latestRemark ? `Verified CJ tracking event: ${tracking.latestRemark}` : null, deliveryWindow?.source].filter(Boolean) as string[],
     unverifiedClaims: [],
     model: "verified-order-facts-v1",
   };

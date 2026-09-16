@@ -1,8 +1,10 @@
 import prisma from "../lib/db.js";
+import { sendSupportReplyEmail } from "../lib/smtp-email.js";
+import { getShipmentStatus } from "../lib/cj-tracking-store.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { generateSupportDecision } from "../lib/support-ai.js";
-import { evaluateSupportPolicy, mayAutoSend } from "../lib/support-policy.js";
+import { evaluateSupportPolicy, mayAutoSend, autoSendTopics } from "../lib/support-policy.js";
 import { extractSupportOrderNumber } from "../lib/support-email.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
@@ -399,10 +401,18 @@ async function ingestSupportMessagePrisma(input: SupportIngestInput) {
       orderBy: { sentAt: "desc" },
     });
     if (inbound) {
+      // Every reply the owner writes is meant to teach the AI how he answers.
+      // Filing them all as PENDING_REVIEW left 356 of his replies unused while
+      // the AI kept drafting from 35 stale ones. A real reply of ordinary
+      // length is approved on arrival; anything odd still waits for review.
+      const ownerReply = input.textBody.trim();
+      const teachable = ownerReply.length >= 20
+        && ownerReply.length <= 1500
+        && Boolean(inbound.textBody && inbound.textBody.trim().length >= 10);
       await prisma.supportVoiceExample.upsert({
         where: { shopId_inboundExternalId_outboundExternalId: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId } },
         update: { ownerReply: input.textBody.trim(), topic: conversation.topic },
-        create: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId, topic: conversation.topic, customerMessage: inbound.textBody, ownerReply: input.textBody.trim(), qualityStatus: "PENDING_REVIEW" },
+        create: { shopId: shop.id, inboundExternalId: inbound.externalMessageId, outboundExternalId: input.externalMessageId, topic: conversation.topic, customerMessage: inbound.textBody, ownerReply, qualityStatus: teachable ? "APPROVED" : "PENDING_REVIEW" },
       });
     }
   }
@@ -460,6 +470,14 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
   let orderContext: unknown = null;
   try {
     const orders = await shopify.supportOrderContext({ customerEmail: conversation.customer.email, orderName: orderNumber, sessionToken });
+    // CJ's events say exactly where the parcel is. Without them the reply
+    // could only say "on the way" about a parcel already in Israel.
+    for (const order of orders.slice(0, 2) as any[]) {
+      const number = (Array.isArray(order?.fulfillments) ? order.fulfillments : [])
+        .flatMap((f: any) => Array.isArray(f?.trackingInfo) ? f.trackingInfo : [])
+        .map((t: any) => String(t?.number || "").trim()).find(Boolean);
+      if (number) order.tracking = await getShipmentStatus(number).catch(() => null);
+    }
     orderContext = orders;
     const primary = orders[0];
     if (primary) {
@@ -523,6 +541,7 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
     messageAgeMinutes: Math.max(0, (Date.now() - latestInbound.sentAt.getTime()) / 60000),
     latestMessageIsInbound: latestMessage.direction === "INBOUND",
     language: conversation.language,
+    allowedTopics: autoSendTopics(workerEnvValue),
   });
   const status = decision.decision === "ESCALATE" || policy.mustEscalate
     ? "ESCALATED"
@@ -567,12 +586,103 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
   return draft;
 }
 
+/**
+ * Delivers approved replies from the Worker itself.
+ *
+ * Railway blocks outbound SMTP, so the Railway sender timed out on every
+ * attempt and no customer was ever answered automatically. The Worker
+ * authenticates as the real mailbox over the same socket path the concierge
+ * emails use, so SPF and DKIM are already correct. Each draft is claimed
+ * atomically, so the Railway sender and this one can never send it twice.
+ */
+export async function processSupportOutbox() {
+  if (workerEnvValue("SUPPORT_WORKER_SEND") !== "true") return { sent: 0, disabled: true };
+  const now = new Date();
+  const due = await prisma.supportDraft.findMany({
+    where: { status: "QUEUED_TO_SEND", OR: [{ sendAfter: null }, { sendAfter: { lte: now } }] },
+    orderBy: { createdAt: "asc" },
+    take: 5,
+    include: { conversation: { include: { customer: true, mailbox: true, messages: { orderBy: { sentAt: "desc" }, take: 1 } } } },
+  });
+  let sent = 0;
+  const results: Array<{ id: string; ok: boolean; error?: string }> = [];
+  for (const draft of due) {
+    // Claim atomically; if the Railway sender took it first, skip.
+    const claim = await prisma.supportDraft.updateMany({
+      where: { id: draft.id, status: "QUEUED_TO_SEND" },
+      data: { status: "SENDING", claimedAt: now, attemptCount: { increment: 1 }, lastDeliveryError: null },
+    });
+    if (claim.count !== 1) continue;
+    const messageId = `<support-draft-${draft.id}@tigerbrandsglobal.com>`;
+    const inReplyTo = draft.conversation.messages[0]?.externalMessageId || null;
+    // A proactive update starts its own thread; only a reply gets the Re: prefix.
+    const subject = !inReplyTo || /^re:/i.test(draft.conversation.subject) ? draft.conversation.subject : `Re: ${draft.conversation.subject}`;
+    const outcome = await sendSupportReplyEmail({
+      to: draft.conversation.customer.email,
+      subject,
+      body: draft.replyText,
+      messageId,
+      inReplyTo,
+    });
+    if (!outcome.ok) {
+      await prisma.supportDraft.update({ where: { id: draft.id }, data: { status: "FAILED", claimedAt: null, lastDeliveryError: (outcome.error || "send_failed").slice(0, 200) } });
+      results.push({ id: draft.id, ok: false, error: outcome.error });
+      continue;
+    }
+    const sentAt = new Date();
+    await prisma.$transaction([
+      prisma.supportDraft.update({ where: { id: draft.id }, data: { status: "SENT", sentAt, claimedAt: null, lastDeliveryError: null } }),
+      prisma.supportMessage.create({ data: {
+        conversationId: draft.conversationId,
+        externalMessageId: messageId,
+        direction: "OUTBOUND",
+        fromAddress: draft.conversation.mailbox.address,
+        toAddressesJson: JSON.stringify([draft.conversation.customer.email]),
+        subject: draft.conversation.subject,
+        textBody: draft.replyText,
+        sentAt,
+        source: "WORKER_SMTP",
+        deliveryStatus: "SENT",
+        aiGenerated: true,
+        inReplyTo,
+      } }),
+      prisma.supportConversation.update({ where: { id: draft.conversationId }, data: { status: "WAITING_CUSTOMER", lastAgentMessageAt: sentAt } }),
+    ]);
+    await appendSupportEvidence({
+      conversationId: draft.conversationId,
+      kind: "OUTBOUND_EMAIL",
+      source: "WORKER_SMTP",
+      occurredAt: sentAt,
+      payload: { externalMessageId: messageId, draftId: draft.id, subject: draft.conversation.subject, to: draft.conversation.customer.email, textBody: draft.replyText },
+    });
+    sent += 1;
+    results.push({ id: draft.id, ok: true });
+  }
+  return { sent, disabled: false, results };
+}
+
 export async function processSupportDeskCron() {
   if (workerEnvValue("SUPPORT_AI_DRAFTS_ENABLED") !== "true") return { processed: 0, disabled: true };
-  const reclassified = await reclassifyHistoricSupportTopics();
+  // Drafting is the job customers feel; the topic-reclassify pass is only
+  // housekeeping. Reclassifying up to 250 threads every minute was overrunning
+  // the tick and throwing before a single reply was drafted, which is why no
+  // new customer message had been answered for a day and a half. Drafting runs
+  // first now, and reclassify is bounded and wrapped so it can never block it.
+  // A deterministic, verified-order reply that failed only on delivery is safe
+  // to resend as-is; the outbox retries QUEUED_TO_SEND, so put it back there.
+  // AI replies that failed are not resent blindly — they fall through to a
+  // fresh draft below with the current model instead.
+  await prisma.supportDraft.updateMany({
+    where: { status: "FAILED", attemptCount: { lt: 3 }, model: { in: ["verified-order-facts-v1", "approved-facts-v1"] } },
+    data: { status: "QUEUED_TO_SEND", sendAfter: new Date(), claimedAt: null, lastDeliveryError: null },
+  });
   const due = await prisma.supportConversation.findMany({
-    where: { status: { in: ["OPEN", "ESCALATED"] }, nextActionAt: { lte: new Date() }, drafts: { none: { status: { in: ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND", "SENDING"] } } } },
-    orderBy: { nextActionAt: "asc" },
+    where: {
+      status: { in: ["OPEN", "ESCALATED"] },
+      OR: [{ nextActionAt: { lte: new Date() } }, { nextActionAt: null }],
+      drafts: { none: { status: { in: ["PENDING_REVIEW", "ESCALATED", "QUEUED_TO_SEND", "SENDING"] } } },
+    },
+    orderBy: { updatedAt: "asc" },
     take: 10,
     select: { id: true },
   });
@@ -583,6 +693,12 @@ export async function processSupportDeskCron() {
     } catch (error: any) {
       results.push({ id: item.id, ok: false, error: String(error?.message || error).slice(0, 200) });
     }
+  }
+  let reclassified: unknown = { skipped: true };
+  try {
+    reclassified = await reclassifyHistoricSupportTopics(40);
+  } catch (error: any) {
+    reclassified = { error: String(error?.message || error).slice(0, 200) };
   }
   return { processed: results.length, reclassified, disabled: false, results };
 }

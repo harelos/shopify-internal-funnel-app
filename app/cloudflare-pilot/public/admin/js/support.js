@@ -281,17 +281,29 @@
   async function approveDraft(id) {
     const replyText = document.getElementById("reply-text").value.trim();
     if (!replyText) return notify("Write a reply before approving it");
-    await API.post(`/api/support/drafts/${encodeURIComponent(id)}/approve`, { replyText });
-    notify("Reply queued for the Namecheap mail connector");
-    await selectConversation(state.selectedId);
-    await overview();
+    const button = document.getElementById("approve-draft");
+    if (button) { button.disabled = true; button.textContent = "Sending…"; }
+    try {
+      await API.post(`/api/support/drafts/${encodeURIComponent(id)}/approve`, { replyText });
+      notify("Approved. The worker sends it within a minute.");
+      await selectConversation(state.selectedId);
+      await overview();
+    } catch (error) {
+      // Without this the click looked like it did nothing at all.
+      notify(error.message || "The reply could not be approved. Reload the conversation and try again.");
+      if (button) { button.disabled = false; button.textContent = "Approve & send"; }
+    }
   }
 
   async function rejectDraft(id) {
-    await API.post(`/api/support/drafts/${encodeURIComponent(id)}/reject`, { reason: "Escalated by owner from Support Inbox." });
-    notify("Conversation kept for human handling");
-    await selectConversation(state.selectedId);
-    await overview();
+    try {
+      await API.post(`/api/support/drafts/${encodeURIComponent(id)}/reject`, { reason: "Escalated by owner from Support Inbox." });
+      notify("Conversation kept for human handling");
+      await selectConversation(state.selectedId);
+      await overview();
+    } catch (error) {
+      notify(error.message || "The draft could not be updated. Reload the conversation and try again.");
+    }
   }
 
   async function applyStatusFilter(button) {

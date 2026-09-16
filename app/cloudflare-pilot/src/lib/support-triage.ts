@@ -13,9 +13,24 @@ const CUSTOMER_SUPPORT = /(?:הזמנ|חבילה|מעקב|משלוח|שליח|ה
 const SALES_QUESTION = /(?:כמה (?:עולה|המשלוח|זמן המשלוח)|מחיר|עלות|איך מזמינים|איפה קונים|איזה גוון|איזה צבע|מתאים לי|יש במלאי|תוך כמה זמן|ימי עסקים|מבצע|אחריות|price|how much|shipping cost|delivery time|which shade|in stock|warranty)/i;
 const AUTOMATED = /(?:mailer-daemon|postmaster|no-?reply|do-?not-?reply|notification|newsletter|unsubscribe|list-unsubscribe|delivery status notification|undeliverable)/i;
 const BUSINESS_NOISE = /(?:invoice|חשבונית ספק|חשבונית מס|receipt|domain renewal|hosting|security alert|login attempt|password reset|partnership|collaboration|seo service|guest post|backlink|webinar|newsletter|digest|weekly report|monthly report|billing notice)/i;
-const SUPPLIER_OR_OPERATIONS = /(?:sourcing|supplier|wholesale|private label|fulfillment quote|landed cost|shopify collective|mocra|\bsds\b|\bcoa\b|procurement|warehouse pre-stock|bundle fulfillment|shipping revolution|zendrop|cjdropshipping|hyperSKU)/i;
-const OPERATIONS_SENDER = /@(?:[a-z0-9-]+\.)*(?:namecheap\.com|privateemail\.com|cloudflare\.com|railway\.app|github\.com|openrouter\.ai|chargeback\.io)$/i;
+const SUPPLIER_OR_OPERATIONS = /(?:sourcing|supplier|wholesale|private label|fulfillment quote|landed cost|shopify collective|mocra|\bsds\b|\bcoa\b|procurement|warehouse pre-stock|bundle fulfillment|shipping revolution|zendrop|cjdropshipping|hyperSKU|dropshipping fulfillment|qc-confirmed|quote request|factory direct|shenzhen|guangzhou|yiwu|alibaba|1688|trade assurance|dispatch quote)/i;
+// Vendors and platforms the shop works with. Their mail reads like customer
+// mail because it is full of the words "order", "delivery" and "refund", so it
+// landed in the customer queue: in one week Visa, Shopify payout notices,
+// Namecheap and a marketing newsletter were a third of the intake.
+const OPERATIONS_SENDER = /@(?:[a-z0-9-]+\.)*(?:namecheap\.com|privateemail\.com|cloudflare\.com|railway\.app|github\.com|openrouter\.ai|chargeback\.io|visa\.com|mastercard\.com|convertkit\.com|kit\.com|klaviyo\.com|resend\.com|stripe\.com|paypal\.com|cjdropshipping\.com|meta\.com|facebookmail\.com|intercom\.io|zendesk\.com|gorgias\.com)$/i;
+
+// Shopify sends both platform noise and forwarded shopper messages from the
+// same address, so the address alone cannot decide.
+const PLATFORM_SENDER = /@(?:[a-z0-9-]+\.)*shopify\.com$/i;
+const PLATFORM_CUSTOMER_FORWARD = /(?:הודעת לקוח חדשה|new customer message|contact form|טופס יצירת קשר)/i;
+const PLATFORM_NOISE = /(?:payout|payment on the way|your (?:bill|invoice)|subscription|app charge|capital|shipping label|weekly report|your week with)/i;
 const HUMAN_GREETING = /(?:היי|שלום|בוקר טוב|ערב טוב|צהריים טובים|hi|hello|good morning)/i;
+// A real platform notice never comes from a free webmail account. Mail that
+// impersonates a platform's support while the sender is gmail, outlook, etc.
+// is a phishing follow-up, not the platform and not a customer.
+const FREE_WEBMAIL_SENDER = /@(?:gmail|googlemail|outlook|hotmail|live|yahoo|ymail|proton|protonmail|icloud|gmx|mail|aol|zoho)\.[a-z.]+$/i;
+const IMPERSONATES_PLATFORM = /(?:shopify (?:support|team|billing)|תמיכה של shopify|צוות shopify|תזכורת אחרונה|התראה אחרונה|בעיות שלא נפתרו|לפני שיוחלו הגבלות|unresolved issues affecting your (?:store|site)|suspend(?:ed|ing)? your (?:store|account)|verify your (?:store|account) now)/i;
 
 function languageOf(text: string): SupportTriageDecision["language"] {
   const hebrew = (text.match(HEBREW) || []).length;
@@ -40,8 +55,21 @@ export function triageMailboxMessage(input: {
   if (input.automated || AUTOMATED.test(text)) {
     return { classification: "IGNORE", confidence: 0.99, language, reasons: ["AUTOMATED_SENDER_OR_LIST_MAIL"] };
   }
-  if (OPERATIONS_SENDER.test(input.fromAddress.trim())) {
+  const from = input.fromAddress.trim();
+  if (FREE_WEBMAIL_SENDER.test(from) && IMPERSONATES_PLATFORM.test(`${input.subject}\n${input.textBody}`)) {
+    return { classification: "IGNORE", confidence: 0.98, language, reasons: ["IMPERSONATED_PLATFORM_FROM_FREE_WEBMAIL"] };
+  }
+  if (OPERATIONS_SENDER.test(from)) {
     return { classification: "IGNORE", confidence: 0.99, language, reasons: ["OPERATIONS_SERVICE_PROVIDER_SENDER"] };
+  }
+  if (PLATFORM_SENDER.test(from)) {
+    // A forwarded contact-form message is a real shopper. Everything else the
+    // platform sends is administrative and belongs nowhere near the queue.
+    const forwarded = PLATFORM_CUSTOMER_FORWARD.test(`${input.subject}\n${input.textBody}`);
+    if (!forwarded || PLATFORM_NOISE.test(input.subject)) {
+      return { classification: "IGNORE", confidence: 0.97, language, reasons: ["PLATFORM_ADMINISTRATIVE_MAIL"] };
+    }
+    reasons.push("PLATFORM_FORWARDED_CUSTOMER_MESSAGE");
   }
 
   const support = CUSTOMER_SUPPORT.test(text);

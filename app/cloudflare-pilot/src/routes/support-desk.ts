@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { sendSupportReplyEmail } from "../lib/smtp-email.js";
 import prisma from "../lib/db.js";
 import { supportD1 } from "../lib/support-d1.js";
+import { allPerConversation, withLatestMessageAndDraft } from "../lib/support-relations.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { inspectSupportEmailDomain } from "../lib/support-deliverability.js";
 import { summarizeSupportSendAuthorizations } from "../lib/support-analytics.js";
@@ -12,6 +14,12 @@ export const supportAdminRouter = Router();
 export const supportBridgeRouter = Router();
 
 let deliverabilityCache: { domain: string; expiresAt: number; value: unknown } | null = null;
+// Short-lived isolate-local cache for the read-only agent brief. The payload is
+// deliberately bounded and keyed by conversation, so repeated hourly review
+// calls do not repeat the same D1 joins while a draft is being prepared.
+const supportBriefCache = new Map<string, { expiresAt: number; value: unknown }>();
+const SUPPORT_BRIEF_CACHE_TTL_MS = 45_000;
+const SUPPORT_BRIEF_CACHE_MAX = 256;
 
 function customerSupportScope() {
   return {
@@ -77,6 +85,20 @@ supportBridgeRouter.post("/ingest", async (req, res) => {
   } catch (error: any) {
     return res.status(400).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
   }
+});
+
+supportBridgeRouter.post("/smtp-selftest", async (_req, res) => {
+  // Proves the Worker can reach the mailbox's own SMTP before any customer
+  // reply is trusted to it. Sends only to the mailbox itself.
+  const mailbox = workerEnvValue("SUPPORT_MAILBOX_ADDRESS") || workerEnvValue("NAMECHEAP_PRIVATE_EMAIL_USER");
+  const result = await sendSupportReplyEmail({
+    to: mailbox,
+    subject: "SMTP self-test (Worker → Namecheap)",
+    body: "This is an automated connectivity self-test from the Commerce OS support worker. If you can read this in the support mailbox, Worker-side sending works.",
+    messageId: `<selftest-${Date.now()}@tigerbrandsglobal.com>`,
+  });
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(result.ok ? 200 : 502).json({ ok: result.ok, error: result.error || null, sentTo: result.ok ? mailbox : null });
 });
 
 supportBridgeRouter.post("/heartbeat", async (req, res) => {
@@ -222,14 +244,10 @@ supportBridgeRouter.get("/conversations", async (req, res) => {
     where: customerSupportConversationWhere(status),
     orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
     take: limit,
-    include: {
-      customer: { select: { email: true, displayName: true, riskLevel: true, lifetimeOrders: true } },
-      messages: { orderBy: { sentAt: "desc" }, take: 1 },
-      drafts: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
+    include: { customer: { select: { email: true, displayName: true, riskLevel: true, lifetimeOrders: true } } },
   });
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, conversations: rows });
+  return res.json({ ok: true, conversations: await withLatestMessageAndDraft(rows) });
 });
 
 supportBridgeRouter.get("/conversations/:id", async (req, res) => {
@@ -246,6 +264,99 @@ supportBridgeRouter.get("/conversations/:id", async (req, res) => {
   if (!row) return res.status(404).json({ ok: false, error: "Conversation not found." });
   res.setHeader("Cache-Control", "no-store");
   return res.json({ ok: true, conversation: row });
+});
+
+// Compact, agent-facing customer brief. This is intentionally read-only and
+// keeps the expensive context join on the server so an MCP agent can retrieve
+// one bounded payload instead of repeatedly fetching the full thread, order,
+// shipment and attribution records.
+supportBridgeRouter.get("/conversations/:id/brief", async (req, res) => {
+  try {
+    const cacheKey = String(req.params.id || "");
+    const cached = supportBriefCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      res.setHeader("Cache-Control", "private, max-age=45, stale-while-revalidate=120");
+      res.setHeader("X-Support-Brief-Cache", "HIT");
+      return res.json(cached.value);
+    }
+
+    const row = await prisma.supportConversation.findUnique({
+      where: { id: req.params.id },
+      include: {
+        customer: { select: { displayName: true, email: true, riskLevel: true, lifetimeOrders: true, shopifyCustomerGid: true } },
+        mailbox: { select: { address: true, automationMode: true, replyDelayMinutes: true } },
+        messages: { orderBy: { sentAt: "asc" } },
+        drafts: { orderBy: { createdAt: "desc" }, take: 3 },
+      },
+    });
+    if (!row) return res.status(404).json({ ok: false, error: "Conversation not found." });
+
+    const db = supportD1();
+    let shipment: Record<string, unknown> | null = null;
+    let attribution: Record<string, unknown> | null = null;
+    try {
+      if (row.shopifyOrderName) {
+        shipment = await db.prepare(`SELECT "orderName", "severity", "statusLabel", "doNow", "contactTarget", "workflowState", "shopifyFinancialStatus", "shopifyFulfillmentStatus", "cjStatus", "cjSubStatus", "trackingStatus", "trackingProvider", "trackingLast4", "orderBusinessDays", "labelBusinessDays", "inactiveDays", "latestTrackingAt", "outWarehouseAt", "updatedAt" FROM "ShipmentOrderState" WHERE "orderName" = ? LIMIT 1`).bind(row.shopifyOrderName).first<Record<string, unknown>>();
+      }
+      if (row.shopifyOrderGid) {
+        attribution = await db.prepare(`SELECT "checkoutToken", "funnelId", "variantId", "currency", "grossAmount", "netRevenueAmount", "status", "isTest", "popupAttributed", "popupUtmSource", "popupUtmMedium", "popupUtmCampaign", "popupPage", "popupDevice", "popupAttributionMethod", "paidAt" FROM "OrderAttribution" WHERE "shopifyOrderGid" = ? LIMIT 1`).bind(row.shopifyOrderGid).first<Record<string, unknown>>();
+      }
+    } catch {
+      // Older local databases may not have the shipment tables yet. The brief
+      // remains useful with null enrichment rather than failing the agent call.
+    }
+
+    const latestDraft = row.drafts[0] || null;
+    let verifiedOrderContext: unknown[] = [];
+    let verifiedFacts: string[] = [];
+    if (latestDraft?.verifiedFactsJson) {
+      try {
+        const parsed = JSON.parse(latestDraft.verifiedFactsJson);
+        verifiedOrderContext = Array.isArray(parsed?.orderContext) ? parsed.orderContext.slice(0, 1) : [];
+        verifiedFacts = Array.isArray(parsed?.factsUsed) ? parsed.factsUsed.slice(0, 8) : [];
+      } catch {
+        verifiedOrderContext = [];
+      }
+    }
+    const messages = row.messages.slice(-8).map(message => ({
+      direction: message.direction,
+      sentAt: message.sentAt,
+      subject: message.subject,
+      text: String(message.textBody || "").slice(0, 700),
+      source: message.source,
+      deliveryStatus: message.deliveryStatus,
+    }));
+    const latestOrder = (verifiedOrderContext[0] || {}) as Record<string, any>;
+    const historyStatus = row.customer.lifetimeOrders == null
+      ? "UNKNOWN_NOT_LINKED"
+      : row.customer.lifetimeOrders > 1 ? "REPEAT_CUSTOMER" : "FIRST_PURCHASE";
+
+    const payload = {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      cacheTtlSeconds: 45,
+      brief: {
+        conversation: { id: row.id, subject: row.subject, status: row.status, topic: row.topic, priority: row.priority, language: row.language, confidence: row.confidence, riskLevel: row.riskLevel, triageReason: row.triageReason, escalationReason: row.escalationReason },
+        customer: { displayName: row.customer.displayName, email: row.customer.email, riskLevel: row.customer.riskLevel, historyStatus, lifetimeOrders: row.customer.lifetimeOrders, shopifyCustomerLinked: Boolean(row.customer.shopifyCustomerGid) },
+        order: { name: row.shopifyOrderName || latestOrder.name || null, gid: row.shopifyOrderGid || latestOrder.id || null, createdAt: latestOrder.createdAt || null, financialStatus: latestOrder.displayFinancialStatus || null, fulfillmentStatus: latestOrder.displayFulfillmentStatus || null, total: latestOrder.totalPriceSet?.shopMoney || null, items: latestOrder.lineItems?.nodes || [] },
+        shipment: shipment || null,
+        attribution: attribution || { status: "UNATTRIBUTED", reason: "No verified OrderAttribution row is linked to this order." },
+        messages,
+        latestDraft: latestDraft ? { id: latestDraft.id, status: latestDraft.status, decision: latestDraft.decision, confidence: latestDraft.confidence, model: latestDraft.model, reason: latestDraft.reason, replyText: latestDraft.replyText } : null,
+        verifiedFacts,
+      },
+    };
+    if (supportBriefCache.size >= SUPPORT_BRIEF_CACHE_MAX) {
+      const oldestKey = supportBriefCache.keys().next().value;
+      if (oldestKey) supportBriefCache.delete(oldestKey);
+    }
+    supportBriefCache.set(cacheKey, { expiresAt: Date.now() + SUPPORT_BRIEF_CACHE_TTL_MS, value: payload });
+    res.setHeader("Cache-Control", "private, max-age=45, stale-while-revalidate=120");
+    res.setHeader("X-Support-Brief-Cache", "MISS");
+    return res.json(payload);
+  } catch (error: any) {
+    return res.status(400).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
 });
 
 supportBridgeRouter.post("/conversations/:id/draft", async (req, res) => {
@@ -473,7 +584,7 @@ supportAdminRouter.patch("/support/knowledge/:id", async (req, res) => {
 supportAdminRouter.get("/support/analytics", async (req, res) => {
   const days = Math.min(90, Math.max(1, Number.parseInt(String(req.query.days || "7"), 10) || 7));
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  const conversations = await prisma.supportConversation.findMany({
+  const conversationRows = await prisma.supportConversation.findMany({
     where: {
       AND: [
         customerSupportScope(),
@@ -482,12 +593,22 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     },
     orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
     take: 500,
-    include: {
-      messages: { orderBy: { sentAt: "asc" }, take: 100 },
-      drafts: { where: { createdAt: { gte: since } }, orderBy: { createdAt: "asc" } },
-      evidence: { where: { kind: "SEND_AUTHORIZED", occurredAt: { gte: since } }, orderBy: { occurredAt: "asc" } },
-    },
   });
+  // Relations load in bound batches: Prisma's nested loads bind one parameter
+  // set per conversation, which D1 rejects outright.
+  const sinceIso = since.toISOString();
+  const conversationIds = conversationRows.map(row => row.id);
+  const [messagesById, draftsById, evidenceById] = await Promise.all([
+    allPerConversation<{ direction: string; sentAt: string }>("SupportMessage", "sentAt", conversationIds, { since: sinceIso }),
+    allPerConversation<{ status: string; model: string | null; createdAt: string }>("SupportDraft", "createdAt", conversationIds, { since: sinceIso }),
+    allPerConversation<{ payloadJson: string; occurredAt: string }>("SupportEvidenceEvent", "occurredAt", conversationIds, { since: sinceIso, kind: "SEND_AUTHORIZED" }),
+  ]);
+  const conversations = conversationRows.map(row => ({
+    ...row,
+    messages: (messagesById.get(row.id) || []).map(message => ({ ...message, sentAt: new Date(message.sentAt) })),
+    drafts: (draftsById.get(row.id) || []).map(draft => ({ ...draft, createdAt: new Date(draft.createdAt) })),
+    evidence: (evidenceById.get(row.id) || []).map(event => ({ ...event, occurredAt: new Date(event.occurredAt) })),
+  })) as any[];
 
   const responseMinutes: number[] = [];
   const topicCounts = new Map<string, number>();
@@ -503,8 +624,8 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
   let deliveryFailures = 0;
 
   for (const conversation of conversations) {
-    const firstInbound = conversation.messages.find(message => message.direction === "INBOUND" && message.sentAt >= since);
-    const firstOutbound = firstInbound && conversation.messages.find(message => message.direction === "OUTBOUND" && message.sentAt > firstInbound.sentAt);
+    const firstInbound = conversation.messages.find((message: any) => message.direction === "INBOUND" && message.sentAt >= since);
+    const firstOutbound = firstInbound && conversation.messages.find((message: any) => message.direction === "OUTBOUND" && message.sentAt > firstInbound.sentAt);
     if (firstInbound && firstOutbound) {
       answered += 1;
       responseMinutes.push(Math.max(0, (firstOutbound.sentAt.getTime() - firstInbound.sentAt.getTime()) / 60000));
@@ -517,7 +638,7 @@ supportAdminRouter.get("/support/analytics", async (req, res) => {
     ownerApprovedAiRepliesSent += sendSummary.ownerApproved;
     agentApprovedAiRepliesSent += sendSummary.agentApproved;
     unclassifiedAiRepliesSent += sendSummary.unclassified;
-    deliveryFailures += conversation.drafts.filter(draft => ["FAILED", "BOUNCED"].includes(draft.status)).length;
+    deliveryFailures += conversation.drafts.filter((draft: any) => ["FAILED", "BOUNCED"].includes(draft.status)).length;
     topicCounts.set(conversation.topic, (topicCounts.get(conversation.topic) || 0) + 1);
     customerCounts.set(conversation.customerId, (customerCounts.get(conversation.customerId) || 0) + 1);
   }
@@ -588,18 +709,15 @@ supportAdminRouter.get("/support/deliverability", async (_req, res) => {
 
 supportAdminRouter.get("/support/conversations", async (req, res) => {
   const status = typeof req.query.status === "string" && req.query.status !== "ALL" ? req.query.status : undefined;
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit || 60)));
   const rows = await prisma.supportConversation.findMany({
     where: customerSupportConversationWhere(status),
     orderBy: [{ lastCustomerMessageAt: "desc" }, { updatedAt: "desc" }],
-    take: 100,
-    include: {
-      customer: true,
-      drafts: { orderBy: { createdAt: "desc" }, take: 1 },
-      messages: { orderBy: { sentAt: "desc" }, take: 1 },
-    },
+    take: limit,
+    include: { customer: true },
   });
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ ok: true, conversations: rows });
+  return res.json({ ok: true, conversations: await withLatestMessageAndDraft(rows) });
 });
 
 supportAdminRouter.get("/support/conversations/:id", async (req, res) => {

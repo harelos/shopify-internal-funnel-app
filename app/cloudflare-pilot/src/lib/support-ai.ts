@@ -12,12 +12,33 @@ export interface SupportAiDecision {
   unverifiedClaims: string[];
   model: string;
 }
+// Drafting happens in the background, so the cheapest model leads even though
+// it is the slowest. Measured 2026-09-14: glm answers in 4-13s and every entry
+// returned parseable JSON.
+// Ordered by a blind benchmark of ten models on twenty real customer messages
+// and twelve pre-purchase objections, scored on Hebrew, factual accuracy,
+// service, de-escalation, manipulation resistance and selling (2026-09-14).
+// Luna led sales 7.61 and held 9.0 on manipulation; gpt-4.1-mini, which used to
+// lead this ladder, scored 1.3 on factual traps and asserted a regulatory claim.
+// glm-5.3-flash is removed: at the production token cap it returned an empty
+// body for nine of twenty messages, including a chargeback threat.
+// Customer service is judged on truth and tone, not on selling. In the blind
+// benchmark gemini-2.5-flash-lite held the most consistent register across
+// every reply and never invented an order status, at a quarter of the cost of
+// the sales-leading model, so it leads here while Luna backs it up.
 const MODEL_LADDER = [
-  "z-ai/glm-5.3-flash",
-  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "minimax/minimax-m2.7:free",
-  "z-ai/glm-5.2:free",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-5.6-luna",
+  "anthropic/claude-haiku-4.5",
+  "google/gemini-3.8-flash",
 ];
+
+const REASONING_EFFORT = "minimal";
+
+// The old budget aborted the primary model at 8s while it routinely needed 13s,
+// so a healthy model was scored as a failure and the reply was escalated.
+const SUPPORT_MODEL_TIMEOUT_MS = 20_000;
+const SUPPORT_DEADLINE_MS = 50_000;
 
 function stripFence(raw: string): string {
   return raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
@@ -117,13 +138,13 @@ export async function generateSupportDecision(input: {
   if (!apiKey) return fallbackDecision(input.policy, "OpenRouter is not configured; human review is required.");
   const pinned = workerEnvValue("SUPPORT_OPENROUTER_MODEL") || workerEnvValue("OPENROUTER_MODEL");
   const ladder = pinned ? [pinned] : MODEL_LADDER;
-  const deadline = Date.now() + 18_000;
+  const deadline = Date.now() + SUPPORT_DEADLINE_MS;
 
   for (const model of ladder) {
     const remaining = deadline - Date.now();
     if (remaining < 500) break;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.min(8_000, remaining));
+    const timer = setTimeout(() => controller.abort(), Math.min(SUPPORT_MODEL_TIMEOUT_MS, remaining));
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -137,7 +158,7 @@ export async function generateSupportDecision(input: {
           model,
           max_tokens: 900,
           temperature: 0.25,
-          reasoning: { effort: "low" },
+          reasoning: { effort: REASONING_EFFORT },
           messages: [
             {
               role: "system",
@@ -150,10 +171,12 @@ export async function generateSupportDecision(input: {
                 "Use the owner voice examples as style guidance, not as facts. Keep the natural warmth, short paragraphs and feminine Hebrew seen in those examples.",
                 "Do not open with a generic acknowledgement when a direct factual answer is available. Do not say you will check something unless you actually have the required verified context.",
                 "Never invent order status, tracking movement, delivery date, refund, cancellation, policy, product result or medical claim.",
+                "The brand holds no Ministry of Health approval. Never state that it does, and never state that approval is unnecessary or that the product is exempt. Any question about regulatory approval, pregnancy or nursing safety, allergies, full ingredients or medical effect must be handed to a human rather than answered.",
                 "Only use approvedStoreFacts and verifiedOrderContext as factual sources. Owner examples are voice examples only.",
                 "If the request concerns chargeback, legal action, safety/medical issues, fraud, refund, cancellation, address change, identity uncertainty, regulatory approval, ingredients or conflicting facts: decision must be ESCALATE. Provide only a conservative holding draft for owner review; never assert an unverified fact or promise an outcome.",
                 "For a general pre-sale delivery or shipping question, a verified order is not required; answer only from approved store facts.",
                 "For a personal order/tracking question, verified order context is required. Otherwise escalate.",
+                "When verifiedOrderContext[].tracking exists, it is the carrier's real event log: state tracking.statusHe and tracking.nextStepHe as the answer, name the latest event and its date, and never describe the parcel generically as 'on the way'. If it says the parcel is in Israel, say so plainly. Do not invent a delivery date; use nextStepHe wording only.",
                 "Do not mention AI, internal policy, confidence, risk labels or missing tools to the customer.",
                 "Do not include an email address, phone number, full address or internal order identifier in replyText.",
               ].join("\n"),
