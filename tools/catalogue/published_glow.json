@@ -1,0 +1,217 @@
+{
+ "3": {
+  "gid": "gid://shopify/Product/10418792562983",
+  "handle": "novaglow-centella-gentle-cleanser",
+  "title": "NovaGlow - ג׳ל ניקוי סנטלה"
+ },
+ "5": {
+  "gid": "gid://shopify/Product/10418792726823",
+  "handle": "novaglow-matcha-cleanser",
+  "title": "NovaGlow - ניקוי מאצ׳ה"
+ },
+ "9": {
+  "gid": "gid://shopify/Product/10418792857895",
+  "handle": "novaglow-mens-cleanser",
+  "title": "NovaGlow - ניקוי פנים לגבר"
+ },
+ "12": {
+  "gid": "gid://shopify/Product/10418793021735",
+  "handle": "novaglow-charcoal-cleanser",
+  "title": "NovaGlow - ניקוי פחם פעיל"
+ },
+ "16": {
+  "gid": "gid://shopify/Product/10418793382183",
+  "handle": "novaglow-tea-tree-toner",
+  "title": "NovaGlow - טונר תה עץ"
+ },
+ "17": {
+  "gid": "gid://shopify/Product/10418793546023",
+  "handle": "novaglow-zero-pore-toner",
+  "title": "NovaGlow - טונר חומצות"
+ },
+ "18": {
+  "gid": "gid://shopify/Product/10418793709863",
+  "handle": "novaglow-glycolic-toner",
+  "title": "NovaGlow - טונר גליקולי"
+ },
+ "19": {
+  "gid": "gid://shopify/Product/10418793873703",
+  "handle": "novaglow-jelly-mist",
+  "title": "NovaGlow - מיסט ג׳לי"
+ },
+ "20": {
+  "gid": "gid://shopify/Product/10418794004775",
+  "handle": "novaglow-malic-toner",
+  "title": "NovaGlow - טונר מאלי"
+ },
+ "21": {
+  "gid": "gid://shopify/Product/10418794201383",
+  "handle": "novaglow-glycolic-b5-toner",
+  "title": "NovaGlow - גליקולי עם B5"
+ },
+ "22": {
+  "gid": "gid://shopify/Product/10418794365223",
+  "handle": "novaglow-pore-refining-toner",
+  "title": "NovaGlow - טונר מאזן"
+ },
+ "23": {
+  "gid": "gid://shopify/Product/10418794529063",
+  "handle": "novaglow-rice-milk-toner",
+  "title": "NovaGlow - טונר חלב אורז"
+ },
+ "24": {
+  "gid": "gid://shopify/Product/10418794660135",
+  "handle": "novaglow-turmeric-toner",
+  "title": "NovaGlow - טונר כורכום"
+ },
+ "25": {
+  "gid": "gid://shopify/Product/10418794791207",
+  "handle": "novaglow-houttuynia-toner",
+  "title": "NovaGlow - טונר הוטוניה"
+ },
+ "26": {
+  "gid": "gid://shopify/Product/10418794955047",
+  "handle": "novaglow-rice-balance-toner",
+  "title": "NovaGlow - טונר אורז"
+ },
+ "27": {
+  "gid": "gid://shopify/Product/10418795151655",
+  "handle": "novaglow-vc-toner",
+  "title": "NovaGlow - טונר ויטמין C"
+ },
+ "28": {
+  "gid": "gid://shopify/Product/10418795282727",
+  "handle": "novaglow-snail-essence",
+  "title": "NovaGlow - אסנס חלזון"
+ },
+ "29": {
+  "gid": "gid://shopify/Product/10418795446567",
+  "handle": "novaglow-peptide-toner",
+  "title": "NovaGlow - טונר פפטידים"
+ },
+ "30": {
+  "gid": "gid://shopify/Product/10418795544871",
+  "handle": "novaglow-dna-essence",
+  "title": "NovaGlow - אסנס לילה"
+ },
+ "31": {
+  "gid": "gid://shopify/Product/10418795675943",
+  "handle": "novaglow-toner-pads",
+  "title": "NovaGlow - פדים עם חומצה"
+ },
+ "2": {
+  "gid": "gid://shopify/Product/10418795839783",
+  "handle": "novaglow-barrier-cream",
+  "title": "NovaGlow - קרם מחסום עורי"
+ },
+ "15": {
+  "gid": "gid://shopify/Product/10418796134695",
+  "handle": "novaglow-centella-repair-cream",
+  "title": "NovaGlow - קרם סנטלה"
+ },
+ "4": {
+  "gid": "gid://shopify/Product/10418796232999",
+  "handle": "novaglow-face-neck-cream",
+  "title": "NovaGlow - קרם פנים וצוואר"
+ },
+ "11": {
+  "gid": "gid://shopify/Product/10418796396839",
+  "handle": "novaglow-kojic-radiance-cream",
+  "title": "NovaGlow - קרם קוגיק"
+ },
+ "13": {
+  "gid": "gid://shopify/Product/10418796495143",
+  "handle": "novaglow-collagen-cream",
+  "title": "NovaGlow - קרם קולגן"
+ },
+ "7": {
+  "gid": "gid://shopify/Product/10418796626215",
+  "handle": "novaglow-brightening-cream",
+  "title": "NovaGlow - קרם זוהר"
+ },
+ "10": {
+  "gid": "gid://shopify/Product/10418796790055",
+  "handle": "novaglow-makeup-base-cream",
+  "title": "NovaGlow - קרם בסיס"
+ },
+ "14": {
+  "gid": "gid://shopify/Product/10418796888359",
+  "handle": "novaglow-firming-essence",
+  "title": "NovaGlow - אסנס מיצוק"
+ },
+ "0": {
+  "gid": "gid://shopify/Product/10418797052199",
+  "handle": "novaglow-body-cream",
+  "title": "NovaGlow - קרם גוף"
+ },
+ "8": {
+  "gid": "gid://shopify/Product/10418797150503",
+  "handle": "novaglow-body-cream-sensitive",
+  "title": "NovaGlow - קרם גוף עדין"
+ },
+ "1": {
+  "gid": "gid://shopify/Product/10418797314343",
+  "handle": "novaglow-rich-balm",
+  "title": "NovaGlow - באלם עשיר"
+ },
+ "33": {
+  "gid": "gid://shopify/Product/10418797478183",
+  "handle": "novaglow-ceramide-ampoule",
+  "title": "NovaGlow - אמפולות סרמיד"
+ },
+ "36": {
+  "gid": "gid://shopify/Product/10418797674791",
+  "handle": "novaglow-collagen-ampoule",
+  "title": "NovaGlow - אמפולת קולגן"
+ },
+ "34": {
+  "gid": "gid://shopify/Product/10418797838631",
+  "handle": "novaglow-gold-ampoule",
+  "title": "NovaGlow - אמפולת זהב"
+ },
+ "32": {
+  "gid": "gid://shopify/Product/10418797969703",
+  "handle": "novaglow-silk-peptide-ampoule",
+  "title": "NovaGlow - אמפולת משי"
+ },
+ "35": {
+  "gid": "gid://shopify/Product/10418798100775",
+  "handle": "novaglow-black-rice-ampoule",
+  "title": "NovaGlow - אמפולת אורז"
+ },
+ "42": {
+  "gid": "gid://shopify/Product/10418798264615",
+  "handle": "novaglow-aha-bha-lotion",
+  "title": "NovaGlow - תחליב פילינג"
+ },
+ "43": {
+  "gid": "gid://shopify/Product/10418798493991",
+  "handle": "novaglow-bha-liquid",
+  "title": "NovaGlow - נוזל BHA"
+ },
+ "40": {
+  "gid": "gid://shopify/Product/10418798559527",
+  "handle": "novaglow-jade-gua-sha",
+  "title": "NovaGlow - גואה שא ירקן"
+ },
+ "38": {
+  "gid": "gid://shopify/Product/10418798723367",
+  "handle": "novaglow-gua-sha-set",
+  "title": "NovaGlow - סט גואה שא"
+ },
+ "39": {
+  "gid": "gid://shopify/Product/10418798887207",
+  "handle": "novaglow-amethyst-roller-set",
+  "title": "NovaGlow - סט אמטיסט"
+ },
+ "41": {
+  "gid": "gid://shopify/Product/10418798985511",
+  "handle": "novaglow-roller-bar",
+  "title": "NovaGlow - מקל עיסוי"
+ },
+ "37": {
+  "gid": "gid://shopify/Product/10418799149351",
+  "handle": "novaglow-light-roller-set",
+  "title": "NovaGlow - סט רולר קל"
+ }
+}

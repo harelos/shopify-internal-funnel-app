@@ -1,0 +1,212 @@
+/* Reviews.
+ *
+ * RTL first, because that is the only direction this store renders in and
+ * writing it as an override of an LTR base is what produced the mirrored
+ * padding bugs elsewhere in this theme.
+ *
+ * The summary and the list are one grid at desktop and stack at 750px, which is
+ * the same breakpoint the rest of the theme stacks at. The distribution bars
+ * use inline-size rather than width so they fill from the right without a
+ * direction-specific rule.
+ */
+
+.nova-reviews {
+  --nr-ink: #1d1a17;
+  --nr-muted: #6d665e;
+  --nr-line: #e6e0d8;
+  --nr-star: #c8922f;
+  --nr-fill: #d8cfc2;
+  --nr-ground: #fbf9f6;
+
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  background: var(--nr-ground);
+  color: var(--nr-ink);
+}
+
+.nova-reviews__inner {
+  max-inline-size: 72rem;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+/* ---------------------------------------------------------------- summary */
+
+.nova-reviews__title {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.nova-reviews__summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 20rem);
+  gap: clamp(1.5rem, 5vw, 3rem);
+  align-items: center;
+  padding-block-end: 2rem;
+  border-block-end: 1px solid var(--nr-line);
+}
+
+.nova-reviews__avg {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.nova-reviews__outof {
+  margin-inline-start: 0.4rem;
+  color: var(--nr-muted);
+  font-size: 0.95rem;
+}
+
+.nova-reviews__stars {
+  margin-block-start: 0.35rem;
+  letter-spacing: 0.1em;
+  color: var(--nr-fill);
+  font-size: 1.15rem;
+}
+
+.nova-reviews__stars--sm { font-size: 0.95rem; margin: 0; }
+.nova-reviews__star.is-on { color: var(--nr-star); }
+
+.nova-reviews__count {
+  margin: 0.4rem 0 0;
+  color: var(--nr-muted);
+  font-size: 0.9rem;
+}
+
+.nova-reviews__bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.nova-reviews__bar {
+  display: grid;
+  grid-template-columns: 1.2rem 1fr 2rem;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--nr-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nova-reviews__bar-track {
+  block-size: 0.5rem;
+  border-radius: 999px;
+  background: var(--nr-line);
+  overflow: hidden;
+}
+
+.nova-reviews__bar-fill {
+  display: block;
+  block-size: 100%;
+  background: var(--nr-star);
+}
+
+/* ------------------------------------------------------------------ list */
+
+.nova-reviews__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1px;
+  background: var(--nr-line);
+  border-block-end: 1px solid var(--nr-line);
+}
+
+.nova-reviews__item {
+  background: var(--nr-ground);
+  padding: 1.5rem clamp(1rem, 3vw, 1.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-inline-size: 0;
+}
+
+.nova-reviews__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.nova-reviews__verified,
+.nova-reviews__sample {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.nova-reviews__verified {
+  color: #2f5d3a;
+  background: #e8f1e9;
+}
+
+/* Demonstration content announces itself. It is deliberately the loudest
+ * thing in the card, because the failure this guards against is someone
+ * glancing at a preview and taking it for real customer feedback. */
+.nova-reviews__sample {
+  color: #7a3b12;
+  background: #fbe9d8;
+  border: 1px dashed #c98b52;
+  font-weight: 600;
+}
+
+.nova-reviews__item-title {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.nova-reviews__body {
+  margin: 0;
+  line-height: 1.6;
+  color: #3c372f;
+  overflow-wrap: anywhere;
+}
+
+.nova-reviews__meta {
+  margin-block-start: auto;
+  padding-block-start: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--nr-muted);
+}
+
+.nova-reviews__author { font-weight: 600; color: var(--nr-ink); }
+.nova-reviews__date { font-variant-numeric: tabular-nums; }
+
+.nova-reviews__which {
+  inline-size: 100%;
+  color: var(--nr-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nova-reviews__more {
+  margin: 1.5rem 0 0;
+  text-align: center;
+}
+
+.nova-reviews__more a {
+  color: var(--nr-ink);
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 749px) {
+  .nova-reviews__summary {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    text-align: start;
+  }
+}

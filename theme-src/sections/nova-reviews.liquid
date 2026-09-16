@@ -1,0 +1,211 @@
+{%- comment -%}
+  One review section, two jobs.
+
+  On a product page it shows that product's reviews. On any other page it shows
+  the whole store's. Both read the same metaobject set, so there is one source
+  of truth and the aggregate on a PDP can never disagree with the aggregate on
+  the reviews page.
+
+  The sample gate. Reviews carry a `sample` boolean that marks demonstration
+  content written to show the design, by someone who was never a customer. Those
+  rows render only when this section's `show_sample` setting is on, which is off
+  by default and is meant to be switched on in an unpublished preview theme and
+  nowhere else. When they do render they carry a visible label. Two independent
+  things therefore have to be true before a fabricated review can appear on a
+  page, and neither of them can happen by forgetting.
+
+  The verified badge reads the `verified` field only. It is never inferred from
+  wording in the body, so a review cannot talk its way into looking confirmed.
+{%- endcomment -%}
+
+{{ 'nova-reviews.css' | asset_url | stylesheet_tag }}
+
+{%- comment -%}
+  Where the reviews come from matters more than it looks.
+
+  On a product page they come from that product's own metafield list. Liquid
+  returns at most 50 entries from `shop.metaobjects.<type>.values`, so scanning
+  the whole store and filtering would silently drop reviews once the store has
+  more than fifty of them, and the average would be wrong without anything
+  erroring. Reading the product's own list removes the cap from the page that
+  people actually read a rating on.
+
+  Everywhere else it falls back to the global collection, which is still capped
+  at 50 and is fine for a browse page but must not be trusted as a total.
+{%- endcomment -%}
+
+{%- liquid
+  if product != blank and product.metafields.nova.reviews.value != blank
+    assign all_reviews = product.metafields.nova.reviews.value
+    assign scope_is_product = true
+  else
+    assign all_reviews = shop.metaobjects.nova_review.values
+    assign scope_is_product = false
+  endif
+  assign shown = 0
+  assign total = 0
+  assign sum = 0
+  assign c5 = 0
+  assign c4 = 0
+  assign c3 = 0
+  assign c2 = 0
+  assign c1 = 0
+-%}
+
+
+
+{%- liquid
+  for r in all_reviews
+    if r.sample.value and section.settings.show_sample == false
+      continue
+    endif
+    unless scope_is_product
+      if product != blank and r.product.value.handle != product.handle
+        continue
+      endif
+    endunless
+    assign total = total | plus: 1
+    assign rate = r.rating.value | plus: 0
+    assign sum = sum | plus: rate
+    case rate
+      when 5
+        assign c5 = c5 | plus: 1
+      when 4
+        assign c4 = c4 | plus: 1
+      when 3
+        assign c3 = c3 | plus: 1
+      when 2
+        assign c2 = c2 | plus: 1
+      else
+        assign c1 = c1 | plus: 1
+    endcase
+  endfor
+-%}
+
+{%- if total > 0 -%}
+  {%- assign avg = sum | times: 1.0 | divided_by: total -%}
+  {%- assign avg_round = avg | round: 1 -%}
+
+  <section class="nova-reviews" id="reviews" aria-labelledby="nova-reviews-title">
+    <div class="nova-reviews__inner">
+
+      <header class="nova-reviews__head">
+        <h2 class="nova-reviews__title" id="nova-reviews-title">
+          {{ section.settings.heading | default: 'מה כתבו עלינו' }}
+        </h2>
+
+        <div class="nova-reviews__summary">
+          <div class="nova-reviews__score">
+            <span class="nova-reviews__avg">{{ avg_round }}</span>
+            <span class="nova-reviews__outof">מתוך 5</span>
+            <div class="nova-reviews__stars" role="img"
+                 aria-label="דירוג ממוצע {{ avg_round }} מתוך 5">
+              {%- for i in (1..5) -%}
+                {%- assign filled = avg | round -%}
+                <span class="nova-reviews__star{% if i <= filled %} is-on{% endif %}"
+                      aria-hidden="true">★</span>
+              {%- endfor -%}
+            </div>
+            <p class="nova-reviews__count">
+              {%- if total == 1 -%}ביקורת אחת{%- else -%}{{ total }} ביקורות{%- endif -%}
+            </p>
+          </div>
+
+          <ul class="nova-reviews__bars">
+            {%- assign counts = c5 | append: ',' | append: c4 | append: ',' | append: c3
+                | append: ',' | append: c2 | append: ',' | append: c1 | split: ',' -%}
+            {%- for n in counts -%}
+              {%- assign stars = 5 | minus: forloop.index0 -%}
+              {%- assign pct = n | times: 100 | divided_by: total -%}
+              <li class="nova-reviews__bar">
+                <span class="nova-reviews__bar-label">{{ stars }}</span>
+                <span class="nova-reviews__bar-track">
+                  <span class="nova-reviews__bar-fill" style="inline-size: {{ pct }}%"></span>
+                </span>
+                <span class="nova-reviews__bar-n">{{ n }}</span>
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+      </header>
+
+      <ul class="nova-reviews__list">
+        {%- for r in all_reviews -%}
+          {%- if r.sample.value and section.settings.show_sample == false -%}{%- continue -%}{%- endif -%}
+          {%- unless scope_is_product -%}{%- if product != blank and r.product.value.handle != product.handle -%}{%- continue -%}{%- endif -%}{%- endunless -%}
+          {%- assign shown = shown | plus: 1 -%}
+          {%- if shown > section.settings.per_page -%}{%- break -%}{%- endif -%}
+
+          <li class="nova-reviews__item">
+            <div class="nova-reviews__item-head">
+              <div class="nova-reviews__stars nova-reviews__stars--sm" role="img"
+                   aria-label="דירוג {{ r.rating.value }} מתוך 5">
+                {%- for i in (1..5) -%}
+                  <span class="nova-reviews__star{% if i <= r.rating.value %} is-on{% endif %}"
+                        aria-hidden="true">★</span>
+                {%- endfor -%}
+              </div>
+              {%- if r.verified.value -%}
+                <span class="nova-reviews__verified">רכישה מאומתת</span>
+              {%- endif -%}
+              {%- if r.sample.value -%}
+                <span class="nova-reviews__sample">תוכן הדגמה, לא לקוחה אמיתית</span>
+              {%- endif -%}
+            </div>
+
+            {%- if r.headline != blank -%}
+              <p class="nova-reviews__item-title">{{ r.headline }}</p>
+            {%- endif -%}
+
+            <p class="nova-reviews__body">{{ r.body | newline_to_br }}</p>
+
+            <footer class="nova-reviews__meta">
+              <span class="nova-reviews__author">{{ r.author }}</span>
+              {%- if r.author_note != blank -%}
+                <span class="nova-reviews__note">{{ r.author_note }}</span>
+              {%- endif -%}
+              {%- if r.review_date != blank -%}
+                <time class="nova-reviews__date" datetime="{{ r.review_date.value | date: '%Y-%m-%d' }}">
+                  {{ r.review_date.value | date: '%d.%m.%y' }}
+                </time>
+              {%- endif -%}
+              {%- if product == blank and r.product.value != blank -%}
+                <a class="nova-reviews__which" href="{{ r.product.value.url }}">
+                  {{ r.product.value.title }}
+                </a>
+              {%- endif -%}
+            </footer>
+          </li>
+        {%- endfor -%}
+      </ul>
+
+      {%- if total > section.settings.per_page -%}
+        <p class="nova-reviews__more">
+          <a href="{{ section.settings.all_reviews_url | default: '/pages/reviews' }}">
+            לכל {{ total }} הביקורות
+          </a>
+        </p>
+      {%- endif -%}
+
+    </div>
+  </section>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "ביקורות",
+  "tag": "section",
+  "class": "nova-reviews-section",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "מה כתבו עלינו" },
+    { "type": "range", "id": "per_page", "label": "כמה ביקורות להציג",
+      "min": 3, "max": 30, "step": 1, "default": 6 },
+    { "type": "url", "id": "all_reviews_url", "label": "קישור לכל הביקורות" },
+    { "type": "header", "content": "תוכן הדגמה" },
+    { "type": "checkbox", "id": "show_sample", "default": false,
+      "label": "הצג ביקורות הדגמה",
+      "info": "מיועד לתצוגה מקדימה בלבד. ביקורות שמסומנות כהדגמה נכתבו כדי להראות את העיצוב ואינן לקוחות אמיתיות. אין להפעיל בתבנית החיה." }
+  ],
+  "presets": [{ "name": "ביקורות" }]
+}
+{% endschema %}
