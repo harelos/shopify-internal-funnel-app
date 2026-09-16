@@ -162,7 +162,10 @@ export function novaHairAutoCjOrderNumber(orderNum: unknown): string {
 }
 
 export function buildNovaHairCjProductLines(expected: ExpectedBundle, storeLineItemId?: string): NovaHairCjProductLine[] {
-  const bottleCount = expected.black + expected.dark_brown + expected.light_brown + expected.purple + expected.red;
+  // Summed over every shade there is. Naming them one by one here is what
+  // blocked Medium Brown orders after the shade was added: the decoder read
+  // them correctly and this guard then rejected the bundle as empty.
+  const bottleCount = BOTTLE_KEYS.reduce((sum, key) => sum + (Number(expected[key]) || 0), 0);
   if (bottleCount <= 0 || bottleCount !== expected.bundle_size) {
     throw new NovaHairCjAutoOrderError("INVALID_BUNDLE_QUANTITY", "NovaHair bundle quantities do not match the selected bundle size.", {
       bundleSize: expected.bundle_size,

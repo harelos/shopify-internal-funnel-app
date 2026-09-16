@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOTTLE_KEYS, BOTTLE_ORDER_BY_SEGMENTS, CJ_PHYSICAL_MAPPINGS, decodeBundleSku } from "../src/lib/novahair-cj-auto-order.js";
+import { BOTTLE_KEYS, BOTTLE_ORDER_BY_SEGMENTS, buildNovaHairCjProductLines, CJ_PHYSICAL_MAPPINGS, decodeBundleSku } from "../src/lib/novahair-cj-auto-order.js";
 
 /**
  * A sixth shade, Medium Brown, was added to the catalogue and inserted third,
@@ -62,4 +62,28 @@ test("both SKU shapes are understood and quantities must add up", () => {
   const doubled = decodeBundleSku("NOVASALE-2-0-0-2-0-0-0", 3);
   assert.equal(doubled?.medium_brown, 6);
   assert.equal(doubled?.bundle_size, 6);
+});
+
+test("a medium brown bundle becomes real CJ lines, not a rejected bundle", () => {
+  const bundle = decodeBundleSku("NOVASALE-4-0-0-4-0-0-0");
+  assert.ok(bundle);
+  // The guard summed five named shades, so a six-colour bundle looked empty
+  // and every order for the new shade was refused after decoding correctly.
+  const lines = buildNovaHairCjProductLines(bundle, "line-1");
+  assert.equal(lines.length, 2, "four bottles of one shade plus the free kit");
+  const bottles = lines.find(line => line.sku === CJ_PHYSICAL_MAPPINGS.medium_brown.sku);
+  assert.ok(bottles, "the CJ order must contain the Medium Brown variant");
+  assert.equal(bottles.quantity, 4);
+  assert.equal(bottles.vid, "2507140803121609000");
+  assert.ok(lines.some(line => line.sku === CJ_PHYSICAL_MAPPINGS.free_kit.sku));
+});
+
+test("a mixed bundle orders both shades in the right quantities", () => {
+  const bundle = decodeBundleSku("NOVASALE-4-0-2-2-0-0-0");
+  assert.ok(bundle);
+  const lines = buildNovaHairCjProductLines(bundle);
+  const quantityBySku = Object.fromEntries(lines.map(line => [line.sku, line.quantity]));
+  assert.equal(quantityBySku[CJ_PHYSICAL_MAPPINGS.dark_brown.sku], 2);
+  assert.equal(quantityBySku[CJ_PHYSICAL_MAPPINGS.medium_brown.sku], 2);
+  assert.equal(quantityBySku[CJ_PHYSICAL_MAPPINGS.light_brown.sku], undefined);
 });
