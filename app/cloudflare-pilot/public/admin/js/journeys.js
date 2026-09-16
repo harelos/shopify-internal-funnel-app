@@ -13,10 +13,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeDays = 1;
 
   const byId = id => document.getElementById(id);
+  // Orders are charged in the store currency and read in the reporting one,
+  // so every line says what it was converted from.
+  const conversionAttr = conversion => {
+    const title = window.Money && window.Money.conversionTitle(conversion);
+    return title ? ` title="${escapeHtml(title)}"` : "";
+  };
   const setText = (id, value) => { const node = byId(id); if (node) node.textContent = value; };
-  const money = (value, currency = "ILS") => {
+  const money = (value, currency = "USD") => {
     if (!currencyFormatters.has(currency)) {
-      currencyFormatters.set(currency, new Intl.NumberFormat("he-IL", { style: "currency", currency, maximumFractionDigits: 2 }));
+      // The server converts each order to the reporting currency and says
+      // which one it used; the formatter follows it rather than the store's.
+      currencyFormatters.set(currency, new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }));
     }
     return currencyFormatters.get(currency).format(Number(value || 0));
   };
@@ -76,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     list.innerHTML = visible.map(journey => `<button class="journey-item ${journey.id === selectedId ? "active" : ""}" type="button" data-journey-id="${escapeHtml(journey.id)}">
-      <span class="journey-item-top"><strong>${escapeHtml(journey.orderNumber)}</strong><span class="journey-item-revenue">${money(journey.revenue, journey.currency)}</span></span>
+      <span class="journey-item-top"><strong>${escapeHtml(journey.orderNumber)}</strong><span class="journey-item-revenue"${conversionAttr(journey.conversion)}>${money(journey.revenue, journey.currency)}</span></span>
       <span class="journey-item-bottom"><span>${escapeHtml(journey.channel)}</span><span class="journey-status ${journey.status.toLowerCase()}">${statusLabel(journey.status)}</span></span>
     </button>`).join("");
     list.querySelectorAll("[data-journey-id]").forEach(button => button.addEventListener("click", () => selectJourney(button.dataset.journeyId)));
@@ -103,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const assignment = journey.experimentAssignments?.[0];
     detail.innerHTML = `<header class="journey-detail-header">
       <div><p class="eyebrow">${statusLabel(journey.status)} JOURNEY</p><h2>${escapeHtml(journey.orderNumber)}</h2><p>${escapeHtml(journey.channel)} · ${escapeHtml(journey.device)}</p></div>
-      <div class="journey-price"><strong>${money(journey.revenue, journey.currency)}</strong><span>Net Shopify revenue</span></div>
+      <div class="journey-price"><strong${conversionAttr(journey.conversion)}>${money(journey.revenue, journey.currency)}</strong><span>${journey.storeCurrency && journey.storeCurrency !== journey.currency ? `Net Shopify revenue · ${money(journey.storeRevenue, journey.storeCurrency)} charged` : "Net Shopify revenue"}</span></div>
     </header>
     <div class="journey-facts">
       <div class="journey-fact"><span>First touch</span><strong>${escapeHtml(journey.channel)}</strong></div>

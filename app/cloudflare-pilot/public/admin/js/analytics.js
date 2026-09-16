@@ -93,8 +93,35 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   }
 
+  /**
+   * Explains a converted amount on hover.
+   *
+   * Every amount on this page has already been restated from the store
+   * currency, so the reader needs the rate and the original to trust it.
+   * The original is recovered from the rate rather than sent twice.
+   */
+  function explainConversion(node, amount, report) {
+    if (!node || !window.Money) return;
+    const rates = Array.isArray(report.fx) ? report.fx : [];
+    if (rates.length !== 1 || !report.currencyConverted || amount == null) {
+      window.Money.explain(node, null);
+      return;
+    }
+    const quote = rates[0];
+    if (!quote.rate) return window.Money.explain(node, null);
+    window.Money.explain(node, {
+      originalAmount: Number((Number(amount) / quote.rate).toFixed(2)),
+      originalCurrency: quote.base,
+      quoteCurrency: quote.quote,
+      rate: quote.rate,
+      rateDate: quote.rateDate,
+      rateSource: quote.source,
+      rateQuality: quote.quality,
+    });
+  }
+
   function fmtMoney(amount, symbol) {
-    const sym = symbol || "₪";
+    const sym = symbol || "$";
     return `${sym}${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
@@ -143,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderAccountReport(report) {
-    const sym = report.currencySymbol || "₪";
+    const sym = report.currencySymbol || "$";
     analyticsTitle.textContent = "Account Analytics — Storewide";
     analyticsHeading.textContent = "Storewide Performance & Revenue Insights";
     metricVisitors.textContent = report.totalVisitors.toLocaleString();
@@ -151,6 +178,8 @@ document.addEventListener("DOMContentLoaded", () => {
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
     metricAov.textContent = fmtMoney(report.aov, sym);
     metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
+    explainConversion(metricAov, report.aov, report);
+    explainConversion(metricRevenue, report.totalRevenue, report);
     renderDataMode(report);
     breakdownTableTitle.textContent = "Active Funnels Overview";
 
@@ -224,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderFunnelReport(report) {
-    const sym = report.currencySymbol || "₪";
+    const sym = report.currencySymbol || "$";
     analyticsTitle.textContent = `${report.funnelName} — Analytics`;
     analyticsHeading.textContent = `${report.funnelName} Stage Conversion & Attribution`;
     metricVisitors.textContent = report.totalVisitors.toLocaleString();
@@ -232,6 +261,8 @@ document.addEventListener("DOMContentLoaded", () => {
     metricConvRate.textContent = `${report.overallConvRate || 0.0}%`;
     metricAov.textContent = fmtMoney(report.aov, sym);
     metricRevenue.textContent = fmtMoney(report.totalRevenue, sym);
+    explainConversion(metricAov, report.aov, report);
+    explainConversion(metricRevenue, report.totalRevenue, report);
     renderDataMode(report);
     breakdownTableTitle.textContent = "Stage & Variant Progression Breakdown";
 

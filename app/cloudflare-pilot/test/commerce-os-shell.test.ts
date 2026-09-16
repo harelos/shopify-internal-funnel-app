@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const admin = path.join(root, "public", "admin");
+const shell = readFileSync(path.join(admin, "js", "commerce-os-shell.js"), "utf8");
 
 test("Commerce OS navigation is shared by every owner-facing module", () => {
-  const shell = readFileSync(path.join(admin, "js", "commerce-os-shell.js"), "utf8");
   const css = readFileSync(path.join(admin, "css", "commerce-os.css"), "utf8");
   for (const target of ["index.html", "growth-cockpit.html", "journeys.html", "ai-concierge.html", "element-experiments.html", "support.html", "operations.html", "shipment-control.html"]) {
     assert.match(shell, new RegExp(`\\["${target}"`));
@@ -29,8 +29,38 @@ test("Every live Commerce OS screen includes the responsive shared shell", () =>
   }
 });
 
-test("Legacy operations routing does not point Commerce OS journeys at Cart Offers", () => {
-  const html = readFileSync(path.join(admin, "journeys.html"), "utf8");
-  assert.match(html, /href="operations\.html">Operations/);
-  assert.doesNotMatch(html, /href="cart-offers\.html">Operations/);
+test("Legacy operations routing does not point Commerce OS operations at Cart Offers", () => {
+  assert.match(shell, /\["operations\.html", "Operations"\]/);
+  assert.doesNotMatch(shell, /\["cart-offers\.html", "Operations"\]/);
+});
+
+/**
+ * The menu lists every destination at once. Grouping them behind five section
+ * labels, so a section only revealed its own pages, hid most of the app from
+ * the owner — restored to the flat list on 2026-09-16.
+ */
+test("every destination is reachable from the menu, exactly once", () => {
+  const destinations = [
+    "index.html", "growth-cockpit.html", "journeys.html", "analytics.html",
+    "popup-analytics.html", "ai-concierge.html", "element-experiments.html",
+    "support.html", "shipment-control.html", "operations.html",
+    "funnel.html", "cart-offers.html",
+  ];
+  for (const destination of destinations) {
+    const occurrences = shell.split(`["${destination}", `).length - 1;
+    assert.equal(occurrences, 1, `${destination} appears ${occurrences} times in the menu`);
+  }
+  assert.doesNotMatch(shell, /commerce-os-subnav/, "a section-scoped submenu is hiding destinations again");
+});
+
+test("one destination, one label", () => {
+  const labels = [...shell.matchAll(/\["([a-z-]+\.html)", "([^"]+)"\]/g)];
+  const byTarget = new Map<string, Set<string>>();
+  for (const [, target, label] of labels) {
+    if (!byTarget.has(target)) byTarget.set(target, new Set());
+    byTarget.get(target)!.add(label);
+  }
+  for (const [target, names] of byTarget) {
+    assert.equal(names.size, 1, `${target} is labelled ${[...names].join(" and ")}`);
+  }
 });

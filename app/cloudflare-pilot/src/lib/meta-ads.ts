@@ -5,6 +5,22 @@ export interface MetaSpendRange {
   localTo: string | null;
 }
 
+/**
+ * Upper-funnel counts reported by Meta itself.
+ *
+ * These come from the ad account rather than the storefront because the
+ * storefront pixel only sees visitors who allow it, while Meta reports every
+ * click it charged for.
+ */
+export interface MetaFunnelCounts {
+  linkClicks: number | null;
+  landingPageViews: number | null;
+  addToCart: number | null;
+  initiateCheckout: number | null;
+  purchases: number | null;
+  impressions: number | null;
+}
+
 export interface MetaSpendResult {
   amount: number | null;
   currency: string | null;
@@ -14,12 +30,59 @@ export interface MetaSpendResult {
   rows: number;
   accountId: string | null;
   daily: Array<{ date: string; amount: number }>;
+  funnel: MetaFunnelCounts;
 }
 
-type MetaInsightRow = { spend?: string; date_start?: string; date_stop?: string };
+type MetaAction = { action_type?: string; value?: string };
+type MetaInsightRow = {
+  spend?: string;
+  date_start?: string;
+  date_stop?: string;
+  impressions?: string;
+  inline_link_clicks?: string;
+  actions?: MetaAction[];
+};
+
+const EMPTY_FUNNEL: MetaFunnelCounts = {
+  linkClicks: null, landingPageViews: null, addToCart: null, initiateCheckout: null, purchases: null, impressions: null,
+};
+
+function sumNumeric(rows: MetaInsightRow[], field: "impressions" | "inline_link_clicks"): number | null {
+  let total = 0;
+  let seen = false;
+  for (const row of rows) {
+    const value = Number(row[field]);
+    if (Number.isFinite(value)) { total += value; seen = true; }
+  }
+  return seen ? total : null;
+}
+
+/**
+ * Resolves one conversion count from Meta's action list.
+ *
+ * Meta reports the same conversion under several aliases at once, for example
+ * add_to_cart alongside offsite_conversion.fb_pixel_add_to_cart with an
+ * identical value. Summing the aliases would double-count, so the preferred
+ * alias is taken and the rest are ignored.
+ */
+function resolveAction(rows: MetaInsightRow[], preferredTypes: string[]): number | null {
+  for (const actionType of preferredTypes) {
+    let total = 0;
+    let seen = false;
+    for (const row of rows) {
+      for (const action of row.actions ?? []) {
+        if (action.action_type !== actionType) continue;
+        const value = Number(action.value);
+        if (Number.isFinite(value)) { total += value; seen = true; }
+      }
+    }
+    if (seen) return total;
+  }
+  return null;
+}
 
 function missing(note: string, accountId: string | null = null): MetaSpendResult {
-  return { amount: null, currency: null, quality: "MISSING", source: "META_ADS_INSIGHTS", note, rows: 0, accountId, daily: [] };
+  return { amount: null, currency: null, quality: "MISSING", source: "META_ADS_INSIGHTS", note, rows: 0, accountId, daily: [], funnel: { ...EMPTY_FUNNEL } };
 }
 
 function dateRangeQuery(range: MetaSpendRange): Record<string, string> {
@@ -47,7 +110,7 @@ export async function fetchMetaSpend(range: MetaSpendRange): Promise<MetaSpendRe
         ? new URL(nextUrl)
         : new URL(`https://graph.facebook.com/${version}/${encodeURIComponent(accountId)}/insights`);
       if (!nextUrl) {
-        url.searchParams.set("fields", "spend,date_start,date_stop");
+        url.searchParams.set("fields", "spend,date_start,date_stop,impressions,inline_link_clicks,actions");
         url.searchParams.set("time_increment", "1");
         url.searchParams.set("limit", "500");
         for (const [key, value] of Object.entries(dateRangeQuery(range))) url.searchParams.set(key, value);
@@ -67,8 +130,24 @@ export async function fetchMetaSpend(range: MetaSpendRange): Promise<MetaSpendRe
   }
 
   const spends = rows.map(row => Number(row.spend));
-  if (!rows.length || spends.some(value => !Number.isFinite(value) || value < 0)) {
+  if (spends.some(value => !Number.isFinite(value) || value < 0)) {
     return missing("Meta returned no valid spend rows for this period.", accountId);
+  }
+  // Meta answers a window with no delivery with an empty list, not a zero
+  // row. Early in the day that is every "today" window, and treating it as
+  // missing blanked profit until the first ad impression was billed.
+  if (!rows.length) {
+    return {
+      amount: 0,
+      currency,
+      quality: "ACTUAL",
+      source: "META_ADS_INSIGHTS",
+      note: "Meta Insights returned no delivery for this window; spend is zero so far.",
+      rows: 0,
+      accountId,
+      daily: [],
+      funnel: { ...EMPTY_FUNNEL },
+    };
   }
   return {
     amount: Number(spends.reduce((sum, value) => sum + value, 0).toFixed(2)),
@@ -79,6 +158,14 @@ export async function fetchMetaSpend(range: MetaSpendRange): Promise<MetaSpendRe
     rows: rows.length,
     accountId,
     daily: rows.map(row => ({ date: String(row.date_start || row.date_stop || ""), amount: Number(Number(row.spend || 0).toFixed(2)) }))
-      .filter(entry => /^\d{4}-\d{2}-\d{2}$/.test(entry.date)),
+      .filter(entry => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(entry.date)),
+    funnel: {
+      impressions: sumNumeric(rows, "impressions"),
+      linkClicks: sumNumeric(rows, "inline_link_clicks"),
+      landingPageViews: resolveAction(rows, ["landing_page_view"]),
+      addToCart: resolveAction(rows, ["add_to_cart", "offsite_conversion.fb_pixel_add_to_cart"]),
+      initiateCheckout: resolveAction(rows, ["initiate_checkout", "offsite_conversion.fb_pixel_initiate_checkout"]),
+      purchases: resolveAction(rows, ["purchase", "offsite_conversion.fb_pixel_purchase"]),
+    },
   };
 }

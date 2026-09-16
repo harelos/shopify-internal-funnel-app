@@ -1,4 +1,5 @@
 import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import { Router } from "express";
 import prisma from "../lib/db.js";
 import { analyticsDataContract, analyticsModeForRequest, isTestForMode } from "../lib/analytics-config.js";
@@ -8,6 +9,7 @@ import { sendNovaHairConciergeSummary, sendNovaHairOtp } from "../lib/smtp-email
 import {
   POPUP_EVENTS,
   POPUP_VERSION,
+  popupOpenedSessionCount,
   isPopupEvent,
   normalizePopupEventInput,
   parsePayload,
@@ -603,24 +605,36 @@ router.get("/analytics/popup", async (req, res) => {
     const signals = sessions("popup_signal");
     const suppressedSnapshots = count("popup_suppressed") + legacySuppressed;
     const views = sessions("popup_view");
+    // The funnel is measured from sessions that actually opened the popup, not
+    // from the view event alone, which is lost for roughly a quarter of them.
+    const opened = popupOpenedSessionCount(events);
     const attempts = count("popup_submit_attempt");
     const leads = successKeys.size;
     const popupOrders = orders.filter(order => order.popupAttributed);
-    const popupRevenue = popupOrders.reduce((sum, order) => sum + order.netRevenueAmount, 0);
-    const popupRevenueByCurrency = [...new Set(popupOrders.map(order => order.currency))].map(currency => ({
+    // Popup revenue sits next to ad spend on the same screen, so it is stated
+    // in the reporting currency, converted per order at the published rate.
+    const popupMoney = await reportingMoneyFor(popupOrders.map(order => order.currency));
+    const popupOrderAmounts = popupOrders.map(order => ({
+      currency: popupMoney.convert(order.netRevenueAmount, order.currency) != null
+        ? (popupMoney.currency as string)
+        : order.currency,
+      amount: popupMoney.convert(order.netRevenueAmount, order.currency) ?? order.netRevenueAmount,
+    }));
+    const popupRevenue = popupOrderAmounts.reduce((sum, order) => sum + order.amount, 0);
+    const popupRevenueByCurrency = [...new Set(popupOrderAmounts.map(order => order.currency))].map(currency => ({
       currency,
-      revenue: Number(popupOrders.filter(order => order.currency === currency)
-        .reduce((sum, order) => sum + order.netRevenueAmount, 0).toFixed(2)),
+      revenue: Number(popupOrderAmounts.filter(order => order.currency === currency)
+        .reduce((sum, order) => sum + order.amount, 0).toFixed(2)),
     }));
     const configuredCoupon = workerEnvValue("NOVAHAIR_POPUP_COUPON") || "NOVA10";
     const couponOrders = orders.filter(order => {
       const codes = JSON.parse(order.discountCodes || "[]") as string[];
       return codes.some(code => code.toUpperCase() === configuredCoupon.toUpperCase());
     });
-    const couponRevenue = couponOrders.reduce((sum, order) => sum + order.netRevenueAmount, 0);
+    const couponRevenue = couponOrders.reduce((sum, order) => sum + (popupMoney.convert(order.netRevenueAmount, order.currency) ?? order.netRevenueAmount), 0);
     const couponOnlyOrders = couponOrders.filter(order => !order.popupAttributed);
     const stageDefinitions = [
-      ["Eligible", "popup_eligible"], ["Viewed popup", "popup_view"], ["Started email", "popup_email_started"],
+      ["Eligible", "popup_eligible"], ["Opened popup", "popup_view"], ["Started email", "popup_email_started"],
       ["Submit attempted", "popup_submit_attempt"], ["Lead saved", "popup_submit_success"],
       ["Summary emailed", "popup_result_email_sent"],
       ["Coupon revealed", "popup_coupon_revealed"], ["Continued", "popup_continue_clicked"], ["Purchased", "popup_purchase"],
@@ -629,14 +643,15 @@ router.get("/analytics/popup", async (req, res) => {
       label,
       event: name,
       count: name === "popup_eligible" ? eligible
-        : name === "popup_submit_success" ? leads
-          : name === "popup_purchase" ? popupOrders.length
-            : sessions(name),
+        : name === "popup_view" ? opened.opened
+          : name === "popup_submit_success" ? leads
+            : name === "popup_purchase" ? popupOrders.length
+              : sessions(name),
     }));
     const funnel = stageCounts.map((stage, index) => ({
       ...stage,
       fromPrevious: index === 0 ? 100 : percentage(stage.count, stageCounts[index - 1].count),
-      fromView: stage.event === "popup_eligible" ? null : percentage(stage.count, views),
+      fromView: stage.event === "popup_eligible" ? null : percentage(stage.count, opened.opened),
     }));
     const closes = events.filter(event => event.name === "popup_closed");
     const closeCount = (method: string) => closes.filter(event => parsePayload(event.payload).closeMethod === method).length;
@@ -658,11 +673,14 @@ router.get("/analytics/popup", async (req, res) => {
         holdoutEligible: uniquePopupSessionCount(eligibleCohortEvents.filter(event => parsePayload(event.payload).experimentVariant === "control")),
         suppressedSnapshots,
         popupViews: views,
-        viewRate: percentage(views, eligible),
+        popupOpened: opened.opened,
+        viewEventsMissing: opened.inferredFromConversation,
+        viewTrackingLossRate: percentage(opened.inferredFromConversation, opened.opened),
+        viewRate: percentage(opened.opened, eligible),
         emailStarts: sessions("popup_email_started"),
         submitAttempts: attempts,
         successfulLeads: leads,
-        leadConversionRate: percentage(leads, views),
+        leadConversionRate: percentage(leads, opened.opened),
         submitSuccessRate: percentage(leads, attempts),
         couponReveals: sessions("popup_coupon_revealed"),
         popupAttributedOrders: popupOrders.length,

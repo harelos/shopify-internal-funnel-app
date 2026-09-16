@@ -103,7 +103,7 @@ function localDateLabel(instant: Date, timezone: string): string {
     .join("-");
 }
 
-function addCalendarDays(dateLabel: string, days: number): string {
+export function addCalendarDays(dateLabel: string, days: number): string {
   const [year, month, day] = dateLabel.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()]

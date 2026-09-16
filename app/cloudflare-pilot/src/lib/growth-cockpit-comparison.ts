@@ -85,7 +85,7 @@ export function compareGrowthCockpitMetric(current: FinancialMetric, previous: F
     && previous.quality === "ACTUAL"
     && current.amount != null
     && previous.amount != null
-    && current.currency
+    // Counts carry no currency, so "the same currency" includes none on both sides.
     && current.currency === previous.currency;
   if (!authoritative) {
     return {

@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const report = await API.get(`/api/analytics/${funnelId}`);
       const stepData = report.steps?.find(s => s.stepId === selectedStepId);
-      const sym = report.currencySymbol || "₪";
+      const sym = report.currencySymbol || "$";
 
       if (stepData) {
         stepInlineAnalytics.style.display = "block";

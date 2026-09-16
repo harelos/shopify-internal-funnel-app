@@ -318,6 +318,11 @@ export class ShopifyAdminClient {
   }
 
   async shopifyqlQuery(queryText: string, sessionToken?: string) {
+    // The 2026-07 schema returns `tableData.rows` (JSON) and a plain list of
+    // parseErrors. The old `rowData` / `parseErrors { code message }`
+    // selection failed validation, so every call 502'd and the dashboard
+    // showed "NOT CONNECTED". ShopifyQL also needs read_reports, which the
+    // Admin custom app does not have and the Funnel Builder app does.
     return this.graphql<{
       shopifyqlQuery: {
         tableData?: {
@@ -328,10 +333,10 @@ export class ShopifyAdminClient {
       };
     }>(`query ShopifyAnalytics($query: String!) {
       shopifyqlQuery(query: $query) {
-        tableData { columns { name dataType } rowData }
-        parseErrors { code message }
+        tableData { columns { name dataType displayName } rows }
+        parseErrors
       }
-    }`, { query: queryText }, sessionToken);
+    }`, { query: queryText }, sessionToken, await this.appOwnedAccessToken(sessionToken));
   }
 
   async orderFinancialSummary(input: {
@@ -417,10 +422,35 @@ export class ShopifyAdminClient {
       if (transaction.kind !== "SALE" || transaction.status !== "SUCCESS") return transactionSum;
       return transactionSum + transaction.fees.reduce((feeSum, fee) => feeSum + Number(fee.amount.amount || 0) + Number(fee.taxAmount.amount || 0), 0);
     }, 0), 0);
+    // The shop's currency was switched from USD to ILS partway through the
+    // year, so a window can legitimately contain both. Refusing to answer left
+    // the dashboard reading stale webhook rows instead; the totals are
+    // reported per currency and converted by the caller, which holds the rates.
+    const byCurrency = currencies.map(code => {
+      const ofCurrency = nodes.filter(order => order.netPaymentSet.shopMoney.currencyCode.toUpperCase() === code);
+      return {
+        currency: code,
+        amount: Number(ofCurrency.reduce((sum, order) => sum + Number(order.netPaymentSet.shopMoney.amount || 0), 0).toFixed(2)),
+        orders: ofCurrency.filter(order => Number(order.netPaymentSet.shopMoney.amount || 0) > 0).length,
+      };
+    });
+    const feesByCurrency = feeCurrencies.map(code => ({
+      currency: code,
+      amount: Number(successfulSaleOrders.reduce((sum, order) => sum + order.transactions.reduce((transactionSum, transaction) => {
+        if (transaction.kind !== "SALE" || transaction.status !== "SUCCESS") return transactionSum;
+        return transactionSum + transaction.fees
+          .filter(fee => fee.amount.currencyCode.toUpperCase() === code)
+          .reduce((feeSum, fee) => feeSum + Number(fee.amount.amount || 0) + Number(fee.taxAmount.amount || 0), 0);
+      }, 0), 0).toFixed(2)),
+    }));
     const now = input.now ?? new Date();
     const accessibleFrom = new Date(now.getTime() - 60 * 86400000);
     const rangeWithinDefaultOrderWindow = Boolean(input.from) && new Date(input.from as string) >= accessibleFrom;
-    const complete = rangeWithinDefaultOrderWindow && !hasNextPage && currencies.length <= 1;
+    // Holding two currencies is not incompleteness: the shop's currency was
+    // switched partway through the year, and the caller converts them with
+    // published rates. Only a window reaching past Shopify's accessible order
+    // history, or one cut short by paging, is genuinely partial.
+    const complete = rangeWithinDefaultOrderWindow && !hasNextPage;
 
     return {
       source: "SHOPIFY_ADMIN_ORDERS",
@@ -429,13 +459,15 @@ export class ShopifyAdminClient {
       amount: currencies.length <= 1 ? Number(netPayments.toFixed(2)) : null,
       currency: currencies.length === 1 ? currencies[0] : null,
       quality: complete ? "ACTUAL" as const : "PARTIAL" as const,
+      byCurrency,
       truncated: hasNextPage,
       rangeWithinDefaultOrderWindow,
       definition: "Sum of Shopify Order.netPaymentSet.shopMoney after refunds; includes amounts collected for tax and shipping.",
-      paymentFees: feeRows > 0 && feeCurrencies.length <= 1
+      paymentFees: feeRows > 0
         ? {
-            amount: Number(paymentFeesAmount.toFixed(2)),
-            currency: feeCurrencies[0] ?? null,
+            amount: feeCurrencies.length <= 1 ? Number(paymentFeesAmount.toFixed(2)) : null,
+            currency: feeCurrencies.length === 1 ? feeCurrencies[0] : null,
+            byCurrency: feesByCurrency,
             quality: feeOrders === successfulSaleOrders.length ? "ACTUAL" as const : "PARTIAL" as const,
             source: "SHOPIFY_TRANSACTION_FEES",
             rows: feeRows,
@@ -452,15 +484,19 @@ export class ShopifyAdminClient {
   }): Promise<{ orders: Array<{
     id: string;
     legacyResourceId: string;
+    name: string;
     processedAt: string;
     netPaymentAmount: number;
     currency: string;
+    lineItems: Array<{ sku: string | null; quantity: number }>;
   }>; truncated: boolean }> {
     type OrderNode = {
       id: string;
+      name: string;
       legacyResourceId: string;
       processedAt: string;
       netPaymentSet: { shopMoney: { amount: string; currencyCode: string } };
+      lineItems: { nodes: Array<{ sku: string | null; quantity: number }> };
     };
     type OrdersPage = {
       orders: {
@@ -479,7 +515,7 @@ export class ShopifyAdminClient {
     for (let page = 0; page < maxPages; page += 1) {
       const data: OrdersPage = await this.graphql<OrdersPage>(`query CjCostOrders($after: String, $query: String!) {
         orders(first: 100, after: $after, query: $query, sortKey: PROCESSED_AT) {
-          nodes { id legacyResourceId processedAt netPaymentSet { shopMoney { amount currencyCode } } }
+          nodes { id name legacyResourceId processedAt netPaymentSet { shopMoney { amount currencyCode } } lineItems(first: 20) { nodes { sku quantity } } }
           pageInfo { hasNextPage endCursor }
         }
       }`, { after: cursor, query: clauses.join(" ") });
@@ -495,12 +531,30 @@ export class ShopifyAdminClient {
         .map(order => ({
           id: order.id,
           legacyResourceId: String(order.legacyResourceId),
+          name: order.name,
           processedAt: order.processedAt,
           netPaymentAmount: Number(order.netPaymentSet.shopMoney.amount || 0),
           currency: order.netPaymentSet.shopMoney.currencyCode.toUpperCase(),
+          // The bundle prices an order CJ has not been sent yet.
+          lineItems: (order.lineItems?.nodes || []).map(item => ({ sku: item.sku, quantity: Number(item.quantity) || 0 })),
         })),
       truncated: hasNextPage,
     };
+  }
+
+  /**
+   * webPixel and currentAppInstallation answer for the app that holds the
+   * token. SHOPIFY_ADMIN_ACCESS_TOKEN belongs to the Admin-created app, which
+   * owns no pixel, so a probe made with it reports "no pixel" while the
+   * embedded app's pixel is live. Without a session token, act as this app.
+   */
+  private async appOwnedAccessToken(sessionToken?: string): Promise<string | undefined> {
+    if (sessionToken) return undefined;
+    try {
+      return await this.exchangeClientCredentials();
+    } catch {
+      return undefined;
+    }
   }
 
   async webPixelConfiguration(sessionToken?: string) {
@@ -508,7 +562,7 @@ export class ShopifyAdminClient {
       webPixel: { id: string; settings: unknown } | null;
     }>(`query FunnelControlWebPixelStatus {
       webPixel { id settings }
-    }`, {}, sessionToken);
+    }`, {}, sessionToken, await this.appOwnedAccessToken(sessionToken));
   }
 
   async appAccessScopes(sessionToken?: string) {
@@ -516,7 +570,7 @@ export class ShopifyAdminClient {
       currentAppInstallation: { accessScopes: Array<{ handle: string }> };
     }>(`query FunnelControlAccessScopes {
       currentAppInstallation { accessScopes { handle } }
-    }`, {}, sessionToken);
+    }`, {}, sessionToken, await this.appOwnedAccessToken(sessionToken));
   }
 
   async ordersForAttributionReconciliation(input: {
@@ -565,6 +619,118 @@ export class ShopifyAdminClient {
     }
 
     return { orders, truncated: hasNextPage };
+  }
+
+  /**
+   * One order with the contact details needed to verify a self-service
+   * tracking lookup and to personalise a delivery update.
+   */
+  async orderForTracking(orderName: string) {
+    type Node = {
+      id: string;
+      name: string;
+      createdAt: string;
+      cancelledAt: string | null;
+      email: string | null;
+      phone: string | null;
+      displayFinancialStatus: string | null;
+      displayFulfillmentStatus: string;
+      customer: { firstName: string | null; email: string | null; phone: string | null } | null;
+      shippingAddress: { phone: string | null; city: string | null } | null;
+      lineItems: { nodes: Array<{ name: string; quantity: number; variantTitle: string | null }> };
+      fulfillments: Array<{ displayStatus: string | null; deliveredAt: string | null; trackingInfo: Array<{ company: string | null; number: string | null; url: string | null }> }>;
+    };
+    const name = String(orderName || "").trim().replace(/^#/, "").replace(/[^0-9A-Za-z_-]/g, "");
+    if (!name) return null;
+    // The Admin custom app is refused the Customer object on this Shopify plan.
+    // customerGraphql is the one path that resolves a token allowed to read it.
+    const data = await this.customerGraphql<{ orders: { nodes: Node[] } }>(`query OrderForTracking($query: String!) {
+      orders(first: 1, query: $query) {
+        nodes {
+          id name createdAt cancelledAt email phone displayFinancialStatus displayFulfillmentStatus
+          customer { firstName email phone }
+          shippingAddress { phone city }
+          lineItems(first: 20) { nodes { name quantity variantTitle } }
+          fulfillments { displayStatus deliveredAt trackingInfo { company number url } }
+        }
+      }
+    }`, { query: `name:${name}` });
+    return data.orders.nodes[0] || null;
+  }
+
+  /**
+   * How many distinct buyers ordered in a window, and how many came back.
+   *
+   * Grouped by customer id where Shopify gives one and by the order's contact
+   * hash otherwise, so a guest checkout still counts as a person rather than
+   * inflating the customer count.
+   */
+  async customerRepeatSummary(input: { since: string; sessionToken?: string }): Promise<{
+    customers: number; orders: number; repeatCustomers: number; totalRevenue: number; currency: string | null; truncated: boolean;
+  }> {
+    type Node = {
+      id: string;
+      customer: { id: string } | null;
+      netPaymentSet: { shopMoney: { amount: string; currencyCode: string } };
+    };
+    const byCustomer = new Map<string, number>();
+    let orders = 0;
+    let total = 0;
+    const currencies = new Set<string>();
+    let cursor: string | null = null;
+    let truncated = false;
+    for (let page = 0; page < 10; page += 1) {
+      const data: { orders: { nodes: Node[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } =
+        await this.customerGraphql(`query CustomerValue($after: String, $query: String!) {
+          orders(first: 250, after: $after, query: $query, sortKey: PROCESSED_AT) {
+            nodes { id customer { id } netPaymentSet { shopMoney { amount currencyCode } } }
+            pageInfo { hasNextPage endCursor }
+          }
+        }`, { after: cursor, query: `processed_at:>='${input.since}' test:false` }, input.sessionToken);
+      for (const node of data.orders.nodes) {
+        const amount = Number(node.netPaymentSet.shopMoney.amount || 0);
+        if (amount <= 0) continue;
+        orders += 1;
+        total += amount;
+        currencies.add(node.netPaymentSet.shopMoney.currencyCode.toUpperCase());
+        // A guest checkout has no customer id; the order counts as its own buyer
+        // rather than merging every guest into one.
+        const key = node.customer?.id || `order:${node.id}`;
+        byCustomer.set(key, (byCustomer.get(key) || 0) + 1);
+      }
+      truncated = data.orders.pageInfo.hasNextPage;
+      cursor = data.orders.pageInfo.endCursor;
+      if (!truncated || !cursor) break;
+    }
+    return {
+      customers: byCustomer.size,
+      orders,
+      repeatCustomers: [...byCustomer.values()].filter(count => count > 1).length,
+      totalRevenue: Number(total.toFixed(2)),
+      currency: currencies.size === 1 ? [...currencies][0] : null,
+      truncated,
+    };
+  }
+
+  /**
+   * A one-time percentage code for a customer whose parcel is genuinely late.
+   * Issued at most once per order by the caller.
+   */
+  async createSingleUseDiscount(input: { code: string; percentage: number; title: string; endsAt: string }): Promise<{ ok: boolean; error?: string }> {
+    const data = await this.graphql<{ discountCodeBasicCreate: { userErrors: Array<{ message: string }> } }>(`mutation OutreachGift($discount: DiscountCodeBasicInput!) {
+      discountCodeBasicCreate(basicCodeDiscount: $discount) { userErrors { message } }
+    }`, { discount: {
+      title: input.title,
+      code: input.code,
+      startsAt: new Date().toISOString(),
+      endsAt: input.endsAt,
+      usageLimit: 1,
+      appliesOncePerCustomer: true,
+      customerSelection: { all: true },
+      customerGets: { value: { percentage: input.percentage }, items: { all: true } },
+    } });
+    const errors = data.discountCodeBasicCreate?.userErrors || [];
+    return errors.length ? { ok: false, error: errors.map(e => e.message).join("; ").slice(0, 200) } : { ok: true };
   }
 
   async supportOrderContext(input: {

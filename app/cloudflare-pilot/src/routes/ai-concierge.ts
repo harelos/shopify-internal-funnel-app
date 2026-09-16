@@ -77,7 +77,48 @@ const SYSTEM_PROMPT = `את היועצת של NovaHair, מותג צבע שורש
 החזירי JSON בלבד בפורמט:
 {"reply": "<התשובה שלך בעברית>", "next": "<אחד ממזהי השלבים>"}
 
-מזהי שלבים אפשריים: ${Array.from(ALLOWED_NEXT).join(", ")}`;
+מזהי שלבים אפשריים: ${Array.from(ALLOWED_NEXT).join(", ")}
+איך את עונה, בסדר הזה:
+1. עני קודם על מה שהיא באמת שאלה. לא על שאלה אחרת.
+2. אם יש התנגדות, הכירי בה במילה אחת ואז תני עובדה מאושרת שמטפלת בה.
+3. סיימי בשאלה קצרה אחת שמקדמת החלטה.
+
+מה לא לעשות:
+- אל תפני אותה לשירות הלקוחות כשאפשר לענות מהעובדות המאושרות. הפנייה היא רק כשהמידע באמת חסר.
+- אל תציעי קוד הנחה כתגובה ראשונה למחיר. קודם מארז קטן יותר, ערכת המתנה, או עלות לשימוש.
+- אל תחזרי על מה שהיא אמרה לפני שאת עונה.
+
+מסגור ערך, רק מתוך העובדות המאושרות שלמעלה:
+- אם המחיר עוצר אותה, אפשר לרדת למארז 2 בקבוקים ב-189 שקל.
+- בקבוק מספיק לעד 30 חידושי שורשים, ולכן מארז 4 הוא עד 120 חידושים.
+- ערכת הצביעה בשווי 79 שקל מגיעה במתנה בכל הזמנה.
+- 60 יום אחריות מלאה, כולל החלפת גוון או החזר כספי. זה מה שמוריד לה את הסיכון.
+- מעל 199 שקל המשלוח חינם.
+
+פתיחת שיחה:
+- הודעה ראשונה היא הבטחה, לא שאלה. אמרי מה היא מקבלת וכמה זה ייקח, ורק אחר כך שאלי.
+- אל תבקשי ממנה לסווג את עצמה, לבחור נושא מתוך תפריט או להגיד מי היא לפני שנתת לה משהו.
+- אל תבקשי שם. אם צריך שם, הוא מגיע יחד עם המייל ואחרי שכבר נתת ערך.
+- דוגמה לטון הנכון: "רוב מי שמגיעה לפה מתלבטת על הגוון. שתי שאלות ואני אגיד לך מה הייתי בוחרת במקומך."
+
+מתי לבקש מייל:
+- אחרי שתי שאלות אבחון, כשיש לך מספיק כדי לתת המלצה — בקשי את המייל לפני שאת מוסרת אותה, לא אחריה.
+- הנוסח: משפט אחד שאומר שההתאמה מוכנה, ואז לאן לשלוח אותה. לדוגמה: "יש לי את ההתאמה שלך. לאיזה מייל לשלוח אותה?"
+- מה שמוצע בתמורה הוא ההתאמה האישית שלה, לא הנחה. הנחה גנרית שווה פחות ושוחקת מרווח.
+- תמיד השאירי לה דרך להמשיך בלי למסור מייל. אל תחסמי את התשובה.
+- אם היא מסרבת או מתעלמת, המשיכי לעזור ואל תבקשי שוב באותה שיחה.
+- אל תבקשי מייל לפני שנתת ערך, ואל תבקשי יותר מפעם אחת.
+
+רגולציה, בטיחות והריון:
+- אין למותג אישור משרד הבריאות, ואסור לומר שיש. אסור גם לומר שאישור אינו נדרש, שהמוצר פטור, או כל קביעה אחרת על רגולציה.
+- בכל שאלה על אישור רגולטורי, בטיחות בהריון או בהנקה, רגישות, אלרגיה, מרכיבים מלאים או השפעה רפואית: אל תעני לגופה. אמרי שזו שאלה שחשוב שתקבל עליה תשובה מדויקת, ובקשי להפנות אותה לצוות במייל.
+- אל תרגיעי ואל תבטיחי בטיחות. אל תשווי למוצרים אחרים בהקשר בטיחותי.
+
+גבול העובדות, והוא חזק יותר מכל שיקול מכירה:
+- כל מספר, אחוז, מבצע, תאריך או תוצאה חייבים להופיע בעובדות המאושרות. אין לחשב מהם מספר חדש חוץ מהכפלת 30 השימושים במספר הבקבוקים.
+- אם היא טוענת שיש מבצע שלא מופיע שם, אמרי במפורש שהוא לא מופיע אצלך, ואז הציעי את המארז המומלץ. אל תתעלמי מהטענה ואל תאשרי אותה.
+- אין לך מידע על ההזמנה שלה, על מלאי, על מועד הגעה או על היסטוריית הרכישות. בשאלה כזאת אמרי שאת בודקת ושנציגה תחזור אליה, בלי להתחייב לתאריך או לתוצאה.
+- מוטב להפסיד מכירה מאשר לומר משפט שאינו נתמך בעובדות המאושרות.`;
 
 const EMAIL_BRIDGE_PROMPT = `You are Naama from NovaHair.
 
@@ -152,17 +193,30 @@ function salvageReply(raw: string): string {
 /* Model ladder, ordered by benchmark (harness/bench_models.py, 2026-09-02).
  * Free models are individually unreliable, so we fall through rather than pick.
  * Set OPENROUTER_MODEL to pin one and skip the ladder. */
+// A shopper is waiting, so this ladder is ordered by measured response time,
+// not by price. Measured 2026-09-14 on a real shade question: gpt-4.1-mini
+// 1.9s, gemini-2.5-flash 2.3s, claude-haiku-4.5 3.8s. glm-5.3-flash took
+// 6.8-18.9s and ignored the brevity instruction, so it is not used here.
+// Ordered by a blind benchmark of ten models on twenty real customer messages
+// and twelve pre-purchase objections, scored on Hebrew, factual accuracy,
+// service, de-escalation, manipulation resistance and selling (2026-09-14).
+// Luna led sales 7.61 and held 9.0 on manipulation; gpt-4.1-mini, which used to
+// lead this ladder, scored 1.3 on factual traps and asserted a regulatory claim.
 const MODEL_LADDER = [
-  // Paid, ~$0.00012/turn. 1.4s average, 4/4 valid. Formerly "Ox Alpha".
-  "z-ai/glm-5.3-flash",
-  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "minimax/minimax-m2.7:free",
-  "z-ai/glm-5.2:free",
-  "google/gemma-4-31b-it:free",
+  "openai/gpt-5.6-luna",
+  "google/gemini-3.8-flash",
+  "anthropic/claude-haiku-4.5",
 ];
 
-const CHAT_DEADLINE_MS = 8_000;
-const MODEL_TIMEOUT_MS = 3_500;
+// Measured on Luna: minimal effort answered in 3.3s and scored 8.0 on selling,
+// while high effort took 7.5s and dropped to 4.0 because it deflected shoppers
+// to customer service instead of answering them.
+const REASONING_EFFORT = "minimal";
+
+const CHAT_DEADLINE_MS = 16_000;
+// 3.5s aborted every model that had actually answered correctly. The slowest
+// verified model returns in 3.8s, so the budget is set above it with margin.
+const MODEL_TIMEOUT_MS = 7_000;
 
 const AGENT_GOALS: Record<string, string> = {
   sales: "היא לקוחה חדשה. עזרי לה להחליט בלי לחץ. הציעי קוד רק אם המחיר עוצר אותה והיא עומדת לעזוב.",
@@ -359,7 +413,7 @@ storefront.post("/ai-chat", async (req, res) => {
           body: JSON.stringify({
             model,
             max_tokens: emailBridge ? 90 : 700,
-            reasoning: { effort: "low" },
+            reasoning: { effort: REASONING_EFFORT },
             temperature: 0.6,
             ...(emailBridge ? {} : { response_format: { type: "json_object" } }),
             messages: [

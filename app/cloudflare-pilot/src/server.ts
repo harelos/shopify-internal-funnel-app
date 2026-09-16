@@ -20,8 +20,11 @@ import shopifyIngestRoutes from "./routes/shopify-ingest.js";
 import { aiConciergeStorefront, aiConciergeAdmin } from "./routes/ai-concierge.js";
 import { cartOfferAdmin, cartOfferStorefront } from "./routes/cart-offers.js";
 import { elementAdminRouter, elementRuntimeRouter } from "./routes/element-experiments.js";
+import { pageExperimentAdminRouter, pageExperimentRuntimeRouter } from "./routes/page-experiments.js";
 import { supportAdminRouter, supportBridgeRouter } from "./routes/support-desk.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
+import trackPageRoutes from "./routes/track-page.js";
+import storefrontVisitRoutes from "./routes/storefront-visit.js";
 import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
@@ -123,7 +126,13 @@ import novahairRoutes from "./routes/novahair.js";
 
 // Storefront element experiments must be mounted before the generic funnel
 // proxy so /apps/funnels/element-runtime/... is not interpreted as a slug.
+app.use("/apps/funnels", pageExperimentRuntimeRouter);
 app.use("/apps/funnels", elementRuntimeRouter);
+// The storefront "where is my package" page. The guard belongs to the route
+// itself, not to this mount: attached here it also saw /apps/funnels/api/...
+// as its own sub-path, which is not on the storefront allowlist, so every
+// popup, concierge and cart-offer call from the storefront was rejected.
+app.use("/apps/funnels", trackPageRoutes);
 
 // Mount ingest and order routes before the storefront proxy surface.
 app.use("/", shopifyIngestRoutes);
@@ -132,6 +141,8 @@ app.use("/", novahairRoutes);
 // Shopify forwards storefront popup telemetry to this exact App Proxy path.
 // The middleware accepts only Shopify-signed proxy requests here.
 app.use("/apps/funnels/api", requireShopifySession, popupAnalyticsRoutes);
+// Storefront page views, so a buyer counts as a tracked visitor.
+app.use("/apps/funnels/api", requireShopifySession, storefrontVisitRoutes);
 
 // AI concierge free-text turns. Storefront-facing (proxy-signed) so shoppers
 // can reach it. The admin-only /ai-steps analytics is mounted separately below.
@@ -153,6 +164,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api", requireShopifySession);
 app.use("/api", supportAdminRouter);
 app.use("/api", elementAdminRouter);
+app.use("/api", pageExperimentAdminRouter);
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
@@ -168,9 +180,12 @@ app.use("/api", aiConciergeAdmin);
 app.use("/api", cartOfferAdmin);
 
 // Error handler
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[EXPRESS UNCAUGHT ERROR]", err);
-  res.status(500).json({ ok: false, error: err?.message || String(err), stack: err?.stack });
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // The stack names internal paths and module structure. It belongs in the
+  // Worker log, which only the owner can read, never in a response that an
+  // unauthenticated storefront caller can trigger.
+  console.error("[EXPRESS UNCAUGHT ERROR]", req.method, req.path, err);
+  res.status(500).json({ ok: false, error: "The request could not be completed." });
 });
 
 export default app;

@@ -22,8 +22,14 @@ export default {
       const {
         reconcileGrowthCockpitMetaSpend,
         reconcileGrowthCockpitShopifyFinancials,
+        reconcileGrowthCockpitCjCosts,
+        reconcileGrowthCockpitCjOrderCosts,
       } = await import("./services/growth-cockpit-reconcile.js");
-      const { processSupportDeskCron } = await import("./services/support-desk.js");
+      const { processSupportDeskCron, processSupportOutbox } = await import("./services/support-desk.js");
+      const { processShipmentOutreach } = await import("./services/shipment-outreach.js");
+      const { refreshShipmentTracking } = await import("./services/shipment-refresh.js");
+      const { snapshotDashboardDaily } = await import("./services/dashboard-daily.js");
+      const { sendOwnerDigest } = await import("./services/owner-digest.js");
       const { reconcileShopifyOrderAttribution } = await import("./services/shopify-order-reconcile.js");
       if (workerEnv?.DB) {
         // A rejection inside waitUntil settles after this try block has already
@@ -40,10 +46,29 @@ export default {
           run("processPendingQueueCron", processPendingQueueCron(workerEnv.DB)),
           run("reconcileGrowthCockpitMetaSpend", reconcileGrowthCockpitMetaSpend()),
           run("reconcileGrowthCockpitShopifyFinancials", reconcileGrowthCockpitShopifyFinancials()),
+          run("reconcileGrowthCockpitCjCosts", reconcileGrowthCockpitCjCosts()),
+          run("reconcileGrowthCockpitCjOrderCosts", reconcileGrowthCockpitCjOrderCosts()),
           run("processSupportDeskCron", processSupportDeskCron()),
+          run("processSupportOutbox", processSupportOutbox()),
         ];
         if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 0) {
           tasks.push(run("reconcileShopifyOrderAttribution", reconcileShopifyOrderAttribution()));
+        }
+        // One email a morning with anything that needs a person.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 6) {
+          tasks.push(run("sendOwnerDigest", sendOwnerDigest()));
+        }
+        // Settle the daily rows the trend comparisons read.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 10 === 4) {
+          tasks.push(run("snapshotDashboardDaily", snapshotDashboardDaily()));
+        }
+        // Carrier events refresh a few orders at a time so the board never waits for the next snapshot.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 2) {
+          tasks.push(run("refreshShipmentTracking", refreshShipmentTracking()));
+        }
+        // Proactive delivery updates twice an hour; each run is capped and idempotent.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 30 === 7) {
+          tasks.push(run("processShipmentOutreach", processShipmentOutreach()));
         }
         ctx.waitUntil(Promise.allSettled(tasks));
       }

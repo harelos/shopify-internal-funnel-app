@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import prisma from "../lib/db.js";
 import { compactJourneyTimeline, friendlyChannel, humanizeJourneyEvent, journeyDurationMinutes, type JourneyTimelineEntry } from "../lib/journey-view.js";
 
@@ -128,7 +129,36 @@ router.get("/journeys", async (req, res) => {
 
     const verified = journeys.filter(journey => journey.status === "VERIFIED").length;
     const unattributed = journeys.filter(journey => journey.status === "UNATTRIBUTED").length;
-    const totalRevenue = Number(journeys.reduce((sum, journey) => sum + journey.revenue, 0).toFixed(2));
+    // Orders are charged in the store currency; the list is read in the
+    // reporting currency, converted per order at the published daily rate so
+    // the total is the sum of exactly what each line shows.
+    const money = await reportingMoneyFor(journeys.map(journey => journey.currency));
+    const reported = journeys.map(journey => {
+      const converted = money.convert(journey.revenue, journey.currency);
+      if (converted == null) return journey;
+      const quote = money.rates.find(rate => rate.base.toUpperCase() === String(journey.currency).toUpperCase());
+      return {
+        ...journey,
+        revenue: converted,
+        currency: money.currency as string,
+        storeRevenue: journey.revenue,
+        storeCurrency: journey.currency,
+        // The reader has to be able to see what this was converted from.
+        conversion: quote
+          ? {
+              originalAmount: journey.revenue,
+              originalCurrency: journey.currency,
+              quoteCurrency: money.currency as string,
+              rate: quote.rate,
+              rateDate: quote.rateDate,
+              rateSource: quote.source,
+              rateQuality: quote.quality,
+            }
+          : null,
+      };
+    });
+    const reportedCurrencies = [...new Set(reported.map(journey => journey.currency))];
+    const totalRevenue = Number(reported.reduce((sum, journey) => sum + journey.revenue, 0).toFixed(2));
     res.setHeader("Cache-Control", "no-store");
     return res.json({
       ok: true,
@@ -141,9 +171,11 @@ router.get("/journeys", async (req, res) => {
         partial: journeys.length - verified - unattributed,
         unattributed,
         totalRevenue,
-        currency: journeys.length && journeys.every(journey => journey.currency === journeys[0].currency) ? journeys[0].currency : null,
+        currency: reportedCurrencies.length === 1 ? reportedCurrencies[0] : null,
+        currencyQuality: money.quality,
+        fx: money.rates,
       },
-      journeys,
+      journeys: reported,
     });
   } catch (error: any) {
     return res.status(400).json({ ok: false, error: error.message || "Failed to build customer journeys." });

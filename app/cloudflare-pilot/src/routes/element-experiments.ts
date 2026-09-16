@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import { randomUUID } from "node:crypto";
 import prisma from "../lib/db.js";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
@@ -215,6 +216,10 @@ elementAdminRouter.get("/element-experiments/:id/results", async (req, res) => {
       },
     });
     if (!experiment) return res.status(404).json({ error: "Element experiment not found." });
+    // Variant revenue is compared against ad spend, which Meta bills in
+    // dollars, so each order is restated in the reporting currency before the
+    // comparison rather than after it.
+    const experimentMoney = await reportingMoneyFor(experiment.orderAttributions.map(attribution => attribution.order.currency));
     const results = buildElementExperimentResults({
       variants: experiment.slot.variants.map(variant => ({
         id: variant.id,
@@ -227,8 +232,11 @@ elementAdminRouter.get("/element-experiments/:id/results", async (req, res) => {
       orders: experiment.orderAttributions.map(attribution => ({
         orderId: attribution.order.id,
         variantId: attribution.variantId,
-        currency: attribution.order.currency,
-        netRevenueAmount: attribution.order.netRevenueAmount,
+        currency: experimentMoney.convert(attribution.order.netRevenueAmount, attribution.order.currency) != null
+          ? (experimentMoney.currency as string)
+          : attribution.order.currency,
+        netRevenueAmount: experimentMoney.convert(attribution.order.netRevenueAmount, attribution.order.currency)
+          ?? attribution.order.netRevenueAmount,
         isTest: attribution.order.isTest,
         status: attribution.order.status,
       })),
@@ -240,6 +248,8 @@ elementAdminRouter.get("/element-experiments/:id/results", async (req, res) => {
       startedAt: experiment.startedAt,
       endedAt: experiment.endedAt,
       sourceOfTruth: "SHOPIFY_PAID_ORDERS",
+      reportingCurrency: experimentMoney.currency,
+      fx: experimentMoney.rates,
       ...results,
     });
   } catch (error: any) {

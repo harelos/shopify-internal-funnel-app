@@ -14,7 +14,10 @@
     "db:validate": "prisma validate --schema prisma/schema.prisma",
     "db:diff": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script",
     "dev": "prisma generate --schema prisma/schema.prisma && wrangler dev",
-    "deploy": "node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && wrangler deploy"
+    "deploy": "node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && wrangler deploy",
+    "deploy:staging": "node scripts/sync-element-runtime.mjs && prisma generate --schema prisma/schema.prisma && wrangler deploy --env staging",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:staging": "node scripts/smoke.mjs --worker https://shopify-funnel-control-staging.tigerbrands-funnel.workers.dev --no-storefront"
   },
   "dependencies": {
     "@prisma/adapter-d1": "6.12.0",

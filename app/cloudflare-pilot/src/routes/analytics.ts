@@ -1,6 +1,7 @@
 import { Router } from "express";
 import prisma from "../lib/db.js";
 import { analyticsDataContract, analyticsModeForRequest, isReportableRevenueOrder, isTestForMode } from "../lib/analytics-config.js";
+import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import { createEventOnce } from "../lib/event-store.js";
 import { findOrCreateVisitor } from "../lib/visitor-store.js";
 
@@ -72,7 +73,28 @@ router.get("/analytics/account", async (req, res) => {
     const rawOrders = await prisma.orderAttribution.findMany({
       where: ordersWhere,
     });
-    const orders = rawOrders.filter(isReportableRevenueOrder);
+    const reportableOrders = rawOrders.filter(isReportableRevenueOrder);
+    // The store charges in shekels, Meta bills in dollars, and the shop's own
+    // currency was switched partway through the year, so summing raw order
+    // amounts added two different currencies together. Every order is restated
+    // in the reporting currency first, and each total is a sum of amounts that
+    // are already comparable.
+    const money = await reportingMoneyFor(reportableOrders.map(order => order.currency));
+    const orders = reportableOrders.map(order => {
+      const restated = money.convert(order.netRevenueAmount, order.currency);
+      return restated == null ? order : { ...order, netRevenueAmount: restated, currency: money.currency as string };
+    });
+    const reportedCurrencies = [...new Set(orders.map(order => String(order.currency || "").toUpperCase()).filter(Boolean))];
+    const converted = reportedCurrencies.length === 1 && reportedCurrencies[0] === money.currency;
+    const asMoney = (amount: number) => Number(Number(amount || 0).toFixed(2));
+    // The dashboard reports in one currency. An empty window has no order
+    // currency at all, and defaulting that to shekels printed "₪0.00" on a
+    // dollar dashboard. Only a single currency that genuinely could not be
+    // converted is labelled as itself.
+    const unconverted = reportedCurrencies.length === 1 && reportedCurrencies[0] !== money.currency ? reportedCurrencies[0] : null;
+    const displayCurrency = unconverted || money.currency;
+    const displaySymbol = unconverted ? (unconverted === "ILS" ? "₪" : unconverted) : money.symbol;
+
 
     const activeFunnels = await prisma.funnel.findMany({
       where: { NOT: { status: "ARCHIVED" } },
@@ -85,7 +107,45 @@ router.get("/analytics/account", async (req, res) => {
     const totalRevenue = orders.reduce((sum, o) => sum + o.netRevenueAmount, 0);
     const totalOrders = orders.length;
     const aov = totalOrders > 0 ? Number((totalRevenue / totalOrders).toFixed(2)) : 0;
-    const overallConvRate = uniqueVisitorIds.size > 0 ? Number(((totalOrders / uniqueVisitorIds.size) * 100).toFixed(1)) : 0;
+    // A conversion rate is only meaningful when the numerator and the denominator
+    // describe the same population. Dividing every Shopify order by the visitors
+    // this app happened to track counts buyers we never saw, so the rate is
+    // computed from tracked visitors who converted, and the share of orders that
+    // could be linked back to a tracked visitor is reported alongside it.
+    const orderCheckoutTokens = orders.map(order => order.checkoutToken).filter((token): token is string => Boolean(token));
+    const linkedCheckouts = orderCheckoutTokens.length
+      ? await prisma.checkoutAttribution.findMany({
+          where: { checkoutToken: { in: orderCheckoutTokens }, visitorId: { not: null } },
+          select: { visitorId: true },
+        })
+      : [];
+    const convertedVisitorIds = new Set(
+      linkedCheckouts.map(checkout => checkout.visitorId).filter((id): id is string => Boolean(id) && uniqueVisitorIds.has(id as string)),
+    );
+    const ordersLinkedToVisitor = linkedCheckouts.length;
+    // Reporting 0% while orders exist would be a false statement about the
+    // business rather than about the measurement. A rate is published only when
+    // the tracking actually observed the buyers it is being divided by.
+    const measurable = uniqueVisitorIds.size > 0 && (totalOrders === 0 || convertedVisitorIds.size > 0);
+    const overallConvRate = measurable
+      ? Number(((convertedVisitorIds.size / uniqueVisitorIds.size) * 100).toFixed(1))
+      : null;
+    const conversionCoverage = {
+      trackedVisitors: uniqueVisitorIds.size,
+      convertedVisitors: convertedVisitorIds.size,
+      ordersLinkedToVisitor,
+      totalOrders,
+      measurable,
+      definition: "Tracked visitors who completed a paid Shopify order, divided by tracked visitors in the same period.",
+      quality: measurable && (totalOrders === 0 || ordersLinkedToVisitor === totalOrders) ? "ACTUAL" : "PARTIAL",
+      note: !measurable && totalOrders > 0
+        ? `Not measurable: ${totalOrders} paid order(s) exist but none could be linked to a visitor tracked in this window, so any rate would misstate the business rather than the tracking.`
+        : totalOrders > 0 && ordersLinkedToVisitor < totalOrders
+          ? `${ordersLinkedToVisitor} of ${totalOrders} paid orders could be linked to a tracked visitor; the rest were not observed by this app and are excluded from the rate.`
+          : uniqueVisitorIds.size === 0
+            ? "No tracked visitors were observed in this window."
+            : "Every paid order in this period was linked to a tracked visitor.",
+    };
 
     // Dynamic Date-Driven Account Benchmarks calculated from live date-filtered events
     const discoveryVisitorIds = new Set(events.filter(e => e.stepId && activeFunnels.some(f => f.steps.some(s => s.id === e.stepId && (s.kind === "ADVERTORIAL" || s.kind === "LANDING")))).map(e => e.visitorId).filter(Boolean));
@@ -142,8 +202,8 @@ router.get("/analytics/account", async (req, res) => {
       visitors: data.visitors.size,
       orders: data.orders,
       convRate: data.visitors.size > 0 ? Number(((data.orders / data.visitors.size) * 100).toFixed(1)) : 0,
-      revenue: Number(data.revenue.toFixed(2)),
-      aov: data.orders > 0 ? Number((data.revenue / data.orders).toFixed(2)) : 0,
+      revenue: asMoney(data.revenue),
+      aov: data.orders > 0 ? asMoney(data.revenue / data.orders) : 0,
     })).sort((a, b) => b.revenue - a.revenue);
 
     const funnelSummaries = activeFunnels.map(funnel => {
@@ -166,22 +226,27 @@ router.get("/analytics/account", async (req, res) => {
         ctas: funnelCtas,
         orders: funnelOrders.length,
         conversionRate: funnelConvRate,
-        revenue: Number(funnelRev.toFixed(2)),
+        revenue: asMoney(funnelRev),
       };
     });
 
     res.json({
       accountMode: true,
       ...analyticsDataContract(mode),
-      currencySymbol: "₪",
+      currencySymbol: displaySymbol,
+      reportingCurrency: displayCurrency,
+      currencyConverted: converted,
+      currencyQuality: converted ? money.quality : "ACTUAL",
+      fx: money.rates,
       totalFunnels: activeFunnels.length,
       totalVisitors: uniqueVisitorIds.size,
       totalViews,
       totalCtas,
       totalOrders,
-      totalRevenue: Number(totalRevenue.toFixed(2)),
-      aov,
+      totalRevenue: asMoney(totalRevenue),
+      aov: asMoney(aov),
       overallConvRate,
+      conversionCoverage,
       benchmarks: {
         avgDiscoveryToSales,
         avgSalesToCheckout,
@@ -233,7 +298,28 @@ router.get("/analytics/:funnelId", async (req, res) => {
     const events = await prisma.event.findMany({ where: eventWhere });
     const orderWhere: any = { funnelId, isTest: isTestForMode(mode) };
     if (from || to) orderWhere.paidAt = dateFilter;
-    const orders = await prisma.orderAttribution.findMany({ where: orderWhere });
+    const storeOrders = await prisma.orderAttribution.findMany({ where: orderWhere });
+    // The store charges in shekels, Meta bills in dollars, and the shop's own
+    // currency was switched partway through the year, so summing raw order
+    // amounts added two different currencies together. Every order is restated
+    // in the reporting currency first, and each total is a sum of amounts that
+    // are already comparable.
+    const money = await reportingMoneyFor(storeOrders.map(order => order.currency));
+    const orders = storeOrders.map(order => {
+      const restated = money.convert(order.netRevenueAmount, order.currency);
+      return restated == null ? order : { ...order, netRevenueAmount: restated, currency: money.currency as string };
+    });
+    const reportedCurrencies = [...new Set(orders.map(order => String(order.currency || "").toUpperCase()).filter(Boolean))];
+    const converted = reportedCurrencies.length === 1 && reportedCurrencies[0] === money.currency;
+    const asMoney = (amount: number) => Number(Number(amount || 0).toFixed(2));
+    // The dashboard reports in one currency. An empty window has no order
+    // currency at all, and defaulting that to shekels printed "₪0.00" on a
+    // dollar dashboard. Only a single currency that genuinely could not be
+    // converted is labelled as itself.
+    const unconverted = reportedCurrencies.length === 1 && reportedCurrencies[0] !== money.currency ? reportedCurrencies[0] : null;
+    const displayCurrency = unconverted || money.currency;
+    const displaySymbol = unconverted ? (unconverted === "ILS" ? "₪" : unconverted) : money.symbol;
+
 
     const uniqueVisitorIds = new Set(events.map(e => e.visitorId).filter(Boolean));
     const totalViews = events.filter(e => e.name === "page_view" || e.name === "FUNNEL_PAGE_VIEWED").length;
@@ -303,8 +389,8 @@ router.get("/analytics/:funnelId", async (req, res) => {
       path,
       visitors: data.visitors.size,
       orders: data.orders,
-      revenue: Number(data.revenue.toFixed(2)),
-      aov: data.orders > 0 ? Number((data.revenue / data.orders).toFixed(2)) : 0,
+      revenue: asMoney(data.revenue),
+      aov: data.orders > 0 ? asMoney(data.revenue / data.orders) : 0,
       convRate: data.visitors.size > 0 ? Number(((data.orders / data.visitors.size) * 100).toFixed(1)) : 0,
     })).sort((a, b) => b.revenue - a.revenue);
 
@@ -350,8 +436,8 @@ router.get("/analytics/:funnelId", async (req, res) => {
       visitors: data.visitors.size,
       orders: data.orders,
       convRate: data.visitors.size > 0 ? Number(((data.orders / data.visitors.size) * 100).toFixed(1)) : 0,
-      revenue: Number(data.revenue.toFixed(2)),
-      aov: data.orders > 0 ? Number((data.revenue / data.orders).toFixed(2)) : 0,
+      revenue: asMoney(data.revenue),
+      aov: data.orders > 0 ? asMoney(data.revenue / data.orders) : 0,
     })).sort((a, b) => b.revenue - a.revenue);
 
     // Build step & variant metrics breakdown with dynamic "Progression to [Next Step Name]"
@@ -411,7 +497,7 @@ router.get("/analytics/:funnelId", async (req, res) => {
         stageMetricLabel,
         stageMetricValue,
         orders: stepOrders.length,
-        revenue: Number(stepRevenue.toFixed(2)),
+        revenue: asMoney(stepRevenue),
         variants: variantMetrics,
       };
     });
@@ -420,13 +506,17 @@ router.get("/analytics/:funnelId", async (req, res) => {
       ...analyticsDataContract(mode),
       funnelId: funnel.id,
       funnelName: funnel.name,
-      currencySymbol: "₪",
+      currencySymbol: displaySymbol,
+      reportingCurrency: displayCurrency,
+      currencyConverted: converted,
+      currencyQuality: converted ? money.quality : "ACTUAL",
+      fx: money.rates,
       totalVisitors: uniqueVisitorIds.size,
       totalViews,
       totalCtas,
       totalOrders,
-      totalRevenue: Number(totalRevenue.toFixed(2)),
-      aov,
+      totalRevenue: asMoney(totalRevenue),
+      aov: asMoney(aov),
       overallConvRate,
       funnelFlow,
       pathAttribution,

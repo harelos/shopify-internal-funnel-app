@@ -32,6 +32,9 @@
     "SHOPIFY_REQUIRE_AUTH": "true",
     "SHOPIFY_PIXEL_INGEST_ENABLED": "true",
     "SUPPORT_AI_DRAFTS_ENABLED": "true",
+    "SUPPORT_WORKER_SEND": "true",
+    "SHIPMENT_OUTREACH_ENABLED": "true",
+    "OWNER_DIGEST_ENABLED": "true",
     "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",
     "SHOPIFY_PAGE_IMPORT_ALLOWED_HOSTS": "tigerbrandsglobal.com",
     "NOVAHAIR_CJ_AUTO_CREATE_ENABLED": "true",
@@ -57,5 +60,21 @@
   ],
   "triggers": {
     "crons": ["* * * * *"]
+  }
+,
+  // A deploy target that is not the live storefront. Point a staging deploy at
+  // it with `npm run deploy:staging` and smoke-test that URL before
+  // shipping to production.
+  "env": {
+    "staging": {
+      "name": "shopify-funnel-control-staging",
+      "vars": {
+        "SHIPMENT_OUTREACH_ENABLED": "false",
+        "OWNER_DIGEST_ENABLED": "false",
+        "SUPPORT_WORKER_SEND": "false",
+        "SUPPORT_AI_DRAFTS_ENABLED": "false",
+        "NOVAHAIR_CJ_AUTO_CREATE_ENABLED": "false"
+      }
+    }
   }
 }

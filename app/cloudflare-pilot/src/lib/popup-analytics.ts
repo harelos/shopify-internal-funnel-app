@@ -1,4 +1,5 @@
 import { analyticsModeForRequest, isTestForMode } from "./analytics-config.js";
+import { looksLikeInternalTraffic } from "./internal-traffic.js";
 
 export const POPUP_VERSION = "novahair_popup_v1";
 export const POPUP_EVENTS = [
@@ -182,11 +183,13 @@ export async function persistPopupEvent(input: PopupEventInput, query: Record<st
   const qaAttribution = [input.utmSource, input.utmMedium, input.utmCampaign, input.payload.trigger, input.payload.path, input.payload.template]
     .filter(Boolean)
     .map(value => String(value).toLowerCase());
-  const isKnownQaEvent = qaAttribution.some(value => value === "codex_qa"
-    || value === "production_test"
-    || value.includes("concierge_email_release_")
-    || value.includes("production_qa")
-    || value.includes("popup-qa"));
+  const isKnownQaEvent = looksLikeInternalTraffic({
+    attribution: qaAttribution,
+    query,
+    stepId: input.payload.stepId,
+    freeText: input.payload.freeText,
+    internalFlag: input.payload.internal,
+  });
   const shop = await prisma.shop.findUnique({ where: { domain: getShopifyConfig().shopDomain } });
   if (!shop) throw new Error("No shop record configured.");
   const visitor = input.visitorId
@@ -219,6 +222,31 @@ export function parsePayload(payload: string): Record<string, unknown> {
 }
 
 export type PopupExperience = "exit" | "concierge";
+
+/**
+ * Counts the sessions that demonstrably opened the popup.
+ *
+ * About a quarter of concierge conversations carry no popup_view row even
+ * though every later step is present, so a view-only count understates the top
+ * of the funnel and makes every rate below it look better than it is. A session
+ * that produced a conversation step opened the popup by definition, so it is
+ * counted, and the shortfall is reported separately rather than absorbed.
+ */
+export function popupOpenedSessionCount(events: Array<{ id?: unknown; name?: unknown; visitorId?: unknown; payload?: unknown }>): {
+  opened: number;
+  viewEvents: number;
+  inferredFromConversation: number;
+} {
+  const viewed = new Set<string>();
+  const talked = new Set<string>();
+  for (const event of events) {
+    if (event.name === "popup_view") viewed.add(popupSessionKey(event));
+    else if (event.name === "popup_ai_step") talked.add(popupSessionKey(event));
+  }
+  let inferred = 0;
+  for (const key of talked) if (!viewed.has(key)) inferred += 1;
+  return { opened: viewed.size + inferred, viewEvents: viewed.size, inferredFromConversation: inferred };
+}
 
 export function popupExperienceForVersion(value: unknown): PopupExperience {
   return String(value || "").toLowerCase().includes("_ai_") ? "concierge" : "exit";
