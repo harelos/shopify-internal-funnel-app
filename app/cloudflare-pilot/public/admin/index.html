@@ -36,6 +36,7 @@
       <a href="operations.html">Operations</a>
     </nav>
 
+
     <main class="os-main">
       <section class="page-intro">
         <div>
@@ -44,9 +45,7 @@
           <p class="intro-copy">Revenue, customer behavior, live experiments, and support — translated into one decision-ready view.</p>
         </div>
         <div class="range-control" aria-label="Reporting period">
-          <button class="range-button active" type="button" data-days="1">Today</button>
-          <button class="range-button" type="button" data-days="7">7 days</button>
-          <button class="range-button" type="button" data-days="30">30 days</button>
+          <div id="overview-range"></div>
         </div>
       </section>
 
@@ -57,6 +56,26 @@
         </div>
         <span id="truth-detail">Shopify remains the financial source of truth.</span>
       </div>
+
+      <section class="health-panel" id="health-panel" aria-label="Operating health">
+        <div class="health-gauge">
+          <svg viewBox="0 0 200 116" role="img" aria-labelledby="health-score-label">
+            <title id="health-score-label">Operating health score</title>
+            <path class="health-arc-track" d="M14 104 A86 86 0 0 1 186 104" />
+            <path class="health-arc-value" id="health-arc" d="M14 104 A86 86 0 0 1 186 104" />
+          </svg>
+          <div class="health-readout">
+            <strong id="health-score">—</strong>
+            <span>/ 100</span>
+          </div>
+        </div>
+        <div class="health-detail">
+          <p class="eyebrow">OPERATING HEALTH</p>
+          <h2 id="health-band">Measuring…</h2>
+          <p class="health-note" id="health-note">Reading verified sources for the selected window.</p>
+          <ul class="health-components" id="health-components"></ul>
+        </div>
+      </section>
 
       <section class="metric-grid" aria-label="Business metrics">
         <article class="metric-card">
@@ -70,15 +89,89 @@
           <span class="metric-note" id="metric-orders-note">Unique paid orders only</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Store conversion</span>
+          <span class="metric-label">Tracked conversion</span>
           <strong class="metric-value" id="metric-conversion">—</strong>
-          <span class="metric-note" id="metric-conversion-note">Based on identified visitors</span>
+          <span class="metric-note" id="metric-conversion-note">Tracked visitors who ordered</span>
         </article>
         <article class="metric-card">
           <span class="metric-label">Average order value</span>
           <strong class="metric-value" id="metric-aov">—</strong>
           <span class="metric-note" id="metric-aov-note">Net Shopify revenue</span>
         </article>
+        <article class="metric-card">
+          <span class="metric-label">Ad spend</span>
+          <strong class="metric-value" id="metric-spend">—</strong>
+          <span class="metric-note" id="metric-spend-note">Meta Ads for this window</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Blended ROAS</span>
+          <strong class="metric-value" id="metric-roas">—</strong>
+          <span class="metric-note" id="metric-roas-note">Net revenue ÷ ad spend</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Product cost</span>
+          <strong class="metric-value" id="metric-cogs">—</strong>
+          <span class="metric-note" id="metric-cogs-note">CJ paid-order cost</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Payment fees</span>
+          <strong class="metric-value" id="metric-fees">—</strong>
+          <span class="metric-note" id="metric-fees-note">Shopify transaction fees</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Profit</span>
+          <strong class="metric-value" id="metric-profit">—</strong>
+          <span class="metric-note" id="metric-profit-note">Revenue − product cost − ad spend</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Break-even CPA</span>
+          <strong class="metric-value" id="metric-becpa">—</strong>
+          <span class="metric-note" id="metric-becpa-note">Most you can pay per order</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Orders at risk</span>
+          <strong class="metric-value" id="metric-risk">—</strong>
+          <span class="metric-note" id="metric-risk-note">Shipments needing action</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Offer take rate</span>
+          <strong class="metric-value" id="metric-takerate">—</strong>
+          <span class="metric-note" id="metric-takerate-note">Paid orders that added a cart offer</span>
+        </article>
+      </section>
+
+      <section class="surface attention-surface" id="attention-panel" hidden>
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">NEEDS A HUMAN</p>
+            <h2>What to act on now</h2>
+          </div>
+          <span class="module-state" id="attention-state">Checking</span>
+        </div>
+        <div class="offer-rows" id="attention-rows"></div>
+      </section>
+
+      <section class="surface offer-breakdown" id="adset-breakdown" hidden>
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">AD SPEND</p>
+            <h2>Which ad sets can you afford?</h2>
+          </div>
+          <span class="module-state" id="adset-state"></span>
+        </div>
+        <div class="offer-rows" id="adset-rows"></div>
+        <p class="metric-note" id="adset-note"></p>
+      </section>
+
+      <section class="surface offer-breakdown" id="offer-breakdown" hidden>
+        <div class="surface-heading">
+          <div>
+            <p class="eyebrow">CART OFFERS</p>
+            <h2>Take rate per offer</h2>
+          </div>
+        </div>
+        <div class="offer-rows" id="offer-rows"></div>
+        <p class="metric-note" id="offer-note"></p>
       </section>
 
       <section class="dashboard-grid">
@@ -221,7 +314,9 @@
     </div>
   </div>
 
+  <script src="js/money.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/range-picker.js"></script>
   <script src="js/overview.js"></script>
   <script src="js/dashboard.js"></script>
 </body>

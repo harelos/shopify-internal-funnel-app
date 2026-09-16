@@ -1,57 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const currency = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 2 });
+  // The store sells in shekels; this screen reads the business in the
+  // reporting currency the server converted to, so the formatter follows the
+  // response instead of assuming either one.
+  const currencyFormatters = new Map();
+  let reportingCurrency = "USD";
+  const currency = {
+    format(value, code) {
+      const resolved = code || reportingCurrency || "USD";
+      if (!currencyFormatters.has(resolved)) {
+        currencyFormatters.set(resolved, new Intl.NumberFormat("en-US", { style: "currency", currency: resolved, maximumFractionDigits: 2 }));
+      }
+      return currencyFormatters.get(resolved).format(Number(value || 0));
+    },
+  };
   const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-  let activeDays = 1;
+  let reportingWindow = null;
 
   const byId = id => document.getElementById(id);
   const setText = (id, value) => { const node = byId(id); if (node) node.textContent = value; };
 
-  function timezoneParts(date, timeZone = "Asia/Jerusalem") {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(date);
-    return Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)]));
-  }
-
-  function zonedTimeToUtc(parts, timeZone = "Asia/Jerusalem") {
-    const expected = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour || 0, parts.minute || 0, parts.second || 0);
-    let timestamp = expected;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const represented = timezoneParts(new Date(timestamp), timeZone);
-      const representedTimestamp = Date.UTC(represented.year, represented.month - 1, represented.day, represented.hour, represented.minute, represented.second);
-      timestamp -= representedTimestamp - expected;
-    }
-    return new Date(timestamp);
-  }
-
-  function dateRange(days) {
-    const now = new Date();
-    const local = timezoneParts(now);
-    const localStart = new Date(Date.UTC(local.year, local.month - 1, local.day));
-    localStart.setUTCDate(localStart.getUTCDate() - Math.max(0, days - 1));
-    return {
-      from: zonedTimeToUtc({
-        year: localStart.getUTCFullYear(),
-        month: localStart.getUTCMonth() + 1,
-        day: localStart.getUTCDate(),
-        hour: 0,
-        minute: 0,
-        second: 0,
-      }).toISOString(),
-      to: now.toISOString(),
-    };
-  }
-
-  function queryForRange(days, extra = {}) {
-    const range = dateRange(days);
-    return new URLSearchParams({ from: range.from, to: range.to, mode: "production", ...extra }).toString();
+  function queryFor(reportingWindow, extra = {}) {
+    return new URLSearchParams({ from: reportingWindow.from, to: reportingWindow.to, mode: "production", ...extra }).toString();
   }
 
   function showModuleError(prefix, message) {
@@ -84,13 +53,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function loadBusinessMetrics(days) {
-    const data = await API.get(`/api/analytics/account?${queryForRange(days)}`);
-    setText("metric-revenue", currency.format(Number(data.totalRevenue || 0)));
-    setText("metric-orders", integer.format(Number(data.totalOrders || 0)));
-    setText("metric-conversion", `${Number(data.overallConvRate || 0).toFixed(1)}%`);
-    setText("metric-aov", currency.format(Number(data.aov || 0)));
-    setText("metric-revenue-note", days === 1 ? "Today in Israel time" : `Last ${days} calendar days in Israel time`);
+  async function loadBusinessMetrics(selectedWindow) {
+    const data = await API.get(`/api/analytics/account?${queryFor(selectedWindow)}`);
+    if (data.reportingCurrency) reportingCurrency = data.reportingCurrency;
+    // Revenue, orders and AOV are painted from the financial contract instead.
+    // This endpoint only sees the visitors the app tracked, so its order count
+    // is a subset, and showing it beside a profit built on every Shopify order
+    // put two different revenues on one screen.
+    const coverage = data.conversionCoverage;
+    const measurable = coverage ? coverage.measurable !== false : data.overallConvRate != null;
+    setText("metric-conversion", measurable && data.overallConvRate != null ? `${Number(data.overallConvRate).toFixed(1)}%` : "Not measurable");
+    if (coverage) {
+      setText("metric-conversion-note", coverage.note);
+      const tile = byId("metric-conversion")?.closest(".metric-card");
+      if (tile) tile.dataset.quality = coverage.quality;
+    }
+    setText("metric-revenue-note", `${selectedWindow.label} · ${selectedWindow.timezone}`);
     setText("metric-orders-note", "Shopify-paid, test orders excluded");
     setText("growth-visitors", integer.format(Number(data.totalVisitors || 0)));
     setText("growth-detail", `${integer.format(Number(data.totalViews || 0))} page views and ${integer.format(Number(data.totalCtas || 0))} tracked calls to action.`);
@@ -149,9 +127,342 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function loadConcierge(days) {
+  var HEALTH_ARC_LENGTH = 270;
+
+  function paintHealth(health) {
+    const arc = byId("health-arc");
+    const panel = byId("health-panel");
+    const list = byId("health-components");
+    if (!panel || !arc || !list) return;
+
+    const scored = health && health.score != null;
+    panel.dataset.band = scored ? health.band.id : "unknown";
+    setText("health-score", scored ? String(health.score) : "—");
+    setText("health-band", scored ? health.band.label : "Not measurable");
+    setText("health-note", health ? health.note : "Verified sources could not be reached.");
+    // The arc is drawn by dashing a fixed-length path, so no score means no fill.
+    arc.style.strokeDasharray = String(HEALTH_ARC_LENGTH);
+    arc.style.strokeDashoffset = String(scored ? HEALTH_ARC_LENGTH * (1 - health.score / 100) : HEALTH_ARC_LENGTH);
+
+    list.innerHTML = (health && health.components ? health.components : []).map(component => `
+      <li data-available="${component.available}">
+        <span class="health-component__label">${escapeHtml(component.label)}</span>
+        <span class="health-component__value">${escapeHtml(component.display)}</span>
+        <span class="health-component__bar"><i style="width:${component.score == null ? 0 : component.score}%"></i></span>
+        <span class="health-component__reason">${escapeHtml(component.reason)}</span>
+      </li>`).join("");
+  }
+
+  function moneyText(metric) {
+    if (!metric || metric.amount == null || !metric.currency) return "Unavailable";
     try {
-      const data = await API.get(`/api/analytics/popup?${queryForRange(days, { experience: "concierge" })}`);
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: metric.currency, maximumFractionDigits: 2 }).format(Number(metric.amount));
+    } catch {
+      return `${Number(metric.amount).toFixed(2)} ${metric.currency}`;
+    }
+  }
+
+  /**
+   * A stat on its own does not say whether the business is moving. Each tile
+   * carries the change against the same window just before it, and the last
+   * seven days as a sparkline, so direction is readable without opening a
+   * second screen.
+   *
+   * "Better" is not always "bigger": a rising product cost or payment fee is
+   * worse, and ad spend is neither on its own.
+   */
+  const TREND_POLARITY = {
+    revenue: "up-good", orders: "up-good", aov: "up-good", roas: "up-good",
+    profit: "up-good", becpa: "up-good", takerate: "up-good", conversion: "up-good",
+    cogs: "up-bad", fees: "up-bad", risk: "up-bad",
+    spend: "neutral",
+  };
+
+  function sparkline(series) {
+    const values = (series || []).map(point => (point && point.value != null ? Number(point.value) : null));
+    const present = values.filter(value => value != null);
+    if (present.length < 2) return "";
+    const min = Math.min(...present, 0);
+    const max = Math.max(...present);
+    const span = max - min || 1;
+    const step = 100 / Math.max(1, values.length - 1);
+    let path = "";
+    let started = false;
+    values.forEach((value, index) => {
+      if (value == null) return;
+      const x = (index * step).toFixed(2);
+      const y = (26 - ((value - min) / span) * 24).toFixed(2);
+      path += `${started ? "L" : "M"}${x} ${y}`;
+      started = true;
+    });
+    if (!path) return "";
+    return `<svg class="metric-spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d="${path}"/></svg>`;
+  }
+
+  function trendMarkup(id, current, trend) {
+    if (!trend || current == null || !Number.isFinite(Number(current))) return "";
+    const previous = trend.previous;
+    const spark = sparkline(trend.series);
+    if (previous == null || !Number.isFinite(Number(previous))) {
+      return `<div class="metric-trend"><span class="trend-chip is-flat">No ${escapeHtml(trend.previousLabel || "earlier")} figure</span>${spark}</div>`;
+    }
+    const delta = Number(current) - Number(previous);
+    const pct = Number(previous) === 0 ? null : (delta / Math.abs(Number(previous))) * 100;
+    const polarity = TREND_POLARITY[id] || "neutral";
+    const direction = Math.abs(delta) < 1e-9 ? "flat" : delta > 0 ? "up" : "down";
+    const tone = polarity === "neutral" || direction === "flat"
+      ? "is-flat"
+      : (direction === "up") === (polarity === "up-good") ? "is-good" : "is-bad";
+    const arrow = direction === "flat" ? "→" : direction === "up" ? "▲" : "▼";
+    const size = pct == null
+      ? `${delta > 0 ? "+" : ""}${Number(delta.toFixed(2))}`
+      : `${Math.abs(pct) >= 999 ? ">999" : Math.abs(pct).toFixed(Math.abs(pct) < 10 ? 1 : 0)}%`;
+    const caveat = trend.incomplete ? " (partial history)" : "";
+    return `<div class="metric-trend"><span class="trend-chip ${tone}" title="${escapeHtml(`vs ${trend.previousLabel}${caveat}`)}">${arrow} ${escapeHtml(size)}</span><span class="trend-label">vs ${escapeHtml(trend.previousLabel || "before")}</span>${spark}</div>`;
+  }
+
+  function paintFinanceTile(id, value, note, quality, conversion, trend, currentValue) {
+    setText(`metric-${id}`, value);
+    // A converted number is only trustworthy if the reader can see what it
+    // was converted from and at which rate.
+    if (window.Money) window.Money.explain(byId(`metric-${id}`), conversion);
+    if (note) setText(`metric-${id}-note`, note);
+    const tile = byId(`metric-${id}`)?.closest(".metric-card");
+    if (tile) tile.dataset.quality = quality || "";
+    if (!tile) return;
+    let holder = tile.querySelector(".metric-trend-slot");
+    if (!holder) {
+      holder = document.createElement("div");
+      holder.className = "metric-trend-slot";
+      byId(`metric-${id}`)?.insertAdjacentElement("afterend", holder);
+    }
+    holder.innerHTML = trendMarkup(id, currentValue, trend);
+  }
+
+  /**
+   * Financial metrics used to live on a separate screen, so the first screen
+   * could not answer whether the day was profitable. They are read from the
+   * same verified sources here, for the same reporting window.
+   */
+  async function loadFinance(selectedWindow) {
+    const blank = ["spend", "roas", "cogs", "fees", "profit", "becpa"];
+    try {
+      const params = new URLSearchParams({ from: selectedWindow.fromLabel, to: selectedWindow.toLabel });
+      const data = await API.get(`/api/growth-cockpit/finance?${params.toString()}`);
+      const metrics = data.metrics || {};
+      const profit = data.profit || {};
+      const revenue = metrics.revenue || {};
+      const spend = metrics.metaSpend || {};
+
+      const orderCount = Number(metrics.orders?.amount ?? 0);
+      // The previous window is measured exactly as the current one is, so a
+      // derived stat is compared against the same stat derived the same way.
+      // The sparkline comes from the settled daily rows behind it.
+      const previousMetrics = data.comparison?.previousMetrics || null;
+      const daily = data.comparison?.daily?.metrics || {};
+      const dailyDates = data.comparison?.daily?.seriesDates || [];
+      const previousLabel = data.comparison?.previousLabel || "the previous period";
+      const num = value => (value == null || !Number.isFinite(Number(value)) ? null : Number(value));
+      const prevRevenue = num(previousMetrics?.revenue);
+      const prevOrders = num(previousMetrics?.orders);
+      const prevSpend = num(previousMetrics?.adSpend);
+      const prevCost = num(previousMetrics?.productCost);
+      const prevFees = num(previousMetrics?.paymentFees);
+      const series = key => daily[key]?.series || [];
+      const combine = (keys, fn) => dailyDates.map((date, index) => {
+        const values = keys.map(key => daily[key]?.series?.[index]?.value ?? null);
+        const value = values.some(one => one == null) ? null : fn(...values.map(Number));
+        return { date, value: value == null || !Number.isFinite(value) ? null : value };
+      });
+      const trend = (previous, seriesPoints) => ({
+        previous, previousLabel, series: seriesPoints || [],
+        incomplete: Boolean(data.comparison?.daily?.metrics?.netRevenue?.incomplete),
+      });
+      const compare = {
+        netRevenue: trend(prevRevenue, series("netRevenue")),
+        orders: trend(prevOrders, series("orders")),
+        adSpend: trend(prevSpend, series("adSpend")),
+        productCost: trend(prevCost, series("productCost")),
+        paymentFees: trend(prevFees, series("paymentFees")),
+      };
+      const derived = (value, seriesPoints) => trend(value, seriesPoints);
+
+      paintFinanceTile("revenue", moneyText(revenue), "Shopify net payments", revenue.quality, revenue.conversion,
+        compare.netRevenue, revenue.amount);
+      setText("metric-orders", new Intl.NumberFormat("en-US").format(orderCount));
+      paintFinanceTile("orders", new Intl.NumberFormat("en-US").format(orderCount), null, undefined, null,
+        compare.orders, orderCount);
+      paintFinanceTile("aov", orderCount > 0 && revenue.amount != null
+        ? moneyText({ amount: Number(revenue.amount) / orderCount, currency: revenue.currency })
+        : "Unavailable", "Net revenue ÷ paid orders", revenue.quality,
+        revenue.conversion && orderCount > 0
+          ? { ...revenue.conversion, originalAmount: Number((revenue.conversion.originalAmount / orderCount).toFixed(2)) }
+          : null,
+        derived(prevRevenue != null && prevOrders ? prevRevenue / prevOrders : null, combine(["netRevenue", "orders"], (r, o) => (o ? r / o : null))),
+        orderCount > 0 && revenue.amount != null ? Number(revenue.amount) / orderCount : null);
+      paintFinanceTile("spend", moneyText(spend), spend.source || "Meta Ads", spend.quality, null,
+        compare.adSpend, spend.amount);
+      const cost = metrics.productCost || metrics.cjPaidCosts || {};
+      const costLabel = cost.amount == null
+        ? "CJ costs are not synchronised for this window"
+        : "What CJ charges for these orders";
+      paintFinanceTile("cogs", moneyText(cost), costLabel, cost.quality, cost.conversion,
+        compare.productCost, cost.amount);
+      // Profit is never shown as more certain than the cost it was built on.
+      const profitQuality = profit.complete ? (profit.costQuality || "ACTUAL") : "MISSING";
+      const costWord = "product cost";
+      const feeWord = profit.paymentFeesIncluded ? " − payment fees" : "";
+      paintFinanceTile("fees", moneyText(metrics.paymentFees), "Shopify transaction fees", metrics.paymentFees?.quality, metrics.paymentFees?.conversion,
+        compare.paymentFees, metrics.paymentFees?.amount);
+
+      const canDivide = revenue.amount != null && Number(spend.amount) > 0 && revenue.currency === spend.currency;
+      paintFinanceTile("roas", canDivide ? `${(Number(revenue.amount) / Number(spend.amount)).toFixed(2)}×` : "Unavailable",
+        canDivide ? "Net revenue ÷ ad spend" : "Needs revenue and ad spend in one currency", canDivide ? "ACTUAL" : "MISSING", null,
+        derived(prevRevenue != null && prevSpend ? prevRevenue / prevSpend : null, combine(["netRevenue", "adSpend"], (r, a) => (a ? r / a : null))),
+        canDivide ? Number(revenue.amount) / Number(spend.amount) : null);
+
+      const prevProfit = prevRevenue != null && prevCost != null && prevSpend != null
+        ? prevRevenue - prevCost - prevSpend - (prevFees ?? 0)
+        : null;
+      paintFinanceTile("profit", profit.cm2 != null ? moneyText({ amount: profit.cm2, currency: profit.currency }) : "Unavailable",
+        profit.complete ? `Revenue − ${costWord}${feeWord} − ad spend` : (profit.blockers || ["Incomplete inputs"]).join(" "),
+        profitQuality, null,
+        derived(prevProfit, combine(["netRevenue", "productCost", "adSpend", "paymentFees"], (r, c, a, f) => r - c - a - f)),
+        profit.cm2);
+
+      paintFinanceTile("becpa", profit.breakEvenCpa != null ? moneyText({ amount: profit.breakEvenCpa, currency: profit.currency }) : "Unavailable",
+        profit.breakEvenCpa != null
+          ? `Most you can pay per order and break even${profit.paymentFeesIncluded ? ", after payment fees" : ", before payment fees"}`
+          : "Needs product cost and revenue",
+        profit.breakEvenCpa != null ? profitQuality : "MISSING", null,
+        derived(prevRevenue != null && prevCost != null && prevOrders ? (prevRevenue - prevCost - (prevFees ?? 0)) / prevOrders : null,
+          combine(["netRevenue", "productCost", "paymentFees", "orders"], (r, c, f, o) => (o ? (r - c - f) / o : null))),
+        profit.breakEvenCpa);
+
+      paintHealth(data.health);
+
+      if (data.fx?.length) {
+        const rate = data.fx[0];
+        setText("metric-revenue-note", `${selectedWindow.label} · ${selectedWindow.timezone} · ${rate.note}`);
+      }
+      return data;
+    } catch (error) {
+      blank.forEach(id => paintFinanceTile(id, "Unavailable", "Verified financial sources could not be reached.", "MISSING"));
+      paintHealth(null);
+      return null;
+    }
+  }
+
+  /**
+   * Blended ROAS can look healthy while one ad set buys every order above what
+   * the business can afford. This compares each ad set's cost per purchase with
+   * the store's own break-even CPA and says which to cut.
+   */
+  async function loadAdSets(selectedWindow) {
+    const panel = byId("adset-breakdown");
+    const rows = byId("adset-rows");
+    if (!panel || !rows) return;
+    try {
+      const params = new URLSearchParams({ from: selectedWindow.fromLabel, to: selectedWindow.toLabel });
+      const data = await API.get(`/api/growth-cockpit/ad-sets?${params.toString()}`);
+      const adSets = Array.isArray(data.adSets) ? data.adSets : [];
+      panel.hidden = adSets.length === 0;
+      if (!adSets.length) return;
+      const over = adSets.filter(row => row.verdict === "OVER_BREAK_EVEN").length;
+      setText("adset-state", over ? `${over} above break-even` : "All within break-even");
+      const ceiling = data.breakEvenCpa != null ? moneyText({ amount: data.breakEvenCpa, currency: data.currency }) : null;
+      rows.innerHTML = adSets.map(row => {
+        const cost = row.costPerPurchase != null ? moneyText({ amount: row.costPerPurchase, currency: data.adSetCurrency }) : "no purchase yet";
+        const label = row.verdict === "OVER_BREAK_EVEN" ? "CUT OR FIX"
+          : row.verdict === "UNDER_BREAK_EVEN" ? "PROFITABLE"
+          : row.verdict === "NO_PURCHASES" ? "NO SALES" : "UNKNOWN";
+        const severity = row.verdict === "OVER_BREAK_EVEN" ? "CRITICAL" : row.verdict === "NO_PURCHASES" ? "WARNING" : "";
+        const headroom = row.headroom != null
+          ? `${row.headroom >= 0 ? "$" + row.headroom.toFixed(2) + " under" : "$" + Math.abs(row.headroom).toFixed(2) + " over"} the ceiling`
+          : "";
+        return `<div class="offer-row" data-severity="${escapeHtml(severity)}">
+          <span class="offer-row__title">${escapeHtml(row.adSetName)}</span>
+          <span class="offer-row__rate">${escapeHtml(label)}</span>
+          <span class="offer-row__meta">${escapeHtml(row.campaignName)} · ${escapeHtml(moneyText({ amount: row.spend, currency: data.adSetCurrency }))} spent · ${escapeHtml(String(row.purchases))} purchase(s) · ${escapeHtml(cost)} each${headroom ? " · " + escapeHtml(headroom) : ""}</span>
+        </div>`;
+      }).join("");
+      setText("adset-note", ceiling
+        ? `Break-even is ${ceiling} per order: revenue minus product cost and payment fees, divided by orders. Purchases are as Meta attributes them.`
+        : "Break-even could not be computed for this window, so no ad set is judged.");
+    } catch (error) {
+      panel.hidden = true;
+    }
+  }
+
+  /** Take rate answers whether the offer is working, not just whether it exists. */
+  async function loadTakeRates(selectedWindow) {
+    const panel = byId("offer-breakdown");
+    const rows = byId("offer-rows");
+    try {
+      const params = new URLSearchParams({ from: selectedWindow.fromLabel, to: selectedWindow.toLabel });
+      const data = await API.get(`/api/growth-cockpit/take-rates?${params.toString()}`);
+      const measurable = data.quality === "ACTUAL" && data.anyOfferTakeRatePct != null;
+      paintFinanceTile("takerate", measurable ? `${data.anyOfferTakeRatePct.toFixed(1)}%` : "Not measurable", data.note, measurable ? "ACTUAL" : "MISSING");
+      if (panel && rows) {
+        const offers = data.offers || [];
+        panel.hidden = offers.length === 0;
+        rows.innerHTML = offers.map(offer => `
+          <div class="offer-row">
+            <span class="offer-row__title">${escapeHtml(offer.title)}</span>
+            <span class="offer-row__rate">${offer.takeRatePct == null ? "—" : offer.takeRatePct.toFixed(1) + "%"}</span>
+            <span class="offer-row__meta">${offer.ordersWithOffer} of ${data.paidOrders} orders · ${offer.unitsSold} unit(s)</span>
+          </div>`).join("");
+        setText("offer-note", data.note);
+      }
+      return data;
+    } catch {
+      paintFinanceTile("takerate", "Unavailable", "Cart offer performance could not be read.", "MISSING");
+      if (panel) panel.hidden = true;
+      return null;
+    }
+  }
+
+  /**
+    * Shipment risk is the earliest visible cause of a chargeback, and it was
+    * only reachable by opening a separate screen. It is surfaced here because
+    * this is the screen the owner actually opens.
+    */
+  async function loadAttention() {
+    const panel = byId("attention-panel");
+    const rows = byId("attention-rows");
+    try {
+      const health = await API.get("/api/operations/health");
+      const shipments = health.systems?.shipments || {};
+      const atRisk = Number(shipments.actionable || 0);
+      paintFinanceTile("risk", Number.isFinite(atRisk) ? atRisk.toLocaleString() : "Unavailable",
+        `${Number(shipments.critical || 0)} critical · reconciled ${shipments.lastReconciledAt ? new Date(shipments.lastReconciledAt).toLocaleString() : "never"}`,
+        shipments.state === "CURRENT" ? "ACTUAL" : "MISSING");
+
+      const incidents = (health.incidents || []).filter(item => item.severity !== "INFO");
+      if (panel && rows) {
+        panel.hidden = incidents.length === 0;
+        setText("attention-state", incidents.length ? `${incidents.length} to act on` : "All clear");
+        const rank = { CRITICAL: 0, WARNING: 1 };
+        rows.innerHTML = incidents
+          .sort((a, b) => (rank[a.severity] ?? 2) - (rank[b.severity] ?? 2))
+          .map(item => `
+            <div class="offer-row" data-severity="${escapeHtml(item.severity)}">
+              <span class="offer-row__title">${escapeHtml(item.title)}</span>
+              <span class="offer-row__rate">${escapeHtml(item.severity)}</span>
+              <span class="offer-row__meta">${escapeHtml(item.area)} · ${escapeHtml(item.action)}</span>
+            </div>`).join("");
+      }
+      return health;
+    } catch {
+      paintFinanceTile("risk", "Unavailable", "Operations health could not be reached.", "MISSING");
+      if (panel) panel.hidden = true;
+      return null;
+    }
+  }
+
+  async function loadConcierge(selectedWindow) {
+    try {
+      const data = await API.get(`/api/analytics/popup?${queryFor(selectedWindow, { experience: "concierge" })}`);
       const metrics = data.metrics || {};
       setText("concierge-sales", integer.format(Number(metrics.popupAttributedOrders || 0)));
       setText("concierge-detail", `${integer.format(Number(metrics.popupViews || 0))} opens · ${integer.format(Number(metrics.successfulLeads || 0))} saved leads · ${currency.format(Number(metrics.popupAttributedRevenue || 0))} verified revenue.`);
@@ -168,18 +479,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function refresh(days) {
-    activeDays = days;
-    document.querySelectorAll(".range-button").forEach(button => button.classList.toggle("active", Number(button.dataset.days) === days));
+  async function refresh(selectedWindow) {
+    reportingWindow = selectedWindow;
     const banner = byId("truth-banner");
-    const [connected, metrics, experiment] = await Promise.all([
+    const [connected, metrics, finance, , , experiment] = await Promise.all([
       loadShopifyStatus(),
-      loadBusinessMetrics(days).catch(() => null),
+      loadBusinessMetrics(selectedWindow).catch(() => null),
+      loadFinance(selectedWindow).catch(() => null),
+      loadTakeRates(selectedWindow).catch(() => null),
+      loadAdSets(selectedWindow).catch(() => null),
+      loadAttention().catch(() => null),
       loadExperiment().catch(() => null),
       loadSupport(),
-      loadConcierge(days),
+      loadConcierge(selectedWindow),
     ]);
-    const healthy = connected && Boolean(metrics) && Boolean(experiment);
+    const healthy = connected && Boolean(metrics) && Boolean(finance) && Boolean(experiment);
     if (banner) banner.className = `truth-banner ${healthy ? "" : "warning"}`.trim();
     setText("truth-status", healthy ? "Healthy" : "Needs review");
     setText("truth-title", healthy ? "Shopify revenue and experiment attribution are reporting" : "One or more reporting sources could not be verified");
@@ -190,6 +504,26 @@ document.addEventListener("DOMContentLoaded", () => {
     return String(value || "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
   }
 
-  document.querySelectorAll(".range-button").forEach(button => button.addEventListener("click", () => refresh(Number(button.dataset.days || 1))));
-  refresh(activeDays);
+  const rangeHost = byId("overview-range");
+  if (rangeHost && window.RangePicker) {
+    const picker = window.RangePicker.mount(rangeHost, {
+      storageKey: "fc.reportingWindow",
+      defaultPreset: "today",
+      onChange: selected => { refresh(selected).catch(() => {}); },
+    });
+    refresh(picker.current()).catch(() => {});
+  } else {
+    // The dashboard must still report if the window control fails to load, so
+    // fall back to today rather than leaving every metric blank.
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    refresh({
+      from: startOfToday.toISOString(),
+      to: now.toISOString(),
+      label: "Today",
+      timezone: "UTC",
+    }).catch(() => {});
+    if (rangeHost) rangeHost.textContent = "Reporting window control unavailable; showing today.";
+  }
 });

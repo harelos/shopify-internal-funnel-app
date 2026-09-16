@@ -54,14 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(amount));
   }
 
-  function financialCard(key, label, value, quality, note) {
+  function financialCard(key, label, value, quality, note, conversion) {
+    // A converted amount says what it came from, on the value itself.
+    const conversionTitle = window.Money && window.Money.conversionTitle(conversion);
+    const converted = conversionTitle ? ` title="${escapeHtml(conversionTitle)}"` : '';
     const normalizedQuality = String(quality || 'MISSING').toLowerCase();
     const definition = state.definitions[key];
     const tooltip = definition ? `<button class="definition-trigger" type="button" aria-label="About ${escapeHtml(label)}">?</button>
       <span class="definition-tooltip" role="tooltip"><strong>${escapeHtml(definition.definition)}</strong><span>Source: ${escapeHtml(definition.source)}</span>${definition.calculation ? `<span>Calculation: ${escapeHtml(definition.calculation)}</span>` : ''}</span>` : '';
     return `<article class="financial-card">
       <span class="financial-label">${escapeHtml(label)}${tooltip}</span>
-      <strong class="financial-value">${escapeHtml(value)}</strong>
+      <strong class="financial-value"${converted}>${escapeHtml(value)}</strong>
       <span class="quality quality-${escapeHtml(normalizedQuality)}">${escapeHtml(quality || 'MISSING')}</span>
       <span class="financial-note">${escapeHtml(note || '')}</span>
     </article>`;
@@ -145,24 +148,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const revenueNote = revenueNeedsConversion
       ? `${ownerRevenue.source} · Native Shopify currency; conversion to ${report.reportingCurrency || 'the reporting currency'} is still required for profit`
       : ownerRevenue.source;
-    const profitQuality = profit.complete ? 'ACTUAL' : 'MISSING';
+    // Profit stands on the weakest of its inputs; product cost is incomplete
+    // until CJ has charged the window.
+    const profitQuality = profit.complete ? (profit.costQuality || 'ACTUAL') : 'MISSING';
+    const productCost = metrics.productCost || metrics.cjPaidCosts;
+    const feesIn = profit.paymentFeesIncluded;
+    const netOf = feesIn ? 'after payment fees' : 'before payment fees';
     state.definitions = Object.fromEntries((report.metricDefinitions || []).map(definition => [definition.key, definition]));
     const cards = [
-      financialCard('revenue', 'Shopify net payments', formatMoney(ownerRevenue.amount, ownerRevenue.currency), ownerRevenue.quality, revenueNote),
+      financialCard('revenue', 'Shopify net payments', formatMoney(ownerRevenue.amount, ownerRevenue.currency), ownerRevenue.quality, revenueNote, ownerRevenue.conversion),
       financialCard('orders', 'Paid orders', metrics.orders.amount == null ? 'MISSING' : Number(metrics.orders.amount).toLocaleString(), metrics.orders.quality, metrics.orders.source),
-      financialCard('cjPaidCosts', 'CJ paid order costs', formatMoney(metrics.cjPaidCosts.amount, metrics.cjPaidCosts.currency), metrics.cjPaidCosts.quality, 'Accepted COGS source for current profit view'),
-      financialCard('paymentFees', 'Payment fees', 'EXCLUDED', 'PARTIAL', 'Not included in current profit calculation'),
-      financialCard('metaSpend', 'Meta spend', formatMoney(metrics.metaSpend.amount, metrics.metaSpend.currency), metrics.metaSpend.quality, metrics.metaSpend.source),
-      financialCard('cm1', 'CM1 before payment fees', formatMoney(profit.cm1, profit.currency), profitQuality, 'Revenue - CJ paid order costs'),
-      financialCard('cm2', 'Profit before payment fees', formatMoney(profit.cm2, profit.currency), profitQuality, 'CM1 before payment fees - Meta spend'),
-      financialCard('cm2Margin', 'Profit margin before payment fees', profit.marginPct == null ? 'MISSING' : `${Number(profit.marginPct).toFixed(1)}%`, profitQuality, 'Profit before payment fees / revenue')
+      financialCard('productCost', 'Product cost', formatMoney(productCost.amount, productCost.currency), productCost.quality,
+        'What CJ charges for these orders', productCost.conversion),
+      financialCard('paymentFees', 'Payment fees', formatMoney(metrics.paymentFees.amount, metrics.paymentFees.currency), metrics.paymentFees.quality,
+        feesIn ? 'Shopify Payments fees, subtracted from profit' : 'Shopify Payments fees; not available for this window', metrics.paymentFees.conversion),
+      financialCard('metaSpend', 'Meta spend', formatMoney(metrics.metaSpend.amount, metrics.metaSpend.currency), metrics.metaSpend.quality, metrics.metaSpend.source, metrics.metaSpend.conversion),
+      financialCard('cm1', `Contribution margin ${netOf}`, formatMoney(profit.cm1, profit.currency), profitQuality, `Revenue − product cost${feesIn ? ' − payment fees' : ''}`),
+      financialCard('cm2', `Profit ${netOf}`, formatMoney(profit.cm2, profit.currency), profitQuality, 'Contribution margin − Meta spend'),
+      financialCard('cm2Margin', `Profit margin ${netOf}`, profit.marginPct == null ? 'MISSING' : `${Number(profit.marginPct).toFixed(1)}%`, profitQuality, 'Profit ÷ revenue')
     ];
     byId('financial-grid').innerHTML = cards.join('');
     byId('comparison-summary').textContent = comparisonText(report.comparison);
     byId('profit-status').textContent = profit.complete
-      ? `Profit before payment fees is available in ${profit.currency}. Payment fees are explicitly excluded until added later.`
-      : `${revenueNeedsConversion ? `Shopify paid revenue is available in ${ownerRevenue.currency}; profit remains unavailable until authoritative conversion to ${report.reportingCurrency} exists. ` : ''}Profit before payment fees is unavailable: ${profit.blockers.join(' ')}`;
-    byId('financial-status').textContent = `Shopify source: ${shopifySourceRevenue.quality}${shopifySourceRevenue.currency ? ` (${shopifySourceRevenue.currency})` : ''}. Reporting conversion: ${metrics.revenue.quality}. CJ: ${metrics.cjCosts.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
+      ? `Profit ${netOf} is reported in ${profit.currency}${profit.costQuality === 'PARTIAL' ? ', and the product cost does not yet cover every order in the window' : ''}. Shopify pays out in the store currency, so a converted figure uses that day's published rate.`
+      : `${revenueNeedsConversion ? `Shopify paid revenue is available in ${ownerRevenue.currency}; profit remains unavailable until authoritative conversion to ${report.reportingCurrency} exists. ` : ''}Profit is unavailable: ${profit.blockers.join(' ')}`;
+    byId('financial-status').textContent = `Shopify source: ${shopifySourceRevenue.quality}${shopifySourceRevenue.currency ? ` (${shopifySourceRevenue.currency})` : ''}. Reporting conversion: ${metrics.revenue.quality}. Product cost: ${productCost.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
     const daily = (report.observations?.cjPaidCostsDaily || []).map(row => `${row.date}: ${formatMoney(row.amount, row.currency)}`);
     byId('cj-paid-costs-daily').textContent = daily.length
       ? `CJ paid order costs by UTC payment date: ${daily.join(' · ')}`
