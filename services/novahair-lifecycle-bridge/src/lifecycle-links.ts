@@ -46,6 +46,12 @@ const STATIC_DESTINATIONS: Partial<Record<LifecycleFlow, Record<number, keyof ty
     // page is an honest submission route instead of pretending the sales page
     // can collect a review.
     8: "contact",
+    // E10/E11 are complementary-product cross-sells. Route them to the sales
+    // page for now; when specific product pages exist for Hair Gloss and
+    // Argan Mask, add hairGloss/arganMask keys to PATHS and switch to those.
+    10: "sales",
+    11: "sales",
+    // E12 is a text-only referral seed with no button.
   },
   replenishment: {
     1: "sales",

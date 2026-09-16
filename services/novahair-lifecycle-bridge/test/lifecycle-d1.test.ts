@@ -337,7 +337,7 @@ test("post-purchase tracking and delay messages are event-driven and remain safe
 
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
-    ).bind("gid://shopify/Order/901").first("count")), 7);
+    ).bind("gid://shopify/Order/901").first("count")), 10);
     assert.equal(Number(await db.prepare(
       "SELECT COUNT(*) AS count FROM scheduled_lifecycle_events WHERE entity_id = ? AND event_name = 'shopify.post_purchase_started'",
     ).bind("gid://shopify/Order/902").first("count")), 2);

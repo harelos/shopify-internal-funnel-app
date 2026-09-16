@@ -86,6 +86,9 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
       { number: 7, offsetMinutes: 10 * day, content: "e07_hair_care", anchor: "delivered" },
       { number: 8, offsetMinutes: 14 * day, content: "e08_review", anchor: "delivered" },
       { number: 9, offsetMinutes: 21 * day, content: "e09_soft_cross_sell", anchor: "delivered" },
+      { number: 10, offsetMinutes: 28 * day, content: "e10_hair_gloss_cross_sell", anchor: "delivered" },
+      { number: 11, offsetMinutes: 42 * day, content: "e11_argan_mask_cross_sell", anchor: "delivered" },
+      { number: 12, offsetMinutes: 55 * day, content: "e12_referral_seed", anchor: "delivered" },
     ],
   },
   replenishment: {

@@ -14,11 +14,11 @@ function durationMinutes(value: string): number {
   return amount;
 }
 
-test("six automations contain all 41 sends and start disabled", () => {
+test("six automations contain all 44 sends and start disabled", () => {
   assert.equal(automations.length, 6);
   assert.ok(automations.every((automation: { status: string }) => automation.status === "disabled"));
   const sends = automations.flatMap((automation: { steps: Array<{ type: string }> }) => automation.steps.filter(step => step.type === "send_email"));
-  assert.equal(sends.length, 41);
+  assert.equal(sends.length, 44);
 });
 
 test("event-driven post-purchase aliases use isolated V2 drafts", () => {
@@ -56,7 +56,7 @@ test("post-purchase automation routes D1-released emails and contains no guessed
   assert.ok(flow);
   assert.equal(flow.steps.filter((step: { type: string }) => step.type === "delay").length, 0);
   const conditions = flow.steps.filter((step: { type: string }) => step.type === "condition");
-  assert.equal(conditions.length, 9);
+  assert.equal(conditions.length, 12);
   assert.ok(conditions.every((step: { config: { field: string } }) => step.config.field === "event.email_number"));
   const trackingSend = flow.steps.find((step: { key: string }) => step.key === "send_e03");
   assert.equal(trackingSend.config.template.id, "novahair-post-purchase-e03-v2");
