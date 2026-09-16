@@ -210,3 +210,12 @@
     text-align: start;
   }
 }
+
+/* The store-wide count is a ceiling, not a total. Said quietly, in the place
+ * where someone would otherwise read 50 as the number of reviews the store has. */
+.nova-reviews__cap {
+  margin: 0.75rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--nr-muted);
+}

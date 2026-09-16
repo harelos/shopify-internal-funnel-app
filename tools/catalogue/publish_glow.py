@@ -178,8 +178,66 @@ def publish():
     print("\ncreated %d of %d, all as drafts" % (len(done), len(ITEMS)))
 
 
+def swap_images():
+    """Replace the CJ packshot with the generated hero, without recreating anything.
+
+    The drafts were created with whatever image existed at the time, which for
+    most of them is the supplier's own photograph. As generated heroes arrive
+    they replace those, and only those: a product whose hero has not been
+    generated yet is left alone rather than being touched pointlessly.
+
+    The old media is deleted after the new media is attached and not before, so
+    a failure halfway leaves a product with two images rather than none.
+    """
+    import shopify
+    done = load_done()
+    if not done:
+        print("nothing created yet, run publish first")
+        return
+
+    by_src = {str(it["src"]): it for it in ITEMS}
+    swapped, skipped = 0, 0
+
+    for src, rec in done.items():
+        it = by_src.get(src)
+        if not it:
+            continue
+        gen = os.path.join(HERE, "gen", "out", "%02d_0_hero.png" % int(src))
+        if not os.path.exists(gen):
+            skipped += 1
+            continue
+        try:
+            existing = shopify.gql(
+                "query m($id: ID!) { product(id: $id) { media(first: 20) { nodes { id } } } }",
+                {"id": rec["gid"]})["product"]["media"]["nodes"]
+            res = shopify.upload_image(gen, os.path.basename(gen))
+            d = shopify.gql(shopify.MEDIA, {"productId": rec["gid"], "media": [{
+                "originalSource": res, "mediaContentType": "IMAGE",
+                "alt": it["alt"]}]})
+            errs = d["productCreateMedia"]["mediaUserErrors"]
+            if errs:
+                print("FAILED %-34s %s" % (it["handle"], errs))
+                continue
+            if existing:
+                shopify.gql(
+                    """mutation d($productId: ID!, $mediaIds: [ID!]!) {
+                         productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
+                           deletedMediaIds mediaUserErrors { message } } }""",
+                    {"productId": rec["gid"], "mediaIds": [m["id"] for m in existing]})
+            swapped += 1
+            print("swapped %-34s %s" % (it["handle"], it["title"]))
+            sys.stdout.flush()
+        except Exception as e:
+            print("FAILED %-34s %s" % (it["handle"], str(e)[:140]))
+
+    print("\nswapped %d, left on the CJ packshot %d" % (swapped, skipped))
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     if "--check" in sys.argv:
         sys.exit(1 if check() else 0)
-    publish()
+    if "--images" in sys.argv:
+        swap_images()
+    else:
+        publish()

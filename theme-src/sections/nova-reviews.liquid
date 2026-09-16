@@ -187,6 +187,19 @@
         </p>
       {%- endif -%}
 
+      {%- comment -%}
+        Liquid hands back at most 50 metaobjects, so a store-wide count that
+        lands exactly on 50 is a ceiling rather than a total. Saying so is
+        better than printing a number that quietly stops growing, and the note
+        disappears on a product page, where the count comes from that product's
+        own list and is exact.
+      {%- endcomment -%}
+      {%- if scope_is_product == false and total >= 50 -%}
+        <p class="nova-reviews__cap">
+          מוצגות 50 הביקורות האחרונות. בעמוד של כל מוצר מופיעות כל הביקורות שלו.
+        </p>
+      {%- endif -%}
+
     </div>
   </section>
 {%- endif -%}
