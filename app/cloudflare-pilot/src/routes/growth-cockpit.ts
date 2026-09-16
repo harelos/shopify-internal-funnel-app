@@ -866,4 +866,16 @@ router.post("/growth-cockpit/cj-backfill", async (req, res) => {
   }
 });
 
+/** Sends the morning digest now, for checking its content or wording. */
+router.post("/growth-cockpit/owner-digest", async (req, res) => {
+  try {
+    const { sendOwnerDigest } = await import("../services/owner-digest.js");
+    const result = await sendOwnerDigest(new Date(), { force: String(req.query.force || "") === "true" });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, ...result });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
+});
+
 export default router;
