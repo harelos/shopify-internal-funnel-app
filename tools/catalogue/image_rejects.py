@@ -1,72 +1,60 @@
 # -*- coding: utf-8 -*-
-"""Products rejected by looking at the picture, not the title.
+"""Products rejected by looking at the picture, and pinned by index.
 
-The automatic filter asks: is this one product, on a plain ground, with no
-person and no advertising pasted over it. That is the right question and it
-removed 76 of 135 candidates. But it cannot see three things that matter here,
-because each one is a legitimate photograph of a single product on white.
+The first version of this file matched on product titles and matched nothing.
+Every entry was written from the words printed on the carton, because that is
+what you read when you are looking at the photograph, and CJ's listing title is
+whatever the seller typed, which is something else entirely. A product whose
+box says "Spot Whitening Cream" is titled "Hoygi Radiant Moisturizer". So all
+seventeen rejects silently failed, the check printed "visual reject 0", and
+that zero was read as "none present" when it meant "the matcher found nothing".
+Eight products reached the catalogue that way, two of them carrying skin
+lightening claims.
 
-1. SYRINGES. Several ampoule listings photograph the bottle beside a syringe.
-   The product is a topical serum, but the picture sells an injectable. That is
-   a medical framing this store cannot carry, and no word in the CJ title says
-   so, so only the image gives it away.
+So the rejects are pinned to the source index now. An index cannot drift on a
+rewording, and it cannot half-match. The trade is that the list only makes
+sense against a specific selection, which is why the file names it.
 
-2. THE PACKAGE CONTRADICTS THE TITLE. CJ's title is whatever the seller typed;
-   the carton says what the product actually is. One listing titled
-   "Ampoule Serum Facial Mask" is a hyaluronic acid sheet mask, and hyaluronic
-   acid is already on our shelf. Another titled as a plain ampoule shows PDRN
-   and stem cells on the box. Name matching cannot reach any of that.
-
-3. DIAGRAMS THAT PASS AS PACKSHOTS. An ingredient callout chart, a "how to use"
-   panel and a dimensions drawing are all one subject on a plain ground with no
-   people, so they score well and are still not product photography.
-
-Indices are into raw5/final50.json as selected on 2026-09-16. The pid is
-recorded alongside so the list survives a reselection.
+Pinned against raw5/final50.json as selected on 2026-09-16.
 """
 
+# index -> why it cannot be sold, in the words of what the photograph shows
 REJECTS = {
-    # syringe or injectable framing
-    "syringe": [
-        "Deep Collagen Peptide Intensive Ampoule",
-        "Deep Collagen Silk Peptide Intensive Ampoule",
-        "Silk Peptide Intensive Ampoule Portable",
-        "Anti-Wrinkle Serum Ampoule",
-        "Salmon-Infused Illuminating And Hydrating Ampoule Serum",
-        "Gold Ampoule Mask Hydrating And Brightening Delicate",
-        "Moisturizing Pores, Moisturizing Skin, Ampoule",
-    ],
-    # skin lightening, which is a regulated claim we do not make
-    "lightening": [
-        "Tranexamic Acid Cream",
-        "Skin Genesis Spot Whitening Cream",
-    ],
-    # the carton says something the title does not
-    "package contradicts title": [
-        "Hyaluronic Acid Ampoule Serum Facial Mask",
-        "Stem Cell Ampoule PDRN",
-    ],
-    # a diagram, a bundle shot or an instruction panel, not a packshot
-    "not a packshot": [
-        "Whipped Tallow Cream",
-        "Slow Velvet Firming Moisture Cream",
-        "Men's Facial Skin Care Products Toner And Lotion Cream Moisturizer",
-        "Slow Rice Toner",
-        "Acne Pimple Patches, Hydrocolloid Acne Patches With Tea Tree Oil",
-        "Astaxanthin Liquid Small Ampoule Solution",
-    ],
+    7:  "carton reads Tranexamic Acid, lighten freckles and brighten skin tone. "
+        "Skin lightening is a claim this store does not make.",
+    11: "carton reads 477 Skin Genesis Spot Whitening Cream. Same reason.",
+    13: "carton reads Premium Retinol Moisturizer. Retinol is already the hero "
+        "active of a product this store sells, and product 06 was dropped for "
+        "the same reason before anything was created. Only the photograph says "
+        "so; the listing title does not.",
+    30: "box plus applicator vials branded DNA Anti-Aging Serum. The framing is "
+        "medical and the shot is a box, not a product.",
+    32: "photographed beside a syringe. The product is a topical serum and the "
+        "picture sells an injectable.",
+    33: "an ampoule carton with the vials arranged inside it, not a packshot.",
+    34: "box plus dropper, and the carton leads on niacinamide, which is already "
+        "the hero active of a product this store sells.",
+    35: "an abstract render of ice and stone. Whatever it is, it is not the "
+        "product.",
+    36: "a How To Use instruction panel. One subject on a plain ground, so the "
+        "automatic filter passed it, and still not product photography.",
 }
 
-# every rejected title, flattened, for cheap membership tests
-ALL = [t for group in REJECTS.values() for t in group]
+
+def is_rejected(src_index):
+    return int(src_index) in REJECTS
 
 
-def is_rejected(name):
-    """True when this listing was rejected on sight.
+def reason(src_index):
+    return REJECTS.get(int(src_index), "")
 
-    Matching is loose on purpose: CJ titles carry stray punctuation, doubled
-    spaces and inconsistent case, so the stored title and the live one rarely
-    agree character for character.
-    """
-    n = " ".join((name or "").lower().split())
-    return any(" ".join(t.lower().split())[:40] in n for t in ALL)
+
+if __name__ == "__main__":
+    import io, json, os, sys
+    sys.stdout.reconfigure(encoding="utf-8")
+    here = os.path.dirname(os.path.abspath(__file__))
+    sel = json.load(io.open(os.path.join(here, "raw5", "final50.json"), encoding="utf-8"))
+    print("%d rejected on sight\n" % len(REJECTS))
+    for i, why in sorted(REJECTS.items()):
+        print("  %02d  %s" % (i, (sel[i]["name"] or "")[:52]))
+        print("      %s" % why)

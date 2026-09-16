@@ -89,11 +89,6 @@
   "handle": "novaglow-peptide-toner",
   "title": "NovaGlow - טונר פפטידים"
  },
- "30": {
-  "gid": "gid://shopify/Product/10418795544871",
-  "handle": "novaglow-dna-essence",
-  "title": "NovaGlow - אסנס לילה"
- },
  "31": {
   "gid": "gid://shopify/Product/10418795675943",
   "handle": "novaglow-toner-pads",
@@ -113,21 +108,6 @@
   "gid": "gid://shopify/Product/10418796232999",
   "handle": "novaglow-face-neck-cream",
   "title": "NovaGlow - קרם פנים וצוואר"
- },
- "11": {
-  "gid": "gid://shopify/Product/10418796396839",
-  "handle": "novaglow-kojic-radiance-cream",
-  "title": "NovaGlow - קרם קוגיק"
- },
- "13": {
-  "gid": "gid://shopify/Product/10418796495143",
-  "handle": "novaglow-collagen-cream",
-  "title": "NovaGlow - קרם קולגן"
- },
- "7": {
-  "gid": "gid://shopify/Product/10418796626215",
-  "handle": "novaglow-brightening-cream",
-  "title": "NovaGlow - קרם זוהר"
  },
  "10": {
   "gid": "gid://shopify/Product/10418796790055",
@@ -153,31 +133,6 @@
   "gid": "gid://shopify/Product/10418797314343",
   "handle": "novaglow-rich-balm",
   "title": "NovaGlow - באלם עשיר"
- },
- "33": {
-  "gid": "gid://shopify/Product/10418797478183",
-  "handle": "novaglow-ceramide-ampoule",
-  "title": "NovaGlow - אמפולות סרמיד"
- },
- "36": {
-  "gid": "gid://shopify/Product/10418797674791",
-  "handle": "novaglow-collagen-ampoule",
-  "title": "NovaGlow - אמפולת קולגן"
- },
- "34": {
-  "gid": "gid://shopify/Product/10418797838631",
-  "handle": "novaglow-gold-ampoule",
-  "title": "NovaGlow - אמפולת זהב"
- },
- "32": {
-  "gid": "gid://shopify/Product/10418797969703",
-  "handle": "novaglow-silk-peptide-ampoule",
-  "title": "NovaGlow - אמפולת משי"
- },
- "35": {
-  "gid": "gid://shopify/Product/10418798100775",
-  "handle": "novaglow-black-rice-ampoule",
-  "title": "NovaGlow - אמפולת אורז"
  },
  "42": {
   "gid": "gid://shopify/Product/10418798264615",

@@ -10,7 +10,7 @@ matters here is silent: if a generation failed and nothing new downloaded, the
 previous product's image is sitting there and would be filed under this
 product's name without anything looking wrong.
 """
-import glob, os, shutil, sys, time
+import glob, hashlib, os, shutil, sys, time
 
 DL = os.path.join(os.path.expanduser("~"), "Downloads")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
@@ -27,10 +27,30 @@ def newest(max_age_s=180):
     return f, None
 
 
+def fingerprints():
+    """Content hashes of everything already filed, so a repeat is visible."""
+    out = {}
+    for f in glob.glob(os.path.join(OUT, "*.png")):
+        out[hashlib.sha1(open(f, "rb").read()).hexdigest()] = os.path.basename(f)
+    return out
+
+
 def claim(name):
+    """Take the newest download, unless it is stale or we already have it.
+
+    The duplicate check is the one that matters. The age cutoff catches a
+    download that never happened; this catches a download that happened twice,
+    which is what a re-click on an already-saved image produces and what filed
+    one product's bottle under another product's name. Identical bytes cannot be
+    two different products.
+    """
     f, why = newest()
     if not f:
         return None, why
+    digest = hashlib.sha1(open(f, "rb").read()).hexdigest()
+    seen = fingerprints()
+    if digest in seen:
+        return None, "these exact bytes are already filed as %s" % seen[digest]
     dest = os.path.join(OUT, name + ".png")
     shutil.move(f, dest)
     return dest, None

@@ -19,6 +19,21 @@ Anything steeper on an 80% margin would also train the customer to wait for it.
 
 Selling plans attach to products, not to variants, so this is safe to rerun:
 productJoinSellingPlanGroups is idempotent for a product already in the group.
+
+WHAT THIS DOES NOT DO, and it matters more than what it does.
+
+The groups this creates come back with `appId: null`, because they were made by
+the Admin API rather than by an app that holds subscription capability. Shopify
+will store them, attach them to products and show them in the admin, and it will
+not sell them. No frequency selector appears on the product page, and there is
+no contract to bill against, so a customer cannot subscribe to any of them. The
+live product page was checked and has no selector.
+
+So treat everything below as the pricing and the grouping decided in advance,
+not as a working subscription. To make it real: install Shopify Subscriptions,
+which is first party and free, and recreate these two groups through it. The
+intervals, the 15% and the exclusion list are the parts worth keeping, and they
+are the parts that took the thinking.
 """
 import io, json, os, sys
 
