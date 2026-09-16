@@ -112,7 +112,7 @@ async function d1OrderLedger(range: ReturnType<typeof resolveGrowthCockpitRange>
           currency: currencies[0] ?? null,
           quality: "PARTIAL" as const,
           source: "SHOPIFY_WEBHOOK_D1",
-          note: "Observed Shopify webhook order totals. Coverage is not authoritative until a Shopify reconciliation watermark exists.",
+          note: "A partial shadow of Shopify built from webhook deliveries, not the store's revenue. It covers only the orders whose webhooks this app received, and stands in only while Shopify itself cannot be read.",
         }
       : missingFinancialMetric(
           "SHOPIFY_WEBHOOK_D1",
