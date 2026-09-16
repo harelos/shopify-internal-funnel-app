@@ -2,6 +2,8 @@ export interface ExpectedBundle {
   bundle_size: number;
   black: number;
   dark_brown: number;
+  /** Added to the catalogue after launch; see BOTTLE_ORDER_BY_SEGMENTS. */
+  medium_brown: number;
   light_brown: number;
   purple: number;
   red: number;
@@ -10,7 +12,7 @@ export interface ExpectedBundle {
   original_sku: string;
 }
 
-export type NovaHairComponentKey = "black" | "dark_brown" | "light_brown" | "purple" | "red" | "free_kit";
+export type NovaHairComponentKey = "black" | "dark_brown" | "medium_brown" | "light_brown" | "purple" | "red" | "free_kit";
 
 export interface CjPhysicalMapping {
   vid: string;
@@ -24,6 +26,7 @@ export const CJ_PHYSICAL_MAPPINGS: Record<NovaHairComponentKey, CjPhysicalMappin
   dark_brown: { vid: "2412030839551624200", sku: "CJYD223160002BY", name: "Dark Brown", weight_g: 330.0 },
   light_brown: { vid: "2412030839551624400", sku: "CJYD223160003CX", name: "Light Brown", weight_g: 330.0 },
   purple: { vid: "2412030839551624700", sku: "CJYD223160005EV", name: "Purple", weight_g: 330.0 },
+  medium_brown: { vid: "2507140803121609000", sku: "CJYD223160006FU", name: "Medium Brown", weight_g: 330.0 },
   red: { vid: "2412030839551624600", sku: "CJYD223160004DW", name: "Red", weight_g: 330.0 },
   free_kit: { vid: "ED56BD86-3AF9-4E8E-9855-FBD046D33613", sku: "CJBJMRPF00756-Suit", name: "Free Hair Dye Kit", weight_g: 110.0 },
 };
@@ -70,7 +73,65 @@ export class NovaHairCjAutoOrderError extends Error {
   }
 }
 
-const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "light_brown", "purple", "red", "free_kit"];
+const REGEX_NOVASALE = /^NOVASALE-(2|4|6)((?:-\d+){5,6})$/;
+
+/**
+ * Reads a NOVASALE bundle SKU into per-shade bottle counts.
+ *
+ * Lives here, beside the CJ mappings, rather than in the monitor: the monitor
+ * imports the Worker runtime, which kept this pure logic untestable, and
+ * getting it wrong ships a customer the wrong hair colour.
+ */
+export function decodeBundleSku(sku: string, parentQuantity: number = 1): ExpectedBundle | null {
+  const m = REGEX_NOVASALE.exec(sku);
+  if (!m) return null;
+  const bundleSize = parseInt(m[1], 10);
+  const quantities = m[2].split("-").slice(1).map(value => parseInt(value, 10));
+  // The colour order depends on how many colours the SKU lists: Medium Brown
+  // was inserted third when it was added, so reading a six-colour SKU with the
+  // five-colour order would ship the wrong shade.
+  const order = BOTTLE_ORDER_BY_SEGMENTS[quantities.length];
+  if (!order || quantities.some(value => !Number.isFinite(value) || value < 0)) return null;
+  if (quantities.reduce((sum, value) => sum + value, 0) !== bundleSize) return null;
+
+  const bottles = Object.fromEntries(BOTTLE_KEYS.map(key => [key, 0])) as Record<NovaHairComponentKey, number>;
+  order.forEach((key, index) => { bottles[key] = quantities[index] * parentQuantity; });
+
+  return {
+    bundle_size: bundleSize * parentQuantity,
+    black: bottles.black,
+    dark_brown: bottles.dark_brown,
+    medium_brown: bottles.medium_brown,
+    light_brown: bottles.light_brown,
+    purple: bottles.purple,
+    red: bottles.red,
+    free_kit: 1 * parentQuantity,
+    expected_weight_g: (bundleSize * parentQuantity * 330.0) + (1 * parentQuantity * 110.0),
+    original_sku: sku
+  };
+}
+
+/** True when this SKU is a NovaHair bundle line. */
+export function isNovaHairBundleSku(sku: string): boolean {
+  return REGEX_NOVASALE.test(sku);
+}
+
+const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "free_kit"];
+
+/** Every bottle colour, in no particular order; free_kit is not a bottle. */
+export const BOTTLE_KEYS: NovaHairComponentKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red"];
+
+/**
+ * A NOVASALE SKU lists one quantity per colour, in catalogue order. A sixth
+ * colour (Medium Brown) was added after launch and inserted third, so a newer
+ * SKU carries six colour segments where an older one carries five. Both shapes
+ * are still sold, and reading a new SKU with the old order would ship the
+ * wrong colour, so the segment count selects the order.
+ */
+export const BOTTLE_ORDER_BY_SEGMENTS: Record<number, NovaHairComponentKey[]> = {
+  5: ["black", "dark_brown", "light_brown", "purple", "red"],
+  6: ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red"],
+};
 
 function compactText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -154,6 +215,12 @@ export function buildNovaHairCjCreateOrderPayload(
   const address = orderPayload.shipping_address && typeof orderPayload.shipping_address === "object" && !Array.isArray(orderPayload.shipping_address)
     ? orderPayload.shipping_address as Record<string, unknown>
     : {};
+  // CJ refuses an order with no postcode. Israeli shoppers often leave it
+  // blank, and Shopify does not require it for Israel, so the billing address
+  // is the one other place the same person may have typed it.
+  const billing = orderPayload.billing_address && typeof orderPayload.billing_address === "object" && !Array.isArray(orderPayload.billing_address)
+    ? orderPayload.billing_address as Record<string, unknown>
+    : {};
   const orderNum = normalizedNovaHairOrderNumber(orderPayload.name ?? orderPayload.order_number);
   const lineItems = Array.isArray(orderPayload.line_items) ? orderPayload.line_items as Array<Record<string, unknown>> : [];
   const bundleLine = lineItems.find(line => compactText(line.sku) === expected.original_sku);
@@ -161,7 +228,7 @@ export function buildNovaHairCjCreateOrderPayload(
 
   const payload: NovaHairCjCreateOrderPayload = {
     orderNumber: options.orderNumber ?? novaHairAutoCjOrderNumber(orderNum),
-    shippingZip: optionalText(address.zip),
+    shippingZip: optionalText(address.zip) ?? optionalText(billing.zip),
     shippingCountry: optionalText(address.country) ?? "Israel",
     shippingCountryCode: (optionalText(address.country_code) ?? "IL").toUpperCase(),
     shippingProvince: optionalText(address.province) ?? optionalText(address.city) ?? "Israel",

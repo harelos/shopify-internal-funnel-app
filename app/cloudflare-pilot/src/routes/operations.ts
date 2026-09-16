@@ -91,6 +91,7 @@ router.get("/operations/health", async (req, res) => {
 
   const financialRows = financial.results || [];
   const shopifyCoverage = latestBySource(financialRows, "SHOPIFY_ADMIN_ORDERS");
+  const cjCoverage = latestBySource(financialRows, "CJ_PAID_ORDERS");
   const metaCoverage = latestBySource(financialRows, "META_ADS_INSIGHTS");
   const supportStatusCounts = Object.fromEntries((supportCounts.results || []).map(row => [text(row.status) || "UNKNOWN", count(row.count)]));
   const agentLastRunAt = iso(mailbox?.lastAgentRunAt);
@@ -98,6 +99,49 @@ router.get("/operations/health", async (req, res) => {
   const paidOrders = count(orders?.paid);
   const linkedOrders = count(orders?.linked);
   const incidents: Array<Record<string, unknown>> = [];
+
+  // A sale CJ never received is invisible on the shipment board, because that
+  // board is built from CJ's own order list. The cost reconciler knows: it has
+  // to price those sales from the identical bundle instead of from a CJ order.
+  const sinceDate = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+  const notAtCj = await db.prepare(`SELECT COUNT(*) AS "count" FROM "FinancialLedgerEntry"
+    WHERE "source" = 'CJ_ORDER_COSTS' AND "occurredDate" >= ?
+      AND json_extract("metadata", '$.costBasis') = 'CJ_BUNDLE_PRICE'`).bind(sinceDate).first<Row>().catch(() => null);
+  const autoCreateFailures = await db.prepare(`SELECT COUNT(*) AS "count", MAX("result") AS "reason"
+    FROM "NovaHairPendingOrder" WHERE "syncState" LIKE '%FAILED%'`).first<Row>().catch(() => null);
+  // Held for an address a person can correct, which releases the order itself.
+  const addressHolds = await db.prepare(`SELECT COUNT(*) AS "count", GROUP_CONCAT("orderNum") AS "orders"
+    FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_ADDRESS_FIX'`).first<Row>().catch(() => null);
+  const unsentCount = count(notAtCj?.count);
+  if (unsentCount > 0) {
+    incidents.push({
+      severity: "CRITICAL",
+      area: "Fulfilment",
+      title: `${unsentCount} paid ${unsentCount === 1 ? "order has" : "orders have"} not been ordered from CJ`,
+      action: "The customer paid and CJ holds no order, so nothing will ship. Create the CJ order by hand, or fix the cause below.",
+    });
+  }
+  if (count(addressHolds?.count) > 0) {
+    const orders = String(text(addressHolds?.orders) || "").split(",").filter(Boolean).slice(0, 12).map(n => `#${n}`).join(", ");
+    incidents.push({
+      severity: "CRITICAL",
+      area: "Fulfilment",
+      title: `${count(addressHolds?.count)} order(s) are held because CJ will not accept the address`,
+      action: `Add the missing postcode in Shopify for ${orders || "these orders"}; each one is re-sent to CJ automatically within a minute of being corrected.`,
+    });
+  }
+  if (count(autoCreateFailures?.count) > 0) {
+    const reason = text(autoCreateFailures?.reason) || "";
+    const postcode = /postcode/i.test(reason);
+    incidents.push({
+      severity: "CRITICAL",
+      area: "Fulfilment",
+      title: `Automatic CJ ordering failed for ${count(autoCreateFailures?.count)} order(s)`,
+      action: postcode
+        ? "CJ rejects these addresses for a missing or non-numeric postcode. Add the postcode in Shopify and re-run, or place the CJ order by hand."
+        : `CJ refused the order: ${reason.slice(0, 160)}`,
+    });
+  }
 
   if (!mailbox) {
     incidents.push({ severity: "CRITICAL", area: "Support", title: "Mailbox agent is not configured", action: "Open Support and verify the mailbox connection." });
@@ -118,6 +162,11 @@ router.get("/operations/health", async (req, res) => {
     incidents.push({ severity: "WARNING", area: "Acquisition", title: "Meta cost coverage is unavailable", action: "Do not use blended ROAS from the app until the Meta connection is restored." });
   } else if (stateFromAge(iso(metaCoverage.reconciledAt), now, 25) === "ATTENTION") {
     incidents.push({ severity: "WARNING", area: "Acquisition", title: "Meta cost coverage is stale", action: "Use Meta Ads Manager for current spend until the scheduled sync is restored." });
+  }
+  if (!cjCoverage) {
+    incidents.push({ severity: "CRITICAL", area: "Costs", title: "Product cost has never been reconciled", action: "Profit and margin cannot be computed. Check the CJ credential in Operations." });
+  } else if (stateFromAge(iso(cjCoverage.reconciledAt), now, 48 * 60) === "ATTENTION") {
+    incidents.push({ severity: "CRITICAL", area: "Costs", title: "Product cost reconciliation is stale", action: "Profit and margin are measured without current CJ cost. Verify the CJ credential." });
   }
   if (paidOrders > linkedOrders) {
     incidents.push({ severity: "INFO", area: "Attribution", title: `${paidOrders - linkedOrders} paid ${paidOrders - linkedOrders === 1 ? "order has" : "orders have"} no verified browser journey today`, action: "Revenue is counted, but the missing journey will remain unattributed rather than guessed." });

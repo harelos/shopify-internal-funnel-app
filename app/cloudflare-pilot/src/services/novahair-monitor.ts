@@ -1,30 +1,7 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
-import { persistFinancialLedgerEntries } from "../lib/financial-ledger.js";
-import {
-  buildNovaHairCjCreateOrderPayload,
-  CJ_PHYSICAL_MAPPINGS,
-  novaHairAutoCjOrderNumber,
-  type ExpectedBundle,
-} from "../lib/novahair-cj-auto-order.js";
+// Re-exported so existing callers keep importing it from the monitor.
+export { decodeBundleSku } from "../lib/novahair-cj-auto-order.js";
 
-export interface NovaHairState {
-  id: string;
-  releaseState: string;
-  deploymentTimestamp: string;
-  passedCount: number;
-  failedCount: number;
-  circuitBreakerTriggered: boolean;
-  purchaseKillSwitchActive: boolean;
-  transformActive: boolean;
-  monitoredOrders: any[];
-  seenOrderIds: string[];
-  incidentData: any | null;
-  lastWebhookTimestamp: string | null;
-  lastCjSyncTimestamp: string | null;
-  updatedAt: string;
-}
-
-const REGEX_NOVASALE = /^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$/;
 const EXCLUDED_ORDER_NUMBERS = new Set(["4359", "4360", "4361", "4362"]);
 const EXCLUDED_TAG_KEYWORDS = ["INTERNAL_", "TEST", "CANARY", "BOOTSTRAP", "DO_NOT_FULFILL"];
 const PRODUCT_ID = "gid://shopify/Product/10341269274919";
@@ -127,30 +104,37 @@ export async function saveNovaHairState(db: any, state: NovaHairState): Promise<
     "singleton"
   ).run();
 }
+import { readCachedToken, writeCachedToken } from "../lib/service-token-cache.js";
+import { persistFinancialLedgerEntries } from "../lib/financial-ledger.js";
+import {
+  BOTTLE_KEYS,
+  decodeBundleSku,
+  isNovaHairBundleSku,
+  BOTTLE_ORDER_BY_SEGMENTS,
+  buildNovaHairCjCreateOrderPayload,
+  CJ_PHYSICAL_MAPPINGS,
+  novaHairAutoCjOrderNumber,
+  type ExpectedBundle,
+  type NovaHairComponentKey,
+} from "../lib/novahair-cj-auto-order.js";
 
-export function decodeBundleSku(sku: string, parentQuantity: number = 1): ExpectedBundle | null {
-  const m = REGEX_NOVASALE.exec(sku);
-  if (!m) return null;
-  const bundleSize = parseInt(m[1], 10);
-  const b = parseInt(m[2], 10);
-  const db = parseInt(m[3], 10);
-  const lb = parseInt(m[4], 10);
-  const p = parseInt(m[5], 10);
-  const r = parseInt(m[6], 10);
-  if (b + db + lb + p + r !== bundleSize) return null;
-
-  return {
-    bundle_size: bundleSize * parentQuantity,
-    black: b * parentQuantity,
-    dark_brown: db * parentQuantity,
-    light_brown: lb * parentQuantity,
-    purple: p * parentQuantity,
-    red: r * parentQuantity,
-    free_kit: 1 * parentQuantity,
-    expected_weight_g: (bundleSize * parentQuantity * 330.0) + (1 * parentQuantity * 110.0),
-    original_sku: sku
-  };
+export interface NovaHairState {
+  id: string;
+  releaseState: string;
+  deploymentTimestamp: string;
+  passedCount: number;
+  failedCount: number;
+  circuitBreakerTriggered: boolean;
+  purchaseKillSwitchActive: boolean;
+  transformActive: boolean;
+  monitoredOrders: any[];
+  seenOrderIds: string[];
+  incidentData: any | null;
+  lastWebhookTimestamp: string | null;
+  lastCjSyncTimestamp: string | null;
+  updatedAt: string;
 }
+
 
 async function shopifyGql(query: string, variables: any = {}): Promise<any> {
   const token = getEnvVar("SHOPIFY_ADMIN_ACCESS_TOKEN", getEnvVar("SHOPIFY_ACCESS_TOKEN"));
@@ -165,8 +149,23 @@ async function shopifyGql(query: string, variables: any = {}): Promise<any> {
   return res.json();
 }
 
+const CJ_TOKEN_CACHE_ID = "cj:access_token";
+
 async function getCjToken(): Promise<string> {
+  // CJ issues long-lived access tokens directly as well as exchangeable API
+  // keys. The account's API keys are currently rejected while its issued token
+  // works, so a configured token is used as-is and the exchange is skipped.
+  const issued = getEnvVar("CJ_ACCESS_TOKEN");
+  if (issued) return issued;
   if (cjTokenCache && cjTokenCache.expiresAt > Date.now() + 60_000) return cjTokenCache.token;
+  // A recycled isolate loses the in-memory token, and CJ rate-limits
+  // authentication to roughly one call every five minutes, so the token is also
+  // kept in D1. Without this a frequent schedule locks the account out.
+  const persisted = await readCachedToken(CJ_TOKEN_CACHE_ID);
+  if (persisted) {
+    cjTokenCache = { token: persisted, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return persisted;
+  }
   const apiKey = getEnvVar("CJ_API_KEY");
   if (!apiKey) throw new Error("CJ_API_KEY is not configured.");
   const res = await fetch(CJ_AUTH_URL, {
@@ -181,10 +180,9 @@ async function getCjToken(): Promise<string> {
     throw new Error(`CJ authentication failed: ${String(data?.message || `HTTP ${res.status}`).slice(0, 180)}`);
   }
   const documentedExpiry = Date.parse(String(data?.data?.accessTokenExpiryDate || ""));
-  cjTokenCache = {
-    token,
-    expiresAt: Number.isFinite(documentedExpiry) ? documentedExpiry : Date.now() + 23 * 60 * 60 * 1000,
-  };
+  const expiresAt = Number.isFinite(documentedExpiry) ? documentedExpiry : Date.now() + 23 * 60 * 60 * 1000;
+  cjTokenCache = { token, expiresAt };
+  await writeCachedToken(CJ_TOKEN_CACHE_ID, token, expiresAt);
   return token;
 }
 
@@ -298,6 +296,41 @@ export async function listCjOrders(pageNum: number, pageSize: number, filters: R
   return rows;
 }
 
+/**
+ * CJ's tracking events for one parcel — the only source that knows whether a
+ * parcel is still in China or already released from Israeli customs.
+ */
+export async function cjTrackInfo(trackNumber: string): Promise<{
+  trackingNumber: string;
+  trackingStatus: string | null;
+  cjMailNo: string | null;
+  logisticName: string | null;
+  deliveryDay: number | null;
+  lastMileCarrier: string | null;
+  routes: Array<{ acceptTime: string | null; acceptAddress: string | null; remark: string }>;
+} | null> {
+  const number = String(trackNumber || "").trim();
+  if (!number) return null;
+  const response = await cjGet("logistic/trackInfo", { trackNumber: number });
+  const rows = Array.isArray(response?.data) ? response.data : [];
+  const row = rows[0];
+  if (!row || typeof row !== "object") return null;
+  const deliveryDay = Number(row.deliveryDay);
+  return {
+    trackingNumber: String(row.trackingNumber || number),
+    trackingStatus: row.trackingStatus ? String(row.trackingStatus) : null,
+    cjMailNo: row.cjMailNo ? String(row.cjMailNo) : null,
+    logisticName: row.logisticName ? String(row.logisticName) : null,
+    deliveryDay: Number.isFinite(deliveryDay) ? deliveryDay : null,
+    lastMileCarrier: row.lastMileCarrier ? String(row.lastMileCarrier) : null,
+    routes: (Array.isArray(row.routes) ? row.routes : []).map((route: any) => ({
+      acceptTime: route?.acceptTime ? String(route.acceptTime) : null,
+      acceptAddress: route?.acceptAddress ? String(route.acceptAddress) : null,
+      remark: String(route?.remark || ""),
+    })).filter((route: any) => route.remark),
+  };
+}
+
 export async function getCjOrderDetail(orderId: string): Promise<any> {
   if (!orderId) throw new Error("CJ order detail requires an order ID.");
   const response = await cjGet("shopping/order/getOrderDetail", { orderId });
@@ -409,11 +442,41 @@ export async function enqueuePendingOrder(orderPayload: any, expected: ExpectedB
   console.log(`[D1 QUEUE] Enqueued Order #${orderNum} for durable background CJ verification.`);
 }
 
+/** CJ rejected the address itself; a person can fix it and the order can go. */
+function isAddressRejection(message: string): boolean {
+  return /postcode|post code|postal|zip|address/i.test(message);
+}
+
+/**
+ * Re-reads the shipping address from Shopify.
+ *
+ * The queue stores the order payload as it arrived, so a retry would resend the
+ * same empty postcode forever. Reading the address again means the order goes
+ * through by itself the moment the postcode is filled in.
+ */
+async function refreshedShippingAddress(rawId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const data = await shopifyGql(`query($id: ID!) { order(id: $id) {
+      shippingAddress { zip city province provinceCode country countryCodeV2 address1 address2 phone firstName lastName }
+    } }`, { id: `gid://shopify/Order/${rawId}` });
+    const address = data?.order?.shippingAddress;
+    if (!address) return null;
+    return {
+      zip: address.zip, city: address.city, province: address.province, province_code: address.provinceCode,
+      country: address.country, country_code: address.countryCodeV2, address1: address.address1,
+      address2: address.address2, phone: address.phone, first_name: address.firstName, last_name: address.lastName,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function processPendingQueueCron(db: any): Promise<void> {
   const pendingRows = await db.prepare(`
     SELECT * FROM "NovaHairPendingOrder"
     WHERE syncState IN ('WAITING_FOR_CJ_SYNC', 'CJ_SYNC_DELAYED', 'CJ_AUTO_CREATED')
       OR (syncState = 'CJ_AUTO_CREATE_FAILED' AND attempts < 3)
+      OR syncState = 'NEEDS_ADDRESS_FIX'
     ORDER BY firstSeenAt ASC LIMIT 10
   `).all();
 
@@ -429,6 +492,13 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const expected: ExpectedBundle = JSON.parse(row.expectedData);
     const orderPayload = JSON.parse(row.orderPayload);
     const attempts = Number(row.attempts || 0) + 1;
+    // An order held for a bad address retries against the live address, so
+    // correcting it in Shopify is all it takes to release the order.
+    if (row.syncState === "NEEDS_ADDRESS_FIX") {
+      const address = await refreshedShippingAddress(String(rawId));
+      if (!address || !String(address.zip || "").trim()) continue;
+      orderPayload.shipping_address = { ...(orderPayload.shipping_address || {}), ...address };
+    }
     const firstSeen = new Date(row.firstSeenAt).getTime();
     const elapsedSeconds = Math.floor((Date.now() - firstSeen) / 1000);
 
@@ -461,11 +531,14 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     } catch (err) {
       console.warn(`[CRON CJ AUTO/POLL TRANSIENT ERROR] Order #${orderNum}:`, err);
       const message = err instanceof Error ? err.message : String(err);
+      // An address CJ will not accept is not a transient error: retrying it
+      // three times and giving up is how orders died silently for days.
+      const state = isAddressRejection(message) ? "NEEDS_ADDRESS_FIX" : "CJ_AUTO_CREATE_FAILED";
       await db.prepare(`
         UPDATE "NovaHairPendingOrder"
         SET syncState = ?, attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
         WHERE orderId = ?
-      `).bind("CJ_AUTO_CREATE_FAILED", attempts, message.slice(0, 240), orderId).run();
+      `).bind(state, attempts, message.slice(0, 240), orderId).run();
       continue;
     }
 
@@ -493,24 +566,18 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const cjData = detailRes?.data || {};
     const productList = cjData.productList || [];
 
-    const cjQuantities: Record<string, number> = {
-      black: 0, dark_brown: 0, light_brown: 0, purple: 0, red: 0, free_kit: 0
-    };
+    const cjQuantities: Record<string, number> = Object.fromEntries(
+      (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]).map(key => [key, 0]),
+    );
+    const keyByVid = new Map<string, NovaHairComponentKey>(
+      (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]).map(key => [CJ_PHYSICAL_MAPPINGS[key].vid, key]),
+    );
 
     let vidError: string | null = null;
     for (const item of productList) {
-      const vid = item.vid;
-      const qty = Number(item.quantity || 0);
-      if (vid === CJ_PHYSICAL_MAPPINGS.black.vid) cjQuantities.black += qty;
-      else if (vid === CJ_PHYSICAL_MAPPINGS.dark_brown.vid) cjQuantities.dark_brown += qty;
-      else if (vid === CJ_PHYSICAL_MAPPINGS.light_brown.vid) cjQuantities.light_brown += qty;
-      else if (vid === CJ_PHYSICAL_MAPPINGS.purple.vid) cjQuantities.purple += qty;
-      else if (vid === CJ_PHYSICAL_MAPPINGS.red.vid) cjQuantities.red += qty;
-      else if (vid === CJ_PHYSICAL_MAPPINGS.free_kit.vid) cjQuantities.free_kit += qty;
-      else {
-        vidError = vid;
-        break;
-      }
+      const key = keyByVid.get(String(item.vid));
+      if (!key) { vidError = item.vid; break; }
+      cjQuantities[key] += Number(item.quantity || 0);
     }
 
     if (vidError) {
@@ -521,7 +588,7 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     }
 
     const mismatches: string[] = [];
-    for (const shade of ["black", "dark_brown", "light_brown", "purple", "red", "free_kit"] as const) {
+    for (const shade of Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]) {
       const exp = expected[shade];
       const act = cjQuantities[shade];
       if (exp !== act) mismatches.push(`${shade}: expected ${exp}, got ${act}`);
@@ -624,7 +691,7 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
 
   for (const li of lineItems) {
     const sku = String(li.sku || "");
-    if (REGEX_NOVASALE.test(sku)) {
+    if (isNovaHairBundleSku(sku)) {
       expectedBundle = decodeBundleSku(sku, Number(li.quantity || 1));
       break;
     }
@@ -635,21 +702,18 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
     for (const li of lineItems) {
       const s = String(li.sku || "");
       const q = Number(li.quantity || 0);
-      if (s === CJ_PHYSICAL_MAPPINGS.black.sku) shopifyComponents.black = q;
-      else if (s === CJ_PHYSICAL_MAPPINGS.dark_brown.sku) shopifyComponents.dark_brown = q;
-      else if (s === CJ_PHYSICAL_MAPPINGS.light_brown.sku) shopifyComponents.light_brown = q;
-      else if (s === CJ_PHYSICAL_MAPPINGS.purple.sku) shopifyComponents.purple = q;
-      else if (s === CJ_PHYSICAL_MAPPINGS.red.sku) shopifyComponents.red = q;
-      else if (s === CJ_PHYSICAL_MAPPINGS.free_kit.sku) shopifyComponents.free_kit = q;
+      const key = (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[])
+        .find(candidate => CJ_PHYSICAL_MAPPINGS[candidate].sku === s);
+      if (key) shopifyComponents[key] = q;
     }
 
     if (shopifyComponents.free_kit && shopifyComponents.free_kit > 0) {
-      const bottleSum = (shopifyComponents.black || 0) + (shopifyComponents.dark_brown || 0) +
-                        (shopifyComponents.light_brown || 0) + (shopifyComponents.purple || 0) + (shopifyComponents.red || 0);
+      const bottleSum = BOTTLE_KEYS.reduce((sum, key) => sum + (shopifyComponents[key] || 0), 0);
       expectedBundle = {
         bundle_size: bottleSum,
         black: shopifyComponents.black || 0,
         dark_brown: shopifyComponents.dark_brown || 0,
+        medium_brown: shopifyComponents.medium_brown || 0,
         light_brown: shopifyComponents.light_brown || 0,
         purple: shopifyComponents.purple || 0,
         red: shopifyComponents.red || 0,
