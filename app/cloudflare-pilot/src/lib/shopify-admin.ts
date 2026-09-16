@@ -659,6 +659,53 @@ export class ShopifyAdminClient {
   }
 
   /**
+   * The REST-shaped order payload the fulfilment queue replays.
+   *
+   * The queue stores whatever the webhook delivered, so a backfilled order has
+   * to be handed the same shape or the CJ address would be built from nothing.
+   */
+  async orderPayloadForFulfilment(legacyOrderId: string): Promise<Record<string, unknown> | null> {
+    type Node = {
+      id: string; name: string; email: string | null; phone: string | null; note: string | null;
+      shippingAddress: Record<string, unknown> | null;
+      billingAddress: Record<string, unknown> | null;
+      lineItems: { nodes: Array<{ id: string; sku: string | null; quantity: number; name: string }> };
+      customAttributes: Array<{ key: string; value: string }>;
+    };
+    const data = await this.customerGraphql<{ order: Node | null }>(`query FulfilmentPayload($id: ID!) {
+      order(id: $id) {
+        id name email phone note
+        shippingAddress { firstName lastName address1 address2 city province provinceCode country countryCodeV2 zip phone }
+        billingAddress { zip }
+        lineItems(first: 30) { nodes { id sku quantity name } }
+        customAttributes { key value }
+      }
+    }`, { id: `gid://shopify/Order/${legacyOrderId}` });
+    const order = data.order;
+    if (!order) return null;
+    const address = (value: Record<string, unknown> | null) => value
+      ? {
+          first_name: value.firstName, last_name: value.lastName, address1: value.address1, address2: value.address2,
+          city: value.city, province: value.province, province_code: value.provinceCode,
+          country: value.country, country_code: value.countryCodeV2, zip: value.zip, phone: value.phone,
+        }
+      : null;
+    return {
+      id: legacyOrderId,
+      admin_graphql_api_id: order.id,
+      name: order.name,
+      order_number: String(order.name || "").replace(/^#/, ""),
+      email: order.email,
+      phone: order.phone,
+      note: order.note,
+      shipping_address: address(order.shippingAddress),
+      billing_address: address(order.billingAddress),
+      line_items: order.lineItems.nodes.map(item => ({ id: item.id, sku: item.sku, quantity: item.quantity, name: item.name })),
+      note_attributes: (order.customAttributes || []).map(attribute => ({ name: attribute.key, value: attribute.value })),
+    };
+  }
+
+  /**
    * How many distinct buyers ordered in a window, and how many came back.
    *
    * Grouped by customer id where Shopify gives one and by the order's contact

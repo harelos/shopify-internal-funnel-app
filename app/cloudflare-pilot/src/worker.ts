@@ -30,6 +30,7 @@ export default {
       const { refreshShipmentTracking } = await import("./services/shipment-refresh.js");
       const { snapshotDashboardDaily } = await import("./services/dashboard-daily.js");
       const { sendOwnerDigest } = await import("./services/owner-digest.js");
+      const { reconcileMissingCjOrders } = await import("./services/cj-order-backfill.js");
       const { reconcileShopifyOrderAttribution } = await import("./services/shopify-order-reconcile.js");
       if (workerEnv?.DB) {
         // A rejection inside waitUntil settles after this try block has already
@@ -53,6 +54,11 @@ export default {
         ];
         if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 0) {
           tasks.push(run("reconcileShopifyOrderAttribution", reconcileShopifyOrderAttribution()));
+        }
+        // A paid order the supplier never received is invisible otherwise:
+        // nothing retries an order that was never queued in the first place.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 20 === 11) {
+          tasks.push(run("reconcileMissingCjOrders", reconcileMissingCjOrders()));
         }
         // One email a morning with anything that needs a person.
         if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 6) {

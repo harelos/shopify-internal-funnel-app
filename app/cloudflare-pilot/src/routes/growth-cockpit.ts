@@ -850,4 +850,20 @@ router.get("/growth-cockpit/customer-value", async (req, res) => {
   }
 });
 
+/**
+ * Finds paid orders the supplier never received. Dry by default: placing a
+ * duplicate supplier order costs real money.
+ */
+router.post("/growth-cockpit/cj-backfill", async (req, res) => {
+  try {
+    const { reconcileMissingCjOrders } = await import("../services/cj-order-backfill.js");
+    const dryRun = String(req.query.commit || "") !== "true";
+    const result = await reconcileMissingCjOrders({ dryRun });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, dryRun, ...result });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
+});
+
 export default router;
