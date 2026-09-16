@@ -22,22 +22,37 @@ sys.path.insert(0, HERE)
 import copy_glow
 import shopify
 
-# index -> why this one is ready
-READY = {
-    0:  "generated house frame, bottle alone",
-    1:  "generated house frame, jar alone",
-    2:  "generated house frame, tube alone",
+# A product is ready when its photograph is the product and nothing else.
+#
+# Any product with a generated house frame qualifies by construction: the frame
+# is made from a prompt that forbids the carton, and every batch was checked
+# against its reference before being filed. The few below are supplier shots
+# that were already clean when looked at.
+#
+# 37 is deliberately excluded. Its photograph reads as polished stone while its
+# own specification sheet says resin, and the copy says resin because that is
+# what arrives. A stone photograph against a resin description invites exactly
+# one support ticket per order.
+import os
+
+APPROVED_SUPPLIER_SHOTS = {
     24: "supplier shot is already a single bottle on a clean ground",
     38: "stone alone",
     39: "the three amethyst pieces, nothing else",
     40: "stone alone",
     41: "roller and stone, nothing else",
 }
+HELD = {37: "photo reads as stone, spec sheet and copy say resin"}
 
-# 37 is deliberately absent. Its photograph shows what reads as polished stone
-# while its own specification sheet says resin, and the copy says resin because
-# that is what arrives. Publishing a stone photograph against a resin
-# description invites exactly one support ticket per order.
+
+def ready(src_index):
+    if src_index in HELD:
+        return None
+    gen = os.path.join(HERE, "gen", "out", "%02d_0_hero.png" % src_index)
+    if os.path.exists(gen):
+        return "generated house frame"
+    return APPROVED_SUPPLIER_SHOTS.get(src_index)
+
 
 ACTIVATE = """
 mutation up($product: ProductUpdateInput!) {
@@ -73,7 +88,8 @@ def run():
     live, held = [], []
     for src, rec in sorted(done.items(), key=lambda kv: int(kv[0])):
         idx = int(src)
-        if idx not in READY:
+        why = ready(idx)
+        if not why:
             held.append((idx, by_src[idx]["title"]))
             continue
         d = shopify.gql(ACTIVATE, {"product": {"id": rec["gid"], "status": "ACTIVE"}})
@@ -87,7 +103,7 @@ def run():
             print("  FAILED publish %-24s %s" % (rec["handle"], errs))
             continue
         live.append((idx, rec["handle"], by_src[idx]["title"]))
-        print("  live  %-32s %-26s %s" % (rec["handle"], by_src[idx]["title"], READY[idx]))
+        print("  live  %-34s %-26s %s" % (rec["handle"], by_src[idx]["title"], why))
         sys.stdout.flush()
 
     print("\n%d live, %d still drafts waiting on a photograph" % (len(live), len(held)))

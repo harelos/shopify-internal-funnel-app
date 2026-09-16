@@ -20,13 +20,32 @@ Pinned against raw5/final50.json as selected on 2026-09-16.
 
 # index -> why it cannot be sold, in the words of what the photograph shows
 REJECTS = {
+    3:  "carton reads Brightening and Freckle Removing Facial Cleanser. Only "
+        "the generated frame revealed it, because it reproduced the carton "
+        "faithfully and the CJ title says Facial Cleansing Gentle Moisturizer "
+        "Care. Freckle removal is the same claim as 07 and 11.",
     7:  "carton reads Tranexamic Acid, lighten freckles and brighten skin tone. "
         "Skin lightening is a claim this store does not make.",
+    8:  "the jar itself reads Reduce fat deposits, dark spots and scars. That "
+        "is a slimming claim and a pigmentation claim printed on the product, "
+        "so it cannot be cropped out the way a carton can. Surfaced only when "
+        "the generated frame reproduced the label faithfully.",
     11: "carton reads 477 Skin Genesis Spot Whitening Cream. Same reason.",
     13: "carton reads Premium Retinol Moisturizer. Retinol is already the hero "
         "active of a product this store sells, and product 06 was dropped for "
         "the same reason before anything was created. Only the photograph says "
         "so; the listing title does not.",
+    21: "the carton reads Glycolic Acid 7% Toning Solution, which is the same "
+        "product as 18 and 22 from a different seller. Three sellers, one "
+        "formula. CJ titles call them Exfoliating Toner, Toner and Toning "
+        "Solution, so a word-overlap dedupe on titles cannot see it; the acid "
+        "and the strength are only on the carton. 18 is kept because more "
+        "merchants list it.",
+    22: "also Glycolic Acid 7%. Same reason as 21.",
+    27: "the bottle reads Whitening, Cleansing, Pore Minimizing under a Vitamin "
+        "C+ Brightening and Anti-Aging line. Whitening is the same claim as 07, "
+        "11 and 03, and it is printed on the bottle rather than the carton, so "
+        "it cannot be cropped away.",
     30: "box plus applicator vials branded DNA Anti-Aging Serum. The framing is "
         "medical and the shot is a box, not a product.",
     32: "photographed beside a syringe. The product is a topical serum and the "

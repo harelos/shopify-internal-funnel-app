@@ -1,9 +1,4 @@
 {
- "3": {
-  "gid": "gid://shopify/Product/10418792562983",
-  "handle": "novaglow-centella-gentle-cleanser",
-  "title": "NovaGlow - ג׳ל ניקוי סנטלה"
- },
  "5": {
   "gid": "gid://shopify/Product/10418792726823",
   "handle": "novaglow-matcha-cleanser",
@@ -41,18 +36,8 @@
  },
  "20": {
   "gid": "gid://shopify/Product/10418794004775",
-  "handle": "novaglow-malic-toner",
-  "title": "NovaGlow - טונר מאלי"
- },
- "21": {
-  "gid": "gid://shopify/Product/10418794201383",
-  "handle": "novaglow-glycolic-b5-toner",
-  "title": "NovaGlow - גליקולי עם B5"
- },
- "22": {
-  "gid": "gid://shopify/Product/10418794365223",
-  "handle": "novaglow-pore-refining-toner",
-  "title": "NovaGlow - טונר מאזן"
+  "handle": "novaglow-glycolic-10-toner",
+  "title": "NovaGlow - גליקולי 10%"
  },
  "23": {
   "gid": "gid://shopify/Product/10418794529063",
@@ -73,11 +58,6 @@
   "gid": "gid://shopify/Product/10418794955047",
   "handle": "novaglow-rice-balance-toner",
   "title": "NovaGlow - טונר אורז"
- },
- "27": {
-  "gid": "gid://shopify/Product/10418795151655",
-  "handle": "novaglow-vc-toner",
-  "title": "NovaGlow - טונר ויטמין C"
  },
  "28": {
   "gid": "gid://shopify/Product/10418795282727",
@@ -123,11 +103,6 @@
   "gid": "gid://shopify/Product/10418797052199",
   "handle": "novaglow-body-cream",
   "title": "NovaGlow - קרם גוף"
- },
- "8": {
-  "gid": "gid://shopify/Product/10418797150503",
-  "handle": "novaglow-body-cream-sensitive",
-  "title": "NovaGlow - קרם גוף עדין"
  },
  "1": {
   "gid": "gid://shopify/Product/10418797314343",

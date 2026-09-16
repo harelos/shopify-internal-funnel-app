@@ -75,3 +75,41 @@ wrong.
 `publish_glow.py --images` replaces the CJ packshot with the generated hero on
 any product that has one, without recreating the product. Products already
 created keep their handles, their copy and their subscription plans.
+
+---
+
+## Update after the second run
+
+**The relay replaced the download manager.** Chrome blocks repeated downloads
+from chatgpt.com at site level and that cannot be cleared from the page. So
+`relay.py` runs on 127.0.0.1:9123, the tab base64s a batch of images into
+`window.name`, navigates to the relay, and the server writes the files.
+`window.name` survives cross-origin navigation, which is the whole trick. Three
+images per trip. Start it and leave it running.
+
+**The composer is shared with another agent.** Partway through, the composer
+filled with a NovaHair banner brief in Hebrew that this session did not write.
+Another Claude is working in the same ChatGPT account. That is the real cause of
+most of the "typed text did not land" failures, and it is a reason to stop
+rather than something to work around: retrying means overwriting their prompt.
+Check the composer contents before sending; if it holds something you did not
+write, leave it alone and come back later.
+
+**The sequence that works**, when the composer is free:
+
+1. Load `https://chatgpt.com/` fresh. Do not reuse a chat.
+2. `find` the file input. Its ref changes on every load.
+3. Upload three references. **Four of them are .png, not .jpg**: 15, 24, 38, 42.
+   A wrong extension returns a permissions error, not a missing-file error.
+4. Real click on the composer, then real `type`. Do not use execCommand; it
+   inserts into the DOM without updating React, and the send button then
+   believes the composer is empty.
+5. Verify with `#prompt-textarea`.textContent.length before pressing Return.
+6. Return. Wait about two minutes. Scroll down to force the images to load,
+   then count `naturalWidth === 1254`.
+7. Stage into `window.name`, navigate to the relay, then `pairsheet.py NN NN NN`.
+
+**Always run the pair sheet.** It puts each result beside the reference it was
+made from. Two mislabellings got through without it and both were obvious with
+it. It also found five products whose carton makes a claim the store will not
+carry, which no filter on titles could ever have seen.
