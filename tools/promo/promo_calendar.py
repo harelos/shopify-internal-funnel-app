@@ -97,17 +97,25 @@ DAYS = [
      ["novahair-keratin-shampoo", "novahair-keratin-mask", "novahair-batana-oil-50"]),
 ]
 
+# The weekly offer runs against a collection, so it is only as stable as the
+# shelf underneath it. hair-care and scalp-care were deleted on 15 Sep in the
+# collection restructure, which expired both weekly discounts within the same
+# minute and left the page advertising 20% on two URLs that now 404. Repointed
+# at the mission shelves that replaced them: mission-repair is the shampoo,
+# mask and oil shelf the first week was always describing, and mission-scalp is
+# a near exact stand-in for scalp-care. Pick a shelf here that the restructure
+# is not about to move again.
 WEEKS = [
     dict(**{"from": "2026-09-15", "to": "2026-09-19"},
-         title="20% על כל טיפוח השיער",
-         body="כל השמפו, המסכות והשמנים באוסף טיפוח שיער, לאורך כל השבוע.",
-         url="/collections/hair-care", cta="לאוסף טיפוח שיער", percent=20,
-         collection="hair-care"),
+         title="20% על שמפו, מסכות ושמנים",
+         body="כל השמפו, המסכות והשמנים באוסף שיקום, לחות וברק, לאורך כל השבוע.",
+         url="/collections/mission-repair", cta="לאוסף שיקום ולחות", percent=20,
+         collection="mission-repair"),
     dict(**{"from": "2026-09-22", "to": "2026-09-30"},
          title="20% על טיפוח קרקפת",
          body="סרומים, שמנים ואמפולות לקרקפת, עד סוף החודש.",
-         url="/collections/scalp-care", cta="לאוסף טיפוח קרקפת", percent=20,
-         collection="scalp-care"),
+         url="/collections/mission-scalp", cta="לאוסף טיפוח קרקפת", percent=20,
+         collection="mission-scalp"),
 ]
 
 LABEL = {
