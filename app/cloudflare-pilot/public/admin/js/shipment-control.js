@@ -53,10 +53,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function card(order) {
     const signals = Array.isArray(order.signals) ? order.signals : [];
     const sourceConflict = order.sourceAgreement !== "VERIFIED";
+    // The carrier's own latest event is the location; "En Route" alone hid a
+    // parcel already released from Israeli customs.
     const statusMeta = [
       order.cjStatus ? `CJ: ${order.cjStatus}` : null,
-      order.trackingStatus || null,
+      order.latestRemark || order.trackingStatus || null,
       order.orderBusinessDays ? `${order.orderBusinessDays} business days` : null,
+      order.trackingNumber ? `#${order.trackingNumber}` : null,
     ].filter(Boolean).join(" · ");
     const signalPills = signals.slice(1, 4).map(signal => `<span class="signal-pill">${escapeHtml(signal.label)}</span>`).join("");
     const multiSale = order.afterSellLikely ? `<span class="signal-pill">${escapeHtml(order.saleTransactionCount)} successful charges · check AfterSell</span>` : "";

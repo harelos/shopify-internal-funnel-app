@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request } from "express";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
+import { rescoreShipment } from "../lib/shipment-risk.js";
 
 type Row = Record<string, unknown>;
 type ShipmentInput = Record<string, unknown>;
@@ -59,22 +60,41 @@ function normalizeShipment(input: ShipmentInput, now: string) {
   const orderName = text(input.orderName, 32);
   const numeric = Number(String(orderName || "").replace(/\D/g, ""));
   if (!orderName || !/^#\d+$/.test(orderName) || !numeric) return null;
-  const severityRaw = String(input.severity || "MONITORING").toUpperCase();
-  const severity = SEVERITIES.has(severityRaw) ? severityRaw : "MONITORING";
-  const signals = Array.isArray(input.signals) ? input.signals.slice(0, 12) : [];
+  // Rescore from CJ's route events: the monitor's calendar-only rules called
+  // parcels released from Israeli customs critical.
+  const rescored = rescoreShipment({
+    severity: String(input.severity || "MONITORING"),
+    primarySignal: text(input.primarySignal, 80),
+    statusLabel: text(input.statusLabel, 300),
+    doNow: text(input.doNow, 800),
+    contactTarget: text(input.contactTarget, 80),
+    signals: Array.isArray(input.signals) ? input.signals.slice(0, 12) : [],
+    delivered: flag(input.delivered) === 1,
+    trackingPresent: input.trackingPresent === undefined ? undefined : flag(input.trackingPresent) === 1,
+    trackingLast4: text(input.trackingLast4, 8),
+    trackingNumber: text(input.trackingNumber, 60),
+    trackingStatus: text(input.trackingStatus, 160),
+    cjMailNo: text(input.cjMailNo, 60),
+    trackingRoutes: Array.isArray(input.trackingRoutes) ? input.trackingRoutes.slice(0, 40) : null,
+    orderBusinessDays: number(input.orderBusinessDays),
+    labelBusinessDays: number(input.labelBusinessDays),
+    outWarehouseAt: text(input.outWarehouseAt, 50),
+  }, new Date(now));
+  const severity = SEVERITIES.has(rescored.severity) ? rescored.severity : "MONITORING";
+  const signals = rescored.signals.slice(0, 12);
   return {
     id: `shipment_${numeric}`,
     orderName,
     shopifyOrderGid: text(input.shopifyOrderGid, 120),
     providerOrderReference: text(input.providerOrderReference, 120),
     severity,
-    primarySignal: text(input.primarySignal, 80) || "MONITORING",
-    statusLabel: text(input.statusLabel, 300) || "Monitoring",
-    doNow: text(input.doNow, 800) || "Keep monitoring the next verified milestone.",
-    contactTarget: text(input.contactTarget, 80) || "Monitor",
+    primarySignal: text(rescored.primarySignal, 80) || "MONITORING",
+    statusLabel: text(rescored.statusLabel, 300) || "Monitoring",
+    doNow: text(rescored.doNow, 800) || "Keep monitoring the next verified milestone.",
+    contactTarget: text(rescored.contactTarget, 80) || "Monitor",
     signalsJson: json(signals, []),
-    isActionable: flag(input.isActionable),
-    delivered: flag(input.delivered),
+    isActionable: signals.length > 0,
+    delivered: rescored.delivered ? 1 : 0,
     sourceAgreement: text(input.sourceAgreement, 40) || "VERIFIED",
     shopifyFinancialStatus: text(input.shopifyFinancialStatus, 50),
     shopifyFulfillmentStatus: text(input.shopifyFulfillmentStatus, 50),
@@ -88,11 +108,16 @@ function normalizeShipment(input: ShipmentInput, now: string) {
     trackingLast4: text(input.trackingLast4, 8),
     orderBusinessDays: Math.max(0, Math.floor(number(input.orderBusinessDays))),
     labelBusinessDays: Math.max(0, Math.floor(number(input.labelBusinessDays))),
-    inactiveDays: Math.max(0, Math.floor(number(input.inactiveDays))),
+    inactiveDays: Math.max(0, Math.floor(rescored.status?.latestAt ? rescored.inactiveDays : number(input.inactiveDays))),
     orderCreatedAt: text(input.orderCreatedAt, 50),
     trackingCreatedAt: text(input.trackingCreatedAt, 50),
-    latestTrackingAt: text(input.latestTrackingAt, 50),
+    latestTrackingAt: rescored.latestTrackingAt || text(input.latestTrackingAt, 50),
     outWarehouseAt: text(input.outWarehouseAt, 50),
+    // Real location detail from CJ's events. Without it the dashboard could
+    // only say "En Route" about a parcel already released from Israeli customs.
+    trackingNumber: text(input.trackingNumber, 60),
+    trackingStage: rescored.trackingStage || text(input.trackingStage, 40),
+    latestRemark: rescored.latestRemark || text(input.latestRemark, 200),
     now,
   };
 }
@@ -199,6 +224,8 @@ shipmentBridgeRouter.post("/ingest", async (req, res) => {
         item.orderCreatedAt, item.trackingCreatedAt, item.latestTrackingAt, item.outWarehouseAt,
         now, now, now,
       ).run();
+    await db.prepare(`UPDATE "ShipmentOrderState" SET "trackingNumber" = COALESCE(?, "trackingNumber"), "trackingStage" = ?, "latestRemark" = ? WHERE "orderName" = ?`)
+      .bind(item.trackingNumber, item.trackingStage, item.latestRemark, item.orderName).run().catch(() => undefined);
   }
 
   res.setHeader("Cache-Control", "no-store");

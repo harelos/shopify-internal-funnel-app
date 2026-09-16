@@ -25,11 +25,16 @@ export function extractShopifyStoredContext(
   shopDomain: string,
 ): ShopifyStoredContext | null {
   if (!Array.isArray(attributes)) return null;
-  const match = attributes.find(raw => {
+  // This store silently drops a cart attribute whose key starts with
+  // underscores: the write echoes it back and the order carries nothing. The
+  // storefront now writes "funnel_context"; the old key is still read so orders
+  // placed before the change keep their attribution.
+  const keys = ["funnel_context", "__funnel_context__"];
+  const match = keys.reduce<ShopifyAttribute | undefined>((found, key) => found || attributes.find(raw => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
     const attribute = raw as ShopifyAttribute;
-    return text(attribute.key ?? attribute.name) === "__funnel_context__";
-  }) as ShopifyAttribute | undefined;
+    return text(attribute.key ?? attribute.name) === key;
+  }) as ShopifyAttribute | undefined, undefined);
   const serialized = text(match?.value);
   if (!serialized || serialized.length > 12_000) return null;
 

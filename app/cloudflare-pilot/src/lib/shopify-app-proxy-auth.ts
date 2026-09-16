@@ -43,6 +43,8 @@ export function verifyShopifyAppProxySignature(
 
 const STOREFRONT_PROXY_PATHS = new Set([
   "/track",
+  // A storefront page view, signed by the app proxy like the rest of these.
+  "/visit",
   "/popup/confirm-lead",
   "/popup/customer/capture",
   "/popup/customer/context",
