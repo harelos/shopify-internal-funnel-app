@@ -98,12 +98,26 @@ function storefrontDomain(config: ReturnType<typeof lifecycleConfig>): string {
   return config.storefrontDomain;
 }
 
-async function localSuppression(env: LifecycleEnv, emailHash: string | null): Promise<boolean> {
+/**
+ * Two different things live in this table. A bounce or spam complaint means the
+ * address itself is unsafe and nothing may be sent to it. A marketing opt-out
+ * is only a preference, and it does not cancel the service mail for an order
+ * the customer already paid for.
+ */
+const MARKETING_ONLY_SUPPRESSION_REASONS = new Set(["marketing_unsubscribed"]);
+
+export async function localSuppression(
+  env: LifecycleEnv,
+  emailHash: string | null,
+  scope: "all" | "marketing" = "marketing",
+): Promise<boolean> {
   if (!emailHash) return false;
   const row = await env.DB.prepare(
-    "SELECT active FROM suppressions WHERE email_hash = ? AND active = 1",
-  ).bind(emailHash).first<{ active: number }>();
-  return row?.active === 1;
+    "SELECT reason FROM suppressions WHERE email_hash = ? AND active = 1",
+  ).bind(emailHash).first<{ reason: string | null }>();
+  if (!row) return false;
+  if (scope === "marketing") return true;
+  return !MARKETING_ONLY_SUPPRESSION_REASONS.has(row.reason ?? "");
 }
 
 async function trackingUrl(
@@ -367,9 +381,7 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
     const transactional = row.event_name === "shopify.post_purchase_started"
       && emailSpec("post_purchase", row.email_number).kind === "transactional";
     if (!transactional && !consentAllowsMarketing(order.consent_state)) return null;
-    // A hard bounce or spam complaint suppresses everything, transactional
-    // included: the address itself is no longer safe to send to.
-    if (await localSuppression(env, order.email_hash)) return null;
+    if (await localSuppression(env, order.email_hash, transactional ? "all" : "marketing")) return null;
   }
   if (row.event_name === "shopify.post_purchase_started") {
     const spec = emailSpec("post_purchase", row.email_number);

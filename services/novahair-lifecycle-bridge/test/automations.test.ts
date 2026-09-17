@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { consentAllowsMarketing, emailSpec, FLOW_SPECS, orderEmailAllowedForConsent, resendTemplateAlias } from "../src/flow-specs";
 import { buildAutomationBlueprints, EVENT_DEFINITIONS, toResendWorkflow } from "../scripts/lib/automation-blueprints.mjs";
+import { localSuppression } from "../src/dispatch";
+import { testDatabase, testEnv } from "./helpers/d1";
 
 const automations = buildAutomationBlueprints(Object.values(FLOW_SPECS));
 
@@ -38,6 +40,30 @@ test("a paid order unlocks its service emails without a marketing opt-in", () =>
     assert.equal(orderEmailAllowedForConsent(spec, "NOT_SUBSCRIBED"), true, `E${n} should reach never-asked buyers`);
     assert.equal(orderEmailAllowedForConsent(spec, "UNSUBSCRIBED"), false, `E${n} must respect an opt-out`);
     assert.equal(orderEmailAllowedForConsent(spec, "REDACTED"), false, `E${n} must respect redaction`);
+  }
+});
+
+test("a marketing opt-out does not cancel service mail for an order already paid for", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db);
+  const emailHash = "hash-marketing-optout";
+  try {
+    await db.prepare(
+      `INSERT INTO suppressions (email_hash, source, reason, occurred_at, active, created_at, updated_at)
+       VALUES (?, 'SHOPIFY_CONSENT', 'marketing_unsubscribed', ?, 1, ?, ?)`,
+    ).bind(emailHash, "2026-09-11T12:30:21.000Z", "2026-09-11T12:30:21.000Z", "2026-09-11T12:30:21.000Z").run();
+
+    // Transactional scope tolerates a marketing-only suppression.
+    assert.equal(await localSuppression(env, emailHash, "all"), false);
+    // Marketing scope still respects it.
+    assert.equal(await localSuppression(env, emailHash, "marketing"), true);
+
+    // A hard bounce blocks both.
+    await db.prepare("UPDATE suppressions SET reason = 'bounced' WHERE email_hash = ?").bind(emailHash).run();
+    assert.equal(await localSuppression(env, emailHash, "all"), true);
+    assert.equal(await localSuppression(env, emailHash, "marketing"), true);
+  } finally {
+    await dispose();
   }
 });
 

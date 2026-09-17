@@ -830,7 +830,14 @@ export async function syncPaidOrders(
 
 async function suppressForShopifyConsent(
   env: LifecycleEnv,
-  input: { customerId: string; email: string; emailHash: string; occurredAt: string; now: string },
+  input: {
+    customerId: string;
+    email: string;
+    emailHash: string;
+    consentState: string;
+    occurredAt: string;
+    now: string;
+  },
 ): Promise<void> {
   const identityId = `identity:${input.emailHash}`;
   await env.DB.batch([
@@ -843,12 +850,14 @@ async function suppressForShopifyConsent(
          shopify_customer_id = excluded.shopify_customer_id, active = 1, updated_at = excluded.updated_at`,
     ).bind(input.emailHash, input.occurredAt, input.customerId, input.now, input.now),
     env.DB.prepare(
-      `UPDATE abandoned_checkouts SET state = 'SUPPRESSED', consent_state = 'UNSUBSCRIBED', updated_record_at = ?
+      `UPDATE abandoned_checkouts SET state = 'SUPPRESSED', consent_state = ?, updated_record_at = ?
        WHERE email_hash = ? AND state IN ('PENDING', 'ABANDONED', 'INELIGIBLE')`,
-    ).bind(input.now, input.emailHash),
+    ).bind(input.consentState, input.now, input.emailHash),
     env.DB.prepare(
-      `UPDATE lifecycle_orders SET consent_state = 'UNSUBSCRIBED', updated_at = ? WHERE email_hash = ?`,
-    ).bind(input.now, input.emailHash),
+      // Record what Shopify actually says. Flattening every state to
+      // UNSUBSCRIBED destroys the difference between a refusal and a blank.
+      `UPDATE lifecycle_orders SET consent_state = ?, updated_at = ? WHERE email_hash = ?`,
+    ).bind(input.consentState, input.now, input.emailHash),
     env.DB.prepare(
       `UPDATE lifecycle_identity_links SET lifecycle_stage = 'SUPPRESSED', updated_at = ?
        WHERE email_hash = ?`,
@@ -960,11 +969,15 @@ export async function syncCustomerConsent(
         ).bind(consentState, current, emailHash).run();
         updated += 1;
 
-        if (["UNSUBSCRIBED", "NOT_SUBSCRIBED", "REDACTED"].includes(consentState)) {
+        // NOT_SUBSCRIBED is Shopify's value for a customer who was never asked,
+        // which is every normal checkout without a marketing tick. Only an
+        // explicit refusal suppresses the address.
+        if (["UNSUBSCRIBED", "REDACTED"].includes(consentState)) {
           await suppressForShopifyConsent(env, {
             customerId: customer.id,
             email,
             emailHash,
+            consentState,
             occurredAt: consentUpdatedAt,
             now: current,
           });
