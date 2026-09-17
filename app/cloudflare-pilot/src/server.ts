@@ -159,6 +159,17 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// What is live. The deploy guard stamps these at deploy time; if they read
+// "unknown", the Worker was deployed around the guard.
+app.get("/api/version", (_req, res) => {
+  res.json({
+    sha: workerEnvValue("BUILD_SHA") || "unknown",
+    branch: workerEnvValue("BUILD_BRANCH") || "unknown",
+    builtAt: workerEnvValue("BUILD_TIME") || "unknown",
+    deployedFrom: workerEnvValue("BUILD_FROM") || "unknown",
+  });
+});
+
 // All admin API routes are protected in hosted mode. Local preview remains
 // usable until SHOPIFY_REQUIRE_AUTH=true is explicitly set.
 app.use("/api", requireShopifySession);

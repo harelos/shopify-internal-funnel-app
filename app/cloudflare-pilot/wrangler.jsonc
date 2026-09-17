@@ -14,6 +14,17 @@
     "META_AD_ACCOUNT_ID": "act_676516688178386",
     "META_AD_ACCOUNT_CURRENCY": "USD",
     "META_GRAPH_API_VERSION": "v23.0",
+    // Restored 2026-09-17: the 11:46 deploy dropped these and the guardian
+    // silently switched itself off (it checks COMMENT_GUARDIAN_ENABLED).
+    "COMMENT_GUARDIAN_ENABLED": "true",
+    "COMMENT_GUARDIAN_MODE": "live",
+    "COMMENT_GUARDIAN_AD_ACCOUNT_ID": "act_676516688178386",
+    "COMMENT_GUARDIAN_PAGE_ID": "620240831165337",
+    // Overwritten by scripts/deploy-guard.mjs on every deploy; read by /api/version.
+    "BUILD_SHA": "unknown",
+    "BUILD_BRANCH": "unknown",
+    "BUILD_TIME": "unknown",
+    "BUILD_FROM": "unknown",
     "NOVAHAIR_POPUP_VERSION": "novahair_popup_v1",
     "NOVAHAIR_POPUP_COUPON": "NOVA10",
     "POSTHOG_PROJECT_API_KEY": "phc_AyNmzdT6Nky4RZX3XCBBCun4RrC2ThFFvsC9km5pTpr5",
