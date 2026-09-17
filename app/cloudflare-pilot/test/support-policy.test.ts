@@ -264,3 +264,58 @@ test("Support Inbox ships responsive controls and human-readable copy", () => {
   assert.match(html, /data-status="CLOSED"/);
   assert.doesNotMatch(html + js, /utm_|externalMessageId|policyFlagsJson/);
 });
+
+test("the way customers actually ask where their parcel is reaches ORDER_STATUS", () => {
+  // These are verbatim from the mailbox. Every one of them used to score as
+  // topic OTHER, which mayAutoSend refuses, so a plain tracking question sat
+  // in review for days with the carrier's own events already on the draft.
+  for (const text of [
+    "ביצעתי הזמנה ב-6.9 עם שליח עד הבית וטרם קיבלתי את ההזמנה אשמח לדעת מה קורה עם ההזמנה שלי תודה.",
+    "רציתי לברר מתי ההזמנה שלי תגיע , קיבלתי הודעה על משלוח בדרך וטרם הגיע",
+    "אשמח לדעת מתי אוכל לקבל את ההזמנה שלי? תודה",
+    "היי מתי צפויה ההזמנה להגיע?",
+    "מה הסטטוס של ההזמנה שלי",
+  ]) {
+    const result = evaluateSupportPolicy(text);
+    assert.equal(result.topic, "ORDER_STATUS", `wrong topic for: ${text}`);
+    assert.equal(result.riskLevel, "LOW", `wrong risk for: ${text}`);
+    assert.equal(result.mustEscalate, false);
+  }
+});
+
+test("widening the tracking rule did not swallow the messages that must escalate", () => {
+  // Every higher-risk rule sits earlier in the list and wins hits[0], so a
+  // message that mentions the order AND a refund, cancellation, address change
+  // or a delivery dispute must still come back as that topic, not ORDER_STATUS.
+  const cases: Array<[string, string]> = [
+    ["לא קיבלתי את ההזמנה ואני רוצה החזר כספי", "REFUND"],
+    ["טרם קיבלתי את החבילה, בבקשה לבטל את ההזמנה", "CANCELLATION"],
+    ["מתי ההזמנה תגיע? הכתובת שלי לא נכונה", "ADDRESS_CHANGE"],
+    ["מסומן כנמסר אבל לא קיבלתי את החבילה", "DELIVERY_DISPUTE"],
+  ];
+  for (const [text, topic] of cases) {
+    const result = evaluateSupportPolicy(text);
+    assert.equal(result.topic, topic, `wrong topic for: ${text}`);
+    assert.notEqual(result.riskLevel, "LOW", `risk dropped to LOW for: ${text}`);
+  }
+});
+
+test("a bare 'I have not received it' is still held as a delivery dispute", () => {
+  // This is deliberate and it is the owner's call, not the code's: the text
+  // alone cannot tell "it has not arrived yet" from "your tracking says
+  // delivered and it is not here". The second must never be auto-answered, so
+  // both wait. Narrowing this to an explicit delivered-claim would auto-answer
+  // roughly one more message a day and risk telling a customer her parcel was
+  // delivered while she is telling us it was not.
+  const result = evaluateSupportPolicy("עדיין לא קיבלתי את החבילה");
+  assert.equal(result.topic, "DELIVERY_DISPUTE");
+  assert.equal(result.riskLevel, "MEDIUM");
+  assert.equal(mayAutoSend({
+    automationMode: "AUTOSEND_LOW_RISK",
+    policy: result,
+    confidence: 0.99,
+    hasVerifiedOrder: true,
+    hasUnverifiedClaims: false,
+    language: "HEBREW",
+  }), false);
+});

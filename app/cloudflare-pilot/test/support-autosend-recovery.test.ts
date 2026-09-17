@@ -24,10 +24,13 @@ test("a conversation cleared of its schedule can still be re-drafted", () => {
   assert.match(desk, /OR: \[\{ nextActionAt: \{ lte: new Date\(\) \} \}, \{ nextActionAt: null \}\]/);
 });
 
-test("a verified-order reply that failed only on delivery is resent, an AI reply is not", () => {
+test("a deterministic reply that failed only on delivery is resent, an AI reply is not", () => {
   // #4385's tracking reply was correct but stuck FAILED after an SMTP timeout;
   // the outbox only retries QUEUED_TO_SEND. Deterministic replies are safe to
   // resend verbatim; AI replies are re-drafted with the current model instead.
-  assert.match(desk, /status: "FAILED", attemptCount: \{ lt: 3 \}, model: \{ in: \["verified-order-facts-v1", "approved-facts-v1"\] \}/);
+  // Shipment outreach is rendered from verified tracking and has no inbound
+  // message to re-draft from, so it retries with the other deterministic
+  // renders rather than being stranded FAILED for good.
+  assert.match(desk, /status: "FAILED", attemptCount: \{ lt: 3 \}, model: \{ in: \["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1"\] \}/);
   assert.match(desk, /data: \{ status: "QUEUED_TO_SEND", sendAfter: new Date\(\), claimedAt: null, lastDeliveryError: null \}/);
 });

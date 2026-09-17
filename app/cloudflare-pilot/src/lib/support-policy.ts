@@ -17,11 +17,21 @@ const rules: Array<{ pattern: RegExp; flag: string; topic: string; risk: Support
   { pattern: /הונאה|רמאות|גנבתם|נוכל|scam|fraud/i, flag: "FRAUD_ALLEGATION", topic: "TRUST", risk: "HIGH" },
   { pattern: /החזר|זיכוי|refund|להחזיר את הכסף/i, flag: "REFUND_REQUEST", topic: "REFUND", risk: "HIGH" },
   { pattern: /לבטל|ביטול הזמנה|cancel (my )?order/i, flag: "CANCEL_REQUEST", topic: "CANCELLATION", risk: "HIGH" },
-  { pattern: /שינוי כתובת|כתובת לא נכונה|wrong address|change.*address/i, flag: "ADDRESS_CHANGE", topic: "ADDRESS_CHANGE", risk: "HIGH" },
+  // "הכתובת שלי לא נכונה" never matched the literal "כתובת לא נכונה", so a
+  // wrong-address message fell through to the tracking rule and was answered
+  // instead of escalated. Allow words between the noun and the complaint.
+  { pattern: /שינוי כתובת|לשנות.*כתובת|כתובת.*(?:לא נכונה|לא נכון|שגויה|שגוי|טעות)|wrong address|change.*address/i, flag: "ADDRESS_CHANGE", topic: "ADDRESS_CHANGE", risk: "HIGH" },
   { pattern: /רשימת רכיבים|מה (?:יש|מכיל).*מוצר|אישור משרד הבריאות|משרד הבריאות|INCI|ingredients|regulatory approval/i, flag: "PRODUCT_OR_REGULATORY_INFORMATION", topic: "PRODUCT_INFORMATION", risk: "MEDIUM" },
   { pattern: /כמה (?:עולה )?(?:ה)?משלוח|עלות משלוח|תוך כמה זמן|כמה זמן (?:ה)?משלוח|ימי עסקים|shipping cost|delivery time|how long.*deliver/i, flag: "PRE_SALE_SHIPPING", topic: "GENERAL_SHIPPING", risk: "LOW" },
   { pattern: /מסומן(?:ת)? כנמסר|כתוב.*נמסר|לא קיבלתי.*(?:הזמנה|חבילה)|delivered.*(?:not|but)|marked.*delivered/i, flag: "DELIVERY_DISPUTE", topic: "DELIVERY_DISPUTE", risk: "MEDIUM" },
-  { pattern: /איפה ההזמנה|איפה החבילה|מספר מעקב|לא הגיע|צפי.*(?:משלוח|לקבל)|מתי.*(?:יגיע|אקבל)|מתי.*(?:יצא|נשלח)|(?:יצא|נשלח).*הזמנה|עדכון.*(?:משלוח|הזמנה)|לא קיבלתי.*עדכון|tracking|where is my order/i, flag: "ORDER_STATUS", topic: "ORDER_STATUS", risk: "LOW" },
+  // Customers do not write "מתי אקבל". They write "מתי אוכל לקבל", "מתי
+  // ההזמנה תגיע", "טרם קיבלתי", "מה קורה עם ההזמנה". Those all used to fall
+  // through to topic OTHER, which is not auto-sendable, so a plain "where is
+  // my parcel" sat in review with the tracking facts already on the draft.
+  // Every higher-risk rule sits earlier in this list and wins hits[0], so a
+  // refund, cancellation, address change or delivery dispute still escalates
+  // even when it also mentions the order.
+  { pattern: /איפה ההזמנה|איפה החבילה|מספר מעקב|לא הגיע|טרם הגיע|טרם קיבלתי|עדיין לא קיבלתי|לא קיבלתי את ה(?:הזמנה|חבילה|מוצר)|סטטוס.*(?:הזמנה|משלוח)|מה (?:קורה|המצב|קרה) עם.*(?:הזמנה|משלוח|חבילה)|צפי.*(?:משלוח|לקבל)|מתי.*(?:יגיע|תגיע|להגיע|אגיע|אקבל|אוכל לקבל|מקבלת|מקבל)|מתי.*(?:יצא|נשלח)|(?:יצא|נשלח).*הזמנה|עדכון.*(?:משלוח|הזמנה)|לא קיבלתי.*עדכון|tracking|where is my order/i, flag: "ORDER_STATUS", topic: "ORDER_STATUS", risk: "LOW" },
   { pattern: /איך משתמש|הוראות שימוש|איך לצבוע|how (do|to) use/i, flag: "HOW_TO_USE", topic: "PRODUCT_USAGE", risk: "MEDIUM" },
   { pattern: /לא עובד|לא צבע|לא נתפס|didn.?t work|no result/i, flag: "PRODUCT_RESULT", topic: "PRODUCT_RESULT", risk: "MEDIUM" },
 ];

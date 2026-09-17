@@ -260,12 +260,21 @@ export async function ingestSupportMessage(input: SupportIngestInput) {
       WHERE "conversationId" = ? AND "direction" = 'INBOUND' AND "sentAt" <= ? ORDER BY "sentAt" DESC LIMIT 1`)
       .bind(conversation.id, sentAt.toISOString()).first<any>();
     if (inbound) {
+      // This is the path that actually runs; the Prisma twin below is a
+      // fallback. Filing every owner reply as PENDING_REVIEW here is why the
+      // AI was still drafting from a stale pool while hundreds of his replies
+      // sat unused. A real reply of ordinary length teaches on arrival;
+      // anything odd still waits for review.
+      const ownerReply = input.textBody.trim();
+      const teachable = ownerReply.length >= 20
+        && ownerReply.length <= 1500
+        && String(inbound.textBody || "").trim().length >= 10;
       await db.prepare(`INSERT INTO "SupportVoiceExample"
         ("id", "shopId", "inboundExternalId", "outboundExternalId", "topic", "customerMessage", "ownerReply", "qualityStatus", "createdAt")
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING_REVIEW', ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT("shopId", "inboundExternalId", "outboundExternalId") DO UPDATE SET
           "ownerReply" = excluded."ownerReply", "topic" = excluded."topic"`)
-        .bind(supportId("voice"), shop.id, inbound.externalMessageId, input.externalMessageId, policy.topic, inbound.textBody, input.textBody.trim(), now).run();
+        .bind(supportId("voice"), shop.id, inbound.externalMessageId, input.externalMessageId, policy.topic, inbound.textBody, ownerReply, teachable ? "APPROVED" : "PENDING_REVIEW", now).run();
     }
   }
   return { duplicate: false, ignored: false, conversationId: conversation.id, messageId, status, triage };
@@ -672,8 +681,12 @@ export async function processSupportDeskCron() {
   // to resend as-is; the outbox retries QUEUED_TO_SEND, so put it back there.
   // AI replies that failed are not resent blindly — they fall through to a
   // fresh draft below with the current model instead.
+  // Proactive shipment outreach has no inbound message, so it is never
+  // re-drafted by the loop below: an SMTP timeout used to strand it as FAILED
+  // for good. It is rendered from verified tracking, so it retries like the
+  // other deterministic renders.
   await prisma.supportDraft.updateMany({
-    where: { status: "FAILED", attemptCount: { lt: 3 }, model: { in: ["verified-order-facts-v1", "approved-facts-v1"] } },
+    where: { status: "FAILED", attemptCount: { lt: 3 }, model: { in: ["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1"] } },
     data: { status: "QUEUED_TO_SEND", sendAfter: new Date(), claimedAt: null, lastDeliveryError: null },
   });
   const due = await prisma.supportConversation.findMany({
