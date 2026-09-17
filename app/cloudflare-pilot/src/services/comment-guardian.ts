@@ -127,12 +127,36 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
   const startedAt = new Date().toISOString();
   let actions = 0;
 
-  async function handleComment(surface: Surface, comment: GraphComment, sourceId: string, adId: string, token: string): Promise<void> {
+  /**
+   * What the guardian already did to these comments, in one query per batch
+   * rather than one per comment: a busy ad would otherwise spend its whole
+   * subrequest budget asking the same question eighty times.
+   */
+  type StoredRow = { executedAction: string | null; replyId: string | null };
+  async function loadStored(ids: string[]): Promise<Map<string, StoredRow>> {
+    const found = new Map<string, StoredRow>();
+    for (let index = 0; index < ids.length; index += 80) {
+      const chunk = ids.slice(index, index + 80);
+      const rows = await db.prepare(
+        `SELECT "commentId", "executedAction", "replyId" FROM "CommentGuardianComment"
+         WHERE "commentId" IN (${chunk.map(() => "?").join(",")})`)
+        .bind(...chunk).all<{ commentId: string } & StoredRow>().catch(() => null);
+      for (const row of rows?.results ?? []) found.set(row.commentId, row);
+    }
+    return found;
+  }
+
+  const pendingWrites: any[] = [];
+  async function flushWrites(): Promise<void> {
+    if (!pendingWrites.length) return;
+    const batch = pendingWrites.splice(0, pendingWrites.length);
+    await db.batch(batch).catch(() => undefined);
+  }
+
+  async function handleComment(surface: Surface, comment: GraphComment, sourceId: string, adId: string, token: string, stored: StoredRow | null): Promise<void> {
     result.checked += 1;
     const message = String(comment.message ?? comment.text ?? "");
     const replies = comment.comments?.data ?? comment.replies?.data ?? [];
-    const stored = await db.prepare('SELECT "executedAction", "replyId" FROM "CommentGuardianComment" WHERE "commentId" = ? LIMIT 1')
-      .bind(comment.id).first<{ executedAction: string | null; replyId: string | null }>().catch(() => null);
     const decision = decideCommentAction({
       message,
       isFromPage: surface.isSelf(comment),
@@ -177,7 +201,7 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
       }
     }
 
-    await db.prepare(`INSERT INTO "CommentGuardianComment"
+    pendingWrites.push(db.prepare(`INSERT INTO "CommentGuardianComment"
         ("commentId","adId","storyId","createdAt","message","classification","isHidden","recommendedAction","executedAction","replyId","firstSeenAt","updatedAt")
       VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
       ON CONFLICT("commentId") DO UPDATE SET
@@ -187,8 +211,7 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
         "replyId" = COALESCE(excluded."replyId", "CommentGuardianComment"."replyId"),
         "updatedAt" = CURRENT_TIMESTAMP`)
       .bind(comment.id, adId, sourceId, comment.created_time ?? comment.timestamp ?? null, message.slice(0, 1000),
-        decision.classification, isHidden ? 1 : 0, `${decision.intent}:${decision.action}`, executedAction, replyId)
-      .run().catch(() => undefined);
+        decision.classification, isHidden ? 1 : 0, `${decision.intent}:${decision.action}`, executedAction, replyId));
   }
 
   try {
@@ -248,7 +271,11 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
           order: "reverse_chronological",
           limit: "100",
         }, pageToken) as GraphComment[];
-        for (const comment of comments) await handleComment(facebook, comment, storyId, adIds[0] || storyId, pageToken);
+        const stored = await loadStored(comments.map(comment => comment.id));
+        for (const comment of comments) {
+          await handleComment(facebook, comment, storyId, adIds[0] || storyId, pageToken, stored.get(comment.id) ?? null);
+        }
+        await flushWrites();
       } catch (error) {
         result.errors.push(`fb ${storyId}: ${String((error as Error).message).slice(0, 140)}`);
       }
@@ -277,7 +304,11 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
                 fields: "id,text,username,timestamp,hidden,replies.limit(50){id,text,username}",
                 limit: "100",
               }, pageToken) as GraphComment[];
-              for (const comment of comments) await handleComment(instagram, comment, String(item.id), adIds[0] || String(item.id), pageToken);
+              const stored = await loadStored(comments.map(comment => comment.id));
+              for (const comment of comments) {
+                await handleComment(instagram, comment, String(item.id), adIds[0] || String(item.id), pageToken, stored.get(comment.id) ?? null);
+              }
+              await flushWrites();
             } catch (error) {
               result.errors.push(`ig ${item.id}: ${String((error as Error).message).slice(0, 140)}`);
             }
