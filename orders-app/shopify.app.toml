@@ -1,0 +1,24 @@
+# Config-only app. It hosts no extensions and no UI; it exists solely to hold an
+# app-owned Admin API token that can read protected customer data.
+#
+# Why it exists: a custom app created in the Shopify ADMIN cannot read customer
+# name/address/phone on a Basic plan, but a Partner Dashboard custom app can.
+# Without it every CJ order ships with a placeholder postcode and an address
+# copied out of CJ's own broken import.
+client_id = "15a6a8808d23a8a0650d99e34902e546"
+name = "NovaHair Orders"
+application_url = "https://oauth-helper-production-90b4.up.railway.app"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_customers,read_products,read_fulfillments,write_merchant_managed_fulfillment_orders"
+# Shopify-managed install ignores the scope parameter in the OAuth URL and grants
+# whatever the app configuration declares - which for a hand-created Partner app
+# is nothing. Legacy install is what makes the grant actually happen.
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = [ "https://oauth-helper-production-90b4.up.railway.app/auth/callback" ]
+
+[webhooks]
+api_version = "2026-07"

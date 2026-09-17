@@ -1,0 +1,8 @@
+.cj_token_cache.json
+recipient_supplement.json
+novahair_cj_sync_log.json
+__pycache__/
+*.pyc
+.env
+.env.*
+.shipment_snapshot_state.json

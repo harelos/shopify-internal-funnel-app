@@ -1,0 +1,104 @@
+{% doc %}
+@param {boolean} enabled - Enables the concierge on an explicitly approved page.
+@param {string} [placement] - Behavioural placement key such as exit_sales.
+{% enddoc %}
+
+{%- comment -%}
+  NovaHair AI concierge - theme integration.
+
+  Production integration contract (live on the primary NovaHair sales page
+  since 2026-09-06):
+    1. Install as snippets/novahair-ai-concierge.liquid.
+    2. Install these in assets/ (Shopify flattens the img/ folder, so the
+       shade files must be renamed with the nh- prefix used below):
+         novahair-popup-engine.js
+         novahair-popup-engine.config.js
+         novahair-ai-facts.js
+         novahair-ai-flows.js
+         novahair-ai-agents.js
+         novahair-ai-attribution.js
+         novahair-ai-tone.js
+         novahair-ai-popup.js
+         novahair-ai-popup.css
+         nh-shade-black.png, nh-shade-dark_brown.png, nh-shade-light_brown.png,
+         nh-shade-eggplant.png, nh-shade-wine_red.png, nh-advisor.png
+    3. Render before </body> only on the explicitly approved page handle,
+       with an enable flag and placement:
+         {% render 'novahair-ai-concierge', enabled: true, placement: 'exit_sales' %}
+
+  The snippet is deliberately inert without enabled: true. Uploading it alone
+  can never turn the concierge on for shoppers.
+{%- endcomment -%}
+
+{%- assign nh_enabled = false -%}
+{%- if enabled == true -%}
+  {%- assign nh_enabled = true -%}
+{%- endif -%}
+{%- comment -%} Never on cart or checkout-adjacent templates. {%- endcomment -%}
+{%- if template contains 'cart' -%}{%- assign nh_enabled = false -%}{%- endif -%}
+{%- assign nh_placement = placement | default: 'exit_sales' -%}
+
+{%- if nh_enabled -%}
+  {{ 'novahair-ai-popup.css' | asset_url | stylesheet_tag }}
+
+  <script>
+    window.NovaHairAIOptions = {
+      version:          'novahair_ai_v1',
+      endpoint:         '/apps/funnels/api/track',
+      aiEndpoint:       '/apps/funnels/api/ai-chat',
+      shadeEndpoint:    '/apps/funnels/api/ai-shade',
+      customerCaptureEndpoint: '/apps/funnels/api/popup/customer/capture',
+      customerContextEndpoint: '/apps/funnels/api/popup/customer/context',
+      resultEmailEndpoint: '/apps/funnels/api/popup/customer/result-email',
+      identifyStartEndpoint: '/apps/funnels/api/popup/customer/identify/start',
+      identifySessionEndpoint: '/apps/funnels/api/popup/customer/identify/session',
+      identifyVerifyEndpoint: '/apps/funnels/api/popup/customer/identify/verify',
+      typingMs: 900,
+
+      {%- comment -%}
+        Shopify flattens assets, so images cannot live in an img/ subfolder.
+        Resolve every asset through asset_url and hand the runtime a map.
+      {%- endcomment -%}
+      assetMap: {
+        'img/shade-black.png':       {{ 'nh-shade-black.png'       | asset_url | json }},
+        'img/shade-dark_brown.png':  {{ 'nh-shade-dark_brown.png'  | asset_url | json }},
+        'img/shade-light_brown.png': {{ 'nh-shade-light_brown.png' | asset_url | json }},
+        'img/shade-eggplant.png':    {{ 'nh-shade-eggplant.png'    | asset_url | json }},
+        'img/shade-wine_red.png':    {{ 'nh-shade-wine_red.png'    | asset_url | json }},
+        'img/advisor.png':           {{ 'nh-advisor.png'           | asset_url | json }}
+      },
+
+      {%- comment -%}
+        For a logged-in shopper Liquid already knows her history, so we can
+        personalise with zero lookup and zero enumeration risk. The email
+        endpoint stays only as the fallback for guests.
+      {%- endcomment -%}
+      shopper: {
+        loggedIn:    {% if customer %}true{% else %}false{% endif %},
+        firstName:   {% if customer %}{{ customer.first_name | json }}{% else %}""{% endif %},
+        ordersCount: {% if customer %}{{ customer.orders_count }}{% else %}0{% endif %},
+        {%- comment -%} last-order epoch (seconds) so the client can compute the
+        gap without any lookup. Absent for guests and first-time buyers. {%- endcomment -%}
+        lastOrderAt: {% if customer and customer.last_order %}{{ customer.last_order.created_at | date: '%s' }}{% else %}0{% endif %},
+        acceptsMarketing: {% if customer and customer.accepts_marketing %}true{% else %}false{% endif %}
+      },
+
+      page: {
+        template: {{ template | json }},
+        variant:  {{ page.metafields.custom.variant | default: '' | json }},
+        handle:   {{ page.handle | default: '' | json }}
+      },
+
+      placement: {{ nh_placement | json }}
+    };
+  </script>
+
+  <script src="{{ 'novahair-popup-engine.config.js' | asset_url }}" defer></script>
+  <script src="{{ 'novahair-popup-engine.js'        | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-facts.js'            | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-flows.js'            | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-agents.js'           | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-attribution.js'      | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-tone.js'             | asset_url }}" defer></script>
+  <script src="{{ 'novahair-ai-popup.js'            | asset_url }}" defer></script>
+{%- endif -%}

@@ -1,0 +1,43 @@
+{
+  "id": "gid://shopify/Menu/316376383783",
+  "handle": "footer-content",
+  "title": "המגזין והמועדון",
+  "items": [
+    {
+      "id": "gid://shopify/MenuItem/793899041063",
+      "title": "מדריכי Tiger Edit",
+      "type": "HTTP",
+      "url": "https://tigerbrandsglobal.com/blogs/beauty-guide",
+      "resourceId": null,
+      "tags": [],
+      "items": []
+    },
+    {
+      "id": "gid://shopify/MenuItem/793899073831",
+      "title": "מועדון Tiger Club",
+      "type": "HTTP",
+      "url": "https://tigerbrandsglobal.com/pages/tiger-club",
+      "resourceId": null,
+      "tags": [],
+      "items": []
+    },
+    {
+      "id": "gid://shopify/MenuItem/793899106599",
+      "title": "NovaHair",
+      "type": "HTTP",
+      "url": "https://tigerbrandsglobal.com/pages/novahair-sales",
+      "resourceId": null,
+      "tags": [],
+      "items": []
+    },
+    {
+      "id": "gid://shopify/MenuItem/794201522471",
+      "title": "מילון מונחים (Glossary)",
+      "type": "PAGE",
+      "url": "/pages/glossary",
+      "resourceId": "gid://shopify/Page/162719662375",
+      "tags": [],
+      "items": []
+    }
+  ]
+}

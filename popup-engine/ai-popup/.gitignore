@@ -1,0 +1,6 @@
+harness/shots/
+harness/*_run.txt
+node_modules/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+<title>NovaHair · לוח בקרה</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #F7F1E8;
+    color: #2F241E;
+    font-family: 'Assistant','Open Sans',Arial,sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 22px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid #E5DBCF; margin-bottom: 20px; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 10px 16px; font: inherit; font-size: 15px; color: #8A7A6E; cursor: pointer;
+  }
+  .tab-btn.active { color: #2F241E; border-bottom-color: #D8753D; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: #FFFFFF; border: 1px solid #E5DBCF; border-radius: 14px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 0 0 10px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 14px; margin-bottom: 2px; }
+  .field .hint { font-size: 12px; color: #8A7A6E; margin-top: 2px; }
+  input[type="number"], input[type="text"] {
+    font: inherit; padding: 6px 8px; border: 1px solid #E5DBCF;
+    border-radius: 8px; background: #FFFFFF; color: #2F241E; width: 140px;
+  }
+  input[type="text"] { width: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  button {
+    font: inherit; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #E5DBCF; background: #FFFFFF; color: #2F241E;
+  }
+  button.primary { background: #D8753D; border-color: #D8753D; color: #FFFFFF; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .muted { color: #8A7A6E; font-size: 12px; }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; margin-bottom: 10px; }
+  .stat-row .lbl { color: #8A7A6E; }
+  .bar-track { background: #F7F1E8; border: 1px solid #E5DBCF; border-radius: 6px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #8A7A6E; }
+  .bar-fill.accent { background: #D8753D; }
+  .choice-row { font-size: 14px; padding: 3px 0; }
+  details { margin-top: 10px; }
+  details summary { cursor: pointer; font-size: 14px; }
+  details ul { margin: 8px 0 0; padding-inline-start: 20px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: right; padding: 8px 6px; border-bottom: 1px solid #E5DBCF; font-size: 14px; }
+  .share-cell { display: flex; align-items: center; gap: 6px; }
+  .total-line { margin-top: 10px; font-size: 14px; }
+  .total-line.bad { color: #D8753D; }
+  .error-msg { color: #D8753D; font-size: 14px; margin-top: 10px; }
+  .ok-msg { color: #2F241E; font-size: 14px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NovaHair · לוח בקרה</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="triggers" type="button">טריגרים</button>
+    <button class="tab-btn" data-tab="steps" type="button">שלבי שיחה</button>
+    <button class="tab-btn" data-tab="models" type="button">מודלים</button>
+  </div>
+
+  <section class="panel active" id="panel-triggers">
+    <div class="card">
+      <h2>שערי כניסה</h2>
+      <div class="grid" id="gates-grid"></div>
+    </div>
+    <div class="card">
+      <h2>זיהוי נטישה</h2>
+      <div class="grid" id="abandon-grid"></div>
+    </div>
+    <div class="card">
+      <h2>תדירות</h2>
+      <div class="grid" id="frequency-grid"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="export-btn" type="button">ייצוא קובץ קונפיג</button>
+      <button id="reset-btn" type="button">איפוס לברירת מחדל</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-steps">
+    <div class="card">
+      <div class="stat-row">
+        <span><span class="lbl">שיחות בסך הכל: </span><span id="conversations-total">0</span></span>
+        <span>
+          <span class="lbl">טווח: </span>
+          <select id="days-select">
+            <option value="7">7 ימים</option>
+            <option value="14" selected>14 ימים</option>
+            <option value="30">30 ימים</option>
+          </select>
+        </span>
+      </div>
+      <div id="steps-error" class="error-msg" hidden></div>
+      <div id="steps-list"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-models">
+    <div class="card">
+      <h2>תצורת מודלים פעילה</h2>
+      <p id="models-status" class="muted">טוען תצורה מאובטחת מהשרת...</p>
+      <ol id="models-list"></ol>
+      <p class="muted" style="margin-bottom:0">התצורה היא לקריאה בלבד. מפתח ה-API והבחירה במודל מנוהלים בצד השרת.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DEFAULT_CONFIG = {
+    gates: {
+      minEngagedSeconds: 30,
+      minTimeOnPage: 20,
+      minScrollDepth: 0.35,
+      minEngagementScore: 3
+    },
+    abandon: {
+      fastScrollUp: { minVelocity: 900, settleMs: 450 },
+      returnToTop: { deepAt: 0.60, backTo: 0.15 },
+      idle: { idleSeconds: 20 },
+      idleAfterPrice: { idleSeconds: 12 }
+    },
+    frequency: {
+      maxImpressionsPerSession: 1,
+      maxImpressionsPerVisitor: 3,
+      dismissCooldownDays: 7
+    }
+  };
+
+  var FIELD_META = [
+    { section: 'gates', path: ['minEngagedSeconds'], label: 'שניות מעורבות מינימליות', hint: 'כמה שניות פעילות נדרשות לפני שהפופ-אפ מותר להיפתח.', step: 1 },
+    { section: 'gates', path: ['minTimeOnPage'], label: 'זמן מינימלי בעמוד', hint: 'מספר השניות מאז טעינת העמוד לפני הצגה אפשרית.', step: 1 },
+    { section: 'gates', path: ['minScrollDepth'], label: 'עומק גלילה מינימלי', hint: 'חלק יחסי מהעמוד שצריך לגלול, בין 0 ל-1.', step: 0.05 },
+    { section: 'gates', path: ['minEngagementScore'], label: 'ציון מעורבות מינימלי', hint: 'סכום פעולות המשתמש הנדרש כדי להיחשב מעורב.', step: 1 },
+    { section: 'abandon', path: ['fastScrollUp', 'minVelocity'], label: 'מהירות גלילה למעלה', hint: 'מהירות גלילה למעלה (פיקסלים לשנייה) הנחשבת גלילה מהירה.', step: 1 },
+    { section: 'abandon', path: ['fastScrollUp', 'settleMs'], label: 'זמן התייצבות', hint: 'אחרי גלילה מהירה, כמה מילישניות לחכות לפני הצגה.', step: 1 },
+    { section: 'abandon', path: ['returnToTop', 'deepAt'], label: 'עומק נחשב עמוק', hint: 'חלק מהעמוד שמעליו הגלילה נחשבת עמוקה, בין 0 ל-1.', step: 0.05 },
+    { section: 'abandon', path: ['returnToTop', 'backTo'], label: 'חזרה למעלה', hint: 'חלק מהעמוד שמתחתיו נחשב חזרה לראש העמוד, בין 0 ל-1.', step: 0.05 },
+    { section: 'abandon', path: ['idle', 'idleSeconds'], label: 'שניות חוסר פעילות', hint: 'כמה שניות של אי פעילות מזהות משתמש מוסח.', step: 1 },
+    { section: 'abandon', path: ['idleAfterPrice', 'idleSeconds'], label: 'חוסר פעילות אחרי מחיר', hint: 'שניות אי פעילות אחרי צפייה במחיר לפני הצגה.', step: 1 },
+    { section: 'frequency', path: ['maxImpressionsPerSession'], label: 'הצגות מקסימליות בסשן', hint: 'מספר הפעמים המרבי שהפופ-אפ מוצג בסשן אחד.', step: 1 },
+    { section: 'frequency', path: ['maxImpressionsPerVisitor'], label: 'הצגות מקסימליות למבקר', hint: 'מספר ההצגות המרבי לכל מבקר לאורך זמן.', step: 1 },
+    { section: 'frequency', path: ['dismissCooldownDays'], label: 'ימי צינון אחרי סגירה', hint: 'כמה ימים לחכות אחרי סגירה לפני הצגה חוזרת.', step: 1 }
+  ];
+
+  var configInputs = {};
+
+  function getPath(obj, path) {
+    return path.reduce(function (o, k) { return o[k]; }, obj);
+  }
+
+  function setPath(obj, path, value) {
+    var o = obj;
+    for (var i = 0; i < path.length - 1; i++) {
+      if (!o[path[i]]) o[path[i]] = {};
+      o = o[path[i]];
+    }
+    o[path[path.length - 1]] = value;
+  }
+
+  function buildTriggerForms() {
+    var grids = {
+      gates: document.getElementById('gates-grid'),
+      abandon: document.getElementById('abandon-grid'),
+      frequency: document.getElementById('frequency-grid')
+    };
+    FIELD_META.forEach(function (meta) {
+      var field = document.createElement('div');
+      field.className = 'field';
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = String(meta.step);
+      var key = meta.section + '.' + meta.path.join('.');
+      input.dataset.key = key;
+      label.appendChild(input);
+      var labelText = document.createElement('span');
+      labelText.textContent = meta.label;
+      label.insertBefore(labelText, input);
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = meta.hint;
+      field.appendChild(label);
+      field.appendChild(hint);
+      grids[meta.section].appendChild(field);
+      configInputs[key] = input;
+    });
+  }
+
+  // meta.path is relative to meta.section, so it must be resolved against the
+  // section and not the root. Without this prefix, fill threw on the first
+  // nested field, and read silently wrote values to the top level, exporting
+  // a config file the engine would quietly ignore.
+  function fullPath(meta) {
+    return [meta.section].concat(meta.path);
+  }
+
+  function fillTriggerForms(config) {
+    FIELD_META.forEach(function (meta) {
+      var key = meta.section + '.' + meta.path.join('.');
+      configInputs[key].value = String(getPath(config, fullPath(meta)));
+    });
+  }
+
+  function readTriggerForms() {
+    var config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    FIELD_META.forEach(function (meta) {
+      var key = meta.section + '.' + meta.path.join('.');
+      var raw = configInputs[key].value;
+      var num = raw === '' ? 0 : Number(raw);
+      if (!isFinite(num) || num < 0) num = 0;
+      setPath(config, fullPath(meta), num);
+    });
+    return config;
+  }
+
+  function exportConfig() {
+    var config = readTriggerForms();
+    var text = 'window.NovaHairPopupConfig = ' + JSON.stringify(config, null, 2) + ';\n';
+    var blob = new Blob([text], { type: 'text/javascript' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'novahair-popup-engine.config.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Tab switching
+
+  var stepsLoaded = false;
+  var modelsLoaded = false;
+
+  function apiRequest(path, options) {
+    options = options || {};
+    var headers = Object.assign({}, options.headers || {});
+    var tokenPromise = window.shopify && typeof window.shopify.idToken === 'function'
+      ? window.shopify.idToken()
+      : Promise.resolve('');
+    return tokenPromise.then(function (token) {
+      if (token) headers.Authorization = 'Bearer ' + token;
+      return fetch(path, Object.assign({}, options, { headers: headers }));
+    });
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.tab === name);
+    });
+    document.querySelectorAll('.panel').forEach(function (panel) {
+      panel.classList.toggle('active', panel.id === 'panel-' + name);
+    });
+    if (name === 'steps' && !stepsLoaded) {
+      stepsLoaded = true;
+      fetchSteps(document.getElementById('days-select').value);
+    }
+    if (name === 'models' && !modelsLoaded) {
+      modelsLoaded = true;
+      fetchModels();
+    }
+  }
+
+  // Tab 2: steps
+
+  function fetchSteps(days) {
+    var errBox = document.getElementById('steps-error');
+    var list = document.getElementById('steps-list');
+    errBox.hidden = true;
+    list.textContent = '';
+    apiRequest('/api/ai-steps?days=' + encodeURIComponent(days))
+      .then(function (res) {
+        if (!res.ok) throw new Error('http ' + res.status);
+        return res.json();
+      })
+      .then(renderSteps)
+      .catch(function () {
+        errBox.textContent = 'לא ניתן לטעון את הנתונים. ייתכן שהפרוקסי של האפליקציה אינו מוגדר.';
+        errBox.hidden = false;
+      });
+  }
+
+  function renderSteps(data) {
+    document.getElementById('conversations-total').textContent = String(data.conversations || 0);
+    var list = document.getElementById('steps-list');
+    list.textContent = '';
+    (data.steps || []).forEach(function (step) {
+      list.appendChild(buildStepCard(step));
+    });
+  }
+
+  function buildStepCard(step) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    var h = document.createElement('h3');
+    h.textContent = step.stepId;
+    card.appendChild(h);
+
+    var row = document.createElement('div');
+    row.className = 'stat-row';
+    [
+      ['הוצג', step.shown],
+      ['נענה', step.answered],
+      ['יציאות', step.exits],
+      ['שיעור נטישה', step.dropOffRate + '%'],
+      ['זמן שהייה ממוצע', step.avgDwellSeconds + ' שניות']
+    ].forEach(function (pair) {
+      var span = document.createElement('span');
+      var lbl = document.createElement('span');
+      lbl.className = 'lbl';
+      lbl.textContent = pair[0] + ': ';
+      span.appendChild(lbl);
+      span.appendChild(document.createTextNode(String(pair[1])));
+      row.appendChild(span);
+    });
+    card.appendChild(row);
+
+    var track = document.createElement('div');
+    track.className = 'bar-track';
+    var fill = document.createElement('div');
+    fill.className = 'bar-fill' + (step.dropOffRate >= 40 ? ' accent' : '');
+    fill.style.width = Math.max(0, Math.min(100, step.dropOffRate)) + '%';
+    track.appendChild(fill);
+    card.appendChild(track);
+
+    var sorted = (step.choices || []).slice().sort(function (a, b) { return b.count - a.count; });
+    sorted.forEach(function (choice) {
+      var line = document.createElement('div');
+      line.className = 'choice-row';
+      line.textContent = choice.label + ' - ' + choice.count;
+      card.appendChild(line);
+    });
+
+    var details = document.createElement('details');
+    var summary = document.createElement('summary');
+    summary.textContent = 'מה הן כתבו';
+    details.appendChild(summary);
+    var ul = document.createElement('ul');
+    (step.freeTexts || []).forEach(function (text) {
+      var li = document.createElement('li');
+      li.textContent = text;
+      ul.appendChild(li);
+    });
+    details.appendChild(ul);
+    card.appendChild(details);
+    return card;
+  }
+
+  // Tab 3: active server-side model configuration
+
+  function fetchModels() {
+    var status = document.getElementById('models-status');
+    var list = document.getElementById('models-list');
+    apiRequest('/api/ai-models')
+      .then(function (res) {
+        if (!res.ok) throw new Error('http ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        list.textContent = '';
+        (data.models || []).forEach(function (model) {
+          var item = document.createElement('li');
+          item.textContent = model;
+          list.appendChild(item);
+        });
+        status.textContent = data.mode === 'pinned'
+          ? 'מודל קבוע. זמן מרבי לבקשה: ' + data.deadlineMs + ' מילישניות.'
+          : 'סולם גיבוי פעיל לפי הסדר המוצג. זמן מרבי לשיחה: ' + data.deadlineMs + ' מילישניות.';
+      })
+      .catch(function () {
+        status.textContent = 'לא ניתן לטעון את תצורת המודלים.';
+        status.className = 'error-msg';
+      });
+  }
+
+  // Wiring
+
+  buildTriggerForms();
+  fillTriggerForms(DEFAULT_CONFIG);
+
+  document.getElementById('export-btn').addEventListener('click', exportConfig);
+  document.getElementById('reset-btn').addEventListener('click', function () {
+    fillTriggerForms(DEFAULT_CONFIG);
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { switchTab(btn.dataset.tab); });
+  });
+  document.getElementById('days-select').addEventListener('change', function () {
+    fetchSteps(this.value);
+  });
+
+})();
+</script>
+</body>
+</html>

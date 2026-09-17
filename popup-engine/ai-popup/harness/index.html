@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaHair AI Concierge — Harness</title>
+<link rel="stylesheet" href="../assets/novahair-ai-popup.css">
+<style>
+  body { margin:0; font-family:'Assistant','Open Sans',Arial,sans-serif; background:#efe7dc; color:#2F241E; }
+  .wrap { max-width:430px; margin:0 auto; background:#fff; min-height:100vh; padding:16px 18px 40vh; }
+  h1 { font-size:19px; margin:14px 0 6px; }
+  p { font-size:14px; line-height:1.6; color:#6b5b50; }
+  .bar { position:fixed; inset-block-start:0; inset-inline:0; background:#2F241E; padding:7px 10px; display:flex; gap:6px; flex-wrap:wrap; z-index:500; }
+  .bar button { font:inherit; font-size:12px; padding:5px 10px; border-radius:7px; border:0; background:#D8753D; color:#fff; cursor:pointer; }
+  .bar button.alt { background:#5c4a3f; }
+
+  /* backend view */
+  #be { position:fixed; inset-block-end:0; inset-inline:0; max-height:44vh; overflow:auto; background:#12100f; color:#e8dfd5;
+        font:11.5px/1.5 ui-monospace,Consolas,monospace; z-index:600; border-block-start:2px solid #D8753D; direction:ltr; }
+  #be h3 { margin:0; padding:6px 10px; background:#1d1917; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#D8753D; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:3px 8px; border-bottom:1px solid #241f1c; vertical-align:top; }
+  th { color:#9c8a7c; font-weight:600; }
+  td.free { color:#8ee6a8; }
+  .tag { background:#2b2422; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <button onclick="NovaHairAIPopup.open({trigger:'manual_test',reason:'harness'})">פתחי פופ-אפ</button>
+  <button class="alt" onclick="openAngle('cost')">זווית: עלות</button>
+  <button class="alt" onclick="openAngle('shade')">זווית: גוון</button>
+  <button class="alt" onclick="location.reload()">איפוס</button>
+  <button class="alt" onclick="dumpAgg()">סיכום שלבים</button>
+</div>
+
+<div class="wrap">
+  <h1 style="margin-top:44px">NovaHair — עמוד בדיקה</h1>
+  <p>זהו עמוד סימולציה. לחצי על "פתחי פופ-אפ" כדי להריץ את שיחת היועצת. כל שלב נרשם למטה בדיוק כפי שהוא יירשם ב־backend.</p>
+  <p>מסלול לבדיקה: "אני לא בטוחה לגבי הגוון" ואז העלאת תמונה. המנוע יזהה גוון ויציג המלצה.</p>
+</div>
+
+<div id="be">
+  <h3>Backend view — popup_ai_step rows</h3>
+  <table id="tbl">
+    <thead><tr><th>#</th><th>stepId</th><th>type</th><th>action</th><th>choice</th><th>freeText</th><th>dwell</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+/* GA4 / GTM stub so the attribution bridge has a dataLayer to push to. */
+window.dataLayer = [];
+/* Intercept analytics + the AI endpoint so nothing leaves the machine. */
+window.__rows = [];
+(function () {
+  function record(raw) {
+    try {
+      var b = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (b.event !== 'popup_ai_step') return;
+      var p = b.payload;
+      window.__rows.push(p);
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + p.stepIndex + '</td><td>' + p.stepId + '</td><td>' + p.stepType +
+        '</td><td><span class="tag">' + p.action + '</span></td><td>' + (p.choiceLabel || p.choiceId || '') +
+        '</td><td class="free">' + (p.freeText || '') + '</td><td>' + Math.round((p.dwellMs || 0) / 100) / 10 + 's</td>';
+      document.querySelector('#tbl tbody').prepend(tr);
+    } catch (e) {}
+  }
+  navigator.sendBeacon = function (url, blob) { blob.text().then(record); return true; };
+  var of = window.fetch;
+  window.fetch = function (url, opts) {
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/track') === 0) { record(opts && opts.body); return Promise.resolve(new Response('{}')); }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/ai-chat') === 0) {
+      window.__aiRequests = window.__aiRequests || [];
+      try { window.__aiRequests.push(JSON.parse(opts.body)); } catch (e) {}
+      /* Default: 503, exactly like the real route with no OPENROUTER_API_KEY,
+         which exercises the keyword fallback. Tests can set window.__mockAI
+         to drive specific (including hostile) model responses through the
+         real client code path. */
+      if (window.__mockAI) return Promise.resolve(new Response(JSON.stringify(window.__mockAI), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify({ error: 'not configured', fallback: true }), { status: 503 }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/popup/customer/capture') === 0) {
+      window.__customerCaptures = window.__customerCaptures || [];
+      try { window.__customerCaptures.push(JSON.parse(opts.body)); } catch (e) {}
+      return Promise.resolve(new Response(JSON.stringify({ saved: true, customerToken: 'qa-customer-token' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/popup/customer/context') === 0) {
+      return Promise.resolve(new Response(JSON.stringify({ saved: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/popup/customer/result-email') === 0) {
+      window.__resultEmails = window.__resultEmails || [];
+      try { window.__resultEmails.push(JSON.parse(opts.body)); } catch (e) {}
+      return Promise.resolve(new Response(JSON.stringify({ sent: true, duplicate: false }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/popup/customer/identify/start') === 0) {
+      return Promise.resolve(new Response(JSON.stringify({ accepted: true, challengeToken: 'qa-otp-token' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/popup/customer/identify/verify') === 0) {
+      return Promise.resolve(new Response(JSON.stringify({ verified: true, customerToken: 'qa-customer-token', bundle: 'מארז 4 בקבוקים', shadeSummary: 'חום כהה' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (typeof url === 'string' && url.indexOf('/apps/funnels/api/customer-check') === 0) {
+      return Promise.resolve(new Response(JSON.stringify(
+        window.__fakeReturning ? { returning: true, daysSinceLastOrder: 96 } : { returning: false })));
+    }
+    if (typeof url === 'string' && url === '/cart/update.js') {
+      window.__cartWrites = window.__cartWrites || [];
+      try { window.__cartWrites.push(JSON.parse(opts.body).attributes); } catch (e) {}
+      return Promise.resolve(new Response('{}'));
+    }
+    if (typeof url === 'string' && (url === '/contact' || url.indexOf('/contact') === 0)) {
+      window.__contactSubmissions = window.__contactSubmissions || [];
+      if (opts && opts.body && typeof opts.body.entries === 'function') {
+        try { window.__contactSubmissions.push(Object.fromEntries(opts.body.entries())); } catch (e) {}
+      }
+      return Promise.resolve(new Response('{}'));
+    }
+    if (typeof url === 'string' && url === '/cart.js') return Promise.resolve(new Response(JSON.stringify({ item_count: 0 })));
+    return of.apply(this, arguments);
+  };
+})();
+</script>
+
+<script src="../assets/novahair-ai-facts.js"></script>
+<script src="../assets/novahair-ai-flows.js"></script>
+<script src="../assets/novahair-ai-agents.js"></script>
+<script src="../assets/novahair-ai-attribution.js"></script>
+<script src="../assets/novahair-ai-tone.js"></script>
+<script>
+window.NovaHairAIOptions = {
+  version: 'novahair_ai_v1',
+    typingMs: 220,                       /* faster than production for testing */
+    assetBase: '../assets/',             /* real cropped shade photos live here */
+    noRedirect: true,                    /* observe redirects instead of leaving the page */
+    placement: 'exit_sales',             /* default; tests override per lane */
+    onFinish: function (how, t) { console.log('[harness] finished', how, t.length + ' steps'); }
+  };
+  /* Flip to simulate a returning customer coming back after a long gap. */
+  window.__fakeReturning = false;
+</script>
+<script src="../assets/novahair-ai-popup.js"></script>
+
+<script>
+function openAngle(a) {
+  history.replaceState(null, '', '?utm_campaign=novahair_' + a + '_test');
+  location.reload();
+}
+function dumpAgg() {
+  var by = {};
+  window.__rows.forEach(function (r) {
+    var s = by[r.stepId] || (by[r.stepId] = { shown: 0, answered: 0, choices: {} });
+    if (r.action === 'shown') s.shown++;
+    else { s.answered++; var k = r.choiceLabel || r.choiceId || r.action; s.choices[k] = (s.choices[k] || 0) + 1; }
+  });
+  console.table(Object.keys(by).map(function (k) {
+    return { step: k, shown: by[k].shown, answered: by[k].answered,
+             dropOff: by[k].shown ? Math.round((by[k].shown - by[k].answered) / by[k].shown * 100) + '%' : '-',
+             top: Object.keys(by[k].choices)[0] || '' };
+  }));
+  alert('סיכום השלבים נדפס לקונסול');
+}
+</script>
+</body>
+</html>

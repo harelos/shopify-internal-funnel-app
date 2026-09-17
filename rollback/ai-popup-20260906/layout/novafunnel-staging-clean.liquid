@@ -1,0 +1,79 @@
+<!doctype html>
+<html class="js" lang="{{ request.locale.iso_code }}" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ page_title | default: page.title }}</title>
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- if settings.favicon != blank -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+    {%- endif -%}
+
+    <script src="{{ 'constants.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'pubsub.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'global.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'sales-page-commerce-adapter.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'novahair-sales-commerce-config.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'novahair-funnel-variant-map.js' | asset_url }}" defer="defer"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    {{ content_for_header }}
+    {% render 'posthog' %}
+    <script src="{{ 'novahair-posthog-funnel-v1.js' | asset_url }}" defer="defer"></script>
+
+    <link rel="stylesheet" href="{{ 'component-cart-items.css' | asset_url }}" media="print" onload="this.media='all'">
+    {{ 'component-cart-drawer.css' | asset_url | stylesheet_tag }}
+    {{ 'component-cart.css' | asset_url | stylesheet_tag }}
+    {{ 'component-discounts.css' | asset_url | stylesheet_tag }}
+
+    <style>
+      cart-drawer, cart-drawer *, #CartDrawer, #CartDrawer *, #csPanel, #csPanel *, .cart-drawer, .cart-drawer *, .drawer__inner, .drawer__inner *, .drawer__header, .drawer__header *, .drawer__scroll, .drawer__scroll *, .drawer__footer, .drawer__footer *, .cart-drawer__footer, .cart-drawer__footer * {
+        font-family: 'Open Sans', 'Arial Hebrew', Arial, system-ui, -apple-system, sans-serif !important;
+      }
+      cart-drawer .discounts__discount {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+      }
+      cart-drawer .discounts__discount > svg,
+      cart-drawer .discounts__discount > .icon {
+        display: block !important;
+        flex: 0 0 1.2rem !important;
+        width: 1.2rem !important;
+        height: 1.2rem !important;
+        max-width: 1.2rem !important;
+        max-height: 1.2rem !important;
+      }
+    </style>
+  </head>
+  <body class="novafunnel-staging-body" style="margin:0;padding:0;background:#FFFFFF;">
+    {{ content_for_layout }}
+    {%- render 'cart-drawer-novafunnel' -%}
+    <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
+
+    <script>
+      window.shopUrl = '{{ request.origin }}';
+      window.routes = {
+        cart_add_url: '{{ routes.cart_add_url }}',
+        cart_change_url: '{{ routes.cart_change_url }}',
+        cart_update_url: '{{ routes.cart_update_url }}',
+        cart_url: '{{ routes.cart_url }}',
+        predictive_search_url: '{{ routes.predictive_search_url }}',
+      };
+      window.cartStrings = {
+        error: `{{ 'sections.cart.cart_error' | t }}`,
+        quantityError: `{{ 'sections.cart.cart_quantity_error_html' | t: quantity: '[quantity]' }}`,
+      };
+      window.variantStrings = {
+        addToCart: `{{ 'products.product.add_to_cart' | t }}`,
+        soldOut: `{{ 'products.product.sold_out' | t }}`,
+        unavailable: `{{ 'products.product.unavailable' | t }}`,
+        unavailable_with_option: `{{ 'products.product.value_unavailable' | t: option_value: '[value]' }}`,
+      };
+    </script>
+  </body>
+</html>

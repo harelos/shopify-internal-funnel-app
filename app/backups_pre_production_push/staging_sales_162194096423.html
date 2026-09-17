@@ -1,0 +1,4145 @@
+<!-- NOVAHAIR SALES FUNNEL — PRODUCTION STAGING (CRO ATF + 12 FAQ + BATCH 6 BANNER) -->
+<div class="nova" dir="rtl" lang="he">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800;900&display=swap');
+
+/* ====================================================
+   CSS VARIABLES & GLOBAL RESETS
+==================================================== */
+:root {
+  --nh-bronze: #E07A28;
+  --nh-bronze-dark: #C05621;
+  --nh-bronze-soft: #FFF7F1;
+  --nh-espresso: #1A1A1A;
+  --nh-sand: #FAF7F2;
+  --nh-cream: #FDFBF8;
+  --nh-blush: #FBE3D1;
+  --nh-gold: #D4AF37;
+  --nh-text: #262626;
+  --nh-text-soft: #555555;
+  --nh-muted: #888888;
+  --nh-border: #E8DFD5;
+  --nh-white: #FFFFFF;
+}
+
+.nova {
+  font-family: 'Open Sans', 'Arial Hebrew', Arial, system-ui, -apple-system, sans-serif !important;
+  color: var(--nh-text) !important;
+  background: #FFFFFF !important;
+  line-height: 1.5 !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.nova *, .nova *::before, .nova *::after {
+  box-sizing: border-box !important;
+}
+
+.nova .wrap {
+  max-width: 1120px !important;
+  margin: 0 auto !important;
+  padding: 0 16px !important;
+}
+
+.nova .sec {
+  padding: 48px 0 !important;
+}
+
+.nova .sec-sand { background: var(--nh-sand) !important; }
+.nova .sec-cream { background: var(--nh-cream) !important; }
+.nova .sec-white { background: #FFFFFF !important; }
+
+.nova h1, .nova h2, .nova h3, .nova h4 {
+  color: var(--nh-espresso) !important;
+  margin: 0 0 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+}
+
+.nova h1 { font-size: clamp(22px, 3.8vw, 32px) !important; }
+.nova h2 { font-size: clamp(20px, 3.2vw, 28px) !important; text-align: center !important; }
+
+.nova .sec-head {
+  text-align: center !important;
+  max-width: 720px !important;
+  margin: 0 auto 36px !important;
+}
+
+.nova .sec-desc {
+  font-size: 1rem !important;
+  color: var(--nh-text-soft) !important;
+  margin-top: 8px !important;
+}
+
+.nova .eyebrow {
+  display: inline-block !important;
+  background: var(--nh-blush) !important;
+  color: var(--nh-bronze-dark) !important;
+  font-size: .8rem !important;
+  font-weight: 700 !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  margin-bottom: 8px !important;
+  text-transform: uppercase !important;
+}
+
+/* ====================================================
+   TOP ANNOUNCEMENT BAR
+==================================================== */
+.nova .topbar {
+  background: var(--nh-espresso) !important;
+  color: #FFFFFF !important;
+  padding: 8px 12px !important;
+  font-size: .84rem !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 20px !important;
+  text-align: center !important;
+}
+.nova .topbar-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.nova .topbar-icon-img {
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+}
+
+/* ====================================================
+   SECTION 1: COMPACT ATF CRO HERO
+==================================================== */
+.nova .hero {
+  padding: 24px 0 36px !important;
+  background: #FFFFFF !important;
+}
+
+.nova .hero-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 24px !important;
+}
+
+@media (min-width: 990px) {
+  .nova .hero-grid {
+    grid-template-columns: 1fr 1.08fr !important;
+    gap: 36px !important;
+    align-items: start !important;
+  }
+}
+
+/* Gallery Column (Right in RTL) */
+.nova .hero-media {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.nova .gal-main-wrap {
+  width: 100% !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: var(--nh-sand) !important;
+  box-shadow: 0 4px 16px rgba(43,36,32,.06) !important;
+}
+
+.nova .gal-main {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+.nova .thumbs {
+  display: flex !important;
+  gap: 7px !important;
+  overflow-x: auto !important;
+  padding-bottom: 4px !important;
+  scrollbar-width: thin !important;
+}
+
+.nova .thumb {
+  width: 52px !important;
+  height: 52px !important;
+  flex-shrink: 0 !important;
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  cursor: pointer !important;
+  object-fit: cover !important;
+  opacity: .68 !important;
+  transition: all .2s !important;
+  background: var(--nh-sand) !important;
+}
+
+.nova .thumb:hover { opacity: .95 !important; }
+.nova .thumb.sel { border-color: var(--nh-bronze) !important; opacity: 1 !important; }
+
+/* Purchase Column (Left in RTL) */
+.nova .hero-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.nova .nh-official-badge-slot {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: .78rem !important;
+  font-weight: 700 !important;
+  color: var(--nh-bronze-dark) !important;
+  background: var(--nh-blush) !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  margin-bottom: 6px !important;
+  width: fit-content !important;
+}
+
+.nova .hero-rating {
+  font-size: .88rem !important;
+  font-weight: 700 !important;
+  color: var(--nh-espresso) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.nova .hero-rating span { color: var(--nh-text-soft) !important; font-weight: 400 !important; }
+
+.nova .hero-head h1 {
+  font-size: clamp(20px, 2.4vw, 26px) !important;
+  margin: 4px 0 6px !important;
+  line-height: 1.25 !important;
+}
+
+.nova .hero-subhead {
+  font-size: .92rem !important;
+  color: var(--nh-text-soft) !important;
+  margin: 0 !important;
+  line-height: 1.45 !important;
+}
+
+/* 3 Compact Value Pills */
+.nova .product-value-pills {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 2px !important;
+}
+
+.nova .product-value-pill {
+  padding: 4px 10px !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 999px !important;
+  background: var(--nh-sand) !important;
+  color: var(--nh-text) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* Decision Steps Box */
+.nova .step-box {
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+}
+
+.nova .step-label {
+  font-size: .92rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+  margin-bottom: 8px !important;
+}
+
+.nova .step-sub {
+  font-size: .78rem !important;
+  color: var(--nh-text-soft) !important;
+  margin-bottom: 8px !important;
+}
+
+/* Shade Swatches Grid */
+.nova .shade-grid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.nova .shade-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 10px 5px 6px !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  transition: all .15s ease !important;
+  background: #FFFFFF !important;
+  font-size: .84rem !important;
+  font-weight: 700 !important;
+}
+
+.nova .shade-option:hover { border-color: var(--nh-bronze) !important; }
+
+.nova .shade-option.sel {
+  border-color: var(--nh-bronze) !important;
+  background: var(--nh-bronze-soft) !important;
+}
+
+.nova .shade-swatch {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(0,0,0,.15) !important;
+  flex-shrink: 0 !important;
+}
+
+.nova .shade-option.sel .shade-swatch {
+  outline: 2px solid var(--nh-bronze) !important;
+  outline-offset: 1px !important;
+}
+
+/* Mix Shades Dedicated Button */
+.nova .mix-shades-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  border: 1px dashed var(--nh-bronze) !important;
+  border-radius: 20px !important;
+  background: #FFFFFF !important;
+  color: var(--nh-bronze-dark) !important;
+  font-size: .82rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all .15s ease !important;
+}
+
+.nova .mix-shades-btn:hover, .nova .mix-shades-btn.is-active {
+  background: var(--nh-bronze-soft) !important;
+  border-style: solid !important;
+  border-color: var(--nh-bronze) !important;
+}
+
+/* Mix Allocation Drawer */
+.nova .mm-drawer {
+  display: none;
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid var(--nh-border) !important;
+}
+
+.nova .mm-drawer.open { display: block !important; }
+
+.nova .mm-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  font-size: .84rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .mm-tally.complete { color: #16a34a !important; }
+.nova .mm-tally.incomplete { color: #dc2626 !important; }
+
+.nova .mm-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+}
+
+.nova .mm-shade-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: .84rem !important;
+  font-weight: 600 !important;
+}
+
+.nova .mm-ctrls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.nova .mm-btn {
+  width: 28px !important;
+  height: 28px !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 6px !important;
+  background: #FFFFFF !important;
+  cursor: pointer !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .mm-btn:hover { background: var(--nh-sand) !important; }
+.nova .mm-qty { font-size: .9rem !important; font-weight: 800 !important; min-width: 18px !important; text-align: center !important; }
+
+/* Compact Horizontal Bundle Cards (78px - 88px) */
+.nova .bundle-cards-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.nova .bundle-card {
+  position: relative !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid var(--nh-border) !important;
+  border-radius: 12px !important;
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  transition: all .18s ease !important;
+  min-height: 78px !important;
+}
+
+.nova .bundle-card:hover { border-color: var(--nh-bronze) !important; }
+
+.nova .bundle-card.sel {
+  border-color: var(--nh-bronze) !important;
+  border-width: 2px !important;
+  background: #FDF8F3 !important;
+  box-shadow: 0 4px 14px rgba(224, 122, 40, 0.12) !important;
+}
+
+.nova .bundle-card__right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.nova .bundle-card__thumb {
+  width: 58px !important;
+  max-height: 62px !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+}
+
+.nova .bundle-card__details {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.nova .bundle-card__badge-inline {
+  display: inline-block !important;
+  background: var(--nh-bronze) !important;
+  color: #FFFFFF !important;
+  font-size: .68rem !important;
+  font-weight: 800 !important;
+  padding: 1px 6px !important;
+  border-radius: 6px !important;
+  width: fit-content !important;
+  margin-bottom: 2px !important;
+}
+
+.nova .bundle-card__title {
+  font-size: .98rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .bundle-card__per-bottle {
+  font-size: .78rem !important;
+  color: var(--nh-text-soft) !important;
+  font-weight: 600 !important;
+}
+
+.nova .bundle-card__pricing {
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 1px !important;
+}
+
+.nova .bundle-card__price {
+  font-size: 1.25rem !important;
+  font-weight: 900 !important;
+  color: var(--nh-espresso) !important;
+  line-height: 1 !important;
+}
+
+.nova .bundle-card__old {
+  font-size: .76rem !important;
+  color: var(--nh-muted) !important;
+  text-decoration: line-through !important;
+}
+
+.nova .bundle-card__savings {
+  font-size: .74rem !important;
+  font-weight: 700 !important;
+  color: var(--nh-bronze-dark) !important;
+}
+
+/* Primary Dynamic CTA Button */
+.nova .btn-primary-cta {
+  width: 100% !important;
+  min-height: 52px !important;
+  background: var(--nh-bronze) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 1.12rem !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 18px rgba(224, 122, 40, 0.25) !important;
+  transition: all .2s ease !important;
+  text-decoration: none !important;
+}
+
+.nova .btn-primary-cta:hover {
+  background: var(--nh-bronze-dark) !important;
+  transform: translateY(-1px) !important;
+}
+
+.nova .btn-primary-cta.is-disabled {
+  background: #9ca3af !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+/* CTA Summary & Compact Trust Row */
+.nova .cta-summary-line {
+  text-align: center !important;
+  font-size: .86rem !important;
+  font-weight: 700 !important;
+  color: var(--nh-espresso) !important;
+  margin-top: 6px !important;
+}
+
+.nova .purchase-trust-row {
+  display: flex !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px 14px !important;
+  margin-top: 8px !important;
+  color: var(--nh-text-soft) !important;
+  font-size: .82rem !important;
+  font-weight: 600 !important;
+}
+
+/* ====================================================
+   SECTION 2: PROOF BAR (HUGE HIGH-IMPACT ICONS)
+==================================================== */
+.nova .proof-bar {
+  background: #FFFFFF !important;
+  border-top: 1px solid var(--nh-border) !important;
+  border-bottom: 1px solid var(--nh-border) !important;
+  padding: 24px 0 !important;
+}
+
+.nova .proof-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 16px !important;
+}
+
+@media (min-width: 768px) {
+  .nova .proof-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 20px !important;
+  }
+}
+
+.nova .proof-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  gap: 6px !important;
+}
+
+.nova .proof-icon-wrap {
+  width: 72px !important;
+  height: 72px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.nova .proof-icon-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.nova .proof-num {
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  color: var(--nh-bronze) !important;
+}
+
+.nova .proof-lbl {
+  font-size: .84rem !important;
+  color: var(--nh-text-soft) !important;
+  font-weight: 600 !important;
+}
+
+/* ====================================================
+   SECTION 3: BEFORE / AFTER
+==================================================== */
+.nova .ba-card {
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(43,36,32,.04) !important;
+}
+
+.nova .ba-img-wrap {
+  width: 100% !important;
+  line-height: 0 !important;
+}
+
+.nova .ba-img {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
+
+.nova .ba-labels {
+  display: flex !important;
+  justify-content: space-around !important;
+  padding: 10px 0 !important;
+  background: var(--nh-sand) !important;
+  font-weight: 800 !important;
+  font-size: .9rem !important;
+}
+
+/* ====================================================
+   SECTION 4: MECHANISM
+==================================================== */
+.nova .mech-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 24px !important;
+  align-items: center !important;
+}
+
+@media (min-width: 768px) {
+  .nova .mech-grid {
+    grid-template-columns: 1.1fr 1fr !important;
+    gap: 32px !important;
+  }
+}
+
+.nova .nh-microsphere-desktop { display: block !important; }
+.nova .nh-microsphere-mobile { display: none !important; }
+
+@media (max-width: 767px) {
+  .nova .nh-microsphere-desktop { display: none !important; }
+  .nova .nh-microsphere-mobile { display: block !important; }
+}
+
+.nova .nh-microsphere-desktop img, .nova .nh-microsphere-mobile img {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  border-radius: 16px !important;
+}
+
+.nova .mech-points {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.nova .mech-point {
+  background: var(--nh-sand) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  border-right: 4px solid var(--nh-bronze) !important;
+}
+
+.nova .mech-point-title {
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+  color: var(--nh-espresso) !important;
+  margin-bottom: 4px !important;
+}
+
+.nova .mech-point-desc {
+  font-size: .88rem !important;
+  color: var(--nh-text-soft) !important;
+  margin: 0 !important;
+}
+
+/* ====================================================
+   SECTION 5: FORMULA & EXPERT BLOCK
+==================================================== */
+.nova .bot-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+
+@media (min-width: 768px) {
+  .nova .bot-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px !important;
+  }
+}
+
+.nova .bot-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 14px !important;
+  padding: 20px !important;
+  text-align: center !important;
+}
+
+.nova .bot-img-slot {
+  font-size: 2rem !important;
+  margin-bottom: 8px !important;
+}
+
+.nova .bot-card-title {
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+  color: var(--nh-espresso) !important;
+  margin-bottom: 6px !important;
+}
+
+.nova .bot-card-benefit {
+  font-size: .86rem !important;
+  color: var(--nh-text-soft) !important;
+}
+
+.nova .bot-support {
+  text-align: center !important;
+  font-size: .92rem !important;
+  font-weight: 700 !important;
+  color: var(--nh-bronze-dark) !important;
+  margin-top: 20px !important;
+}
+
+/* Professional Expert Block Redesign */
+.nova .expert-block {
+  margin-top: 48px !important;
+  padding-top: 40px !important;
+  border-top: 1px solid var(--nh-border) !important;
+}
+
+.nova .expert-head {
+  text-align: center !important;
+  margin-bottom: 28px !important;
+}
+
+.nova .expert-head h3 {
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+  margin-top: 6px !important;
+}
+
+.nova .expert-section__grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 28px !important;
+  align-items: stretch !important;
+  max-width: 920px !important;
+  margin: 0 auto !important;
+}
+
+@media (max-width: 749px) {
+  .nova .expert-section__grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+}
+
+.nova .expert-card {
+  overflow: hidden !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E8D7C7 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.035) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  text-align: right !important;
+  transition: transform .2s ease, box-shadow .2s ease !important;
+}
+
+.nova .expert-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 32px rgba(43, 36, 32, 0.08) !important;
+}
+
+.nova .expert-card__media {
+  width: 100% !important;
+  overflow: hidden !important;
+  background: var(--nh-sand) !important;
+  line-height: 0 !important;
+}
+
+.nova .expert-card__media img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+}
+
+.nova .expert-card__content {
+  padding: 24px 28px 28px !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+@media (max-width: 749px) {
+  .nova .expert-card__content {
+    padding: 20px 18px 22px !important;
+  }
+}
+
+.nova .expert-card__badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  margin-bottom: 12px !important;
+  padding: 6px 11px !important;
+  border-radius: 999px !important;
+  background: #FFF4ED !important;
+  color: #C05621 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+.nova .expert-card__identity {
+  margin: 0 0 14px !important;
+  color: #1A1A1A !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+}
+
+@media (max-width: 749px) {
+  .nova .expert-card__identity {
+    font-size: 16px !important;
+  }
+}
+
+.nova .expert-card__quote {
+  margin: 0 !important;
+  padding: 0 16px 0 0 !important;
+  border-right: 3px solid #E07A28 !important;
+  border-left: none !important;
+}
+
+.nova .expert-card__lead {
+  margin: 0 !important;
+  color: #2D3748 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.65 !important;
+}
+
+@media (max-width: 749px) {
+  .nova .expert-card__lead {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+}
+
+.nova .expert-card__body {
+  margin-top: 14px !important;
+  color: #4A5568 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.7 !important;
+}
+
+@media (max-width: 749px) {
+  .nova .expert-card__body {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+  }
+}
+
+.nova .expert-card__body p {
+  margin: 0 !important;
+}
+
+.nova .expert-card__body p + p {
+  margin-top: 9px !important;
+}
+
+.nova .expert-card strong {
+  color: #1A1A1A !important;
+  font-weight: 700 !important;
+}
+
+/* ====================================================
+   SECTION 6: HOW TO USE (3 STEPS)
+==================================================== */
+.nova .steps-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 20px !important;
+}
+
+.nova .nh-howto-card__num-desktop { display: none !important; }
+
+.nova .nh-howto-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(43,36,32,.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.nova .nh-howto-card__media {
+  width: 100% !important;
+  height: auto !important;
+  overflow: hidden !important;
+  background: var(--nh-sand) !important;
+}
+
+.nova .nh-howto-card__media img {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+@media (max-width: 767px) {
+  .nova .nh-howto-card__media { aspect-ratio: 4 / 5 !important; }
+  .nova .nh-howto-card__media img { height: 100% !important; object-fit: cover !important; }
+}
+
+.nova .nh-howto-card__content {
+  padding: 22px 18px !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.nova .step-num {
+  width: 38px !important;
+  height: 38px !important;
+  background: var(--nh-blush) !important;
+  color: var(--nh-bronze-dark) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  margin-bottom: 10px !important;
+}
+
+.nova .step-action {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+  margin-bottom: 6px !important;
+}
+
+.nova .step-desc {
+  font-size: .88rem !important;
+  color: var(--nh-text-soft) !important;
+  line-height: 1.5 !important;
+}
+
+@media (min-width: 768px) {
+  .nova .steps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 28px !important;
+    align-items: start !important;
+  }
+
+  .nova .nh-howto-card {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    align-items: center !important;
+  }
+
+  .nova .nh-howto-card__media {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 20px rgba(43,36,32,.07) !important;
+    background: transparent !important;
+  }
+
+  .nova .nh-howto-card__media img {
+    border-radius: 16px !important;
+  }
+
+  .nova .nh-howto-card__num-desktop {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 42px !important;
+    height: 42px !important;
+    margin: 16px auto 0 !important;
+    border-radius: 50% !important;
+    background: #FBE3D1 !important;
+    color: #B85F24 !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+  }
+
+  .nova .nh-howto-card__content { display: none !important; }
+}
+
+.nova .how-support {
+  text-align: center !important;
+  font-size: .92rem !important;
+  color: var(--nh-text-soft) !important;
+  margin-top: 24px !important;
+}
+
+/* ====================================================
+   SECTION 7: SOCIAL PROOF SLIDER
+==================================================== */
+.nova .ugc-slider-wrap {
+  position: relative !important;
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+}
+
+.nova .ugc-slider {
+  display: flex !important;
+  transition: transform .3s ease !important;
+}
+
+.nova .ugc-slide {
+  min-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.nova .ugc-img {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 16px !important;
+  display: block !important;
+}
+
+.nova .ugc-nav {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin-top: 14px !important;
+}
+
+.nova .ugc-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: var(--nh-border) !important;
+  cursor: pointer !important;
+}
+
+.nova .ugc-dot.active { background: var(--nh-bronze) !important; }
+
+/* ====================================================
+   SECTION 8: COMPARISON MATRIX
+==================================================== */
+.nova .comp-table-wrap {
+  width: 100% !important;
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(43,36,32,.04) !important;
+}
+
+.nova .comp-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.nova .comp-table th, .nova .comp-table td {
+  padding: 14px 12px !important;
+  text-align: center !important;
+  font-size: .86rem !important;
+  border-bottom: 1px solid var(--nh-border) !important;
+}
+
+.nova .comp-table th {
+  background: var(--nh-sand) !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .comp-table th:first-child, .nova .comp-table td:first-child {
+  text-align: right !important;
+  font-weight: 700 !important;
+}
+
+.nova .comp-highlight {
+  background: var(--nh-bronze-soft) !important;
+  color: var(--nh-bronze-dark) !important;
+  font-weight: 800 !important;
+}
+
+.nova .comp-mobile-cards {
+  display: none;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+@media (max-width: 767px) {
+  .nova .comp-table-wrap { display: none !important; }
+  .nova .comp-mobile-cards { display: flex !important; }
+}
+
+.nova .comp-m-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+.nova .comp-m-title {
+  font-size: .95rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 10px !important;
+}
+
+.nova .comp-m-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 6px 0 !important;
+  font-size: .84rem !important;
+  border-bottom: 1px dashed var(--nh-border) !important;
+}
+
+.nova .comp-m-row.nh {
+  font-weight: 800 !important;
+  color: var(--nh-bronze-dark) !important;
+  background: var(--nh-bronze-soft) !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  border-bottom: none !important;
+}
+
+/* ====================================================
+   SECTION 9: MID-PAGE BUNDLE RE-ENTRY
+==================================================== */
+.nova .reentry-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 20px !important;
+  max-width: 980px !important;
+  margin: 0 auto 30px !important;
+}
+
+@media (min-width: 768px) {
+  .nova .reentry-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 24px !important;
+    align-items: stretch !important;
+  }
+}
+
+.nova .nh-reentry-card {
+  background: #FFFFFF !important;
+  border: 2px solid var(--nh-border) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  transition: all .25s ease !important;
+  position: relative !important;
+}
+
+.nova .nh-reentry-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: var(--nh-bronze) !important;
+}
+
+.nova .nh-reentry-card.hero-reentry {
+  border-color: var(--nh-bronze) !important;
+  box-shadow: 0 8px 26px rgba(178,106,69,.2) !important;
+}
+
+.nova .nh-reentry-card__media {
+  width: 100% !important;
+  height: 360px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.nova .nh-reentry-card__media img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+  transform: scale(1.08) !important;
+  transition: transform .25s ease !important;
+}
+
+.nova .nh-reentry-card:hover .nh-reentry-card__media img { transform: scale(1.12) !important; }
+
+.nova .nh-reentry-card__meta {
+  padding: 14px 12px 18px !important;
+  text-align: center !important;
+  border-top: 1px solid var(--nh-border) !important;
+  background: #FFFFFF !important;
+}
+
+.nova .nh-reentry-card__per-bottle {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .nh-reentry-card__saving {
+  margin-top: 5px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--nh-bronze) !important;
+}
+
+.nova .reentry-support-bar {
+  text-align: center !important;
+  font-size: .88rem !important;
+  color: var(--nh-text-soft) !important;
+  margin-bottom: 20px !important;
+}
+
+/* ====================================================
+   SECTION 10: BEARD SECTION (Uncropped Image)
+==================================================== */
+.nova .beard-card {
+  background: var(--nh-sand) !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 16px !important;
+  padding: 28px 24px !important;
+  max-width: 920px !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 767px) { .nova .beard-card { padding: 20px 16px !important; } }
+
+.nova .beard-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  align-items: center !important;
+}
+
+@media (min-width: 768px) {
+  .nova .beard-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) !important;
+    gap: 32px !important;
+    align-items: center !important;
+  }
+}
+
+.nova .beard-img-wrap {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  line-height: 0 !important;
+}
+
+.nova .beard-img {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  border-radius: 12px !important;
+}
+
+.nova .beard-text {
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+@media (min-width: 768px) {
+  .nova .beard-text {
+    text-align: right !important;
+    padding-left: 12px !important;
+  }
+}
+
+/* ====================================================
+   SECTION 11: 60-DAY GUARANTEE
+==================================================== */
+.nova .guar-card {
+  background: #FFFFFF !important;
+  border: 2px solid var(--nh-gold) !important;
+  border-radius: 16px !important;
+  padding: 28px 20px !important;
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  box-shadow: 0 4px 18px rgba(194,154,74,.1) !important;
+}
+
+.nova .guar-creative-wrap {
+  width: 100% !important;
+  margin-bottom: 20px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.nova .guar-img-desktop {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 400px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+.nova .guar-img-mobile {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 480px !important;
+  object-fit: contain !important;
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .nova .guar-img-desktop { display: none !important; }
+  .nova .guar-img-mobile { display: block !important; }
+}
+
+/* ====================================================
+   SECTION 12: EXPANDED 12-QUESTION FAQ (SEMANTIC ACCORDION)
+==================================================== */
+.nova .faq-section__inner {
+  width: min(calc(100% - 32px), 860px) !important;
+  margin: 0 auto !important;
+}
+
+.nova .faq-list {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.nova .faq-item {
+  border: 1px solid #E7CDBA !important;
+  border-radius: 10px !important;
+  background: #FFFFFF !important;
+  overflow: hidden !important;
+  transition: border-color .2s ease, box-shadow .2s ease !important;
+}
+
+.nova .faq-item:hover {
+  border-color: var(--nh-bronze) !important;
+}
+
+.nova .faq-item h3 {
+  margin: 0 !important;
+  font-size: inherit !important;
+}
+
+.nova .faq-item__trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 16px 18px !important;
+  background: transparent !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  text-align: right !important;
+  direction: rtl !important;
+  font-family: inherit !important;
+}
+
+.nova .faq-item__question {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+  color: #1A1A1A !important;
+}
+
+.nova .faq-item__icon {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: var(--nh-bronze) !important;
+  transition: transform .2s ease !important;
+  flex-shrink: 0 !important;
+  margin-right: 12px !important;
+}
+
+.nova .faq-item.is-open .faq-item__icon {
+  transform: rotate(45deg) !important;
+}
+
+.nova .faq-item__answer {
+  display: none;
+  padding: 0 18px 18px !important;
+  color: #555555 !important;
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  text-align: right !important;
+}
+
+.nova .faq-item.is-open .faq-item__answer {
+  display: block !important;
+}
+
+/* ====================================================
+   SECTION 13: REPLACEMENT VISUAL BANNER (BATCH 6 BANNER)
+==================================================== */
+.nova .replacement-visual-section {
+  padding: 44px 0 48px !important;
+  background: #FFFFFF !important;
+}
+
+@media (max-width: 749px) {
+  .nova .replacement-visual-section {
+    padding: 30px 0 34px !important;
+  }
+}
+
+.nova .replacement-visual-section__inner {
+  width: min(calc(100% - 32px), 1120px) !important;
+  margin: 0 auto !important;
+}
+
+.nova .replacement-visual-section__media {
+  overflow: hidden !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.05) !important;
+  line-height: 0 !important;
+  background: #FFFFFF !important;
+}
+
+.nova .replacement-visual-section__image {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  object-fit: contain !important;
+  border-radius: 16px !important;
+}
+
+/* ====================================================
+   SECTION 14: REVIEWS SUMMARY & SOCIAL PROOF
+==================================================== */
+.nova .reviews-summary-section {
+  padding-top: 56px !important;
+  padding-bottom: 48px !important;
+}
+
+.nova .reviews-summary-section__container {
+  max-width: 960px !important;
+  margin: 0 auto !important;
+  padding: 0 16px !important;
+}
+
+.nova .reviews-summary-header {
+  text-align: center !important;
+  margin-bottom: 32px !important;
+}
+
+.nova .reviews-summary-eyebrow {
+  display: inline-block !important;
+  background: #FFF4ED !important;
+  color: #B85F24 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 5px 14px !important;
+  border-radius: 999px !important;
+  margin-bottom: 12px !important;
+  letter-spacing: 0.02em !important;
+}
+
+.nova .reviews-summary-title {
+  color: #1A1A1A !important;
+  font-size: clamp(26px, 3vw, 34px) !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  margin: 0 auto !important;
+  max-width: 850px !important;
+}
+
+.nova .reviews-trust-card {
+  background: #FFFFFF !important;
+  border: 1px solid #EAEAEA !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden !important;
+  margin-bottom: 46px !important;
+}
+
+.nova .reviews-trust-card__grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+}
+
+@media (min-width: 750px) {
+  .nova .reviews-trust-card__grid {
+    grid-template-columns: 1.05fr 1.35fr !important;
+  }
+}
+
+.nova .reviews-rating-column {
+  padding: 36px 32px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  text-align: right !important;
+}
+
+@media (min-width: 750px) {
+  .nova .reviews-rating-column {
+    border-left: 1px solid #EFEFEF !important;
+  }
+}
+
+@media (max-width: 749px) {
+  .nova .reviews-rating-column {
+    padding: 26px 20px 22px !important;
+    border-bottom: 1px solid #EFEFEF !important;
+  }
+}
+
+.nova .reviews-rating-header {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+.nova .reviews-rating-score {
+  font-size: 54px !important;
+  font-weight: 900 !important;
+  color: #E07A28 !important;
+  line-height: 1 !important;
+}
+
+.nova .reviews-rating-stars-wrap {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.nova .reviews-star-icon {
+  width: 23px !important;
+  height: 23px !important;
+  color: #F59E0B !important;
+  fill: currentColor !important;
+}
+
+.nova .reviews-rating-count {
+  font-size: 16px !important;
+  color: #262626 !important;
+  font-weight: 700 !important;
+  margin: 6px 0 20px !important;
+}
+
+.nova .reviews-breakdown-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.nova .reviews-breakdown-row {
+  display: grid !important;
+  grid-template-columns: 60px 1fr 38px !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 14px !important;
+}
+
+.nova .reviews-breakdown-label {
+  color: #333333 !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.nova .reviews-breakdown-track {
+  height: 8px !important;
+  background: #F0F0F0 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.nova .reviews-breakdown-fill {
+  height: 100% !important;
+  background: #E07A28 !important;
+  border-radius: 999px !important;
+}
+
+.nova .reviews-breakdown-pct {
+  color: #666666 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.nova .reviews-insights-column {
+  padding: 36px 36px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  text-align: right !important;
+}
+
+@media (max-width: 749px) {
+  .nova .reviews-insights-column {
+    padding: 22px 20px 26px !important;
+  }
+}
+
+.nova .reviews-insights-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #1A1A1A !important;
+  margin: 0 0 10px !important;
+}
+
+.nova .reviews-insights-text {
+  font-size: 15px !important;
+  color: #555555 !important;
+  line-height: 1.7 !important;
+  margin: 0 0 20px !important;
+  max-width: 520px !important;
+}
+
+.nova .reviews-topic-pills {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.nova .reviews-topic-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #F4F4F5 !important;
+  border: 1px solid #E4E4E7 !important;
+  border-radius: 999px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  color: #27272A !important;
+  font-weight: 600 !important;
+}
+
+.nova .reviews-topic-pill svg {
+  width: 14px !important;
+  height: 14px !important;
+  color: #16A34A !important;
+}
+
+.nova .reviews-trust-card__footer {
+  background: #FAFAFA !important;
+  border-top: 1px solid #F0F0F0 !important;
+  padding: 14px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: #666666 !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+}
+
+.nova .reviews-trust-card__footer svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #2E8B57 !important;
+}
+
+/* UGC Review Cards Track */
+.nova .rev-cards-wrap {
+  width: 100% !important;
+  overflow: hidden !important;
+  margin-bottom: 24px !important;
+}
+
+.nova .rev-cards-track {
+  display: flex !important;
+  gap: 16px !important;
+  overflow-x: auto !important;
+  padding-bottom: 12px !important;
+  scrollbar-width: thin !important;
+}
+
+.nova .rev-full-card {
+  min-width: 270px !important;
+  max-width: 280px !important;
+  flex: 0 0 280px !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--nh-border) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 14px rgba(43,36,32,.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.nova .ugc-media {
+  width: 100% !important;
+  height: 250px !important;
+  overflow: hidden !important;
+  background: var(--nh-sand) !important;
+  cursor: pointer !important;
+}
+
+.nova .ugc-media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: transform .2s ease !important;
+}
+
+.nova .ugc-media:hover img { transform: scale(1.04) !important; }
+
+.nova .rev-card-content {
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  flex: 1 !important;
+}
+
+.nova .rev-card-quote {
+  font-size: .86rem !important;
+  color: var(--nh-text) !important;
+  line-height: 1.5 !important;
+  margin: 0 0 12px !important;
+}
+
+.nova .rev-card-author {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-end !important;
+  border-top: 1px solid var(--nh-border) !important;
+  padding-top: 8px !important;
+}
+
+.nova .rev-card-name { font-weight: 700 !important; font-size: .86rem !important; }
+.nova .rev-card-loc { font-size: .76rem !important; color: var(--nh-muted) !important; }
+.nova .rev-card-stars { color: #f59e0b !important; font-size: .82rem !important; }
+
+/* Lightbox Modal */
+.nova .lightbox-modal {
+  display: none;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0,0,0,.8) !important;
+  z-index: 99999 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.nova .lightbox-modal.open { display: flex !important; }
+
+.nova .lightbox-content {
+  position: relative !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.nova .lightbox-content img {
+  max-width: 80vw !important;
+  max-height: 80vh !important;
+  display: block !important;
+  object-fit: contain !important;
+}
+
+.nova .lightbox-close {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: rgba(0,0,0,.6) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 50% !important;
+  font-size: 1.2rem !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ====================================================
+   SECTION 15: FOOTER
+==================================================== */
+.nova .footer {
+  background: var(--nh-espresso) !important;
+  color: #FFFFFF !important;
+  padding: 40px 0 24px !important;
+  text-align: center !important;
+  font-size: .84rem !important;
+}
+
+.nova .footer-logo {
+  max-width: 120px !important;
+  margin: 0 auto 16px !important;
+  display: block !important;
+}
+
+.nova .footer-links {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 20px !important;
+  margin: 14px 0 !important;
+  flex-wrap: wrap !important;
+}
+
+.nova .footer-links a {
+  color: #FFFFFF !important;
+  text-decoration: none !important;
+  opacity: .8 !important;
+}
+
+.nova .footer-links a:hover { opacity: 1 !important; text-decoration: underline !important; }
+
+.nova .footer-copy {
+  color: var(--nh-muted) !important;
+  font-size: .78rem !important;
+  margin-top: 16px !important;
+}
+
+/* ====================================================
+   STICKY PURCHASE BAR
+==================================================== */
+.nova .nh-sticky-buy-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 9998 !important;
+  background: #FFFFFF !important;
+  border-top: 1px solid var(--nh-border) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(110%) !important;
+  opacity: 0 !important;
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease !important;
+}
+
+.nova .nh-sticky-buy-bar.is-visible {
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+}
+
+.nova .nh-sticky-buy-bar__container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 16px !important;
+}
+
+.nova .nh-sticky-buy-bar__left {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.nova .nh-sticky-buy-bar__product-title {
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .nh-sticky-buy-bar__meta {
+  font-size: .84rem !important;
+  color: var(--nh-text-soft) !important;
+}
+
+.nova .nh-sticky-buy-bar__meta strong { color: var(--nh-espresso) !important; }
+
+.nova .nh-sticky-buy-bar__right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.nova .nh-sticky-buy-bar__pricing {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+}
+
+.nova .nh-sticky-buy-bar__price {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: var(--nh-espresso) !important;
+}
+
+.nova .nh-sticky-buy-bar__compare {
+  font-size: .82rem !important;
+  color: var(--nh-muted) !important;
+  text-decoration: line-through !important;
+}
+
+.nova .nh-sticky-buy-bar__cta {
+  min-height: 44px !important;
+  min-width: 200px !important;
+  background: var(--nh-bronze) !important;
+  color: #FFFFFF !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  padding: 10px 24px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(178, 106, 69, 0.3) !important;
+  transition: all .2s ease !important;
+}
+
+.nova .nh-sticky-buy-bar__cta:hover {
+  background: var(--nh-bronze-dark) !important;
+}
+
+@media (max-width: 749px) {
+  .nova .nh-sticky-buy-bar__container {
+    padding: 8px 12px max(10px, env(safe-area-inset-bottom)) !important;
+  }
+  .nova .nh-sticky-buy-bar__left {
+    max-width: 50% !important;
+  }
+  .nova .nh-sticky-buy-bar__product-title {
+    font-size: .88rem !important;
+  }
+  .nova .nh-sticky-buy-bar__meta {
+    font-size: .76rem !important;
+  }
+  .nova .nh-sticky-buy-bar__cta {
+    min-width: 140px !important;
+    font-size: .9rem !important;
+    padding: 8px 14px !important;
+  }
+}
+  
+/* Batch 7 Ingredients Artwork - Mobile */
+@media (max-width: 749px) {
+  .ingredients-artwork-section { padding-block: 30px !important; }
+  .ingredients-artwork-section .ingredients-artwork-section__inner { width: calc(100% - 20px) !important; }
+}
+
+/* ============================================================
+   UPGRADED UGC REVIEW GALLERY & REVIEW DETAIL MODAL (CSS)
+   ============================================================ */
+
+/* Gallery Wrap & Grid */
+.nova .ugc-reviews-gallery-wrap {
+  width: 100% !important;
+  margin-top: 10px !important;
+  margin-bottom: 24px !important;
+}
+
+.nova .ugc-reviews-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+  align-items: stretch !important;
+}
+
+@media (max-width: 989px) {
+  .nova .ugc-reviews-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .nova .ugc-reviews-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 12px !important;
+    padding-bottom: 14px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* Individual Review Card */
+.nova .ugc-review-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E6CDBA !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.025) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  cursor: pointer !important;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease !important;
+}
+
+@media (max-width: 599px) {
+  .nova .ugc-review-card {
+    min-width: 270px !important;
+    max-width: 280px !important;
+    flex: 0 0 280px !important;
+    scroll-snap-align: start !important;
+  }
+}
+
+.nova .ugc-review-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: #D4A88C !important;
+  box-shadow: 0 8px 24px rgba(224, 122, 40, 0.08) !important;
+}
+
+.nova .ugc-review-card__media {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 4 / 5 !important;
+  overflow: hidden !important;
+  background: #FAF7F2 !important;
+}
+
+.nova .ugc-review-card__media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: transform .3s ease !important;
+}
+
+.nova .ugc-review-card:hover .ugc-review-card__media img {
+  transform: scale(1.03) !important;
+}
+
+.nova .ugc-review-card__zoom-badge {
+  position: absolute !important;
+  bottom: 10px !important;
+  left: 10px !important;
+  background: rgba(26, 26, 26, 0.78) !important;
+  backdrop-filter: blur(4px) !important;
+  color: #FFFFFF !important;
+  padding: 5px 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  pointer-events: none !important;
+  opacity: 0.9 !important;
+  transition: opacity .2s ease !important;
+}
+
+.nova .ugc-review-card:hover .ugc-review-card__zoom-badge {
+  opacity: 1 !important;
+  background: rgba(224, 122, 40, 0.9) !important;
+}
+
+.nova .ugc-review-card__content {
+  padding: 16px 16px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  text-align: right !important;
+}
+
+.nova .ugc-review-card__stars {
+  display: flex !important;
+  gap: 2px !important;
+  margin-bottom: 9px !important;
+}
+
+.nova .ugc-review-card__text {
+  margin: 0 0 12px !important;
+  color: #4A4038 !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+  flex: 1 !important;
+}
+
+.nova .ugc-review-card__divider {
+  height: 1px !important;
+  background: #F0E8DF !important;
+  margin: 10px 0 !important;
+}
+
+.nova .ugc-review-card__customer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 6px !important;
+}
+
+.nova .ugc-review-card__customer-name {
+  color: #1A1A1A !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.nova .ugc-review-card__verified {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: #54856C !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.nova .ugc-review-card__shade-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  background: #FFF7F0 !important;
+  color: #B85F24 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #F6DCCE !important;
+}
+
+/* ============================================================
+   REVIEW DETAIL MODAL (Overlay & 2-Column Dialog)
+   ============================================================ */
+
+.nova .ugc-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  background: rgba(18, 18, 18, 0.72) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 99999 !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease !important;
+}
+
+.nova .ugc-modal-overlay.open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.nova .ugc-modal {
+  position: relative !important;
+  width: min(94vw, 980px) !important;
+  max-height: min(90vh, 800px) !important;
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3) !important;
+  overflow: hidden !important;
+  transform: scale(0.96) !important;
+  transition: transform .25s ease !important;
+  direction: rtl !important;
+}
+
+.nova .ugc-modal-overlay.open .ugc-modal {
+  transform: scale(1) !important;
+}
+
+.nova .ugc-modal__close {
+  position: absolute !important;
+  top: 14px !important;
+  left: 14px !important;
+  width: 36px !important;
+  height: 36px !important;
+  background: rgba(26, 26, 26, 0.65) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 50% !important;
+  font-size: 1.1rem !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+  transition: background .2s ease, transform .15s ease !important;
+}
+
+.nova .ugc-modal__close:hover {
+  background: #1A1A1A !important;
+  transform: scale(1.08) !important;
+}
+
+.nova .ugc-modal__nav {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #1A1A1A !important;
+  border: 1px solid #E8DFD5 !important;
+  border-radius: 50% !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+  transition: background .2s ease, transform .15s ease !important;
+}
+
+.nova .ugc-modal__nav:hover {
+  background: #FFFFFF !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* RTL Arrow placement */
+.nova .ugc-modal__prev { right: 12px !important; }
+.nova .ugc-modal__next { left: 12px !important; }
+
+/* 2-Column Layout on Desktop */
+.nova .ugc-modal__layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr) !important;
+  max-height: min(90vh, 800px) !important;
+}
+
+.nova .ugc-modal__media {
+  background: #FAF7F2 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.nova .ugc-modal__media img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: min(90vh, 800px) !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.nova .ugc-modal__content {
+  padding: 36px 32px 30px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  text-align: right !important;
+}
+
+.nova .ugc-modal__stars {
+  display: flex !important;
+  gap: 3px !important;
+  margin-bottom: 12px !important;
+}
+
+.nova .ugc-modal__headline {
+  margin: 0 0 14px !important;
+  color: #1A1A1A !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+}
+
+.nova .ugc-modal__review {
+  margin: 0 !important;
+  color: #4A4038 !important;
+  font-size: 15px !important;
+  line-height: 1.75 !important;
+  flex: 1 !important;
+}
+
+.nova .ugc-modal__divider {
+  height: 1px !important;
+  background: #F0E8DF !important;
+  margin: 18px 0 !important;
+}
+
+.nova .ugc-modal__customer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+}
+
+.nova .ugc-modal__customer-name {
+  color: #1A1A1A !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+.nova .ugc-modal__verified {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: #54856C !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.nova .ugc-modal__shade {
+  display: inline-flex !important;
+  width: fit-content !important;
+  margin-bottom: 20px !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  background: #FFF4ED !important;
+  color: #A95724 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border: 1px solid #F6DCCE !important;
+}
+
+.nova .ugc-modal__cta {
+  width: 100% !important;
+  min-height: 50px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #E07A28 !important;
+  color: #FFFFFF !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(224, 122, 40, 0.25) !important;
+  transition: background .2s ease, transform .15s ease !important;
+}
+
+.nova .ugc-modal__cta:hover {
+  background: #D06917 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile Modal Adjustments */
+@media (max-width: 749px) {
+  .nova .ugc-modal {
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 30px) !important;
+    overflow-y: auto !important;
+  }
+
+  .nova .ugc-modal__layout {
+    display: block !important;
+    max-height: none !important;
+  }
+
+  .nova .ugc-modal__media {
+    max-height: 320px !important;
+  }
+
+  .nova .ugc-modal__media img {
+    max-height: 320px !important;
+    object-position: center top !important;
+  }
+
+  .nova .ugc-modal__content {
+    padding: 22px 18px 22px !important;
+  }
+
+  .nova .ugc-modal__headline {
+    font-size: 19px !important;
+  }
+
+  .nova .ugc-modal__review {
+    font-size: 14px !important;
+  }
+
+  .nova .ugc-modal__nav {
+    top: 160px !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 1.2rem !important;
+  }
+}
+
+</style>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-item">
+      <img class="topbar-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_8.png?v=1787159191" alt="משלוח חינם">
+      <span>משלוח חינם לכל הארץ בהזמנת חבילה</span>
+    </div>
+    <div class="topbar-item">
+      <img class="topbar-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_9.png?v=1787159195" alt="60 יום אחריות">
+      <span>60 יום אחריות</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: COMPACT ATF BUY BOX -->
+  <section class="hero" id="buy">
+    <div class="wrap">
+      <div class="hero-grid">
+        
+        <!-- Gallery Column (Right on Desktop) -->
+        <div class="hero-media">
+          <div class="gal-main-wrap">
+            <img id="galMain" class="gal-main" alt="NovaHair בקבוק ראשי" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-1.png?v=1786836267">
+          </div>
+          <div class="thumbs">
+            <img class="thumb sel" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-1.png?v=1786836267" alt="NovaHair בקבוק ראשי">
+            <img class="thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-2.png?v=1786836270" alt="5 גוונים לבחירה">
+            <img class="thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-3.png?v=1786836273" alt="תוצאות לפני ואחרי">
+            <img class="thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/c5c5abd1-264a-4b54-ad1e-b30dc95b6076.webp?v=1786913190" alt="טכנולוגיית Micro-Color Sphere">
+            <img class="thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-5.png?v=1786836279" alt="יתרונות הפורמולה">
+            <img class="thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/t/9/assets/novahair-pdp-gallery-6.png?v=1786836282" alt="רכיבים בוטניים">
+          </div>
+        </div>
+
+        <!-- Purchase Column (Left on Desktop) -->
+        <div class="hero-info">
+          
+          <!-- Header Area -->
+          <div class="hero-head">
+            <div class="nh-official-badge-slot">✓ האתר הרשמי של NovaHair בישראל</div>
+            <div class="hero-rating">★★★★★ 4.8 · <span>9,232 דירוגים</span>
+</div>
+            <h1>כיסוי לשורשים לבנים בכ־10 דקות, בגוון שנראה כמו השיער שלך</h1>
+            <p class="hero-subhead">NovaHair מאפשר לך לחדש את השורשים בבית, מתוך 5 גוונים לבחירה, בלי לבנות את היום סביב תור לצבע.</p>
+            
+            <!-- 3 Compact Value Pills -->
+            <div class="product-value-pills">
+              <div class="product-value-pill">⏱ כיסוי תוך כ־10 דקות</div>
+              <div class="product-value-pill">🌿 ללא אמוניה</div>
+              <div class="product-value-pill">🛡 60 יום אחריות</div>
+            </div>
+          </div>
+
+          <!-- Step 1: Shade Selection -->
+          <div class="step-box">
+            <div class="step-label" id="shadeHeading">1. בחרי את הגוון שלך — נבחר: שחור טבעי</div>
+            <div class="step-sub">לא בטוחה בין שני גוונים? התחילי מהגוון שהכי קרוב לצבע הבסיס שלך.</div>
+            
+            <div class="shade-grid">
+              <div class="shade-option sel" data-color="black" onclick="selectColor('black','שחור טבעי')">
+                <div class="shade-swatch" style="background:#1c1c1c;"></div>
+                <span>שחור טבעי</span>
+              </div>
+              <div class="shade-option" data-color="darkbrown" onclick="selectColor('darkbrown','חום כהה')">
+                <div class="shade-swatch" style="background:#3d2817;"></div>
+                <span>חום כהה</span>
+              </div>
+              <div class="shade-option" data-color="lightbrown" onclick="selectColor('lightbrown','חום בהיר')">
+                <div class="shade-swatch" style="background:#7a5230;"></div>
+                <span>חום בהיר</span>
+              </div>
+              <div class="shade-option" data-color="purple" onclick="selectColor('purple','סגול חציל')">
+                <div class="shade-swatch" style="background:#4a154b;"></div>
+                <span>סגול חציל</span>
+              </div>
+              <div class="shade-option" data-color="red" onclick="selectColor('red','אדום יין')">
+                <div class="shade-swatch" style="background:#6b1426;"></div>
+                <span>אדום יין</span>
+              </div>
+              
+              <!-- Dedicated Mix Shades Button -->
+              <button type="button" class="mix-shades-btn" id="mixShadesBtn" onclick="toggleMixMode()">
+                <span>🎨 שילוב גוונים בחבילה</span>
+              </button>
+            </div>
+
+            <!-- MIX ALLOCATION DRAWER -->
+            <div class="mm-drawer" id="mmDrawer">
+              <div class="mm-header">
+                <span>חלוקת גוונים לחבילה:</span>
+                <span class="mm-tally complete" id="mmTally">נבחרו 4 מתוך 4 בקבוקים ✓</span>
+              </div>
+              <div class="mm-row">
+                <div class="mm-shade-info">
+<div class="shade-swatch" style="background:#1c1c1c; width:18px; height:18px;"></div> שחור טבעי</div>
+                <div class="mm-ctrls">
+                  <button type="button" class="mm-btn" onclick="updateMmQty('black', -1)">−</button>
+                  <span class="mm-qty" id="mmQty_black">4</span>
+                  <button type="button" class="mm-btn" onclick="updateMmQty('black', 1)">+</button>
+                </div>
+              </div>
+              <div class="mm-row">
+                <div class="mm-shade-info">
+<div class="shade-swatch" style="background:#3d2817; width:18px; height:18px;"></div> חום כהה</div>
+                <div class="mm-ctrls">
+                  <button type="button" class="mm-btn" onclick="updateMmQty('darkbrown', -1)">−</button>
+                  <span class="mm-qty" id="mmQty_darkbrown">0</span>
+                  <button type="button" class="mm-btn" onclick="updateMmQty('darkbrown', 1)">+</button>
+                </div>
+              </div>
+              <div class="mm-row">
+                <div class="mm-shade-info">
+<div class="shade-swatch" style="background:#7a5230; width:18px; height:18px;"></div> חום בהיר</div>
+                <div class="mm-ctrls">
+                  <button type="button" class="mm-btn" onclick="updateMmQty('lightbrown', -1)">−</button>
+                  <span class="mm-qty" id="mmQty_lightbrown">0</span>
+                  <button type="button" class="mm-btn" onclick="updateMmQty('lightbrown', 1)">+</button>
+                </div>
+              </div>
+              <div class="mm-row">
+                <div class="mm-shade-info">
+<div class="shade-swatch" style="background:#4a154b; width:18px; height:18px;"></div> סגול חציל</div>
+                <div class="mm-ctrls">
+                  <button type="button" class="mm-btn" onclick="updateMmQty('purple', -1)">−</button>
+                  <span class="mm-qty" id="mmQty_purple">0</span>
+                  <button type="button" class="mm-btn" onclick="updateMmQty('purple', 1)">+</button>
+                </div>
+              </div>
+              <div class="mm-row">
+                <div class="mm-shade-info">
+<div class="shade-swatch" style="background:#6b1426; width:18px; height:18px;"></div> אדום יין</div>
+                <div class="mm-ctrls">
+                  <button type="button" class="mm-btn" onclick="updateMmQty('red', -1)">−</button>
+                  <span class="mm-qty" id="mmQty_red">0</span>
+                  <button type="button" class="mm-btn" onclick="updateMmQty('red', 1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Compact Horizontal Bundle Cards -->
+          <div class="step-box">
+            <div class="step-label">2. בחרי את החבילה שלך</div>
+            <div class="bundle-cards-container">
+              
+              <!-- 2 pack -->
+              <div class="bundle-card" data-offer="pack2" onclick="selectPack('pack2')">
+                <div class="bundle-card__right">
+                  <img class="bundle-card__thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_2.png?v=1787166132" alt="חבילת 2 בקבוקים">
+                  <div class="bundle-card__details">
+                    <div class="bundle-card__title">2 בקבוקים</div>
+                    <div class="bundle-card__per-bottle">₪94.50 לבקבוק</div>
+                  </div>
+                </div>
+                <div class="bundle-card__pricing">
+                  <div class="bundle-card__price">₪189</div>
+                  <div class="bundle-card__old">במקום ₪379</div>
+                  <div class="bundle-card__savings">חיסכון 50%</div>
+                </div>
+              </div>
+
+              <!-- 4 pack (Featured / Best Seller) -->
+              <div class="bundle-card sel bundle-card--featured" data-offer="pack4" onclick="selectPack('pack4')">
+                <div class="bundle-card__right">
+                  <img class="bundle-card__thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_1.png?v=1787166128" alt="חבילת 4 בקבוקים">
+                  <div class="bundle-card__details">
+                    <span class="bundle-card__badge-inline">הנמכר ביותר</span>
+                    <div class="bundle-card__title">4 בקבוקים</div>
+                    <div class="bundle-card__per-bottle">₪59.75 לבקבוק</div>
+                  </div>
+                </div>
+                <div class="bundle-card__pricing">
+                  <div class="bundle-card__price">₪239</div>
+                  <div class="bundle-card__old">במקום ₪758</div>
+                  <div class="bundle-card__savings">חיסכון 68%</div>
+                </div>
+              </div>
+
+              <!-- 6 pack -->
+              <div class="bundle-card" data-offer="pack6" onclick="selectPack('pack6')">
+                <div class="bundle-card__right">
+                  <img class="bundle-card__thumb" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_3.png?v=1787166137" alt="חבילת 6 בקבוקים">
+                  <div class="bundle-card__details">
+                    <div class="bundle-card__title">6 בקבוקים</div>
+                    <div class="bundle-card__per-bottle">₪53.20 לבקבוק</div>
+                  </div>
+                </div>
+                <div class="bundle-card__pricing">
+                  <div class="bundle-card__price">₪319</div>
+                  <div class="bundle-card__old">במקום ₪1,137</div>
+                  <div class="bundle-card__savings">חיסכון 72%</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- PRIMARY CTA BUTTON (Directly Below Configuration) -->
+          <div>
+            <button type="button" class="btn-primary-cta" id="mainCheckout" onclick="executeBuy()">
+              להזמנה — 4 בקבוקים ב־₪239 ›
+            </button>
+            <div class="cta-summary-line" id="ctaSummary">גוון: שחור טבעי · 4 בקבוקים</div>
+            <div class="purchase-trust-row">
+              <span>✓ משלוח חינם לכל הארץ</span>
+              <span>✓ הטבות בשווי ₪117</span>
+              <span>✓ 60 יום אחריות מלאה</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: PROOF BAR (HUGE HIGH-IMPACT ICONS) -->
+  <section class="proof-bar">
+    <div class="wrap">
+      <div class="proof-grid">
+        <!-- Item 1: 10 Minutes -->
+        <div class="proof-card">
+          <div class="proof-icon-wrap">
+            <img class="proof-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_6.png?v=1787159183" alt="כ-10 דקות">
+          </div>
+          <div class="proof-num">כ־10 דקות</div>
+          <div class="proof-lbl">טיפול מהיר בבית</div>
+        </div>
+        <!-- Item 2: 5 Shades -->
+        <div class="proof-card">
+          <div class="proof-icon-wrap">
+            <img class="proof-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_7.png?v=1787159187" alt="5 גוונים">
+          </div>
+          <div class="proof-num">5 גוונים</div>
+          <div class="proof-lbl">לבחירה</div>
+        </div>
+        <!-- Item 3: 30 Treatments -->
+        <div class="proof-card">
+          <div class="proof-icon-wrap">
+            <img class="proof-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_5.png?v=1787159178" alt="עד 30 טיפולים">
+          </div>
+          <div class="proof-num">עד 30</div>
+          <div class="proof-lbl">טיפולי שורשים</div>
+        </div>
+        <!-- Item 4: 60 Days Guarantee -->
+        <div class="proof-card">
+          <div class="proof-icon-wrap">
+            <img class="proof-icon-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/icon_9.png?v=1787159195" alt="60 יום אחריות">
+          </div>
+          <div class="proof-num">60 יום</div>
+          <div class="proof-lbl">אחריות</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: BEFORE / AFTER -->
+  <section class="sec sec-sand ba-section" id="before-after">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">התוצאה מול המראה</div>
+        <h2>לא מספיק לכסות את הלבן. הכיסוי צריך להשתלב.</h2>
+        <p class="sec-desc">בחרי את הגוון הקרוב לצבע הבסיס שלך וחדשי רק את האזור שצריך, כדי שהמעבר בין השורש לשאר השיער ייראה טבעי יותר.</p>
+      </div>
+      <div class="ba-card">
+        <div class="ba-img-wrap">
+          <img class="ba-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/08723e1e-9f39-41c3-b7c5-7c76c9696610.png?v=1787154002" alt="תוצאות לפני ואחרי של לקוחה NovaHair">
+        </div>
+        <div class="ba-labels">
+          <span>לפני</span>
+          <span>אחרי</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: MICRO-COLOR SPHERE™ -->
+  <section class="sec sec-white mech-section" id="mechanism">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">למה הכיסוי נראה אחרת</div>
+        <h2>Micro-Color Sphere™: כיסוי שנבנה סביב השערה, לא מעליה</h2>
+        <p class="sec-desc">במקום מראה כהה ושטוח, הטכנולוגיה נועדה לפזר חלקיקי פיגמנט זעירים לאורך מעטפת השערה ולבנות כיסוי אחיד יותר.</p>
+      </div>
+      <div class="mech-grid">
+        <div class="nh-microsphere-desktop">
+          <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/2_d397ccfb-8038-4822-a172-f950eaf9b6de.png?v=1787157528" alt="מנגנון Micro-Color Sphere - NovaHair">
+        </div>
+        <div class="nh-microsphere-mobile">
+          <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_4.png?v=1787166143" alt="טכנולוגיית Micro-Color Sphere - NovaHair">
+        </div>
+        <div class="mech-points">
+          <div class="mech-point">
+            <div class="mech-point-title">מתפזר</div>
+            <p class="mech-point-desc">חלקיקי פיגמנט זעירים מתפזרים לאורך מעטפת השערה באזור שרוצים לחדש.</p>
+          </div>
+          <div class="mech-point">
+            <div class="mech-point-title">נבנה בהדרגה</div>
+            <p class="mech-point-desc">הכיסוי נבנה לאורך השערה במקום להיראות כמו שכבת צבע כבדה מעליה.</p>
+          </div>
+          <div class="mech-point">
+            <div class="mech-point-title">משתלב</div>
+            <p class="mech-point-desc">המטרה היא שכיסוי השיבה יעבוד יחד עם צבע הבסיס של השיער וישמור על מראה עשיר וטבעי יותר.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: FORMULA, BOTANICALS & PROFESSIONAL EXPERT BLOCK -->
+  <section class="sec sec-white ingredients-artwork-section" id="formula" style="padding-block:44px;">
+    <div class="wrap">
+      <!-- Batch 7 Ingredients Artwork (responsive desktop/mobile) -->
+      <div class="ingredients-artwork-section__inner" style="width:min(calc(100% - 40px),1200px);margin-inline:auto;">
+        <picture class="ingredients-artwork">
+          <source media="(max-width: 749px)" srcset="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/Batch7_Ingredients_Mobile.png?v=1787172827">
+          <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/Batch7_Ingredients_Desktop.png?v=1787172824" width="1672" height="941" alt="רכיבים נבחרים בפורמולת NovaHair ותועלותיהם לשיער" loading="lazy" decoding="async" style="display:block;width:100%;height:auto;border-radius:14px;"></picture>
+      </div>
+
+      <!-- Professional Expert Block -->
+      <div class="expert-block">
+        <div class="expert-head">
+          <div class="eyebrow">מבט מקצועי</div>
+          <h3>שתי נקודות מבט מקצועיות על שיער, גוון ושגרת חידוש שורשים</h3>
+        </div>
+        <div class="expert-section__grid">
+          <!-- Expert Card 1: Dermatology (Right in RTL) -->
+          <article class="expert-card">
+            <div class="expert-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_5.png?v=1787161150" alt="מומחית לרפואת עור וקרקפת">
+            </div>
+            <div class="expert-card__content">
+              <div class="expert-card__badge">בריאות הקרקפת והעור</div>
+              <h3 class="expert-card__identity"><span data-expert-title>מומחית לרפואת עור וקרקפת</span></h3>
+              <blockquote class="expert-card__quote">
+                <p class="expert-card__lead">״פורמולה ללא אמוניה עם pH מאוזן 5.5 היא הבסיס לשמירה על מחסום העור הטבעי.״</p>
+                <div class="expert-card__body">
+                  <p>עור הקרקפת נחשף לחומרים באופן קבוע, במיוחד בחידוש שורשים תכוף.</p>
+                  <p>הפורמולה של NovaHair מעניקה <strong>כיסוי מלא לשיער שיבה</strong>, תוך התמקדות בחוויית שימוש עדינה יותר <strong>ללא אמוניה</strong> ועם <strong>pH מאוזן 5.5</strong> לעומת צבעים מסורתיים.</p>
+                </div>
+              </blockquote>
+            </div>
+          </article>
+
+          <!-- Expert Card 2: Hair Stylist / Color (Left in RTL) -->
+          <article class="expert-card">
+            <div class="expert-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_2.png?v=1787161138" alt="קולוריסטית ומעצבת שיער בכירה">
+            </div>
+            <div class="expert-card__content">
+              <div class="expert-card__badge">עיצוב והתאמת גוון</div>
+              <h3 class="expert-card__identity"><span data-expert-title>קולוריסטית ומעצבת שיער בכירה</span></h3>
+              <blockquote class="expert-card__quote">
+                <p class="expert-card__lead">״הטעות הנפוצה בבית היא יצירת 'גוש צבע' אטום. כאן הפיגמנט נטמע בצורה טבעית יותר.״</p>
+                <div class="expert-card__body">
+                  <p>טכנולוגיית ה-<strong>Micro-Color Sphere</strong> מאפשרת לפיגמנט להיבנות סביב מעטפת השערה.</p>
+                  <p>התוצאה היא <strong>התמזגות רכה עם גוון הבסיס</strong> ו<strong>מראה רענן ומלא ברק</strong>.</p>
+                </div>
+              </blockquote>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: HOW TO USE (3 DEDICATED IMAGE CARDS) -->
+  <section class="sec sec-white how-section" id="how-to-use">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">פשוט לשלב בשגרה</div>
+        <h2>3 שלבים. כ־10 דקות.</h2>
+      </div>
+
+      <div class="steps-grid">
+        <!-- Step 1: מורחים -->
+        <div class="nh-howto-card">
+          <div class="nh-howto-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_5.png?v=1787166148" alt="שלב 1: מורחים את NovaHair">
+          </div>
+          <div class="nh-howto-card__num-desktop">1</div>
+          <div class="nh-howto-card__content">
+            <div class="step-num">1</div>
+            <div class="step-action">מורחים</div>
+            <p class="step-desc">מרחי את NovaHair על האזור שאת רוצה לחדש, לפי הוראות השימוש.</p>
+          </div>
+        </div>
+
+        <!-- Step 2: ממתינים -->
+        <div class="nh-howto-card">
+          <div class="nh-howto-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_6.png?v=1787166152" alt="שלב 2: ממתינים 10 דקות">
+          </div>
+          <div class="nh-howto-card__num-desktop">2</div>
+          <div class="nh-howto-card__content">
+            <div class="step-num">2</div>
+            <div class="step-action">ממתינים</div>
+            <p class="step-desc">המתיני כ־10 דקות בהתאם להוראות שעל האריזה.</p>
+          </div>
+        </div>
+
+        <!-- Step 3: שוטפים -->
+        <div class="nh-howto-card">
+          <div class="nh-howto-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_7.png?v=1787166156" alt="שלב 3: שוטפים במים">
+          </div>
+          <div class="nh-howto-card__num-desktop">3</div>
+          <div class="nh-howto-card__content">
+            <div class="step-num">3</div>
+            <div class="step-action">שוטפים</div>
+            <p class="step-desc">שטפי היטב והמשיכי בשגרת השיער הרגילה שלך.</p>
+          </div>
+        </div>
+      </div>
+      <div class="how-support">בלי לקבוע תור ובלי להפוך את חידוש השורשים לפרויקט של חצי יום.</div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: CURATED SOCIAL PROOF -->
+  <section class="sec sec-sand" id="social-proof">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">מה אומרות אחרי שמנסות בבית?</div>
+        <h2>בסוף, התוצאה צריכה לעבור את מבחן המראה</h2>
+        <p class="sec-desc">לקוחות שכבר הכניסו את NovaHair לשגרת חידוש השורשים שלהן.</p>
+      </div>
+      <div class="ugc-slider-wrap">
+        <div class="ugc-slider" id="ugcSlider">
+          <div class="ugc-slide">
+            <img class="ugc-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/dd501835-1db5-485d-a16c-57ba29790b4d.png?v=1787154007" alt="חוות דעת מאומתת יעל ק - NovaHair">
+          </div>
+          <div class="ugc-slide">
+            <img class="ugc-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/e76bd7df-0bba-4d53-a4bc-b6a85338ed23.png?v=1787154011" alt="חוות דעת מאומתת מיכל ר - NovaHair">
+          </div>
+          <div class="ugc-slide">
+            <img class="ugc-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/158e4491-8bff-40d3-8cbd-004e9d3786df.png?v=1787154015" alt="חוות דעת מאומתת נעה ש - NovaHair">
+          </div>
+        </div>
+        <div class="ugc-nav">
+          <div class="ugc-dot active" onclick="setUgcSlide(0)"></div>
+          <div class="ugc-dot" onclick="setUgcSlide(1)"></div>
+          <div class="ugc-dot" onclick="setUgcSlide(2)"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: COMPARISON MATRIX -->
+  <section class="sec sec-white" id="comparison">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">השוואה פשוטה</div>
+        <h2>איזו דרך מתאימה יותר לחידוש שורשים שוטף?</h2>
+      </div>
+      
+      <div class="comp-table-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>מאפיין</th>
+              <th class="comp-highlight">NovaHair</th>
+              <th>מספרה</th>
+              <th>צביעה ביתית</th>
+              <th>שמפו צבע</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>זמן שימוש</td>
+              <td class="comp-highlight">כ־10 דקות</td>
+              <td>תלוי בתור ובטיפול</td>
+              <td>תלוי במוצר</td>
+              <td>מהיר</td>
+            </tr>
+            <tr>
+              <td>צריך לקבוע תור</td>
+              <td class="comp-highlight">לא</td>
+              <td>כן</td>
+              <td>לא</td>
+              <td>לא</td>
+            </tr>
+            <tr>
+              <td>שימוש בבית</td>
+              <td class="comp-highlight">כן</td>
+              <td>לא</td>
+              <td>כן</td>
+              <td>כן</td>
+            </tr>
+            <tr>
+              <td>ללא אמוניה</td>
+              <td class="comp-highlight">כן</td>
+              <td>תלוי בחומר</td>
+              <td>תלוי במוצר</td>
+              <td>תלוי במוצר</td>
+            </tr>
+            <tr>
+              <td>מיועד לכיסוי שיבה</td>
+              <td class="comp-highlight">כן</td>
+              <td>כן</td>
+              <td>תלוי במוצר</td>
+              <td>בעיקר לרענון גוון</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="comp-mobile-cards">
+        <div class="comp-m-card">
+          <div class="comp-m-title">זמן שימוש</div>
+          <div class="comp-m-row nh">
+<span>NovaHair</span><span>כ־10 דקות</span>
+</div>
+          <div class="comp-m-row">
+<span>מספרה</span><span>תלוי בתור ובטיפול</span>
+</div>
+          <div class="comp-m-row">
+<span>צביעה ביתית</span><span>תלוי במוצר</span>
+</div>
+          <div class="comp-m-row">
+<span>שמפו צבע</span><span>מהיר</span>
+</div>
+        </div>
+        <div class="comp-m-card">
+          <div class="comp-m-title">צריך לקבוע תור</div>
+          <div class="comp-m-row nh">
+<span>NovaHair</span><span>לא</span>
+</div>
+          <div class="comp-m-row">
+<span>מספרה</span><span>כן</span>
+</div>
+          <div class="comp-m-row">
+<span>צביעה ביתית</span><span>לא</span>
+</div>
+          <div class="comp-m-row">
+<span>שמפו צבע</span><span>לא</span>
+</div>
+        </div>
+        <div class="comp-m-card">
+          <div class="comp-m-title">שימוש בבית</div>
+          <div class="comp-m-row nh">
+<span>NovaHair</span><span>כן</span>
+</div>
+          <div class="comp-m-row">
+<span>מספרה</span><span>לא</span>
+</div>
+          <div class="comp-m-row">
+<span>צביעה ביתית</span><span>כן</span>
+</div>
+          <div class="comp-m-row">
+<span>שמפו צבע</span><span>כן</span>
+</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 9: MID-PAGE BUNDLE RE-ENTRY -->
+  <section class="sec sec-sand" id="offer-reentry">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">מוכנה לבחור?</div>
+        <h2>נשאר רק לבחור את הגוון והחבילה שמתאימים לך</h2>
+      </div>
+      <div class="reentry-grid">
+        <div class="nh-reentry-card" onclick="reentrySelectPack('pack2')">
+          <div class="nh-reentry-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch4_8.png?v=1787166160" alt="חבילת 2 בקבוקים ₪189">
+          </div>
+          <div class="nh-reentry-card__meta">
+            <div class="nh-reentry-card__per-bottle">₪94.50 לבקבוק</div>
+            <div class="nh-reentry-card__saving">חיסכון של כ־50%</div>
+          </div>
+        </div>
+
+        <div class="nh-reentry-card hero-reentry" onclick="reentrySelectPack('pack4')">
+          <div class="nh-reentry-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_3.png?v=1787161141" alt="חבילת 4 בקבוקים">
+          </div>
+          <div class="nh-reentry-card__meta">
+            <div class="nh-reentry-card__per-bottle">₪59.75 לבקבוק</div>
+            <div class="nh-reentry-card__saving">חיסכון של כ־68%</div>
+          </div>
+        </div>
+
+        <div class="nh-reentry-card" onclick="reentrySelectPack('pack6')">
+          <div class="nh-reentry-card__media">
+            <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch3_4.png?v=1787161146" alt="חבילת 6 בקבוקים">
+          </div>
+          <div class="nh-reentry-card__meta">
+            <div class="nh-reentry-card__per-bottle">₪53.20 לבקבוק</div>
+            <div class="nh-reentry-card__saving">חיסכון של כ־72%</div>
+          </div>
+        </div>
+      </div>
+      <div class="reentry-support-bar">
+        בכל חבילה: הטבות בשווי ₪117 · משלוח חינם · 60 יום אחריות
+      </div>
+      <div style="max-width: 380px; margin: 0 auto;">
+        <a href="#buy" class="btn-primary-cta">חזרה לבחירת גוון וחבילה ‹</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 10: BEARD / MUSTACHE SECONDARY USE -->
+  <section class="sec sec-white" id="beard-use">
+    <div class="wrap">
+      <div class="beard-card">
+        <div class="beard-grid">
+          <div class="beard-img-wrap">
+            <img class="beard-img" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/16.png?v=1787157546" alt="כיסוי שיבה לזקן ולשפם - NovaHair">
+          </div>
+          <div class="beard-text">
+            <div class="hero-badge" style="margin-bottom: 10px;">בונוס לבית</div>
+            <h2>וכן, NovaHair מתאים גם לזקן ולשפם</h2>
+            <p class="sec-desc">אם יש בבית גם שיבה בזקן או בשפם, אותו NovaHair יכול לשמש גם שם. כך לא צריך מוצר צבע נפרד רק בשביל כמה שערות לבנות.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 11: 60-DAY GUARANTEE -->
+  <section class="sec sec-cream" id="guarantee">
+    <div class="wrap">
+      <div class="guar-card">
+        <div class="guar-creative-wrap">
+          <img class="guar-img-desktop" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/20.png?v=1787157551" alt="60 ימי אחריות - NovaHair">
+          <img class="guar-img-mobile" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/11.png?v=1787157542" alt="60 ימי אחריות - NovaHair">
+        </div>
+        <div class="eyebrow">אפשר לנסות בבית</div>
+        <h2>60 יום לנסות, בלי להחליט לפי תמונה</h2>
+        <p class="sec-desc" style="margin: 12px 0 18px;">צבע לשיער צריך לעבור את המבחן שלך מול המראה. לכן כל הזמנה מגיעה עם 60 ימי אחריות. נסי את NovaHair בבית, בדקי איך הגוון משתלב ואיך השימוש מרגיש בשגרה שלך.</p>
+        <div style="font-weight:700; color:var(--nh-bronze-dark); font-size:.92rem;">60 ימי אחריות · משלוח חינם · שירות לקוחות ישראלי</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 12: EXPANDED 12-QUESTION FAQ (SEMANTIC ACCORDION) -->
+  <section class="sec sec-white" id="faq">
+    <div class="wrap faq-section__inner">
+      <div class="sec-head">
+        <h2>שאלות שנשארות לפני שבוחרים גוון</h2>
+      </div>
+      <div class="faq-list">
+        
+        <!-- FAQ 1 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-1" onclick="toggleFaq(this)">
+              <span class="faq-item__question">האם NovaHair מיועד לכיסוי שורשים לבנים?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-1" class="faq-item__answer">
+            כן, הפורמולה פותחה במיוחד כדי להעניק כיסוי מלא ואחיד לשיער שיבה ושורשים לבנים. המיקרו-פיגמנטים נצמדים למעטפת השערה ומעניקים מראה טבעי, רענן ומלא ברק.
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-2" onclick="toggleFaq(this)">
+              <span class="faq-item__question">כמה זמן הגוון מחזיק?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-2" class="faq-item__answer">
+            הכיסוי עמיד בחפיפות ומחזיק לאורך שבועות. מומלץ לחדש את השימוש אחת לשבועיים עד שלושה בהתאם לקצב צמיחת השורש האישי שלך.
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-3" onclick="toggleFaq(this)">
+              <span class="faq-item__question">מה אם השיער שלי צבוע, מוחלק או עבר טיפול כימי?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-3" class="faq-item__answer">
+            NovaHair בטוח לחלוטין לשימוש על שיער צבוע, מובהר או מוחלק. הפורמולה אינה מכילה אמוניה, אינה פוגעת בטיפולי החלקה ומסייעת לשמור על רכות וברק סיב השערה.
+          </div>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-4" onclick="toggleFaq(this)">
+              <span class="faq-item__question">האם הצבע יכול להשאיר כתמים?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-4" class="faq-item__answer">
+            הפורמולה נשטפת בקלות במים ובסבון ממשטחים ומעור הפנים במידה ונשטפת מיד. בעת המריחה מומלץ להשתמש בכפפות ולהימנע ממגע ממושך עם מגבות בהירות לפני השטיפה הסופית.
+          </div>
+        </div>
+
+        <!-- FAQ 5 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-5" onclick="toggleFaq(this)">
+              <span class="faq-item__question">איך בוחרים את הגוון הנכון?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-5" class="faq-item__answer">
+            מומלץ לבחור בגוון הקרוב ביותר לצבע השיער הטבעי שלך או לצבע של אורכי השיער. הפורמולה מתמזגת ברכות עם הגוון הקיים ללא יצירת "קו הפרדה" נוקשה. במידה ואת מתלבטת בין שני גוונים, מומלץ לבחור בגוון הבהיר מביניהם.
+          </div>
+        </div>
+
+        <!-- FAQ 6 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-6" onclick="toggleFaq(this)">
+              <span class="faq-item__question">לכמה שימושים מספיק בקבוק אחד?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-6" class="faq-item__answer">
+            בקבוק אחד מספיק לעד 30 שימושים לחידוש וכיסוי שורשים (בהתאם לאורך השיער ולאזור הכיסוי הנדרש) – מענה מלא לחודשים ארוכים וחיסכון משמעותי לעומת מספרה.
+          </div>
+        </div>
+
+        <!-- FAQ 7 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-7" onclick="toggleFaq(this)">
+              <span class="faq-item__question">האם צריך כפפות, מברשות או ציוד מיוחד כדי להשתמש בזה?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-7" class="faq-item__answer">
+            ממש לא. אין צורך לערבב חומרים, ללכלך קערות או להשתמש במברשות. הפורמולה מגיעה מוכנה לשימוש – לוחצים על המשאבה, מורחים ישירות על שיער לח במקלחת כמו שמפו, ממתינים 10–15 דקות ושוטפים במים.
+          </div>
+        </div>
+
+        <!-- FAQ 8 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-8" onclick="toggleFaq(this)">
+              <span class="faq-item__question">האם השימוש גורם לנשירה או מחליש את השערה לאורך זמן?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-8" class="faq-item__answer">
+            להפך. בשונה מצבעים מסורתיים עם אמוניה וחמצן שפותחים ושוברים את השערה, הפורמולה אינה חודרת לליבת השערה אלא עוטפת אותה מבחוץ. היא מועשרת ברכיבים מזינים שמשאירים את השיער רך, נעים ובריא.
+          </div>
+        </div>
+
+        <!-- FAQ 9 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-9" onclick="toggleFaq(this)">
+              <span class="faq-item__question">איך עובד המשלוח ותוך כמה זמן הוא מגיע?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-9" class="faq-item__answer">
+            המשלוח מגיע ישירות עד דלת הבית או לנקודת חלוקה קרובה בתוך 5 עד 12 ימי עסקים. מיד לאחר ההזמנה יישלח אלייך מספר מעקב אישי, ותקבלי עדכוני SMS שוטפים עד לקבלת החבילה.
+          </div>
+        </div>
+
+        <!-- FAQ 10 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-10" onclick="toggleFaq(this)">
+              <span class="faq-item__question">איך אפשר לדעת שההזמנה בטוחה ושבאמת יש שירות לקוחות בעברית?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-10" class="faq-item__answer">
+            שירות הלקוחות שלנו פעיל בעברית מלאה ומעניק מענה בוואטסאפ ובמייל מרגע הרכישה ועד להתאמת הגוון ושימוש ראשון. כל רכישה מגובה באישור הזמנה רשמי ובליווי אישי לכל שאלה.
+          </div>
+        </div>
+
+        <!-- FAQ 11 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-11" onclick="toggleFaq(this)">
+              <span class="faq-item__question">האם התשלום באתר מאובטח?</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-11" class="faq-item__answer">
+            התשלום מאובטח ב-100% בתקן האבטחה המחמיר ביותר בעולם (SSL &amp; PCI-DSS Level 1). כל הפרטים מוצפנים לחלוטין ואינם נשמרים במערכת.
+          </div>
+        </div>
+
+        <!-- FAQ 12 -->
+        <div class="faq-item">
+          <h3>
+            <button class="faq-item__trigger" type="button" aria-expanded="false" aria-controls="faq-ans-12" onclick="toggleFaq(this)">
+              <span class="faq-item__question">מה קורה אם הגוון לא מתאים או אם לא אהיה מרוצה? (אחריות 60 יום)</span>
+              <span class="faq-item__icon" aria-hidden="true">+</span>
+            </button>
+          </h3>
+          <div id="faq-ans-12" class="faq-item__answer">
+            הרכישה שלך מוגנת ב-60 יום אחריות מלאה. אם הגוון אינו תואם בדיוק או אם מכל סיבה שהיא אינך מרוצה מהתוצאה – פני לשירות הלקוחות שלנו ונדאג להחלפת הגוון או להחזר כספי מלא, בלי אותיות קטנות.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 13: VISUAL TRANSITION BANNER (BATCH 6 ASSET) -->
+  <section class="sec sec-white replacement-visual-section" id="transition-banner">
+    <div class="wrap replacement-visual-section__inner">
+      <div class="replacement-visual-section__media">
+        <a href="#buy" class="replacement-visual-section__link" style="display:block;text-decoration:none;cursor:pointer;transition:opacity .2s ease;" onmouseover="this.style.opacity='0.92'" onmouseout="this.style.opacity='1'">
+          <img class="replacement-visual-section__image" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/Banner.png?v=1787171112" width="1672" height="941" alt="NovaHair - לחצי לבחירת גוון וחבילה" loading="lazy" decoding="async">
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 14: REVIEWS SUMMARY & SOCIAL PROOF -->
+  <section class="sec sec-white reviews-summary-section" id="reviews-full" dir="rtl">
+    <div class="wrap reviews-summary-section__container">
+
+      <!-- Header Outside Card -->
+      <header class="reviews-summary-header">
+        <div class="reviews-summary-eyebrow">
+          שקיפות מלאה
+        </div>
+        <h2 class="reviews-summary-title">
+          אלפי לקוחות אמיתיים. בלי פילטרים ובלי סינון.
+        </h2>
+      </header>
+
+      <!-- Main Trust Card -->
+      <div class="reviews-trust-card">
+        
+        <div class="reviews-trust-card__grid">
+          
+          <!-- Right Column: Rating Breakdown (Desktop RTL) -->
+          <div class="reviews-rating-column">
+            
+            <div class="reviews-rating-header">
+              <span class="reviews-rating-score">4.8</span>
+              <div class="reviews-rating-stars-wrap" aria-label="דירוג 4.8 מתוך 5">
+                <svg class="reviews-star-icon" viewbox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+                <svg class="reviews-star-icon" viewbox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+                <svg class="reviews-star-icon" viewbox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+                <svg class="reviews-star-icon" viewbox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+                <svg class="reviews-star-icon" viewbox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path></svg>
+              </div>
+            </div>
+
+            <div class="reviews-rating-count">
+              מתוך 5 · 9,232 דירוגים
+            </div>
+
+            <div class="reviews-breakdown-list">
+              <div class="reviews-breakdown-row">
+                <span class="reviews-breakdown-label">5 כוכבים</span>
+                <div class="reviews-breakdown-track">
+                  <div class="reviews-breakdown-fill" style="width: 88%;" role="progressbar" aria-valuenow="88" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="reviews-breakdown-pct">88%</span>
+              </div>
+              <div class="reviews-breakdown-row">
+                <span class="reviews-breakdown-label">4 כוכבים</span>
+                <div class="reviews-breakdown-track">
+                  <div class="reviews-breakdown-fill" style="width: 8%;" role="progressbar" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="reviews-breakdown-pct">8%</span>
+              </div>
+              <div class="reviews-breakdown-row">
+                <span class="reviews-breakdown-label">3 כוכבים</span>
+                <div class="reviews-breakdown-track">
+                  <div class="reviews-breakdown-fill" style="width: 2%;" role="progressbar" aria-valuenow="2" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="reviews-breakdown-pct">2%</span>
+              </div>
+              <div class="reviews-breakdown-row">
+                <span class="reviews-breakdown-label">2 כוכבים</span>
+                <div class="reviews-breakdown-track">
+                  <div class="reviews-breakdown-fill" style="width: 1%;" role="progressbar" aria-valuenow="1" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="reviews-breakdown-pct">1%</span>
+              </div>
+              <div class="reviews-breakdown-row">
+                <span class="reviews-breakdown-label">1 כוכב</span>
+                <div class="reviews-breakdown-track">
+                  <div class="reviews-breakdown-fill" style="width: 1%;" role="progressbar" aria-valuenow="1" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <span class="reviews-breakdown-pct">1%</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Left Column: Insights (Desktop RTL) -->
+          <div class="reviews-insights-column">
+            <h3 class="reviews-insights-title">מה הלקוחות מספרים:</h3>
+            <p class="reviews-insights-text">
+              הרוכשים מציינים בעיקר את האיכות הגבוהה, נוחות השימוש המקסימלית ואת השירות המהיר. שביעות רצון עקבית לאורך זמן.
+            </p>
+            <div class="reviews-topic-pills">
+              <span class="reviews-topic-pill">
+                <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16.6666 5L7.49992 14.1667L3.33325 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                איכות מעולה (4,820)
+              </span>
+              <span class="reviews-topic-pill">
+                <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16.6666 5L7.49992 14.1667L3.33325 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                קל ונוח לשימוש (3,210)
+              </span>
+              <span class="reviews-topic-pill">
+                <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16.6666 5L7.49992 14.1667L3.33325 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                משלוח מהיר (2,150)
+              </span>
+              <span class="reviews-topic-pill">
+                <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M16.6666 5L7.49992 14.1667L3.33325 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                שירות לקוחות (1,430)
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Verification Footer -->
+        <div class="reviews-trust-card__footer">
+          <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+          <span>ציון ממוצע מבוסס על 9,232 רכישות מאומתות בישראל</span>
+        </div>
+
+      </div>
+
+      <!-- Customer Review Cards Track -->
+            <!-- Upgraded 11 UGC Customer Reviews Gallery -->
+      <div class="ugc-reviews-gallery-wrap">
+        <div class="ugc-reviews-grid" id="ugcReviewsGrid">
+          <!-- Review Card 1: batch5_1 -->
+          <article class="ugc-review-card" onclick="openReviewModal(0)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(0)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_1.png?v=1787174410" width="1122" height="1402" alt="הילה כ., 42 • כפר סבא - חום שוקולד עמוק" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״אין לי זמן לשבת 3 שעות במספרה כל חודש. זה פשוט הפך לחלק משגרת המקלחת – שמה כמו שמפו, מחכה 10 דקות והשורשים מכוסים לחלוטין.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">הילה כ., 42 • כפר סבא</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום שוקולד עמוק</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 2: batch2_5 -->
+          <article class="ugc-review-card" onclick="openReviewModal(1)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(1)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_5.png?v=1787159119" width="1122" height="1402" alt="רונית ד., 49 • תל אביב - חום כהה" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״הגוון השתלב בצורה חלקה וטבעית לחלוטין עם צבע הבסיס שלי. השיער נשאר רך ומלא ברק בלי להיראות כבד או צבוע.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">רונית ד., 49 • תל אביב</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום כהה</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 3: batch5_2 -->
+          <article class="ugc-review-card" onclick="openReviewModal(2)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(2)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_2.png?v=1787174412" width="1122" height="1402" alt="סמדר א., 51 • רמת גן - חום כהה טבעי" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״החשש הכי גדול שלי היה שייראה גוש שחור אטום ולא טבעי. הצבע השתלב מושלם עם הגוון הטבעי שלי בלי שום קו גבול בולט.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">סמדר א., 51 • רמת גן</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום כהה טבעי</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 4: batch2_4 -->
+          <article class="ugc-review-card" onclick="openReviewModal(3)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(3)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_4.png?v=1787159115" width="1122" height="1402" alt="שירה כ., 47 • ראשון לציון - חום ערמוני עשיר" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״כל שבועיים השורשים הלבנים חזרו ושנאתי את זה. עכשיו אני עושה את זה לבד ב-10 דקות. בלי ריח של אמוניה ובלי כתמים.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">שירה כ., 47 • ראשון לציון</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום ערמוני עשיר</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 5: batch5_3 -->
+          <article class="ugc-review-card" onclick="openReviewModal(4)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(4)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_3.png?v=1787174416" width="1122" height="1402" alt="אורית ש., 46 • מודיעין - חום ערמוני / מדיום" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״יש לי קרקפת סופר רגישה ששורפת מכל צבע רגיל. עם NovaHair אין צריבה, אין גירוד ואין ריח כימי. חוויה אחרת לגמרי.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">אורית ש., 46 • מודיעין</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום ערמוני / מדיום</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 6: batch2_3 -->
+          <article class="ugc-review-card" onclick="openReviewModal(5)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(5)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_3.png?v=1787159110" width="1122" height="1402" alt="מיכל ר., 54 • חיפה - חום שוקולד" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״אחרי שנים של צביעות במספרה שייבשו לי את השיער, סוף סוף משהו שצובע ולא הורס. השיבה נעלמה והשיער מרגיש כמו משי.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">מיכל ר., 54 • חיפה</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום שוקולד</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 7: batch5_4 -->
+          <article class="ugc-review-card" onclick="openReviewModal(6)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(6)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_4.png?v=1787174417" width="1122" height="1402" alt="קרן מ., 53 • חיפה - חום בינוני" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״בקבוק אחד מספיק לי כבר לחודשיים וחצי. חסכתי אלפי שקלים על מספרות, והצבע לא יורד או דוהה אחרי יומיים.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">קרן מ., 53 • חיפה</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום בינוני</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 8: batch2_7 -->
+          <article class="ugc-review-card" onclick="openReviewModal(7)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(7)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_7.png?v=1787159128" width="1122" height="1402" alt="דנה ל., 41 • כפר סבא - חום עמוק" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״הפשטות של השימוש והתוצאה המהירה הפכו את זה לחלק בלתי נפרד משגרת הטיפוח שלי. 10 דקות בבית וזהו.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">דנה ל., 41 • כפר סבא</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום עמוק</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 9: batch5_6 -->
+          <article class="ugc-review-card" onclick="openReviewModal(8)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(8)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_6.png?v=1787174420" width="1122" height="1402" alt="ליאת ב., 44 • פתח תקווה - שחור טבעי" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״פחדתי שילכלך לי את כל האמבטיה והמגבות – אבל זה נשטף בקלות עם מים וסבון ולא משאיר שום כתמים. תענוג!״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">ליאת ב., 44 • פתח תקווה</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: שחור טבעי</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 10: batch2_6 -->
+          <article class="ugc-review-card" onclick="openReviewModal(9)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(9)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_6.png?v=1787159124" width="1122" height="1402" alt="ענת מ., 45 • מודיעין - שחור טבעי" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״קניתי במקור לבעלי והוא נראה צעיר בעשור. בסוף גם אני התחלתי להשתמש לשורשים שלי. חבל על כל הכסף שהלך למספרה.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">ענת מ., 45 • מודיעין</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: שחור טבעי</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Review Card 11: batch5_7 -->
+          <article class="ugc-review-card" onclick="openReviewModal(10)" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')openReviewModal(10)">
+            <div class="ugc-review-card__media">
+              <img src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_7.png?v=1787174422" width="1122" height="1402" alt="מירי ג., 50 • ירושלים - חום בהיר / קרמל" loading="lazy" decoding="async">
+              <div class="ugc-review-card__zoom-badge" aria-hidden="true">
+                <svg viewbox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="9" cy="9" r="6"></circle><path d="M13.5 13.5L18 18"></path></svg>
+                <span>לקריאת הביקורת</span>
+              </div>
+            </div>
+            <div class="ugc-review-card__content">
+              <div class="ugc-review-card__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:16px;height:16px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+              <p class="ugc-review-card__text">״לשיער בהיר תמיד קשה למצוא צבע ביתי שלא יוצא כתום או כהה מדי. הגוון יצא עדין, מלא חיים ומדויק להפליא.״</p>
+              <div class="ugc-review-card__divider"></div>
+              <div class="ugc-review-card__customer">
+                <div class="ugc-review-card__customer-name">מירי ג., 50 • ירושלים</div>
+                <div class="ugc-review-card__verified">
+                  <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+                  <span>רכישה מאומתת</span>
+                </div>
+              </div>
+              <div class="ugc-review-card__shade-tag">
+                <span>גוון: חום בהיר / קרמל</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <!-- Upgraded Review Detail Modal (2-Column Desktop RTL) -->
+  <div class="ugc-modal-overlay" id="ugcModalOverlay" onclick="closeReviewModal(event)" role="dialog" aria-modal="true" aria-labelledby="ugcModalHeadline" style="display:none;">
+    <div class="ugc-modal" onclick="event.stopPropagation()">
+      <button class="ugc-modal__close" onclick="closeReviewModal()" aria-label="סגירת ביקורת">✕</button>
+      <button class="ugc-modal__nav ugc-modal__prev" onclick="prevReview()" aria-label="ביקורת קודמת">›</button>
+      <button class="ugc-modal__nav ugc-modal__next" onclick="nextReview()" aria-label="ביקורת הבאה">‹</button>
+
+      <div class="ugc-modal__layout">
+        <!-- Right Column (RTL): Image -->
+        <div class="ugc-modal__media">
+          <img id="ugcModalImg" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_1.png?v=1787174410" alt="הילה כ., 42 • כפר סבא - חום שוקולד עמוק" width="1122" height="1402">
+        </div>
+
+        <!-- Left Column (RTL): Content Hierarchy -->
+        <div class="ugc-modal__content">
+          <!-- 1. 5-Star Rating -->
+          <div class="ugc-modal__stars">
+<svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg><svg class="star-icon" viewbox="0 0 20 20" fill="#F59E0B" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px;display:inline-block;"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+</div>
+
+          <!-- 2. Review Headline -->
+          <h3 class="ugc-modal__headline" id="ugcModalHeadline">פתרון מושלם לנשים עסוקות – הציל לי את הזמן ואת הכסף</h3>
+
+          <!-- 3. Full Review Paragraph -->
+          <p class="ugc-modal__review" id="ugcModalReview">״הייתי סקפטית לגבי שמפו שמכסה שיבה, אבל הופתעתי בענק. המריחה קלה בטירוף, אין ריח חריף של אמוניה והשיער יצא רך ומבריק כאילו יצאתי עכשיו מפאן וצבע אצל מעצב שיער. לא חוזרת לצבעים של פעם.״</p>
+
+          <!-- 4. Divider -->
+          <div class="ugc-modal__divider"></div>
+
+          <!-- 5 & 6. Customer Identity & Verified -->
+          <div class="ugc-modal__customer">
+            <div class="ugc-modal__customer-name" id="ugcModalCustomer">הילה כ., 42 • כפר סבא</div>
+            <div class="ugc-modal__verified">
+              <svg viewbox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:13px;height:13px;flex-shrink:0;"><path d="M10 1.66667L3.33333 4.16667V9.16667C3.33333 13.25 6.16667 17.0833 10 18.3333C13.8333 17.0833 16.6667 13.25 16.6667 9.16667V4.16667L10 1.66667ZM8.33333 13.3333L5 10L6.175 8.825L8.33333 10.9833L13.825 5.49167L15 6.66667L8.33333 13.3333Z" fill="currentColor"></path></svg>
+              <span>רכישה מאומתת</span>
+            </div>
+          </div>
+
+          <!-- 7. Purchased Shade Pill -->
+          <div class="ugc-modal__shade" id="ugcModalShade">גוון שנרכש: חום שוקולד עמוק</div>
+
+          <!-- 8. Modal CTA -->
+          <button class="ugc-modal__cta" id="ugcModalCta" onclick="handleModalCta()">להזמנת הגוון של הילה ›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 15: FOOTER -->
+  <footer class="footer">
+    <div class="wrap">
+      <img class="footer-logo" src="https://cdn.shopify.com/s/files/1/0719/2628/4583/files/3_8d0c9930-6653-4621-ae9c-d9ae57d1729c.png?v=1787157532" alt="NovaHair Logo">
+      <div class="footer-links">
+        <a href="/pages/shipping">מדיניות משלוחים</a>
+        <a href="/pages/returns">מדיניות החזרות ואחריות</a>
+        <a href="/pages/terms">תנאי שימוש</a>
+        <a href="/pages/privacy">מדיניות פרטיות</a>
+        <a href="/pages/contact">שירות לקוחות</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 NovaHair Israel. כל הזכויות שמורות.
+      </div>
+    </div>
+  </footer>
+
+  <!-- STICKY PURCHASE BAR -->
+  <div class="nh-sticky-buy-bar" id="stickyBuyBar">
+    <div class="wrap nh-sticky-buy-bar__container">
+      <div class="nh-sticky-buy-bar__left">
+        <div class="nh-sticky-buy-bar__product-title">NovaHair® — כיסוי שורשים ושיבה</div>
+        <div class="nh-sticky-buy-bar__meta" id="stickyMeta">גוון: <strong>שחור טבעי</strong> · <strong>4 בקבוקים</strong>
+</div>
+      </div>
+      <div class="nh-sticky-buy-bar__right">
+        <div class="nh-sticky-buy-bar__pricing">
+          <span class="nh-sticky-buy-bar__price" id="stickyPrice">₪239</span>
+          <span class="nh-sticky-buy-bar__compare" id="stickyCompare">₪758</span>
+        </div>
+        <button type="button" class="nh-sticky-buy-bar__cta" id="stickyCtaBtn" onclick="executeBuy()">
+          להזמנה — 4 בקבוקים ב־₪239 ›
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- EMBEDDED JAVASCRIPT STATE ENGINE -->
+<script>
+(function() {
+  // 1. STATE CONFIGURATION
+  var state = {
+    color: 'black',
+    colorName: 'שחור טבעי',
+    pack: 'pack4',
+    isMix: false,
+    mmAlloc: {
+      black: 4,
+      darkbrown: 0,
+      lightbrown: 0,
+      purple: 0,
+      red: 0
+    },
+    prices: {
+      pack2: { price: 189, compare: 379, qty: 2 },
+      pack4: { price: 239, compare: 758, qty: 4 },
+      pack6: { price: 319, compare: 1137, qty: 6 }
+    },
+    shadeNames: {
+      black: 'שחור טבעי',
+      darkbrown: 'חום כהה',
+      lightbrown: 'חום בהיר',
+      purple: 'סגול חציל',
+      red: 'אדום יין'
+    },
+    variantMap: {
+      black: 45242784547015,
+      darkbrown: 45242784579783,
+      lightbrown: 45242784612551,
+      purple: 45242784645319,
+      red: 45242784678087
+    }
+  };
+
+  // 2. SHADE SELECTION
+  window.selectColor = function(colorKey, colorLabel) {
+    state.color = colorKey;
+    state.colorName = colorLabel;
+    
+    // If we were in mix mode, selecting a normal shade switches back to single shade mode cleanly
+    if (state.isMix) {
+      state.isMix = false;
+      var drawer = document.getElementById('mmDrawer');
+      var mixBtn = document.getElementById('mixShadesBtn');
+      if (drawer) drawer.classList.remove('open');
+      if (mixBtn) mixBtn.classList.remove('is-active');
+    }
+
+    document.querySelectorAll('.nova .shade-option').forEach(function(el) {
+      if (el.getAttribute('data-color') === colorKey) {
+        el.classList.add('sel');
+      } else {
+        el.classList.remove('sel');
+      }
+    });
+
+    updateUI();
+  };
+
+  // 3. MIX & MATCH TOGGLE
+  window.toggleMixMode = function() {
+    state.isMix = !state.isMix;
+    var drawer = document.getElementById('mmDrawer');
+    var mixBtn = document.getElementById('mixShadesBtn');
+    
+    if (state.isMix) {
+      if (drawer) drawer.classList.add('open');
+      if (mixBtn) mixBtn.classList.add('is-active');
+      // Initialize mix allocation cleanly to current bundle size
+      resetMixAlloc();
+    } else {
+      if (drawer) drawer.classList.remove('open');
+      if (mixBtn) mixBtn.classList.remove('is-active');
+    }
+
+    updateUI();
+  };
+
+  function resetMixAlloc() {
+    var targetQty = state.prices[state.pack].qty;
+    // Reset all to 0
+    Object.keys(state.mmAlloc).forEach(function(k) { state.mmAlloc[k] = 0; });
+    // Assign total to currently selected shade
+    state.mmAlloc[state.color] = targetQty;
+    renderMmInputs();
+  }
+
+  // 4. MIX QUANTITY CONTROLS (+ / -)
+  window.updateMmQty = function(colorKey, delta) {
+    var targetQty = state.prices[state.pack].qty;
+    var currentTotal = Object.values(state.mmAlloc).reduce(function(a, b) { return a + b; }, 0);
+    var currentVal = state.mmAlloc[colorKey] || 0;
+    var newVal = currentVal + delta;
+
+    if (newVal < 0) return;
+    if (delta > 0 && currentTotal >= targetQty) return; // limit to bundle size
+
+    state.mmAlloc[colorKey] = newVal;
+    renderMmInputs();
+    updateUI();
+  };
+
+  function renderMmInputs() {
+    Object.keys(state.mmAlloc).forEach(function(k) {
+      var span = document.getElementById('mmQty_' + k);
+      if (span) span.innerText = state.mmAlloc[k];
+    });
+  }
+
+  // 5. BUNDLE SELECTION
+  window.selectPack = function(packKey) {
+    state.pack = packKey;
+    
+    document.querySelectorAll('.nova .bundle-card').forEach(function(el) {
+      if (el.getAttribute('data-offer') === packKey) {
+        el.classList.add('sel');
+      } else {
+        el.classList.remove('sel');
+      }
+    });
+
+    if (state.isMix) {
+      resetMixAlloc();
+    }
+
+    updateUI();
+  };
+
+  window.reentrySelectPack = function(packKey) {
+    selectPack(packKey);
+    var buySec = document.getElementById('buy');
+    if (buySec) buySec.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // 6. COMPREHENSIVE UI UPDATE
+  function updateUI() {
+    var currentPackData = state.prices[state.pack];
+    var targetQty = currentPackData.qty;
+    var currentTotal = Object.values(state.mmAlloc).reduce(function(a, b) { return a + b; }, 0);
+    var isValid = true;
+    var summaryText = '';
+
+    // Update Shade Heading
+    var shadeHeading = document.getElementById('shadeHeading');
+    if (shadeHeading) {
+      if (state.isMix) {
+        shadeHeading.innerText = '1. בחרי את הגוון שלך — שילוב גוונים מותאם אישית';
+      } else {
+        shadeHeading.innerText = '1. בחרי את הגוון שלך — נבחר: ' + state.colorName;
+      }
+    }
+
+    // Mix Mode validations & summary
+    if (state.isMix) {
+      var mmTally = document.getElementById('mmTally');
+      if (currentTotal === targetQty) {
+        if (mmTally) {
+          mmTally.innerText = 'נבחרו ' + targetQty + ' מתוך ' + targetQty + ' בקבוקים ✓';
+          mmTally.className = 'mm-tally complete';
+        }
+      } else {
+        isValid = false;
+        var diff = targetQty - currentTotal;
+        if (mmTally) {
+          mmTally.innerText = 'נבחרו ' + currentTotal + ' מתוך ' + targetQty + ' (נותרו ' + diff + ')';
+          mmTally.className = 'mm-tally incomplete';
+        }
+      }
+
+      // Build composition text (e.g. "2× חום כהה + 2× שחור")
+      var compParts = [];
+      Object.keys(state.mmAlloc).forEach(function(k) {
+        var count = state.mmAlloc[k];
+        if (count > 0) {
+          compParts.push(count + '× ' + state.shadeNames[k]);
+        }
+      });
+      summaryText = compParts.join(' + ');
+    } else {
+      summaryText = 'גוון: ' + state.colorName + ' · ' + targetQty + ' בקבוקים';
+    }
+
+    // Update CTA text & disabled state
+    var mainCta = document.getElementById('mainCheckout');
+    var ctaSummary = document.getElementById('ctaSummary');
+    var stickyCtaBtn = document.getElementById('stickyCtaBtn');
+    var stickyMeta = document.getElementById('stickyMeta');
+    var stickyPrice = document.getElementById('stickyPrice');
+    var stickyCompare = document.getElementById('stickyCompare');
+
+    var ctaButtonText = '';
+    if (!isValid) {
+      ctaButtonText = 'השלימי את חלוקת הגוונים (' + currentTotal + '/' + targetQty + ')';
+      if (mainCta) mainCta.classList.add('is-disabled');
+      if (stickyCtaBtn) stickyCtaBtn.classList.add('is-disabled');
+    } else {
+      ctaButtonText = 'להזמנה — ' + targetQty + ' בקבוקים ב־₪' + currentPackData.price + ' ›';
+      if (mainCta) mainCta.classList.remove('is-disabled');
+      if (stickyCtaBtn) stickyCtaBtn.classList.remove('is-disabled');
+    }
+
+    if (mainCta) mainCta.innerText = ctaButtonText;
+    if (ctaSummary) ctaSummary.innerText = summaryText;
+    if (stickyCtaBtn) stickyCtaBtn.innerText = ctaButtonText;
+    if (stickyMeta) stickyMeta.innerHTML = summaryText;
+    if (stickyPrice) stickyPrice.innerText = '₪' + currentPackData.price;
+    if (stickyCompare) stickyCompare.innerText = '₪' + currentPackData.compare;
+  }
+
+  // 7. PURCHASE / ADD TO CART ACTION
+  window.executeBuy = function() {
+    var currentPackData = state.prices[state.pack];
+    var targetQty = currentPackData.qty;
+    var currentTotal = Object.values(state.mmAlloc).reduce(function(a, b) { return a + b; }, 0);
+
+    if (state.isMix && currentTotal !== targetQty) {
+      alert('נא להשלים את חלוקת כל ' + targetQty + ' הבקבוקים בחבילה לפני המעבר לתשלום.');
+      var drawer = document.getElementById('mmDrawer');
+      if (drawer) {
+        drawer.classList.add('open');
+        drawer.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    var items = [];
+    if (state.isMix) {
+      Object.keys(state.mmAlloc).forEach(function(k) {
+        var qty = state.mmAlloc[k];
+        if (qty > 0) {
+          items.push({
+            id: state.variantMap[k],
+            quantity: qty
+          });
+        }
+      });
+    } else {
+      items.push({
+        id: state.variantMap[state.color],
+        quantity: targetQty
+      });
+    }
+
+    // Submit to Shopify Cart API and redirect to checkout
+    fetch('/cart/clear.js', { method: 'POST' })
+      .then(function() {
+        return fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: items })
+        });
+      })
+      .then(function() {
+        window.location.href = '/checkout';
+      })
+      .catch(function(err) {
+        console.error('Cart error:', err);
+        window.location.href = '/checkout';
+      });
+  };
+
+  // 8. FAQ ACCORDION TOGGLE
+  window.toggleFaq = function(button) {
+    var item = button.closest('.faq-item');
+    var isOpen = item.classList.contains('is-open');
+    
+    // Close other FAQs if desired, or toggle independently
+    item.classList.toggle('is-open', !isOpen);
+    button.setAttribute('aria-expanded', !isOpen);
+  };
+
+  // 9. GALLERY THUMBNAIL INTERACTIONS
+  var galMain = document.getElementById('galMain');
+  document.querySelectorAll('.nova .thumb').forEach(function(t) {
+    t.addEventListener('click', function() {
+      document.querySelectorAll('.nova .thumb').forEach(function(x) { x.classList.remove('sel'); });
+      t.classList.add('sel');
+      if (galMain) {
+        galMain.src = t.src;
+        galMain.alt = t.alt;
+      }
+    });
+  });
+
+  // 10. SOCIAL PROOF UGC SLIDER
+  var currentUgcSlide = 0;
+  window.setUgcSlide = function(index) {
+    currentUgcSlide = index;
+    var slider = document.getElementById('ugcSlider');
+    if (slider) slider.style.transform = 'translateX(' + (index * 100) + '%)';
+    document.querySelectorAll('.nova .ugc-dot').forEach(function(d, i) {
+      d.classList.toggle('active', i === index);
+    });
+  };
+
+  
+  // 11. UPGRADED UGC REVIEWS DATASET & MODAL ENGINE (11 REVIEWS)
+  var ugcReviewsData = [{"id": "batch5_1", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_1.png?v=1787174410", "name": "הילה כ., 42 • כפר סבא", "verified": true, "rating": 5, "shade": "חום שוקולד עמוק", "shortReview": "״אין לי זמן לשבת 3 שעות במספרה כל חודש. זה פשוט הפך לחלק משגרת המקלחת – שמה כמו שמפו, מחכה 10 דקות והשורשים מכוסים לחלוטין.״", "headline": "פתרון מושלם לנשים עסוקות – הציל לי את הזמן ואת הכסף", "fullReview": "״הייתי סקפטית לגבי שמפו שמכסה שיבה, אבל הופתעתי בענק. המריחה קלה בטירוף, אין ריח חריף של אמוניה והשיער יצא רך ומבריק כאילו יצאתי עכשיו מפאן וצבע אצל מעצב שיער. לא חוזרת לצבעים של פעם.״", "ctaText": "להזמנת הגוון של הילה ›"}, {"id": "batch2_5", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_5.png?v=1787159119", "name": "רונית ד., 49 • תל אביב", "verified": true, "rating": 5, "shade": "חום כהה", "shortReview": "״הגוון השתלב בצורה חלקה וטבעית לחלוטין עם צבע הבסיס שלי. השיער נשאר רך ומלא ברק בלי להיראות כבד או צבוע.״", "headline": "פתרון הצלה בין ביקורים אצל מעצב השיער", "fullReview": "״בגיל 49 השורשים הלבנים צצים כבר אחרי שבועיים. במקום לרוץ למספרה, אני שמה NovaHair לכמה דקות במקלחת והשיער חוזר להיראות רענן, חי ומלא ברק טבעי.״", "ctaText": "להזמנת הגוון של רונית ›"}, {"id": "batch5_2", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_2.png?v=1787174412", "name": "סמדר א., 51 • רמת גן", "verified": true, "rating": 5, "shade": "חום כהה טבעי", "shortReview": "״החשש הכי גדול שלי היה שייראה גוש שחור אטום ולא טבעי. הצבע השתלב מושלם עם הגוון הטבעי שלי בלי שום קו גבול בולט.״", "headline": "מתמזג מושלם עם השיער – נראה טבעי ברמות", "fullReview": "״יש לי שיבה עקשנית בצדעים ובשביל. המוצר הזה פשוט עטף את הלבן בצורה רכה וטבעית. חברות בעבודה שאלו אותי איזה טיפול עשיתי כי השיער נראה מלא ברק ובריא. מומלץ בחום!״", "ctaText": "להזמנת הגוון של סמדר ›"}, {"id": "batch2_4", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_4.png?v=1787159115", "name": "שירה כ., 47 • ראשון לציון", "verified": true, "rating": 5, "shade": "חום ערמוני עשיר", "shortReview": "״כל שבועיים השורשים הלבנים חזרו ושנאתי את זה. עכשיו אני עושה את זה לבד ב-10 דקות. בלי ריח של אמוניה ובלי כתמים.״", "headline": "התמונה מדברת בעד עצמה – הבדל של שמיים וארץ", "fullReview": "״ראו בתמונה את ההבדל: משיבה בולטת לכיסוי חלק, טבעי ובריא. שום תכשיר אחר לא נתן לי תוצאה כזו מהירה בלי להרוס לי את השיער.״", "ctaText": "להזמנת הגוון של שירה ›"}, {"id": "batch5_3", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_3.png?v=1787174416", "name": "אורית ש., 46 • מודיעין", "verified": true, "rating": 5, "shade": "חום ערמוני / מדיום", "shortReview": "״יש לי קרקפת סופר רגישה ששורפת מכל צבע רגיל. עם NovaHair אין צריבה, אין גירוד ואין ריח כימי. חוויה אחרת לגמרי.״", "headline": "סוף סוף מוצר שלא גורם לי לגירוי בקרקפת", "fullReview": "״במשך שנים סבלתי מגירודים ואדמומיות אחרי כל צביעה. הפורמולה הזו עדינה בטירוף, הקרקפת נשארת רגועה והשיער מרגיש נעים ולא יבש כמו קש. המשלוח הגיע ארוז מעולה תוך שבוע.״", "ctaText": "להזמנת הגוון של אורית ›"}, {"id": "batch2_3", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_3.png?v=1787159110", "name": "מיכל ר., 54 • חיפה", "verified": true, "rating": 5, "shade": "חום שוקולד", "shortReview": "״אחרי שנים של צביעות במספרה שייבשו לי את השיער, סוף סוף משהו שצובע ולא הורס. השיבה נעלמה והשיער מרגיש כמו משי.״", "headline": "השיער שלי מעולם לא הרגיש כל כך רך ובריא אחרי צבע", "fullReview": "״החומרים המזינים במוצר עושים את כל ההבדל. השיער לא מרגיש יבש או שביר, אלא מקבל נפח וברק מדהים. ממליצה לכל מי שנמאס לה לשרוף את השיער בחמצן.״", "ctaText": "להזמנת הגוון של מיכל ›"}, {"id": "batch5_4", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_4.png?v=1787174417", "name": "קרן מ., 53 • חיפה", "verified": true, "rating": 5, "shade": "חום בינוני", "shortReview": "״בקבוק אחד מספיק לי כבר לחודשיים וחצי. חסכתי אלפי שקלים על מספרות, והצבע לא יורד או דוהה אחרי יומיים.״", "headline": "חיסכון מטורף – המוצר הכי משתלם שקניתי השנה", "fullReview": "״הייתי משלמת 350 ש״ח בכל חודש רק על שורשים. עכשיו אני עושה את זה בעצמי בבית בכיף, הבקבוק מספיק לעשרות שימושים והתוצאה מחזיקה מעמד שבועות. איכות של מותג יוקרה.״", "ctaText": "להזמנת הגוון של קרן ›"}, {"id": "batch2_7", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_7.png?v=1787159128", "name": "דנה ל., 41 • כפר סבא", "verified": true, "rating": 5, "shade": "חום עמוק", "shortReview": "״הפשטות של השימוש והתוצאה המהירה הפכו את זה לחלק בלתי נפרד משגרת הטיפוח שלי. 10 דקות בבית וזהו.״", "headline": "שינה לי לחלוטין את הרגלי הטיפוח", "fullReview": "״קל בטירוף לתפעול, לא דורש שום ניסיון או מיומנות. פשוט חופפים, ממתינים מעט ושוטפים. התוצאה מושלמת בכל פעם מחדש.״", "ctaText": "להזמנת הגוון של דנה ›"}, {"id": "batch5_6", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_6.png?v=1787174420", "name": "ליאת ב., 44 • פתח תקווה", "verified": true, "rating": 5, "shade": "שחור טבעי", "shortReview": "״פחדתי שילכלך לי את כל האמבטיה והמגבות – אבל זה נשטף בקלות עם מים וסבון ולא משאיר שום כתמים. תענוג!״", "headline": "בלי בלגן, בלי קערות ובלי כתמים שחורים במקלחת", "fullReview": "״החשש הגדול שלי היה הצבע השחור. שמתי כפפות, חפפתי, שטפתי – והאמבטיה נשארה נקייה לחלוטין. השיער קיבל צבע שחור עמוק ומבריק שמכסה 100% מהלבן. שירות הלקוחות בוואטסאפ היה מקסים ועזר לי לבחור את הגוון.״", "ctaText": "להזמנת הגוון של ליאת ›"}, {"id": "batch2_6", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch2_6.png?v=1787159124", "name": "ענת מ., 45 • מודיעין", "verified": true, "rating": 5, "shade": "שחור טבעי", "shortReview": "״קניתי במקור לבעלי והוא נראה צעיר בעשור. בסוף גם אני התחלתי להשתמש לשורשים שלי. חבל על כל הכסף שהלך למספרה.״", "headline": "מוצר חובה לכל בית – גם לי וגם לבעלי", "fullReview": "״הוא משתמש בזה לזקן ולצדעים ואני משתמשת לחידוש השורשים שלי. המוצר הכי שימושי וחסכוני שיש. מעבר לזה, המשלוח הגיע מהר והשירות היה מעל ומעבר!״", "ctaText": "להזמנת הגוון של ענת ›"}, {"id": "batch5_7", "image": "https://cdn.shopify.com/s/files/1/0719/2628/4583/files/batch5_7.png?v=1787174422", "name": "מירי ג., 50 • ירושלים", "verified": true, "rating": 5, "shade": "חום בהיר / קרמל", "shortReview": "״לשיער בהיר תמיד קשה למצוא צבע ביתי שלא יוצא כתום או כהה מדי. הגוון יצא עדין, מלא חיים ומדויק להפליא.״", "headline": "דיוק מושלם בגוון – בלי גוונים כתומים לא רצויים", "fullReview": "״היה לי קשה למצוא מענה לצבע הבהיר שלי בלי להרוס את הגוונים. הפורמולה הזו הדגישה את הברק וכיסתה את כל הלבן בצורה אחידה. קיבלתי מלא מחמאות!״", "ctaText": "להזמנת הגוון של מירי ›"}];
+  var currentReviewIndex = 0;
+
+  window.openReviewModal = function(index) {
+    if (index < 0 || index >= ugcReviewsData.length) return;
+    currentReviewIndex = index;
+    updateModalContent(currentReviewIndex);
+    
+    var overlay = document.getElementById('ugcModalOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      // Force reflow for transition
+      overlay.offsetHeight;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+  };
+
+  window.closeReviewModal = function(e) {
+    if (e && e.target && e.target.id !== 'ugcModalOverlay' && !e.target.classList.contains('ugc-modal__close')) {
+      return;
+    }
+    var overlay = document.getElementById('ugcModalOverlay');
+    if (overlay) {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(function() {
+        if (!overlay.classList.contains('open')) {
+          overlay.style.display = 'none';
+        }
+      }, 250);
+    }
+  };
+
+  window.nextReview = function() {
+    currentReviewIndex = (currentReviewIndex + 1) % ugcReviewsData.length;
+    updateModalContent(currentReviewIndex);
+  };
+
+  window.prevReview = function() {
+    currentReviewIndex = (currentReviewIndex - 1 + ugcReviewsData.length) % ugcReviewsData.length;
+    updateModalContent(currentReviewIndex);
+  };
+
+  function updateModalContent(idx) {
+    var r = ugcReviewsData[idx];
+    if (!r) return;
+    
+    var imgEl = document.getElementById('ugcModalImg');
+    var headlineEl = document.getElementById('ugcModalHeadline');
+    var reviewEl = document.getElementById('ugcModalReview');
+    var customerEl = document.getElementById('ugcModalCustomer');
+    var shadeEl = document.getElementById('ugcModalShade');
+    var ctaEl = document.getElementById('ugcModalCta');
+
+    if (imgEl) {
+      imgEl.src = r.image;
+      imgEl.alt = r.name + ' - ' + r.shade;
+    }
+    if (headlineEl) headlineEl.textContent = r.headline;
+    if (reviewEl) reviewEl.textContent = r.fullReview;
+    if (customerEl) customerEl.textContent = r.name;
+    if (shadeEl) shadeEl.textContent = 'גוון שנרכש: ' + r.shade;
+    if (ctaEl) ctaEl.textContent = r.ctaText || 'לבחירת הגוון והחבילה ›';
+  }
+
+  window.handleModalCta = function() {
+    var overlay = document.getElementById('ugcModalOverlay');
+    if (overlay) {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      overlay.style.display = 'none';
+    }
+    var buySec = document.getElementById('buy');
+    if (buySec) {
+      buySec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Keyboard navigation for modal
+  document.addEventListener('keydown', function(e) {
+    var overlay = document.getElementById('ugcModalOverlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    
+    if (e.key === 'Escape') {
+      closeReviewModal();
+    } else if (e.key === 'ArrowLeft') {
+      // In RTL, left arrow moves to next
+      nextReview();
+    } else if (e.key === 'ArrowRight') {
+      // In RTL, right arrow moves to prev
+      prevReview();
+    }
+  });
+
+  // 12. STICKY BAR INTERSECTION OBSERVER
+  var mainBtn = document.getElementById('mainCheckout');
+  var stickyBar = document.getElementById('stickyBuyBar');
+
+  if (mainBtn && stickyBar && 'IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) {
+          stickyBar.classList.add('is-visible');
+        } else {
+          stickyBar.classList.remove('is-visible');
+        }
+      });
+    }, { threshold: 0.1 });
+    observer.observe(mainBtn);
+  }
+
+  // Initialize UI on load
+  updateUI();
+
+})();
+</script>
