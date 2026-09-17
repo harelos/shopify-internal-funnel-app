@@ -654,5 +654,11 @@
       "signup_form_success": "נשלח לך אימייל ממש לפני שנפתח!",
       "password_link": "היכנס באמצעות סיסמה"
     }
+  },
+  "tbg": {
+    "navigation": {
+      "track_order": "מעקב אחר הזמנה",
+      "track_order_caption": "בדקי את סטטוס המשלוח"
+    }
   }
 }

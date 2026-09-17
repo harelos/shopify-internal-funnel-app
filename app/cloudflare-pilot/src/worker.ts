@@ -23,6 +23,8 @@ export default {
         reconcileGrowthCockpitMetaSpend,
         reconcileGrowthCockpitShopifyFinancials,
       } = await import("./services/growth-cockpit-reconcile.js");
+      const { runCommentGuardianCron } = await import("./services/comment-guardian.js");
+      const { processSupportDeskCron } = await import("./services/support-desk.js");
       if (workerEnv?.DB) {
         // A rejection inside waitUntil settles after this try block has already
         // returned, so the catch below never sees it, and Promise.all would fail
@@ -35,6 +37,8 @@ export default {
           run("processPendingQueueCron", processPendingQueueCron(workerEnv.DB)),
           run("reconcileGrowthCockpitMetaSpend", reconcileGrowthCockpitMetaSpend()),
           run("reconcileGrowthCockpitShopifyFinancials", reconcileGrowthCockpitShopifyFinancials()),
+          run("runCommentGuardianCron", runCommentGuardianCron(workerEnv.DB)),
+          run("processSupportDeskCron", processSupportDeskCron()),
         ]));
       }
     } catch (cronErr) {

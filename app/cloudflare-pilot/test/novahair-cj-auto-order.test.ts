@@ -12,6 +12,7 @@ const expectedFourPack: ExpectedBundle = {
   bundle_size: 4,
   black: 3,
   dark_brown: 1,
+  medium_brown: 0,
   light_brown: 0,
   purple: 0,
   red: 0,
@@ -26,6 +27,22 @@ test("NovaHair auto CJ lines decompose the bundle into physical CJ SKUs plus fre
     { vid: "2412030839551624000", sku: "CJYD223160001AZ", quantity: 3, storeLineItemId: "line-1" },
     { vid: "2412030839551624200", sku: "CJYD223160002BY", quantity: 1, storeLineItemId: "line-1" },
     { vid: "ED56BD86-3AF9-4E8E-9855-FBD046D33613", sku: "CJBJMRPF00756-Suit", quantity: 1, storeLineItemId: "line-1" },
+  ]);
+});
+
+test("NovaHair auto CJ lines include the exact medium-brown CJ variant", () => {
+  const lines = buildNovaHairCjProductLines({
+    ...expectedFourPack,
+    black: 2,
+    dark_brown: 0,
+    medium_brown: 2,
+    original_sku: "NOVASALE-4-2-0-2-0-0-0",
+  }, "line-medium");
+
+  assert.deepEqual(lines, [
+    { vid: "2412030839551624000", sku: "CJYD223160001AZ", quantity: 2, storeLineItemId: "line-medium" },
+    { vid: "2507140803121609000", sku: "CJYD223160006FU", quantity: 2, storeLineItemId: "line-medium" },
+    { vid: "ED56BD86-3AF9-4E8E-9855-FBD046D33613", sku: "CJBJMRPF00756-Suit", quantity: 1, storeLineItemId: "line-medium" },
   ]);
 });
 
@@ -68,4 +85,3 @@ test("NovaHair auto CJ order number is deterministic and CJ-length safe", () => 
   assert.equal(novaHairAutoCjOrderNumber("#4378"), "AUTO-4378");
   assert.equal(novaHairAutoCjOrderNumber(" 4378 "), "AUTO-4378");
 });
-

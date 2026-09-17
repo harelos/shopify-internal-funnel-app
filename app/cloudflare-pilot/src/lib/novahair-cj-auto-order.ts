@@ -2,6 +2,7 @@ export interface ExpectedBundle {
   bundle_size: number;
   black: number;
   dark_brown: number;
+  medium_brown: number;
   light_brown: number;
   purple: number;
   red: number;
@@ -10,7 +11,7 @@ export interface ExpectedBundle {
   original_sku: string;
 }
 
-export type NovaHairComponentKey = "black" | "dark_brown" | "light_brown" | "purple" | "red" | "free_kit";
+export type NovaHairComponentKey = "black" | "dark_brown" | "medium_brown" | "light_brown" | "purple" | "red" | "free_kit";
 
 export interface CjPhysicalMapping {
   vid: string;
@@ -22,6 +23,7 @@ export interface CjPhysicalMapping {
 export const CJ_PHYSICAL_MAPPINGS: Record<NovaHairComponentKey, CjPhysicalMapping> = {
   black: { vid: "2412030839551624000", sku: "CJYD223160001AZ", name: "Black", weight_g: 330.0 },
   dark_brown: { vid: "2412030839551624200", sku: "CJYD223160002BY", name: "Dark Brown", weight_g: 330.0 },
+  medium_brown: { vid: "2507140803121609000", sku: "CJYD223160006FU", name: "Medium Brown", weight_g: 330.0 },
   light_brown: { vid: "2412030839551624400", sku: "CJYD223160003CX", name: "Light Brown", weight_g: 330.0 },
   purple: { vid: "2412030839551624700", sku: "CJYD223160005EV", name: "Purple", weight_g: 330.0 },
   red: { vid: "2412030839551624600", sku: "CJYD223160004DW", name: "Red", weight_g: 330.0 },
@@ -70,7 +72,7 @@ export class NovaHairCjAutoOrderError extends Error {
   }
 }
 
-const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "light_brown", "purple", "red", "free_kit"];
+const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "free_kit"];
 
 function compactText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -101,7 +103,7 @@ export function novaHairAutoCjOrderNumber(orderNum: unknown): string {
 }
 
 export function buildNovaHairCjProductLines(expected: ExpectedBundle, storeLineItemId?: string): NovaHairCjProductLine[] {
-  const bottleCount = expected.black + expected.dark_brown + expected.light_brown + expected.purple + expected.red;
+  const bottleCount = expected.black + expected.dark_brown + expected.medium_brown + expected.light_brown + expected.purple + expected.red;
   if (bottleCount <= 0 || bottleCount !== expected.bundle_size) {
     throw new NovaHairCjAutoOrderError("INVALID_BUNDLE_QUANTITY", "NovaHair bundle quantities do not match the selected bundle size.", {
       bundleSize: expected.bundle_size,
@@ -197,4 +199,3 @@ export function buildNovaHairCjCreateOrderPayload(
 
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== "")) as unknown as NovaHairCjCreateOrderPayload;
 }
-

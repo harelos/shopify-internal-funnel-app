@@ -501,4 +501,54 @@ export class ShopifyAdminClient {
       truncated: hasNextPage,
     };
   }
+
+  async supportOrderContext(input: {
+    customerEmail: string;
+    orderName?: string | null;
+    sessionToken?: string;
+  }) {
+    type SupportOrder = {
+      id: string;
+      name: string;
+      createdAt: string;
+      cancelledAt: string | null;
+      displayFinancialStatus: string | null;
+      displayFulfillmentStatus: string;
+      totalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
+      lineItems: { nodes: Array<{ name: string; quantity: number; sku: string | null }> };
+      fulfillments: Array<{
+        displayStatus: string | null;
+        estimatedDeliveryAt: string | null;
+        deliveredAt: string | null;
+        trackingInfo: Array<{ company: string | null; number: string | null; url: string | null }>;
+      }>;
+    };
+    type SupportOrders = { orders: { nodes: SupportOrder[] } };
+    const escapedEmail = input.customerEmail.trim().toLowerCase().replace(/["\\]/g, "");
+    const orderName = input.orderName?.trim().replace(/[^#A-Za-z0-9_-]/g, "").replace(/^#/, "") || "";
+    const clauses = orderName ? [`name:${orderName}`] : [`email:\"${escapedEmail}\"`];
+
+    const operation = `query SupportOrderContext($query: String!) {
+      orders(first: 10, query: $query, sortKey: CREATED_AT, reverse: true) {
+        nodes {
+          id
+          name
+          createdAt
+          cancelledAt
+          displayFinancialStatus
+          displayFulfillmentStatus
+          totalPriceSet { shopMoney { amount currencyCode } }
+          lineItems(first: 20) { nodes { name quantity sku } }
+          fulfillments {
+            displayStatus
+            estimatedDeliveryAt
+            deliveredAt
+            trackingInfo { company number url }
+          }
+        }
+      }
+    }`;
+    const data = await this.graphql<SupportOrders>(operation, { query: clauses.join(" ") }, input.sessionToken);
+    return data.orders.nodes;
+  }
 }

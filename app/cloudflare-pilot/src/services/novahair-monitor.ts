@@ -24,7 +24,8 @@ export interface NovaHairState {
   updatedAt: string;
 }
 
-const REGEX_NOVASALE = /^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$/;
+const REGEX_NOVASALE_LEGACY = /^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$/;
+const REGEX_NOVASALE_SIX_SHADE = /^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$/;
 const EXCLUDED_ORDER_NUMBERS = new Set(["4359", "4360", "4361", "4362"]);
 const EXCLUDED_TAG_KEYWORDS = ["INTERNAL_", "TEST", "CANARY", "BOOTSTRAP", "DO_NOT_FULFILL"];
 const PRODUCT_ID = "gid://shopify/Product/10341269274919";
@@ -129,20 +130,25 @@ export async function saveNovaHairState(db: any, state: NovaHairState): Promise<
 }
 
 export function decodeBundleSku(sku: string, parentQuantity: number = 1): ExpectedBundle | null {
-  const m = REGEX_NOVASALE.exec(sku);
+  const sixShade = REGEX_NOVASALE_SIX_SHADE.exec(sku);
+  const legacy = sixShade ? null : REGEX_NOVASALE_LEGACY.exec(sku);
+  const m = sixShade || legacy;
   if (!m) return null;
   const bundleSize = parseInt(m[1], 10);
   const b = parseInt(m[2], 10);
   const db = parseInt(m[3], 10);
-  const lb = parseInt(m[4], 10);
-  const p = parseInt(m[5], 10);
-  const r = parseInt(m[6], 10);
-  if (b + db + lb + p + r !== bundleSize) return null;
+  const mb = sixShade ? parseInt(m[4], 10) : 0;
+  const offset = sixShade ? 1 : 0;
+  const lb = parseInt(m[4 + offset], 10);
+  const p = parseInt(m[5 + offset], 10);
+  const r = parseInt(m[6 + offset], 10);
+  if (b + db + mb + lb + p + r !== bundleSize) return null;
 
   return {
     bundle_size: bundleSize * parentQuantity,
     black: b * parentQuantity,
     dark_brown: db * parentQuantity,
+    medium_brown: mb * parentQuantity,
     light_brown: lb * parentQuantity,
     purple: p * parentQuantity,
     red: r * parentQuantity,
@@ -494,7 +500,7 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const productList = cjData.productList || [];
 
     const cjQuantities: Record<string, number> = {
-      black: 0, dark_brown: 0, light_brown: 0, purple: 0, red: 0, free_kit: 0
+      black: 0, dark_brown: 0, medium_brown: 0, light_brown: 0, purple: 0, red: 0, free_kit: 0
     };
 
     let vidError: string | null = null;
@@ -503,6 +509,7 @@ export async function processPendingQueueCron(db: any): Promise<void> {
       const qty = Number(item.quantity || 0);
       if (vid === CJ_PHYSICAL_MAPPINGS.black.vid) cjQuantities.black += qty;
       else if (vid === CJ_PHYSICAL_MAPPINGS.dark_brown.vid) cjQuantities.dark_brown += qty;
+      else if (vid === CJ_PHYSICAL_MAPPINGS.medium_brown.vid) cjQuantities.medium_brown += qty;
       else if (vid === CJ_PHYSICAL_MAPPINGS.light_brown.vid) cjQuantities.light_brown += qty;
       else if (vid === CJ_PHYSICAL_MAPPINGS.purple.vid) cjQuantities.purple += qty;
       else if (vid === CJ_PHYSICAL_MAPPINGS.red.vid) cjQuantities.red += qty;
@@ -514,14 +521,14 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     }
 
     if (vidError) {
-      await triggerCloudCircuitBreaker(`Unknown CJ VID found in order: ${vidError}`, orderPayload, "Known 6 Canonical VIDs", vidError, db);
+      await triggerCloudCircuitBreaker(`Unknown CJ VID found in order: ${vidError}`, orderPayload, "Known 7 Canonical VIDs", vidError, db);
       await db.prepare('UPDATE "NovaHairPendingOrder" SET syncState = ?, result = ?, completedAt = CURRENT_TIMESTAMP WHERE orderId = ?')
         .bind("CIRCUIT_BREAKER_TRIGGERED", "FAIL", orderId).run();
       return;
     }
 
     const mismatches: string[] = [];
-    for (const shade of ["black", "dark_brown", "light_brown", "purple", "red", "free_kit"] as const) {
+    for (const shade of ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "free_kit"] as const) {
       const exp = expected[shade];
       const act = cjQuantities[shade];
       if (exp !== act) mismatches.push(`${shade}: expected ${exp}, got ${act}`);
@@ -624,7 +631,7 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
 
   for (const li of lineItems) {
     const sku = String(li.sku || "");
-    if (REGEX_NOVASALE.test(sku)) {
+    if (REGEX_NOVASALE_SIX_SHADE.test(sku) || REGEX_NOVASALE_LEGACY.test(sku)) {
       expectedBundle = decodeBundleSku(sku, Number(li.quantity || 1));
       break;
     }
@@ -637,6 +644,7 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
       const q = Number(li.quantity || 0);
       if (s === CJ_PHYSICAL_MAPPINGS.black.sku) shopifyComponents.black = q;
       else if (s === CJ_PHYSICAL_MAPPINGS.dark_brown.sku) shopifyComponents.dark_brown = q;
+      else if (s === CJ_PHYSICAL_MAPPINGS.medium_brown.sku) shopifyComponents.medium_brown = q;
       else if (s === CJ_PHYSICAL_MAPPINGS.light_brown.sku) shopifyComponents.light_brown = q;
       else if (s === CJ_PHYSICAL_MAPPINGS.purple.sku) shopifyComponents.purple = q;
       else if (s === CJ_PHYSICAL_MAPPINGS.red.sku) shopifyComponents.red = q;
@@ -645,11 +653,13 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
 
     if (shopifyComponents.free_kit && shopifyComponents.free_kit > 0) {
       const bottleSum = (shopifyComponents.black || 0) + (shopifyComponents.dark_brown || 0) +
-                        (shopifyComponents.light_brown || 0) + (shopifyComponents.purple || 0) + (shopifyComponents.red || 0);
+                        (shopifyComponents.medium_brown || 0) + (shopifyComponents.light_brown || 0) +
+                        (shopifyComponents.purple || 0) + (shopifyComponents.red || 0);
       expectedBundle = {
         bundle_size: bottleSum,
         black: shopifyComponents.black || 0,
         dark_brown: shopifyComponents.dark_brown || 0,
+        medium_brown: shopifyComponents.medium_brown || 0,
         light_brown: shopifyComponents.light_brown || 0,
         purple: shopifyComponents.purple || 0,
         red: shopifyComponents.red || 0,

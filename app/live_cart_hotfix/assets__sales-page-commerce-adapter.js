@@ -31,6 +31,21 @@
     return (item&&item.properties)||{};
   }
 
+  function emitCommerceEvent(name,detail){
+    try{
+      document.dispatchEvent(new CustomEvent(name,{detail:detail||{}}));
+    }catch(_){}
+  }
+
+  function emitCommerceFailure(operation,variantId,itemRole,error){
+    emitCommerceEvent('sales-page-commerce:failed',{
+      operation:operation,
+      variantId:Number(variantId)||undefined,
+      itemRole:itemRole||undefined,
+      errorCode:String(error&&error.code||error&&error.name||'unknown').slice(0,80)
+    });
+  }
+
   function mainPresentation(config){
     return config&&config.cartPresentation&&config.cartPresentation.key;
   }
@@ -148,7 +163,7 @@
     if(!lineItem||!Number(lineItem.id))throw new Error('A valid Shopify variant id is required');
     if(options.openDrawer)this.openDrawer();
     var self=this;
-    return global.novaFunnelEnqueueCartMutation('main-offer:'+this.config.offerId,async function(){
+    var operation=global.novaFunnelEnqueueCartMutation('main-offer:'+this.config.offerId,async function(){
       var cart=await readCart();
       var existing=mainLines(cart,self.config);
       var exact=existing.find(function(item){return sameMainSelection(item,lineItem,self.config);});
@@ -172,13 +187,17 @@
       else if(typeof global.refreshCartDrawer==='function')await global.refreshCartDrawer(options.openDrawer);
       else if(options.openDrawer)self.openDrawer();
 
-      document.dispatchEvent(new CustomEvent('sales-page-commerce:added',{detail:{
+      emitCommerceEvent('sales-page-commerce:added',{
         offerId:self.config.offerId,
         variantId:Number(lineItem.id),
         quantity:1,
         alreadyPresent:Boolean(exact&&existing.length===1&&Number(exact.quantity)===1)
-      }}));
+      });
       return data||cart;
+    });
+    return operation.catch(function(error){
+      emitCommerceFailure('main_offer_add',lineItem.id,'main_offer',error);
+      throw error;
     });
   };
 
@@ -207,7 +226,7 @@
     var role=options.role;
     var requiredProductIds=(options.requiredProductIds||[]).map(Number).filter(function(id){return id>0;});
 
-    return global.novaFunnelEnqueueCartMutation('unique:'+Number(lineItem.id)+':'+role,async function(){
+    var operation=global.novaFunnelEnqueueCartMutation('unique:'+Number(lineItem.id)+':'+role,async function(){
       var cart=await readCart();
       var normalized=await normalizeMainOffer(cart,config,null);
       cart=normalized.cart;
@@ -254,6 +273,16 @@
 
       await renderResult(data,options.openDrawer);
       return data;
+    });
+    return operation.then(function(result){
+      emitCommerceEvent('sales-page-commerce:unique-added',{
+        variantId:Number(lineItem.id),
+        itemRole:role||propertiesOf(lineItem)._NOVAFUNNEL_ROLE||'cart_item'
+      });
+      return result;
+    }).catch(function(error){
+      emitCommerceFailure('unique_line_add',lineItem.id,role||propertiesOf(lineItem)._NOVAFUNNEL_ROLE,error);
+      throw error;
     });
   };
 
@@ -318,6 +347,91 @@
       return normalized.cart;
     });
   };
+
+  // This listener lives in the theme asset, rather than in the cart section HTML.
+  // Shopify replaces the section after every cart response, while this binding stays alive.
+  var managedBumpState={timer:0,running:false,dirty:false,version:0,desired:Object.create(null)};
+
+  function managedBumpInputs(){
+    return Array.prototype.slice.call(document.querySelectorAll('input[data-managed-bump]'));
+  }
+
+  function managedBumpSelection(){
+    var desired={};
+    managedBumpInputs().forEach(function(input){
+      var id=Number(input.getAttribute('data-managed-bump'));
+      if(!id)return;
+      if(!Object.prototype.hasOwnProperty.call(managedBumpState.desired,id)){
+        managedBumpState.desired[id]={checked:!!input.checked,title:input.getAttribute('data-display-title')||''};
+      }else if(input.getAttribute('data-display-title')){
+        managedBumpState.desired[id].title=input.getAttribute('data-display-title');
+      }
+      desired[id]={checked:!!managedBumpState.desired[id].checked,title:managedBumpState.desired[id].title||''};
+    });
+    return desired;
+  }
+
+  function scheduleManagedBumpSync(){
+    managedBumpState.dirty=true;
+    clearTimeout(managedBumpState.timer);
+    managedBumpState.timer=setTimeout(flushManagedBumpSync,450);
+  }
+
+  async function flushManagedBumpSync(){
+    if(managedBumpState.running)return;
+    managedBumpState.running=true;
+    managedBumpState.dirty=false;
+    var version=managedBumpState.version;
+    var desired=managedBumpSelection();
+    try{
+      await global.novaFunnelEnqueueCartMutation('managed-bumps',async function(){
+        var config=Object.assign({drawerSection:'cart-drawer-novafunnel',cartIconSection:'cart-icon-bubble'},global.NOVAHAIR_SALES_COMMERCE_CONFIG||{});
+        var cart=await readCart();
+        if(!mainLines(cart,config).length)return cart;
+        var updates={},seen=Object.create(null);
+        (cart.items||[]).forEach(function(item){
+          var properties=propertiesOf(item);
+          if(properties._NOVAFUNNEL_ROLE!=='BUMP'||properties._NOVAFUNNEL_GROUP!=='nova')return;
+          var id=Number(item.variant_id);
+          var keep=!!(desired[id]&&desired[id].checked&&!seen[id]);
+          seen[id]=true;
+          if(!keep)updates[item.key]=0;
+          else if(Number(item.quantity)!==1)updates[item.key]=1;
+        });
+        var data=null;
+        if(Object.keys(updates).length){
+          data=await mutateCart('cart/update.js',{updates:updates,sections:sectionNames(config)});
+          cart=data;
+        }
+        var additions=[];
+        Object.keys(desired).forEach(function(rawId){
+          var id=Number(rawId);
+          if(!desired[id].checked||seen[id])return;
+          additions.push({id:id,quantity:1,properties:{_NOVAFUNNEL_ROLE:'BUMP',_NOVAFUNNEL_GROUP:'nova',_NOVAFUNNEL_SOURCE:'cart-drawer',_NOVAFUNNEL_TITLE:desired[id].title||''}});
+        });
+        if(additions.length)data=await mutateCart('cart/add.js',{items:additions,sections:sectionNames(config)});
+        if(data)await renderResult(data,true);
+        return data||cart;
+      });
+    }catch(error){
+      console.error('NovaFunnel managed bump sync error:',error);
+    }finally{
+      managedBumpState.running=false;
+      if(managedBumpState.version===version)managedBumpState.desired=Object.create(null);
+      if(managedBumpState.dirty)scheduleManagedBumpSync();
+    }
+  }
+
+  document.addEventListener('change',function(event){
+    var input=event.target&&event.target.closest&&event.target.closest('input[data-managed-bump]');
+    if(!input)return;
+    event.stopImmediatePropagation();
+    var id=Number(input.getAttribute('data-managed-bump'));
+    if(!id)return;
+    managedBumpState.desired[id]={checked:!!input.checked,title:input.getAttribute('data-display-title')||''};
+    managedBumpState.version+=1;
+    scheduleManagedBumpSync();
+  },true);
 
   global.SalesPageCommerceAdapter=SalesPageCommerceAdapter;
 })(window);

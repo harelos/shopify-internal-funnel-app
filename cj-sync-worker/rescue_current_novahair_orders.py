@@ -18,6 +18,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cj_auth import cj_request as _cj_request  # noqa: E402
 from cj_auth import get_token, request_json  # noqa: E402
+from novahair_composition import COMPONENTS, parse_bundle_sku  # noqa: E402
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -34,16 +35,7 @@ TARGET_ORDER_NUMBERS = {4358, 4378, 4379, 4380, 4381, 4382, 4383}
 # order. run() sets this before any validation happens, so validate_order stays
 # the single authority on what may be pushed.
 ACTIVE_TARGETS: set[int] = set(TARGET_ORDER_NUMBERS)
-SKU_RE = re.compile(r"^NOVASALE-(2|4|6)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)$")
 LOGISTIC_NAME = "CJPacket YP Special Line"
-
-COMPONENTS = (
-    ("black", "2412030839551624000", "CJYD223160001AZ"),
-    ("dark_brown", "2412030839551624200", "CJYD223160002BY"),
-    ("light_brown", "2412030839551624400", "CJYD223160003CX"),
-    ("purple", "2412030839551624700", "CJYD223160005EV"),
-    ("red", "2412030839551624600", "CJYD223160004DW"),
-)
 GIFT = ("free_kit", "ED56BD86-3AF9-4E8E-9855-FBD046D33613", "CJBJMRPF00756-Suit")
 
 
@@ -134,13 +126,21 @@ def parse_composition(order: dict[str, Any]) -> tuple[str, dict[str, int], int]:
     if len(matching) != 1:
         raise DataGapError("Expected exactly one NovaHair bundle line")
     line = matching[0]
-    sku = str(line.get("sku") or "")
-    match = SKU_RE.fullmatch(sku)
-    if not match:
-        raise DataGapError(f"Unsupported bundle SKU {sku}")
-    bundle_size, *counts = (int(value) for value in match.groups())
-    if sum(counts) != bundle_size:
-        raise DataGapError("Shade quantities do not equal bundle size")
+    line_sku = str(line.get("sku") or "")
+    properties = line.get("properties") or []
+    config = next(
+        (
+            str(entry.get("value") or "").strip()
+            for entry in properties
+            if str(entry.get("name") or "").strip() == "_NOVASALE_CONFIG"
+        ),
+        "",
+    )
+    sku = config or line_sku
+    parsed = parse_bundle_sku(sku)
+    if not parsed:
+        raise DataGapError(f"Unsupported bundle configuration {sku}")
+    bundle_size, counts = parsed
     bundle_quantity = int(line.get("quantity") or 0)
     if bundle_quantity < 1:
         raise DataGapError("Bundle quantity must be positive")

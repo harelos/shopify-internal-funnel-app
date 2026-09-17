@@ -12,6 +12,7 @@ import proxyRoutes from "./routes/proxy.js";
 import authRoutes from "./routes/auth.js";
 import shopifyRoutes from "./routes/shopify.js";
 import shopifyIngestRoutes from "./routes/shopify-ingest.js";
+import dashboardRoutes from "./routes/dashboard.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import { requireAdminBasicAuth } from "./middleware/basic-auth.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
@@ -87,6 +88,7 @@ app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);
 app.use("/api", analyticsRoutes);
 app.use("/api", shopifyRoutes);
+app.use("/api", dashboardRoutes);
 
 // Root redirect to Admin
 app.get("/", (_req, res) => {

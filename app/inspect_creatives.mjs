@@ -1,32 +1,40 @@
 import fs from 'node:fs';
 
-const rawData = JSON.parse(fs.readFileSync('C:/Users/Lenovo/Desktop/Shopify-Internal-Funnel-App/app/meta_deep_insights.json', 'utf-8'));
-const auditData = JSON.parse(fs.readFileSync('C:/Users/Lenovo/Desktop/Shopify-Internal-Funnel-App/app/meta_audit_data.json', 'utf-8'));
+const d = JSON.parse(fs.readFileSync('C:/Users/Lenovo/Desktop/Shopify-Internal-Funnel-App/app/meta_deep_extraction_raw.json', 'utf8'));
+console.log('Total ads:', d.ads.length);
 
-for (const [id, data] of Object.entries(rawData)) {
-  console.log(`\n================== DETAILED CREATIVE & TARGETING: ${data.account.name} ==================`);
-  
-  const ads = data.ads || [];
-  const adsets = auditData[id]?.adsets || [];
-  
-  console.log('--- TARGETING IN ADSETS ---');
-  adsets.slice(0, 5).forEach(as => {
-    console.log(`AdSet: "${as.name}" (Status: ${as.status})`);
-    console.log(`  Optimization: ${as.optimization_goal} | Billing: ${as.billing_event}`);
-    console.log(`  Targeting:`, JSON.stringify(as.targeting, null, 2));
-  });
+const creativeMap = {};
+d.ads.forEach(ad => {
+  const normCopy = (ad.copy_text || '').trim().replace(/\s+/g, ' ');
+  const normHead = (ad.headline || '').trim();
+  const key = `${ad.account_name}___${normHead}___${normCopy.substring(0, 50)}`;
 
-  console.log('--- CREATIVES DETAILS ---');
-  ads.slice(0, 5).forEach(a => {
-    const c = a.creative || {};
-    console.log(`Ad: "${a.name}" (ID: ${a.id})`);
-    console.log(`  Title: "${c.title || ''}"`);
-    console.log(`  Body: "${c.body || ''}"`);
-    console.log(`  Image/Thumb: ${c.image_url || c.thumbnail_url || 'N/A'}`);
-    if (c.object_story_spec?.link_data) {
-      const ld = c.object_story_spec.link_data;
-      console.log(`  Link: ${ld.link} | Call to Action: ${ld.call_to_action?.type}`);
-      console.log(`  Message: ${ld.message}`);
-    }
-  });
-}
+  if (!creativeMap[key]) {
+    creativeMap[key] = {
+      account: ad.account_name,
+      sample_ad_name: ad.ad_name,
+      headline: normHead,
+      copy_full: normCopy,
+      image_url: ad.image_url,
+      video_id: ad.video_id,
+      destination: ad.link_url || 'shop.tigerbrandsglobal.com',
+      ads_count: 0,
+      creative_ids: new Set(),
+      ad_ids: new Set()
+    };
+  }
+  creativeMap[key].ads_count++;
+  if (ad.creative_id) creativeMap[key].creative_ids.add(ad.creative_id);
+  creativeMap[key].ad_ids.add(ad.ad_id);
+});
+
+const list = Object.values(creativeMap).sort((a, b) => b.ads_count - a.ads_count);
+console.log(`Unique creative clusters: ${list.length}`);
+
+list.slice(0, 15).forEach((c, idx) => {
+  console.log(`\n#${idx + 1}: [${c.account}] Ads Count: ${c.ads_count}`);
+  console.log(`Sample Name: ${c.sample_ad_name}`);
+  console.log(`Headline: ${c.headline}`);
+  console.log(`Copy: ${c.copy_full.substring(0, 120)}...`);
+  console.log(`Creative IDs: ${Array.from(c.creative_ids).slice(0, 3).join(', ')}`);
+});

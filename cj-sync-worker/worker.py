@@ -32,6 +32,7 @@ def log(msg: str) -> None:
 def one_cycle() -> None:
     import sync_novahair_orders_to_cj as sync
     import monitor_cj_tracking_to_shopify as monitor
+    import shipment_snapshot
 
     log("cycle start: creating CJ orders")
     try:
@@ -48,6 +49,14 @@ def one_cycle() -> None:
         log(f"monitor stopped: {exc}")
     except Exception:
         log("monitor ERROR:\n" + traceback.format_exc())
+
+    log("cycle: refreshing shipment risk snapshot when due")
+    try:
+        shipment_snapshot.publish_if_due()
+    except Exception:
+        # Reporting must never interrupt order creation or tracking sync.  A
+        # failed upload remains due and is retried on the next worker cycle.
+        log("shipment snapshot ERROR:\n" + traceback.format_exc())
 
     log("cycle done")
 
