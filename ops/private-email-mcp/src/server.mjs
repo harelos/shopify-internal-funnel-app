@@ -224,16 +224,27 @@ server.registerTool(
   'support_get',
   {
     description: 'Read one complete support thread with customer classification, Shopify context, drafts, and tamper-evident evidence history.',
-    inputSchema: { conversationId: z.string().uuid() },
+    // The app's public conversation IDs are prefixed (conversation_<uuid>),
+    // so validate presence here and let the authenticated API resolve the ID.
+    inputSchema: { conversationId: z.string().min(1) },
   },
   async ({ conversationId }) => textResult(await supportBridgeFetch(`/support-bridge/conversations/${encodeURIComponent(conversationId)}`)),
+);
+
+server.registerTool(
+  'support_brief',
+  {
+    description: 'Read one compact, cached customer brief containing the thread, Shopify order, shipment monitor, attribution and latest draft. Use this before drafting to minimize repeated data fetches and token usage.',
+    inputSchema: { conversationId: z.string().min(1) },
+  },
+  async ({ conversationId }) => textResult(await supportBridgeFetch(`/support-bridge/conversations/${encodeURIComponent(conversationId)}/brief`)),
 );
 
 server.registerTool(
   'support_draft',
   {
     description: 'Generate or reuse an AI reply draft for one support conversation. This never sends email.',
-    inputSchema: { conversationId: z.string().uuid() },
+    inputSchema: { conversationId: z.string().min(1) },
   },
   async ({ conversationId }) => textResult(await supportBridgeFetch(`/support-bridge/conversations/${encodeURIComponent(conversationId)}/draft`, {
     method: 'POST',

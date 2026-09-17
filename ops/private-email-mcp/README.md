@@ -11,6 +11,7 @@ mailbox inspection plus the guarded Support Inbox bridge to Codex:
 - `support_sync` — imports accepted Inbox/Sent threads; never sends.
 - `support_agent_status` — heartbeat, filtering and queue status.
 - `support_list` — filtered customer-support queue.
+- `support_brief` — one compact, cached customer/order/shipment/attribution snapshot for drafting (bounded to recent messages and the latest drafts).
 - `support_get` — complete thread, order context, drafts and evidence.
 - `support_draft` — creates/reuses a draft; never sends.
 - `support_approve` — queues one exact reply and requires `confirmSend=true`.
@@ -19,6 +20,15 @@ The server never stores credentials in the repository. It does not expose
 delete, archive or bulk-mail tools. Draft creation is non-consequential;
 delivery requires a separate explicit approval and is recorded in the evidence
 timeline.
+
+### Fast agent retrieval
+
+For the hourly review loop, call `support_brief` once per changed conversation
+before drafting. The app performs a read-only join across the conversation,
+Shopify order context, the shipment monitor and verified attribution, and caches
+the compact result for 45 seconds. This avoids repeated full-thread and order
+fetches and returns `UNATTRIBUTED` explicitly when attribution is not verified.
+Use `support_get` only when the brief reports missing or ambiguous evidence.
 
 ## Local credentials
 
