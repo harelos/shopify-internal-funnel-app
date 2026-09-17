@@ -58,13 +58,20 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   const day = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(yesterday).first<DigestRow>().catch(() => null);
   const prior = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(dayBefore).first<DigestRow>().catch(() => null);
 
-  const [addressHolds, cjFailures, unsentToCj, supportFailed, escalated, criticalShipments] = await Promise.all([
+  const [addressHolds, cjFailures, unsentToCj, supportFailed, escalated, criticalShipments, adComments, guardianState] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS c, GROUP_CONCAT("orderNum") AS orders FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_ADDRESS_FIX'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "NovaHairPendingOrder" WHERE "syncState" LIKE '%FAILED%'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "FinancialLedgerEntry" WHERE "source" = 'CJ_ORDER_COSTS' AND "occurredDate" >= ? AND json_extract("metadata", '$.costBasis') = 'CJ_BUNDLE_PRICE'`).bind(shiftDate(today, -7)).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportDraft" WHERE "status" IN ('FAILED','BOUNCED')`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportConversation" WHERE "status" = 'ESCALATED'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "ShipmentOrderState" WHERE "active" = 1 AND "severity" = 'CRITICAL'`).first<DigestRow>().catch(() => null),
+    // Comments on a live ad are read by everyone the ad reaches, so the ones a
+    // machine is not allowed to answer belong in the morning list.
+    db.prepare(`SELECT COUNT(*) AS c FROM "CommentGuardianComment"
+      WHERE "executedAction" IS NULL AND "recommendedAction" LIKE '%ESCALATE%'
+        AND "firstSeenAt" >= datetime('now', '-7 days')`).first<DigestRow>().catch(() => null),
+    db.prepare(`SELECT "lastError", "liveReplies", "liveHides" FROM "CommentGuardianState"
+      ORDER BY "updatedAt" DESC LIMIT 1`).first<DigestRow>().catch(() => null),
   ]);
 
   const num = (row: DigestRow | null) => Number(row?.c || 0);
@@ -78,6 +85,9 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   if (num(supportFailed)) actions.push(`${num(supportFailed)} support repl(y/ies) failed to send. Nothing is retried automatically.`);
   if (num(criticalShipments)) actions.push(`${num(criticalShipments)} shipment(s) are critical. Open Shipment Control.`);
   if (num(escalated)) actions.push(`${num(escalated)} support conversation(s) are waiting for you.`);
+  if (num(adComments)) actions.push(`${num(adComments)} comment(s) on the live ads need a person. Health, ingredients, accusations, payment and price are never answered automatically.`);
+  const guardianError = String(guardianState?.lastError || "").trim();
+  if (guardianError) actions.push(`The ad-comment guardian could not act: ${guardianError.slice(0, 140)}`);
 
   const profit = day ? Number(day.netRevenue || 0) - Number(day.productCost || 0) - Number(day.paymentFees || 0) - Number(day.adSpend || 0) : null;
   const priorProfit = prior ? Number(prior.netRevenue || 0) - Number(prior.productCost || 0) - Number(prior.paymentFees || 0) - Number(prior.adSpend || 0) : null;

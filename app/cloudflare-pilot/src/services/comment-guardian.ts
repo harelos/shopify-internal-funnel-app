@@ -242,23 +242,26 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
     if (!pageToken) throw new Error(`No Meta token could reach the page: ${tokenErrors.join("; ").slice(0, 180)}`);
 
     const ads = await pagedGraph(`${adAccount}/ads`, {
-      fields: "id,creative{effective_object_story_id,object_story_id,instagram_permalink_url}",
+      fields: "id,creative{effective_object_story_id,object_story_id,effective_instagram_media_id}",
       filtering: JSON.stringify([{ field: "effective_status", operator: "IN", value: ["ACTIVE"] }]),
       limit: "100",
     }, userToken);
 
     const storyToAds = new Map<string, string[]>();
-    const permalinkToAds = new Map<string, string[]>();
+    const mediaToAds = new Map<string, string[]>();
     for (const ad of ads) {
       const story = ad.creative?.effective_object_story_id || ad.creative?.object_story_id;
       if (story) {
         if (!storyToAds.has(story)) storyToAds.set(story, []);
         storyToAds.get(story)!.push(String(ad.id));
       }
-      const permalink = String(ad.creative?.instagram_permalink_url || "").replace(/\/$/, "");
-      if (permalink) {
-        if (!permalinkToAds.has(permalink)) permalinkToAds.set(permalink, []);
-        permalinkToAds.get(permalink)!.push(String(ad.id));
+      // The ad's own Instagram media id. Matching the account's media by
+      // permalink instead finds nothing: an ad's Instagram post is a dark post
+      // and never appears in the account's own media list.
+      const media = String(ad.creative?.effective_instagram_media_id || "");
+      if (media) {
+        if (!mediaToAds.has(media)) mediaToAds.set(media, []);
+        mediaToAds.get(media)!.push(String(ad.id));
       }
     }
 
@@ -289,39 +292,32 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
 
     // Instagram, for the same ads. A different token scope, different field
     // names and a different reply endpoint, but the same decision.
-    if (permalinkToAds.size) {
-      try {
-        const linked = await graph(pageId, { fields: "instagram_business_account{id,username}" }, pageToken);
-        const instagramId = linked?.instagram_business_account?.id;
-        const instagramUser = String(linked?.instagram_business_account?.username || "");
-        if (instagramId) {
-          const instagram: Surface = {
-            name: "instagram",
-            isSelf: comment => Boolean(instagramUser) && String(comment.username || "") === instagramUser,
-            replyPath: commentId => `${commentId}/replies`,
-            hideParams: { hide: "true" },
-          };
-          const media = await pagedGraph(`${instagramId}/media`, { fields: "id,permalink", limit: "100" }, pageToken);
-          const wanted = media.filter(item => permalinkToAds.has(String(item.permalink || "").replace(/\/$/, "")));
-          for (const item of wanted.slice(0, MAX_SOURCES_PER_RUN)) {
-            const adIds = permalinkToAds.get(String(item.permalink || "").replace(/\/$/, "")) || [];
-            try {
-              const comments = await pagedGraph(`${item.id}/comments`, {
-                fields: "id,text,username,timestamp,hidden,replies.limit(50){id,text,username}",
-                limit: "100",
-              }, pageToken) as GraphComment[];
-              const stored = await loadStored(comments.map(comment => comment.id));
-              for (const comment of comments) {
-                await handleComment(instagram, comment, String(item.id), adIds[0] || String(item.id), pageToken, stored.get(comment.id) ?? null);
-              }
-              await flushWrites();
-            } catch (error) {
-              result.errors.push(`ig ${item.id}: ${String((error as Error).message).slice(0, 140)}`);
-            }
+    if (mediaToAds.size) {
+      // Needed only so the brand's own replies are recognised as answers.
+      const instagramUser = await graph(pageId, { fields: "instagram_business_account{username}" }, pageToken)
+        .then(linked => String(linked?.instagram_business_account?.username || ""))
+        .catch(() => "");
+      const instagram: Surface = {
+        name: "instagram",
+        isSelf: comment => Boolean(instagramUser) && String(comment.username || "") === instagramUser,
+        replyPath: commentId => `${commentId}/replies`,
+        hideParams: { hide: "true" },
+      };
+      for (const [mediaId, adIds] of [...mediaToAds.entries()].slice(0, MAX_SOURCES_PER_RUN)) {
+        try {
+          const comments = await pagedGraph(`${mediaId}/comments`, {
+            fields: "id,text,username,timestamp,hidden,replies.limit(50){id,text,username}",
+            limit: "100",
+          }, pageToken) as GraphComment[];
+          if (!comments.length) continue;
+          const stored = await loadStored(comments.map(comment => comment.id));
+          for (const comment of comments) {
+            await handleComment(instagram, comment, mediaId, adIds[0] || mediaId, pageToken, stored.get(comment.id) ?? null);
           }
+          await flushWrites();
+        } catch (error) {
+          result.errors.push(`ig ${mediaId}: ${String((error as Error).message).slice(0, 140)}`);
         }
-      } catch (error) {
-        result.errors.push(`instagram: ${String((error as Error).message).slice(0, 140)}`);
       }
     }
 
