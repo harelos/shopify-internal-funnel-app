@@ -89,8 +89,11 @@ router.get("/operations/health", async (req, res) => {
       FROM "ShipmentOrderState" WHERE "active" = 1`).first<Row>(),
     db.prepare(`SELECT "mode", "lastRunAt", "lastSuccessAt", "lastError", "liveReplies", "liveHides"
       FROM "CommentGuardianState" ORDER BY "updatedAt" DESC LIMIT 1`).first<Row>(),
+    // Scoped to the last week so this clears itself; an incident that can never
+    // go away is one people learn to scroll past.
     db.prepare(`SELECT COUNT(*) AS "waiting" FROM "CommentGuardianComment"
-      WHERE "executedAction" IS NULL AND "recommendedAction" LIKE '%ESCALATE%'`).first<Row>(),
+      WHERE "executedAction" IS NULL AND "recommendedAction" LIKE '%ESCALATE%'
+        AND "firstSeenAt" >= datetime('now', '-7 days')`).first<Row>(),
   ]);
 
   const financialRows = financial.results || [];

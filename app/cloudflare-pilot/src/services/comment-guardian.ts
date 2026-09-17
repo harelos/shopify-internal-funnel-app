@@ -179,7 +179,13 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
 
     if (decision.action === "ESCALATE") result.escalated += 1;
     const acts = decision.action === "REPLY" || decision.action === "REPLY_AND_HIDE" || decision.action === "HIDE";
-    if (acts && (mode !== "live" || actions >= MAX_ACTIONS_PER_RUN)) {
+    // A hidden comment is invisible to every reader, so there is no one left to
+    // answer and nothing left to hide. Meta also refuses a reply to one, which
+    // is what silently stopped the first live run: the old scripts had already
+    // hidden exactly the comments worth answering.
+    if (acts && isHidden) {
+      executedAction = "ALREADY_HIDDEN";
+    } else if (acts && (mode !== "live" || actions >= MAX_ACTIONS_PER_RUN)) {
       result.recommended += 1;
     } else if (acts) {
       try {
@@ -321,16 +327,20 @@ export async function processCommentGuardian(options: CommentGuardianOptions = {
 
     await db.prepare(`INSERT INTO "CommentGuardianState"
         ("id","mode","lastRunAt","lastSuccessAt","lastError","checkedComments","shadowActions","liveReplies","liveHides","updatedAt")
-      VALUES (?,?,?,?,NULL,?,?,?,?,CURRENT_TIMESTAMP)
+      VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
       ON CONFLICT("id") DO UPDATE SET
         "mode" = excluded."mode", "lastRunAt" = excluded."lastRunAt", "lastSuccessAt" = excluded."lastSuccessAt",
-        "lastError" = NULL,
+        "lastError" = excluded."lastError",
         "checkedComments" = "CommentGuardianState"."checkedComments" + excluded."checkedComments",
         "shadowActions" = "CommentGuardianState"."shadowActions" + excluded."shadowActions",
         "liveReplies" = "CommentGuardianState"."liveReplies" + excluded."liveReplies",
         "liveHides" = "CommentGuardianState"."liveHides" + excluded."liveHides",
         "updatedAt" = CURRENT_TIMESTAMP`)
-      .bind(STATE_ID, persistedMode, startedAt, new Date().toISOString(), result.checked, result.recommended, result.replied, result.hidden)
+      // A run that reached the end but could not post is not a success worth
+      // hiding: the first live run failed three replies and left no trace.
+      .bind(STATE_ID, persistedMode, startedAt, new Date().toISOString(),
+        result.errors.length ? result.errors.join(" | ").slice(0, 400) : null,
+        result.checked, result.recommended, result.replied, result.hidden)
       .run().catch(() => undefined);
 
     return result;
