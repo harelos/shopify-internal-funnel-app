@@ -1,0 +1,16 @@
+node_modules/
+extensions/*/node_modules/
+__pycache__/
+.homepage-preview-inspection/
+.shopify/
+prisma/*.db
+*.db
+*.csv
+*.xlsx
+*.jpg
+*.jpeg
+*.png
+*.md
+*.py
+test-fixtures/
+qa_artifacts/
