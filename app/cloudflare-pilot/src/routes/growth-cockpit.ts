@@ -27,14 +27,12 @@ import { computeOperatingHealth } from "../lib/operating-health.js";
 import { computeOfferTakeRates } from "../services/offer-take-rate.js";
 import { testCjReadConnection } from "../services/novahair-monitor.js";
 import { reconcileCjCosts } from "../services/cj-cost-reconcile.js";
-import { reconcileCjPaidCosts } from "../services/cj-paid-costs.js";
 import { sumDailyCoverage } from "../lib/financial-window.js";
 import { reportingMoneyFor, type ReportingMoney } from "../lib/reporting-currency.js";
 import { dashboardComparison, snapshotDashboardDaily } from "../services/dashboard-daily.js";
 import { fetchMetaAdSetPerformance, judgeAdSets } from "../lib/meta-campaign-spend.js";
 import {
   aggregateFinancialLedger,
-  dailyFinancialLedger,
   readDailyFinancialCoverage,
   supplierCostForRange,
   persistFinancialLedgerCoverage,
@@ -367,20 +365,6 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
     note: "No reviewed CJ cost rows exist for this range.",
   }).catch(() => missingFinancialMetric("CJ_ORDER_COSTS", "The CJ financial ledger is not initialized."))
     .then(metric => reportingCurrency.convert(metric));
-  const cjPaidCosts = await aggregateFinancialLedger({
-    source: "CJ_PAID_ORDERS",
-    category: "ACCOUNT_PAID_ORDER_COST",
-    localFrom: range.localFrom,
-    localTo: range.localTo,
-    note: "No CJ account paid-order costs have been synchronized for this range.",
-  }).catch(() => missingFinancialMetric("CJ_PAID_ORDERS", "The CJ paid-order ledger is not initialized."))
-    .then(metric => reportingCurrency.convert(metric));
-  const cjPaidCostsDaily = await dailyFinancialLedger({
-    source: "CJ_PAID_ORDERS",
-    category: "ACCOUNT_PAID_ORDER_COST",
-    localFrom: range.localFrom,
-    localTo: range.localTo,
-  }).catch(() => []);
   const paymentFees = shopifyResult.value?.paymentFees
     ? await reportingCurrency.convert({
         amount: shopifyResult.value.paymentFees.amount,
@@ -435,17 +419,11 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
     source: observedRevenue.source,
     note: "Orders with a positive Shopify net payment in the selected period. Order count remains valid when currency conversion is unavailable.",
   };
-  const acceptedCjPaidCosts: FinancialMetric = cjPaidCosts.amount != null && cjPaidCosts.currency
-    ? {
-        ...cjPaidCosts,
-        quality: "ACTUAL",
-        note: "CJ paid-order totals, dated by the day CJ charged the account.",
-      }
-    : cjPaidCosts;
   // Supplier cost is one row per sale at the price CJ charges for it, dated by
-  // the sale. The account-level paid totals are dated by CJ's charge day, days
-  // after the sale, so they answer a different question and are reported
-  // alongside rather than standing in for this one.
+  // the sale: CJ's order total, product plus the postage it quoted, whether or
+  // not the order has been paid yet. The account-level "paid on this day"
+  // stream that used to sit beside it answered a different question and was
+  // built on a field CJ never returns; it is retired.
   const supplierCost = await supplierCostForRange({ localFrom: range.localFrom, localTo: range.localTo })
     .catch(() => null);
   const pricedOrders = supplierCost?.pricedOrders ?? 0;
@@ -500,7 +478,6 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
       shopifySourceRevenue: observedRevenue,
       orders,
       cjCosts,
-      cjPaidCosts: acceptedCjPaidCosts,
       productCost,
       paymentFees,
       metaSpend,
@@ -533,7 +510,6 @@ async function financeSnapshot(config: GrowthCockpitConfig, range: GrowthCockpit
         ledgerRowsSaved: metaLedgerSaved,
         ledgerError: metaLedgerError,
       },
-      cjPaidCostsDaily,
     },
   };
 }
@@ -596,7 +572,7 @@ router.post("/growth-cockpit/cj-reconcile", async (req, res) => {
       source: "CJ_OPEN_API",
       range: { localFrom: range.localFrom, localTo: range.localTo },
       result,
-      note: "Only exact Shopify legacy order ID to CJ platform order ID matches are persisted. CJ orderAmount remains an estimate until a charged-cost source is available.",
+      note: "One row per Shopify sale at CJ's order total for it (product plus the postage CJ quoted), dated by the sale; a sale CJ has not received yet is priced from the last CJ order of the identical bundle.",
     });
   } catch (error: any) {
     return res.status(502).json({
@@ -604,32 +580,6 @@ router.post("/growth-cockpit/cj-reconcile", async (req, res) => {
       source: "CJ_OPEN_API",
       error: String(error?.message || "CJ cost reconciliation failed.").slice(0, 240),
     });
-  }
-});
-
-router.post("/growth-cockpit/cj-paid-costs", async (req, res) => {
-  try {
-    const config = getGrowthCockpitConfig(workerEnvValue);
-    const range = resolveGrowthCockpitRange({
-      preset: typeof req.body?.preset === "string" ? req.body.preset : undefined,
-      from: typeof req.body?.from === "string" ? req.body.from : undefined,
-      to: typeof req.body?.to === "string" ? req.body.to : undefined,
-      timezone: config.reportingTimezone,
-    });
-    if (!range.from || !range.toExclusive) {
-      return res.status(400).json({ ok: false, error: "Choose a dated reporting range of 90 days or less for CJ paid costs." });
-    }
-    const result = await reconcileCjPaidCosts({ from: range.from, toExclusive: range.toExclusive });
-    res.setHeader("Cache-Control", "no-store");
-    return res.json({
-      ok: true,
-      source: "CJ_PAID_ORDERS",
-      range: { localFrom: range.localFrom, localTo: range.localTo },
-      result,
-      note: "CJ actualPayment is aggregated by CJ UTC payment date. It is an account-level paid-order total and is not yet reconciled to Shopify orders or used for store profit.",
-    });
-  } catch (error: any) {
-    return res.status(502).json({ ok: false, source: "CJ_PAID_ORDERS", error: String(error?.message || "CJ paid-cost synchronization failed.").slice(0, 240) });
   }
 });
 
@@ -739,7 +689,6 @@ router.get("/growth-cockpit/finance", async (req, res) => {
       sourceOfTruth: {
         revenue: "Shopify Order.netPaymentSet.shopMoney for ranges within the accessible order window; D1 webhook rows are fallback observations only.",
         cjCosts: "One row per Shopify sale at CJ's price for it: the CJ order total, product plus the shipping CJ quoted. A sale CJ has not received yet is priced from the last CJ order of the identical bundle.",
-        cjPaidCosts: "CJ actualPayment grouped by CJ payment date; account-level paid-order total, not yet Shopify-order reconciled or used for store profit.",
         productCost: "The cost used for profit: one row per sale at the CJ order total for it. Reported ACTUAL when every sale in the window is priced, PARTIAL when some sale has no CJ order yet, and the note names how many.",
         paymentFees: "Shopify transaction fees are authoritative only when every successful SALE order has returned fee rows.",
         metaSpend: "Meta Insights API for the configured account; a persisted reconciliation ledger remains a Batch 7 requirement.",
@@ -861,6 +810,22 @@ router.post("/growth-cockpit/cj-backfill", async (req, res) => {
     const result = await reconcileMissingCjOrders({ dryRun });
     res.setHeader("Cache-Control", "no-store");
     return res.json({ ok: true, dryRun, ...result });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
+});
+
+/**
+ * The daily check that the cost ledger says what the sales say: one row per
+ * paid sale, dated by the sale, and one CJ order per sale. Read-only.
+ */
+router.get("/growth-cockpit/cj-cost-audit", async (req, res) => {
+  try {
+    const { auditCjSupplierCosts } = await import("../services/cj-cost-audit.js");
+    const days = Number(req.query.days);
+    const { ok: clean, ...report } = await auditCjSupplierCosts({ days: Number.isFinite(days) && days > 0 ? days : 7 });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, clean, ...report });
   } catch (error: any) {
     return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
   }

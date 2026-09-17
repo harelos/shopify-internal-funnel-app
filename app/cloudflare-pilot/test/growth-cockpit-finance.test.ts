@@ -76,7 +76,7 @@ test("Growth Cockpit refuses mixed-currency profit", () => {
 test("Growth Cockpit calculates operator-approved CJ COGS before payment fees", () => {
   const result = computeGrowthCockpitProfitBeforePaymentFees({
     revenue: actual(1000, "SHOPIFY"),
-    cjCosts: actual(250, "CJ_PAID_ORDERS"),
+    cjCosts: actual(250, "CJ_ORDER_COSTS"),
     metaSpend: actual(300, "META"),
     orders: 10,
   });

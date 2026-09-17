@@ -36,7 +36,7 @@ export function shopifyOrderNumberOf(cj: CjOrderListRow): string | null {
   return /^\d+$/.test(digits) ? digits : null;
 }
 
-function isPurchaseRow(cj: CjOrderListRow): boolean {
+export function isPurchaseRow(cj: CjOrderListRow): boolean {
   return PURCHASE_PREFIX.test(String(cj.orderNum || "").trim());
 }
 
@@ -54,7 +54,7 @@ export function cjOrderCost(cj: CjOrderListRow): number | null {
   return parts > 0 ? Number(parts.toFixed(2)) : null;
 }
 
-function cancelled(cj: CjOrderListRow): boolean {
+export function isCancelledCjRow(cj: CjOrderListRow): boolean {
   return /cancel|trash/i.test(String(cj.orderStatus || ""));
 }
 
@@ -82,7 +82,7 @@ export function matchCjOrders(
   // between two rows that both carry one.
   const rank = (cj: CjOrderListRow) => (cjOrderCost(cj) != null ? 4 : 0) + (isPurchaseRow(cj) ? 2 : 0);
   const ranked = cjOrders
-    .filter(cj => cj.orderId && !cancelled(cj))
+    .filter(cj => cj.orderId && !isCancelledCjRow(cj))
     .sort((a, b) => rank(b) - rank(a));
   const matches: Array<{ shopify: CjCostShopifyOrder; cj: CjOrderListRow }> = [];
   const seenShopifyIds = new Set<string>();

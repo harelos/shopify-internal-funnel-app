@@ -40,12 +40,6 @@ export const GROWTH_COCKPIT_METRIC_DEFINITIONS: GrowthCockpitMetricDefinition[] 
     source: "CJ cost ledger",
   },
   {
-    key: "cjPaidCosts",
-    label: "CJ paid order costs",
-    definition: "CJ paid-order amounts in the selected window, accepted as the current COGS source by the operator.",
-    source: "CJ paid-order API",
-  },
-  {
     key: "paymentFees",
     label: "Payment fees",
     definition: "Authoritative processor transaction fees for the selected period.",

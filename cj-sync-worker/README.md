@@ -1,6 +1,6 @@
 # NovaHair Shopify to CJ worker
 
-This folder is the production-matching source for the NovaHair fulfillment worker that runs on Railway. It creates unconfirmed CJ orders from paid Shopify NovaHair orders and later mirrors CJ status and real tracking back to Shopify.
+This folder is the production-matching source for the NovaHair fulfillment worker that runs on Railway. It mirrors CJ status and real tracking back to Shopify. Creating CJ orders is the Cloudflare Worker's job since 2026-09-17 (two writers bought the same parcel twice); this worker only creates orders when `SYNC_CREATE_ORDERS=true` is set on purpose.
 
 ## Production identity
 
@@ -20,7 +20,7 @@ Do not infer that a Git commit is live. Compare the deployment and file hashes b
 ## Data flow
 
 1. `worker.py` starts a cycle.
-2. `sync_novahair_orders_to_cj.py` fetches paid Shopify orders and asks `rescue_current_novahair_orders.py` to parse and create missing CJ orders.
+2. Only when `SYNC_CREATE_ORDERS=true`: `sync_novahair_orders_to_cj.py` fetches paid Shopify orders and asks `rescue_current_novahair_orders.py` to parse and create missing CJ orders. By default this step is skipped and logged; the Cloudflare Worker (`app/cloudflare-pilot`, `novahair-monitor.ts`) owns creation.
 3. CJ orders are created with `payType=3`; this worker does not pay or confirm them.
 4. `monitor_cj_tracking_to_shopify.py` discovers `RESCUE-*` records, reconciles CJ status tags, and creates a Shopify fulfillment only when CJ supplies real tracking.
 5. The cycle repeats after `SYNC_INTERVAL_SECONDS`.
@@ -48,6 +48,7 @@ Store values only in Railway or a local untracked environment. Never commit them
 - `SHOPIFY_PII_TOKEN` or `SHOPIFY_ACCESS_TOKEN`
 - `SYNC_INTERVAL_SECONDS` (optional, defaults to `900`)
 - `SYNC_LOOKBACK_DAYS` (optional, defaults to `7`)
+- `SYNC_CREATE_ORDERS` (optional, defaults to `false`; the Cloudflare Worker owns CJ order creation — set `true` only to hand it back deliberately)
 - `CJ_RECONCILE_MODE` (must be `report` until Gate B is approved)
 - `ORDER_SETTLE_SECONDS` (optional, defaults to `600`)
 - `SHIPMENT_BRIDGE_URL` (Commerce OS `/shipment-bridge/ingest` endpoint)

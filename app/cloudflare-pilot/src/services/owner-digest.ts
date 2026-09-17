@@ -58,9 +58,10 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   const day = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(yesterday).first<DigestRow>().catch(() => null);
   const prior = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(dayBefore).first<DigestRow>().catch(() => null);
 
-  const [addressHolds, cjFailures, unsentToCj, supportFailed, escalated, criticalShipments, adComments, guardianState] = await Promise.all([
+  const [addressHolds, cjFailures, mappingHolds, unsentToCj, supportFailed, escalated, criticalShipments, adComments, guardianState] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS c, GROUP_CONCAT("orderNum") AS orders FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_ADDRESS_FIX'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "NovaHairPendingOrder" WHERE "syncState" LIKE '%FAILED%'`).first<DigestRow>().catch(() => null),
+    db.prepare(`SELECT COUNT(*) AS c, GROUP_CONCAT("orderNum") AS orders FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_SUPPLIER_MAPPING'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "FinancialLedgerEntry" WHERE "source" = 'CJ_ORDER_COSTS' AND "occurredDate" >= ? AND json_extract("metadata", '$.costBasis') = 'CJ_BUNDLE_PRICE'`).bind(shiftDate(today, -7)).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportDraft" WHERE "status" IN ('FAILED','BOUNCED')`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportConversation" WHERE "status" = 'ESCALATED'`).first<DigestRow>().catch(() => null),
@@ -81,6 +82,10 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
     actions.push(`${num(addressHolds)} order(s) cannot reach CJ because the address has no postcode: ${orders}. Add it in Shopify and each one is sent automatically.`);
   }
   if (num(cjFailures)) actions.push(`${num(cjFailures)} order(s) failed to reach CJ for another reason. Open Operations for the message CJ returned.`);
+  if (num(mappingHolds)) {
+    const orders = String(mappingHolds?.orders || "").split(",").filter(Boolean).slice(0, 12).map(n => `#${n}`).join(", ");
+    actions.push(`${num(mappingHolds)} paid order(s) contain a product CJ cannot supply (Golden Blonde, or an add-on with no CJ mapping): ${orders}. Nothing ships until you source it, refund it, or have the mapping added.`);
+  }
   if (num(unsentToCj)) actions.push(`${num(unsentToCj)} sale(s) in the last 7 days are priced from an identical bundle because CJ holds no order for them.`);
   if (num(supportFailed)) actions.push(`${num(supportFailed)} support repl(y/ies) failed to send. Nothing is retried automatically.`);
   if (num(criticalShipments)) actions.push(`${num(criticalShipments)} shipment(s) are critical. Open Shipment Control.`);
@@ -88,6 +93,22 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   if (num(adComments)) actions.push(`${num(adComments)} comment(s) on the live ads need a person. Health, ingredients, accusations, payment and price are never answered automatically.`);
   const guardianError = String(guardianState?.lastError || "").trim();
   if (guardianError) actions.push(`The ad-comment guardian could not act: ${guardianError.slice(0, 140)}`);
+
+  // The cost ledger is checked against the sales and against CJ every morning;
+  // a disagreement is a line here, not a number nobody can trace.
+  let costAuditLine = "";
+  try {
+    const { auditCjSupplierCosts } = await import("./cj-cost-audit.js");
+    const audit = await auditCjSupplierCosts({ days: 7, now });
+    const names = (items: Array<{ order: string }>) => items.slice(0, 8).map(item => item.order).join(", ");
+    if (audit.unpriced.length) actions.push(`${audit.unpriced.length} sale(s) in the last 7 days have no supplier cost yet: ${names(audit.unpriced)}.`);
+    if (audit.misdated.length) actions.push(`${audit.misdated.length} cost row(s) are dated on a different day than their sale: ${audit.misdated.slice(0, 6).map(item => `${item.order} (sale ${item.saleDate}, cost ${item.ledgerDate})`).join(", ")}.`);
+    if (audit.duplicatesAtCj.length) actions.push(`${audit.duplicatesAtCj.length} sale(s) have more than one CJ order — trash the extra one before paying CJ in bulk: ${audit.duplicatesAtCj.slice(0, 6).map(item => `${item.order} (${item.cjOrders.join(", ")})`).join("; ")}.`);
+    if (audit.cjList.note) actions.push(`Cost audit: ${audit.cjList.note}`);
+    costAuditLine = `Cost audit (7 days): ${audit.priced} of ${audit.sales} sale(s) priced, ${audit.exact} from CJ's own order, ${audit.bundlePriced} from the identical bundle.`;
+  } catch (error) {
+    actions.push(`The cost audit could not run: ${String((error as Error)?.message || error).slice(0, 120)}`);
+  }
 
   const profit = day ? Number(day.netRevenue || 0) - Number(day.productCost || 0) - Number(day.paymentFees || 0) - Number(day.adSpend || 0) : null;
   const priorProfit = prior ? Number(prior.netRevenue || 0) - Number(prior.productCost || 0) - Number(prior.paymentFees || 0) - Number(prior.adSpend || 0) : null;
@@ -102,6 +123,7 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
     day && day.costPricedOrders != null && Number(day.costPricedOrders) < Number(day.orders || 0)
       ? `Cost covers ${Number(day.costPricedOrders)} of ${Number(day.orders)} order(s); the rest have no CJ order yet.`
       : "",
+    costAuditLine,
     "",
     actions.length ? "NEEDS YOU:" : "Nothing needs you this morning.",
     ...actions.map(line => `• ${line}`),

@@ -25,6 +25,18 @@ INTERVAL = int(os.getenv("SYNC_INTERVAL_SECONDS", "900"))  # 15 min default
 LOOKBACK_DAYS = int(os.getenv("SYNC_LOOKBACK_DAYS", "7"))
 
 
+def create_orders_enabled() -> bool:
+    """Whether this worker may create CJ orders at all.
+
+    Since 2026-09-17 the Cloudflare Worker is the only system that places CJ
+    orders: two writers filed the same sale under RESCUE- and AUTO- and the
+    parcel was bought twice.  This worker keeps mirroring CJ status and
+    tracking back to Shopify; creation stays off unless SYNC_CREATE_ORDERS is
+    set to true on purpose.
+    """
+    return os.getenv("SYNC_CREATE_ORDERS", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def log(msg: str) -> None:
     print(f"[{datetime.now(timezone.utc).isoformat(timespec='seconds')}] {msg}", flush=True)
 
@@ -34,13 +46,16 @@ def one_cycle() -> None:
     import monitor_cj_tracking_to_shopify as monitor
     import shipment_snapshot
 
-    log("cycle start: creating CJ orders")
-    try:
-        sync.run(apply=True, days=LOOKBACK_DAYS, limit=0, emit_rows=False)
-    except SystemExit as exc:            # scripts use SystemExit for clean stops
-        log(f"sync stopped: {exc}")
-    except Exception:
-        log("sync ERROR:\n" + traceback.format_exc())
+    if create_orders_enabled():
+        log("cycle start: creating CJ orders")
+        try:
+            sync.run(apply=True, days=LOOKBACK_DAYS, limit=0, emit_rows=False)
+        except SystemExit as exc:            # scripts use SystemExit for clean stops
+            log(f"sync stopped: {exc}")
+        except Exception:
+            log("sync ERROR:\n" + traceback.format_exc())
+    else:
+        log("cycle start: CJ order creation is owned by the Cloudflare Worker (SYNC_CREATE_ORDERS is not true); tracking only")
 
     log("cycle: pushing tracking to Shopify")
     try:
@@ -70,7 +85,7 @@ def main() -> int:
         log(f"FATAL: missing env vars: {missing}")
         return 1
 
-    log(f"worker up. interval={INTERVAL}s lookback={LOOKBACK_DAYS}d shop={os.getenv('SHOPIFY_SHOP_DOMAIN')}")
+    log(f"worker up. interval={INTERVAL}s lookback={LOOKBACK_DAYS}d create_orders={create_orders_enabled()} shop={os.getenv('SHOPIFY_SHOP_DOMAIN')}")
     while True:
         started = time.monotonic()
         try:

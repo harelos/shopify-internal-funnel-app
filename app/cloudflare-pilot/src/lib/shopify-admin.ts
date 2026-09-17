@@ -667,14 +667,18 @@ export class ShopifyAdminClient {
   async orderPayloadForFulfilment(legacyOrderId: string): Promise<Record<string, unknown> | null> {
     type Node = {
       id: string; name: string; email: string | null; phone: string | null; note: string | null;
+      processedAt: string | null; createdAt: string | null;
       shippingAddress: Record<string, unknown> | null;
       billingAddress: Record<string, unknown> | null;
       lineItems: { nodes: Array<{ id: string; sku: string | null; quantity: number; name: string }> };
       customAttributes: Array<{ key: string; value: string }>;
     };
+    // The sale's own timestamps travel with the payload: the queue dates the
+    // supplier cost by them, and without them six re-queued orders were once
+    // booked on the day the sweep happened to run.
     const data = await this.customerGraphql<{ order: Node | null }>(`query FulfilmentPayload($id: ID!) {
       order(id: $id) {
-        id name email phone note
+        id name email phone note processedAt createdAt
         shippingAddress { firstName lastName address1 address2 city province provinceCode country countryCodeV2 zip phone }
         billingAddress { zip }
         lineItems(first: 30) { nodes { id sku quantity name } }
@@ -695,6 +699,8 @@ export class ShopifyAdminClient {
       admin_graphql_api_id: order.id,
       name: order.name,
       order_number: String(order.name || "").replace(/^#/, ""),
+      processed_at: order.processedAt,
+      created_at: order.createdAt,
       email: order.email,
       phone: order.phone,
       note: order.note,

@@ -98,7 +98,7 @@ router.get("/operations/health", async (req, res) => {
 
   const financialRows = financial.results || [];
   const shopifyCoverage = latestBySource(financialRows, "SHOPIFY_ADMIN_ORDERS");
-  const cjCoverage = latestBySource(financialRows, "CJ_PAID_ORDERS");
+  const cjCoverage = latestBySource(financialRows, "CJ_ORDER_COSTS");
   const metaCoverage = latestBySource(financialRows, "META_ADS_INSIGHTS");
   const supportStatusCounts = Object.fromEntries((supportCounts.results || []).map(row => [text(row.status) || "UNKNOWN", count(row.count)]));
   const agentLastRunAt = iso(mailbox?.lastAgentRunAt);
@@ -119,6 +119,9 @@ router.get("/operations/health", async (req, res) => {
   // Held for an address a person can correct, which releases the order itself.
   const addressHolds = await db.prepare(`SELECT COUNT(*) AS "count", GROUP_CONCAT("orderNum") AS "orders"
     FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_ADDRESS_FIX'`).first<Row>().catch(() => null);
+  // Held for a product CJ has no variant for; nothing ships until a person decides.
+  const mappingHolds = await db.prepare(`SELECT COUNT(*) AS "count", GROUP_CONCAT("orderNum") AS "orders", MAX("result") AS "reason"
+    FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_SUPPLIER_MAPPING'`).first<Row>().catch(() => null);
   const unsentCount = count(notAtCj?.count);
   if (unsentCount > 0) {
     incidents.push({
@@ -135,6 +138,15 @@ router.get("/operations/health", async (req, res) => {
       area: "Fulfilment",
       title: `${count(addressHolds?.count)} order(s) are held because CJ will not accept the address`,
       action: `Add the missing postcode in Shopify for ${orders || "these orders"}; each one is re-sent to CJ automatically within a minute of being corrected.`,
+    });
+  }
+  if (count(mappingHolds?.count) > 0) {
+    const orders = String(text(mappingHolds?.orders) || "").split(",").filter(Boolean).slice(0, 12).map(n => `#${n}`).join(", ");
+    incidents.push({
+      severity: "CRITICAL",
+      area: "Fulfilment",
+      title: `${count(mappingHolds?.count)} paid order(s) contain a product CJ cannot supply`,
+      action: `${orders || "These orders"}: ${(text(mappingHolds?.reason) || "no CJ variant exists for a line on the order").slice(0, 160)} Decide: source it, refund it, or add the mapping in code; nothing ships until then.`,
     });
   }
   if (count(autoCreateFailures?.count) > 0) {

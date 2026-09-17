@@ -214,35 +214,6 @@ export async function readDailyFinancialCoverage(input: {
   });
 }
 
-/**
- * The recent average supplier cost per paid order, for estimating COGS on a
- * window CJ has not charged yet.
- *
- * CJ confirms the real cost hours to days after the sale, so a "today" window
- * with one fresh order otherwise shows no product cost and no profit at all.
- * Prefer charged actuals (CJ_PAID_ORDERS); fall back to the order-dated
- * estimate. Requires a few sample orders in one currency so the average is
- * stable rather than a single outlier.
- */
-export async function trailingCogsPerOrder(input: { localFrom: string; localTo: string }): Promise<{ perOrder: number; currency: string; sampleOrders: number } | null> {
-  const db = financialD1();
-  if (!db) return null;
-  for (const source of ["CJ_PAID_ORDERS", "CJ_ORDER_COSTS"]) {
-    const result = await db.prepare(`
-      SELECT COUNT(*) AS n, SUM(amount) AS total, MAX(currency) AS currency, COUNT(DISTINCT currency) AS currencies
-      FROM "FinancialLedgerEntry"
-      WHERE source = ? AND amount > 0 AND occurredDate >= ? AND occurredDate <= ?
-    `).bind(source, input.localFrom, input.localTo).all();
-    const row = (result.results ?? [])[0] as any;
-    const n = Number(row?.n || 0);
-    const total = Number(row?.total || 0);
-    if (n >= 3 && Number(row?.currencies) === 1 && total > 0) {
-      return { perOrder: Number((total / n).toFixed(4)), currency: String(row.currency).toUpperCase(), sampleOrders: n };
-    }
-  }
-  return null;
-}
-
 export interface SupplierCostForRange extends FinancialMetric {
   /** Sales in the window that carry a CJ cost row. */
   pricedOrders: number;

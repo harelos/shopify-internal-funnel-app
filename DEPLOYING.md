@@ -43,6 +43,11 @@ returns the commit, branch, build time and the folder it was deployed from.
 If it does not match `git rev-parse origin/master`, somebody deployed around
 the guard — find out how before touching anything else.
 
+After a deploy that touches CJ costs, open the Growth Cockpit and press
+"Re-check CJ costs", or call `GET /api/growth-cockpit/cj-cost-audit?days=7`
+(admin session): it compares the sales, the cost ledger and CJ's order list and
+names every sale that is unpriced, dated on the wrong day, or ordered twice.
+
 ## The workflow
 
 1. Work on a branch, anywhere you like.

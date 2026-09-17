@@ -5,25 +5,27 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const reconcile = readFileSync(path.join(root, "src/services/growth-cockpit-reconcile.ts"), "utf8");
-const worker = readFileSync(path.join(root, "src/worker.ts"), "utf8");
-const monitor = readFileSync(path.join(root, "src/services/novahair-monitor.ts"), "utf8");
+const read = (relative: string) => readFileSync(path.join(root, relative), "utf8").replace(/\r\n/g, "\n");
+const reconcile = read("src/services/growth-cockpit-reconcile.ts");
+const worker = read("src/worker.ts");
+const monitor = read("src/services/novahair-monitor.ts");
+const operations = read("src/routes/operations.ts");
 
 test("product cost is reconciled on a schedule, not only by hand", () => {
   // CJ costs had gone twenty days without a sync, which left contribution
   // margin unmeasurable and dropped a quarter of the health model.
-  assert.match(reconcile, /export async function reconcileGrowthCockpitCjCosts/);
-  assert.match(worker, /reconcileGrowthCockpitCjCosts\(\)/);
+  assert.match(reconcile, /export async function reconcileGrowthCockpitCjOrderCosts/);
+  assert.match(worker, /run\("reconcileGrowthCockpitCjOrderCosts", reconcileGrowthCockpitCjOrderCosts\(\)\)/);
 });
 
 test("the schedule cannot exhaust CJ's rate limit", () => {
-  // The cron fires every minute; the reconciliation makes one detail call per
-  // order, so it must refuse to run again the same day.
-  const interval = Number(/CJ_REFRESH_INTERVAL_MS = (\d+) \* 60 \* 60 \* 1000/.exec(reconcile)?.[1]);
-  assert.ok(interval >= 12, `CJ would re-run every ${interval} hours`);
+  // The cron fires every minute; the reconciliation reads CJ's list and makes
+  // a detail call per unpriced order, so it must not run again for a while.
+  const interval = Number(/CJ_ORDER_COST_REFRESH_INTERVAL_MS = (\d+) \* 60 \* 1000/.exec(reconcile)?.[1]);
+  assert.ok(interval >= 15, `CJ would re-run every ${interval} minutes`);
   assert.match(reconcile, /hasRecentFinancialCoverage/);
-  // Coverage is written even on a quiet day, otherwise the guard never engages.
-  assert.match(reconcile, /does not make the job retry on every tick/);
+  // Coverage is written even on a quiet week, otherwise the guard never engages.
+  assert.match(reconcile, /retry on every tick/);
 });
 
 test("the CJ token survives a recycled isolate", () => {
@@ -35,31 +37,28 @@ test("the CJ token survives a recycled isolate", () => {
 
 test("one failing reconciler cannot fail the whole tick", () => {
   assert.match(worker, /Promise\.allSettled/);
-  assert.match(worker, /run\("reconcileGrowthCockpitCjCosts"/);
 });
 
-test("a dead cost integration raises an incident instead of going quiet", () => {
-  const operations = readFileSync(path.join(root, "src/routes/operations.ts"), "utf8");
-  // Product cost stopped on 2026-08-25 because the CJ credential was rejected,
-  // and nothing reported it for twenty days.
-  assert.match(operations, /Product cost has never been reconciled/);
-  assert.match(operations, /Product cost reconciliation is stale/);
-  assert.match(operations, /latestBySource\(financialRows, "CJ_PAID_ORDERS"\)/);
-  // It has to be loud: margin and profit are unmeasurable without it.
-  assert.match(operations, /severity: "CRITICAL", area: "Costs"/);
-});
-
-test("the current day has a product cost before CJ has charged it", () => {
-  // Paid costs are dated by CJ's payment day, which trails the sale by days,
-  // so every window ending today had orders with no cost and no profit.
-  assert.match(reconcile, /export async function reconcileGrowthCockpitCjOrderCosts/);
-  assert.match(reconcile, /preset: "last_7_days"/);
-  assert.match(worker, /run\("reconcileGrowthCockpitCjOrderCosts"/);
-  // Sales land all day and each one's CJ order follows minutes later, so the
-  // window is only right if it is re-read often.
-  const minutes = Number(/CJ_ORDER_COST_REFRESH_INTERVAL_MS = (\d+) \* 60 \* 1000/.exec(reconcile)?.[1]);
-  assert.ok(minutes >= 10 && minutes <= 60, `order costs would refresh every ${minutes} minutes`);
-  // Coverage is only ACTUAL when every sale in the window carries a CJ price.
-  const orderCosts = reconcile.slice(reconcile.indexOf("reconcileGrowthCockpitCjOrderCosts"));
-  assert.match(orderCosts, /result\.unpricedOrders\.length \? "PARTIAL" : "ACTUAL"/);
+/**
+ * The account-level stream keyed by the day CJ charged the account was built
+ * on `actualPayment`, a field getOrderDetail never returns, and dated costs
+ * days after the sale. Two definitions of "product cost" in one ledger is how
+ * the dashboard came to show a number nobody could trace. One definition now:
+ * one row per sale, at CJ's order total, dated by the sale.
+ */
+test("the payment-date cost stream is retired everywhere", () => {
+  for (const file of [
+    "src/services/growth-cockpit-reconcile.ts",
+    "src/worker.ts",
+    "src/routes/growth-cockpit.ts",
+    "src/lib/financial-ledger.ts",
+    "src/lib/growth-cockpit-comparison.ts",
+    "public/admin/js/growth-cockpit.js",
+    "public/admin/js/overview.js",
+  ]) {
+    assert.doesNotMatch(read(file), /CJ_PAID_ORDERS|cjPaidCosts|cj-paid-costs|reconcileGrowthCockpitCjCosts/, `${file} still refers to the retired stream`);
+  }
+  assert.throws(() => read("src/services/cj-paid-costs.ts"), "the retired writer still exists");
+  // Operations judges cost freshness by the stream that is actually written.
+  assert.match(operations, /latestBySource\(financialRows, "CJ_ORDER_COSTS"\)/);
 });

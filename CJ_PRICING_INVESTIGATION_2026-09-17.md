@@ -196,3 +196,53 @@ Results visible in the last 100 rows: #4461 has `AUTO-` (trashed) + `RESCUE-` (p
 - Cloudflare: `wrangler deployments list --name shopify-funnel-control`.
 - Git: `git worktree list` on both clones; `git log --all` on the cost files; `origin/master` contents.
 - External: CJ API reference (money-field definitions and status lifecycle), Shopify community thread on CJ shipping quotes, CJ help article on product-cost maintenance, open.er-api.com ILS→USD.
+
+
+---
+
+## 9. What changed on 2026-09-17 (the fix, in two phases)
+
+Everything above described the disease. This section is the treatment that was deployed the
+same day, so the next person does not have to rediscover either.
+
+### Phase 1 — one door to production (done, live at 11:xx UTC as `a87c30e93136`)
+
+- `master` now carries the code that is actually live; the unregistered worktree that held it
+  was merged (`7bf63693`), and every other copy of the app on the laptop carries a
+  `DO-NOT-DEPLOY` marker.
+- `npm run deploy` goes through `scripts/deploy-guard.mjs`: clean tree, `master`, `HEAD ==
+  origin/master`, build, refuse if the build changed a tracked file, then `wrangler deploy` with
+  `BUILD_SHA/BRANCH/TIME/FROM` injected. `GET /api/version` answers "what is live".
+- See `DEPLOYING.md`.
+
+### Phase 2 — the Worker owns CJ, and the ledger is checked every morning
+
+Decisions Harel made: "Ledger only, leave CJ" (he trashes the duplicate CJ orders himself),
+"Yes, consolidate", "The Worker owns it".
+
+| Cause (section 4) | Change | Where |
+|---|---|---|
+| The sweep acted on a half-read CJ list and placed six duplicate orders | The CJ list is read back to the start of the window; a failed page or a cut-off list **skips the whole sweep** (`skipped: cj_list_failed / cj_list_incomplete`) | `lib/cj-order-index.ts`, `services/cj-order-backfill.ts` |
+| The queue only looked for `AUTO-` on page one before creating | Before creating, the queue reads CJ back to the sale itself and **adopts** any purchased order under any prefix (`RESCUE-`, `MANUAL-`, `BACKFILL-`); a partial read throws and nothing is created | `findPurchasedCjOrder` in `services/novahair-monitor.ts` |
+| Costs were re-dated to "when the code ran" | `orderPayloadForFulfilment` now carries `processed_at`/`created_at`; `recordSupplierCost` dates only from those and otherwise leaves the row to the reconciler; both writers store the same row shape (`costBasis: CJ_ORDER`, quality ACTUAL, CJ order total = product + postage, paid or not) | `lib/shopify-admin.ts`, `services/novahair-monitor.ts` |
+| Two cost definitions in one ledger (`CJ_PAID_ORDERS` by CJ payment date, built on a field CJ never returns) | Stream retired: writer, cron task, cockpit reads, UI button, definition. Old rows are left in D1 untouched. Operations now judges freshness by `CJ_ORDER_COSTS` | `services/cj-paid-costs.ts` (deleted), `growth-cockpit-reconcile.ts`, `worker.ts`, `routes/growth-cockpit.ts`, `routes/operations.ts`, admin JS/HTML |
+| SKU grammar widens with every colour; Golden Blonde (#4481) was invisible | 7-colour SKUs decode (blonde last, verified against the catalogue); blonde has **no CJ variant**, so the order is parked as `NEEDS_SUPPLIER_MAPPING` and shown in Operations, the morning digest and the audit — never silently dropped. A parked order releases itself once a mapping lands in code | `lib/novahair-cj-auto-order.ts`, `lib/supplier-order-plan.ts`, sweep release step |
+| Add-ons never in the AUTO order (#4468, #4475, #4476) | Mask, gloss, serum and brush are mapped to their CJ vids (read from CJ on 2026-09-17) and travel in the same CJ order; verification counts them; an unmapped `CJ…` SKU parks the order | `CJ_ADDON_MAPPINGS` |
+| The extra-bottle upsell (`NOVAEXTRA-2-black-black`, first seen on #4486 today) was unknown to every writer | Decoded and folded into the parcel (six bottles, not four); the parcel is re-planned from the order's own lines on every queue attempt, so #4486 ships right once its postcode is fixed | `decodeExtraBottlesSku`, `planSupplierOrder`, queue re-plan |
+| Nobody checked the ledger against the sales | Daily audit: sales vs ledger rows vs CJ list — unpriced sales, rows dated on the wrong day, sales with two CJ orders, orders waiting for a mapping. In the 07:00 digest and at `GET /api/growth-cockpit/cj-cost-audit?days=7`; the cockpit's "Re-check CJ costs" button runs reconcile + audit | `lib/cj-cost-audit.ts`, `services/cj-cost-audit.ts`, `services/owner-digest.ts` |
+| Three writers | Railway worker: `SYNC_CREATE_ORDERS` gate, default off (tracking sync and shipment snapshot keep running). Agents: memory rule, no `MANUAL-` orders | `cj-sync-worker/worker.py`, README |
+
+Tests: 393 Worker tests (`npm test`), 27 Python tests; new files `test/supplier-order-plan.test.ts`,
+`test/cj-order-index.test.ts`, `test/cj-cost-audit.test.ts`, `test/cj-cost-forever.test.ts` (source
+pins for every invariant above), `cj-sync-worker/tests/test_worker_gate.py`.
+
+### What is deliberately *not* done
+
+- The `occurredDate` column is still overwritten on upsert. The reconciler is the corrector
+  (it dates from Shopify's `processedAt`), and the audit reports any row whose date disagrees
+  with its sale; freezing the date would make a wrong first write permanent.
+- Golden Blonde still has no supplier. Until Harel sources it or removes the variant, every
+  blonde sale parks as `NEEDS_SUPPLIER_MAPPING`.
+- Old `CJ_PAID_ORDERS` rows stay in D1; nothing reads them.
+- The six duplicate `AUTO-4414/15/16/19/21/23` orders are Harel's to trash at CJ; the audit
+  lists them every morning until he does.

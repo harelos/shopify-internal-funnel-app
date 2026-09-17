@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Profit stands on the weakest of its inputs; product cost is incomplete
     // until CJ has charged the window.
     const profitQuality = profit.complete ? (profit.costQuality || 'ACTUAL') : 'MISSING';
-    const productCost = metrics.productCost || metrics.cjPaidCosts;
+    const productCost = metrics.productCost;
     const feesIn = profit.paymentFeesIncluded;
     const netOf = feesIn ? 'after payment fees' : 'before payment fees';
     state.definitions = Object.fromEntries((report.metricDefinitions || []).map(definition => [definition.key, definition]));
@@ -173,10 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `Profit ${netOf} is reported in ${profit.currency}${profit.costQuality === 'PARTIAL' ? ', and the product cost does not yet cover every order in the window' : ''}. Shopify pays out in the store currency, so a converted figure uses that day's published rate.`
       : `${revenueNeedsConversion ? `Shopify paid revenue is available in ${ownerRevenue.currency}; profit remains unavailable until authoritative conversion to ${report.reportingCurrency} exists. ` : ''}Profit is unavailable: ${profit.blockers.join(' ')}`;
     byId('financial-status').textContent = `Shopify source: ${shopifySourceRevenue.quality}${shopifySourceRevenue.currency ? ` (${shopifySourceRevenue.currency})` : ''}. Reporting conversion: ${metrics.revenue.quality}. Product cost: ${productCost.quality}. Payment fees: ${metrics.paymentFees.quality}. Meta: ${metrics.metaSpend.quality}.`;
-    const daily = (report.observations?.cjPaidCostsDaily || []).map(row => `${row.date}: ${formatMoney(row.amount, row.currency)}`);
-    byId('cj-paid-costs-daily').textContent = daily.length
-      ? `CJ paid order costs by UTC payment date: ${daily.join(' · ')}`
-      : 'No synchronized CJ paid-order costs for this window.';
+    const coverage = report.supplierCostCoverage || {};
+    byId('cj-cost-coverage').textContent = Number(coverage.orders || 0) > 0
+      ? `Supplier cost covers ${Number(coverage.pricedOrders || 0)} of ${Number(coverage.orders || 0)} sale(s) in this window: ${Number(coverage.exactOrders || 0)} from CJ's own order, ${Number(coverage.bundlePricedOrders || 0)} from the identical bundle, ${Number(coverage.unpricedOrders || 0)} not yet priced.`
+      : 'No paid sales in this window.';
   }
 
   function renderCjStatus(status) {
@@ -230,19 +230,27 @@ document.addEventListener('DOMContentLoaded', () => {
   byId('reconcile-cj').addEventListener('click', async () => {
     const button = byId('reconcile-cj');
     button.disabled = true;
-    byId('cj-reconcile-status').textContent = 'Reading CJ paid orders and saving their paid-order amounts by CJ UTC payment date...';
+    byId('cj-reconcile-status').textContent = "Pricing this window's sales from CJ's orders, then auditing the ledger against the sales and against CJ...";
     try {
       const params = new URLSearchParams(query());
-      const result = await apiRequest('/api/growth-cockpit/cj-paid-costs', {
+      const result = await apiRequest('/api/growth-cockpit/cj-reconcile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(params.entries()))
       });
       const summary = result.result || {};
-      byId('cj-reconcile-status').textContent = `CJ paid-cost sync: ${Number(summary.rowsScanned || 0)} list row(s) scanned; ${Number(summary.paidOrderRows || 0)} paid-order row(s); ${Number(summary.actualPaymentRows || 0)} actual-payment row(s) and ${Number(summary.orderAmountFallbackRows || 0)} paid-order amount fallback row(s) saved; ${Number(summary.detailFailures || 0)} detail field/read failure(s).`;
+      const audit = await apiRequest('/api/growth-cockpit/cj-cost-audit?days=7');
+      const problems = [];
+      if ((audit.unpriced || []).length) problems.push(`${audit.unpriced.length} unpriced (${audit.unpriced.slice(0, 6).map(item => item.order).join(', ')})`);
+      if ((audit.misdated || []).length) problems.push(`${audit.misdated.length} dated on the wrong day`);
+      if ((audit.duplicatesAtCj || []).length) problems.push(`${audit.duplicatesAtCj.length} with more than one CJ order (${audit.duplicatesAtCj.slice(0, 4).map(item => item.order).join(', ')})`);
+      if ((audit.needsMapping || []).length) problems.push(`${audit.needsMapping.length} waiting for a supplier mapping (${audit.needsMapping.slice(0, 4).map(item => item.order).join(', ')})`);
+      if (audit.cjList && audit.cjList.note) problems.push(audit.cjList.note);
+      const clean = `clean — ${Number(audit.priced || 0)} of ${Number(audit.sales || 0)} sale(s) priced on the day of the sale`;
+      byId('cj-reconcile-status').textContent = `CJ costs for this window: ${Number(summary.exactOrders || 0)} sale(s) priced from CJ's own order, ${Number(summary.bundlePricedOrders || 0)} from the identical bundle, ${(summary.unpricedOrders || []).length} not priced. Audit of the last 7 days: ${problems.length ? problems.join('; ') : clean}.`;
       await load();
     } catch (error) {
-      byId('cj-reconcile-status').textContent = `CJ paid-cost sync unavailable: ${error.message || 'Request failed.'}`;
+      byId('cj-reconcile-status').textContent = `CJ cost check unavailable: ${error.message || 'Request failed.'}`;
     } finally {
       button.disabled = false;
     }

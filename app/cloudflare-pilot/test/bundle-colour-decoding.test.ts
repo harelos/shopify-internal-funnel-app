@@ -51,12 +51,13 @@ test("every shade the decoder can emit is orderable from CJ", () => {
 });
 
 test("both SKU shapes are understood and quantities must add up", () => {
-  assert.deepEqual(Object.keys(BOTTLE_ORDER_BY_SEGMENTS).sort(), ["5", "6"]);
+  assert.deepEqual(Object.keys(BOTTLE_ORDER_BY_SEGMENTS).sort(), ["5", "6", "7"]);
   assert.equal(BOTTLE_ORDER_BY_SEGMENTS[6][2], "medium_brown");
   assert.equal(BOTTLE_ORDER_BY_SEGMENTS[5][2], "light_brown");
   // A SKU whose colours do not sum to the bundle size is not a bundle.
   assert.equal(decodeBundleSku("NOVASALE-4-0-0-3-0-0-0"), null);
-  assert.equal(decodeBundleSku("NOVASALE-4-0-0-4-0-0-0-0"), null);
+  // Eight colour segments is a shape nobody has defined yet.
+  assert.equal(decodeBundleSku("NOVASALE-4-0-0-4-0-0-0-0-0"), null);
   assert.equal(decodeBundleSku("NOVASALE-3-3-0-0-0-0"), null);
   // Quantity multiplies every shade, not just the first.
   const doubled = decodeBundleSku("NOVASALE-2-0-0-2-0-0-0", 3);

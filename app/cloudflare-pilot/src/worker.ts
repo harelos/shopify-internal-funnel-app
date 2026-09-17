@@ -22,7 +22,6 @@ export default {
       const {
         reconcileGrowthCockpitMetaSpend,
         reconcileGrowthCockpitShopifyFinancials,
-        reconcileGrowthCockpitCjCosts,
         reconcileGrowthCockpitCjOrderCosts,
       } = await import("./services/growth-cockpit-reconcile.js");
       const { processSupportDeskCron, processSupportOutbox } = await import("./services/support-desk.js");
@@ -48,7 +47,6 @@ export default {
           run("processPendingQueueCron", processPendingQueueCron(workerEnv.DB)),
           run("reconcileGrowthCockpitMetaSpend", reconcileGrowthCockpitMetaSpend()),
           run("reconcileGrowthCockpitShopifyFinancials", reconcileGrowthCockpitShopifyFinancials()),
-          run("reconcileGrowthCockpitCjCosts", reconcileGrowthCockpitCjCosts()),
           run("reconcileGrowthCockpitCjOrderCosts", reconcileGrowthCockpitCjOrderCosts()),
           run("processSupportDeskCron", processSupportDeskCron()),
           run("processSupportOutbox", processSupportOutbox()),

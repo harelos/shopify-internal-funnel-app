@@ -1,7 +1,6 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
 // Re-exported so existing callers keep importing it from the monitor.
 export { decodeBundleSku } from "../lib/novahair-cj-auto-order.js";
-import { decodeOceAuraBundleSku, isOceAuraBundleSku } from "../lib/oceaura-cj-auto-order.js";
 
 const EXCLUDED_ORDER_NUMBERS = new Set(["4359", "4360", "4361", "4362"]);
 const EXCLUDED_TAG_KEYWORDS = ["INTERNAL_", "TEST", "CANARY", "BOOTSTRAP", "DO_NOT_FULFILL"];
@@ -108,16 +107,16 @@ export async function saveNovaHairState(db: any, state: NovaHairState): Promise<
 import { readCachedToken, writeCachedToken } from "../lib/service-token-cache.js";
 import { persistFinancialLedgerEntries } from "../lib/financial-ledger.js";
 import {
-  BOTTLE_KEYS,
-  decodeBundleSku,
-  isNovaHairBundleSku,
-  BOTTLE_ORDER_BY_SEGMENTS,
   buildNovaHairCjCreateOrderPayload,
+  CJ_ADDON_MAPPINGS,
   CJ_PHYSICAL_MAPPINGS,
   novaHairAutoCjOrderNumber,
   type ExpectedBundle,
   type NovaHairComponentKey,
 } from "../lib/novahair-cj-auto-order.js";
+import { planSupplierOrder } from "../lib/supplier-order-plan.js";
+import { purchasedCjOrdersByNumber, readCjOrderIndex } from "../lib/cj-order-index.js";
+import { cjOrderCost } from "../lib/cj-cost-match.js";
 
 export interface NovaHairState {
   id: string;
@@ -246,23 +245,34 @@ function isNovaHairAutoCreateEligible(orderNum: string): boolean {
   return currentOrderNumber !== null && currentOrderNumber >= minOrderNumber;
 }
 
-async function findCjOrderForNovaHair(orderNum: string, rawId: string, preferAuto: boolean): Promise<any | null> {
+/**
+ * The CJ order already purchased for a sale, under any prefix, or null.
+ *
+ * Only page one used to be searched, and only for AUTO-: a RESCUE- order the
+ * Railway worker had placed, or an AUTO- order pushed past the first hundred
+ * rows, was invisible, and a second order went out for a parcel already on
+ * its way. The list is now read back to the sale itself, and a read that
+ * fails or stops short throws, so nothing is created on a half-read list.
+ * The store's own shadow ("#4470", never purchased) is never an answer.
+ */
+async function findPurchasedCjOrder(orderNum: string, orderPayload: any): Promise<any | null> {
+  const saleAt = new Date(String(orderPayload?.processed_at || orderPayload?.created_at || "")).getTime();
+  // An hour of slack for clocks; nothing for this sale was created before it.
+  // A payload with no sale date reads two weeks back.
+  const since = new Date((Number.isFinite(saleAt) ? saleAt : Date.now() - 14 * 86400000) - 3600000).toISOString();
+  const index = await readCjOrderIndex({ list: listCjOrders, since, maxPages: 10 });
+  if (!index.complete) {
+    throw new Error(`CJ order list could not be read back to ${since}; refusing to create an order on a partial list.`);
+  }
+  const candidates = purchasedCjOrdersByNumber(index.rows).get(String(orderNum).replace(/^#/, "")) || [];
+  if (!candidates.length) return null;
   const autoOrderNumber = novaHairAutoCjOrderNumber(orderNum);
-  const listRes = await cjGet("shopping/order/list", { pageNum: 1, pageSize: 100 });
-  const orders = listRes?.data?.list || [];
-  if (!Array.isArray(orders)) return null;
-
-  const autoOrder = orders.find((o: any) => String(o.orderNum || o.orderNumber || "") === autoOrderNumber);
-  if (autoOrder || preferAuto) return autoOrder || null;
-
-  return orders.find((o: any) =>
-    String(o.platformOrderId || "") === String(rawId) ||
-    String(o.orderNum || o.orderNumber || "").endsWith(orderNum)
-  ) || null;
+  const own = candidates.find(row => String(row.orderNum || "") === autoOrderNumber);
+  return own ?? { ...candidates[0], adopted: true };
 }
 
-async function ensureAutoCjOrder(orderPayload: any, expected: ExpectedBundle, orderNum: string, rawId: string): Promise<any | null> {
-  const existing = await findCjOrderForNovaHair(orderNum, rawId, true);
+async function ensureAutoCjOrder(orderPayload: any, expected: ExpectedBundle, orderNum: string): Promise<any | null> {
+  const existing = await findPurchasedCjOrder(orderNum, orderPayload);
   if (existing) return existing;
 
   const payload = buildNovaHairCjCreateOrderPayload(orderPayload, expected, {
@@ -430,17 +440,67 @@ export async function triggerCloudCircuitBreaker(
   await saveNovaHairState(db, state);
 }
 
-export async function enqueuePendingOrder(orderPayload: any, expected: ExpectedBundle, db: any): Promise<void> {
+export async function enqueuePendingOrder(
+  orderPayload: any,
+  expected: ExpectedBundle,
+  db: any,
+  options: { syncState?: string; result?: string } = {},
+): Promise<void> {
   const orderId = String(orderPayload.admin_graphql_api_id || `gid://shopify/Order/${orderPayload.id}`);
   const orderNum = String(orderPayload.name || orderPayload.order_number || "").replace("#", "");
   const rawId = String(orderPayload.id || orderId.replace(/^gid:\/\/shopify\/Order\//, ""));
+  const syncState = options.syncState || "WAITING_FOR_CJ_SYNC";
 
   await db.prepare(`
-    INSERT OR REPLACE INTO "NovaHairPendingOrder" (orderId, orderNum, rawId, syncState, expectedData, orderPayload, attempts, firstSeenAt, lastAttemptAt)
-    VALUES (?, ?, ?, 'WAITING_FOR_CJ_SYNC', ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `).bind(orderId, orderNum, rawId, JSON.stringify(expected), JSON.stringify(orderPayload)).run();
+    INSERT OR REPLACE INTO "NovaHairPendingOrder" (orderId, orderNum, rawId, syncState, expectedData, orderPayload, attempts, firstSeenAt, lastAttemptAt, result)
+    VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+  `).bind(orderId, orderNum, rawId, syncState, JSON.stringify(expected), JSON.stringify(orderPayload), options.result ? options.result.slice(0, 240) : null).run();
 
-  console.log(`[D1 QUEUE] Enqueued Order #${orderNum} for durable background CJ verification.`);
+  console.log(`[D1 QUEUE] Enqueued Order #${orderNum} as ${syncState}.`);
+}
+
+/**
+ * Books the sale's supplier cost the moment CJ quotes it, dated by the sale.
+ *
+ * The cost used to be dated by the moment of verification whenever the
+ * replayed payload carried no sale date, which moved six week-old orders onto
+ * the day a sweep re-queued them. A payload with no sale date is left to the
+ * reconciler, which dates it from Shopify; nothing is dated by when this code
+ * happened to run. The row is shaped exactly as the reconciler's, so the two
+ * writers hold one definition: CJ's order total, product plus the postage it
+ * quoted, whether or not the order has been paid.
+ */
+async function recordSupplierCost(orderId: string, orderNum: string, orderPayload: any, cj: any): Promise<void> {
+  const amount = cjOrderCost(cj);
+  const saleAt = new Date(String(orderPayload?.processed_at || orderPayload?.created_at || ""));
+  if (amount == null || Number.isNaN(saleAt.getTime())) {
+    console.warn(`[CJ COST] Order #${orderNum}: ${amount == null ? "CJ has not priced the order yet" : "the payload carries no sale date"}; leaving the cost to the reconciler.`);
+    return;
+  }
+  const occurredDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: getEnvVar("REPORTING_TIMEZONE", "Asia/Jerusalem"),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(saleAt);
+  await persistFinancialLedgerEntries([{
+    source: "CJ_ORDER_COSTS",
+    category: "CJ_VARIABLE_COST",
+    externalKey: orderId,
+    occurredDate,
+    amount,
+    currency: "USD",
+    quality: "ACTUAL",
+    metadata: {
+      costBasis: "CJ_ORDER",
+      costDetail: "CJ order total: product plus the shipping CJ quoted for this parcel.",
+      cjOrderNum: String(cj?.orderNum || ""),
+      cjOrderStatus: String(cj?.orderStatus || ""),
+      cjProductAmount: Number(cj?.productAmount) || null,
+      cjPostageAmount: Number(cj?.postageAmount) || null,
+      bookedBy: "novahair-monitor",
+    },
+  }]);
 }
 
 /** CJ rejected the address itself; a person can fix it and the order can go. */
@@ -490,9 +550,23 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const orderId = row.orderId;
     const orderNum = row.orderNum;
     const rawId = row.rawId;
-    const expected: ExpectedBundle = JSON.parse(row.expectedData);
+    let expected: ExpectedBundle = JSON.parse(row.expectedData);
     const orderPayload = JSON.parse(row.orderPayload);
     const attempts = Number(row.attempts || 0) + 1;
+    // The parcel is planned again from the order's own lines on every attempt,
+    // so a mapping added after the order was queued applies to it, and an
+    // upsell line the old code did not know is never shipped short.
+    const planned = planSupplierOrder(Array.isArray(orderPayload.line_items) ? orderPayload.line_items : []);
+    if (planned.ok) {
+      expected = planned.expected;
+    } else if (planned.code !== "NO_SUPPLIER_LINES") {
+      await db.prepare(`
+        UPDATE "NovaHairPendingOrder"
+        SET syncState = 'NEEDS_SUPPLIER_MAPPING', attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
+        WHERE orderId = ?
+      `).bind(attempts, planned.reason.slice(0, 240), orderId).run();
+      continue;
+    }
     // An order held for a bad address retries against the live address, so
     // correcting it in Shopify is all it takes to release the order.
     if (row.syncState === "NEEDS_ADDRESS_FIX") {
@@ -520,21 +594,24 @@ export async function processPendingQueueCron(db: any): Promise<void> {
           ).run();
           continue;
         }
-        cjOrder = await ensureAutoCjOrder(orderPayload, expected, orderNum, rawId);
+        cjOrder = await ensureAutoCjOrder(orderPayload, expected, orderNum);
         await db.prepare(`
           UPDATE "NovaHairPendingOrder"
           SET syncState = ?, attempts = ?, lastAttemptAt = CURRENT_TIMESTAMP
           WHERE orderId = ?
         `).bind("CJ_AUTO_CREATED", attempts, orderId).run();
       } else {
-        cjOrder = await findCjOrderForNovaHair(orderNum, rawId, false);
+        cjOrder = await findPurchasedCjOrder(orderNum, orderPayload);
       }
     } catch (err) {
       console.warn(`[CRON CJ AUTO/POLL TRANSIENT ERROR] Order #${orderNum}:`, err);
       const message = err instanceof Error ? err.message : String(err);
       // An address CJ will not accept is not a transient error: retrying it
-      // three times and giving up is how orders died silently for days.
-      const state = isAddressRejection(message) ? "NEEDS_ADDRESS_FIX" : "CJ_AUTO_CREATE_FAILED";
+      // three times and giving up is how orders died silently for days. A
+      // product CJ cannot supply is not one either; it waits for a person.
+      const state = (err as any)?.code === "NO_SUPPLIER_MAPPING"
+        ? "NEEDS_SUPPLIER_MAPPING"
+        : isAddressRejection(message) ? "NEEDS_ADDRESS_FIX" : "CJ_AUTO_CREATE_FAILED";
       await db.prepare(`
         UPDATE "NovaHairPendingOrder"
         SET syncState = ?, attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
@@ -567,32 +644,47 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     const cjData = detailRes?.data || {};
     const productList = cjData.productList || [];
 
-    const cjQuantities: Record<string, number> = Object.fromEntries(
-      (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]).map(key => [key, 0]),
+    // Placed by a person or the Railway worker, not by this code: its contents
+    // are theirs to verify, and its price is still this sale's cost.
+    if (cjOrder.adopted) {
+      await recordSupplierCost(orderId, orderNum, orderPayload, { ...cjOrder, ...cjData });
+      state.seenOrderIds.push(orderId);
+      await saveNovaHairState(db, state);
+      await db.prepare('UPDATE "NovaHairPendingOrder" SET syncState = ?, result = ?, completedAt = CURRENT_TIMESTAMP WHERE orderId = ?')
+        .bind("CJ_VERIFIED", `ADOPTED ${String(cjOrder.orderNum || cjOrder.orderId)}`, orderId).run();
+      continue;
+    }
+
+    // Every line the parcel may carry: the shades, the kit, and the add-ons.
+    const expectedQuantities: Record<string, number> = Object.fromEntries(
+      (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]).map(key => [key, Number(expected[key] || 0)]),
     );
-    const keyByVid = new Map<string, NovaHairComponentKey>(
+    const keyByVid = new Map<string, string>(
       (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]).map(key => [CJ_PHYSICAL_MAPPINGS[key].vid, key]),
     );
+    for (const addon of Object.values(CJ_ADDON_MAPPINGS)) keyByVid.set(addon.vid, `addon:${addon.sku}`);
+    for (const addon of expected.addons || []) expectedQuantities[`addon:${addon.sku}`] = Number(addon.quantity || 0);
+    const cjQuantities: Record<string, number> = Object.fromEntries(Object.keys(expectedQuantities).map(key => [key, 0]));
 
     let vidError: string | null = null;
     for (const item of productList) {
       const key = keyByVid.get(String(item.vid));
       if (!key) { vidError = item.vid; break; }
-      cjQuantities[key] += Number(item.quantity || 0);
+      cjQuantities[key] = (cjQuantities[key] || 0) + Number(item.quantity || 0);
     }
 
     if (vidError) {
-      await triggerCloudCircuitBreaker(`Unknown CJ VID found in order: ${vidError}`, orderPayload, "Known 6 Canonical VIDs", vidError, db);
+      await triggerCloudCircuitBreaker(`Unknown CJ VID found in order: ${vidError}`, orderPayload, "Known CJ variants: shades, kit and mapped add-ons", vidError, db);
       await db.prepare('UPDATE "NovaHairPendingOrder" SET syncState = ?, result = ?, completedAt = CURRENT_TIMESTAMP WHERE orderId = ?')
         .bind("CIRCUIT_BREAKER_TRIGGERED", "FAIL", orderId).run();
       return;
     }
 
     const mismatches: string[] = [];
-    for (const shade of Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[]) {
-      const exp = expected[shade];
-      const act = cjQuantities[shade];
-      if (exp !== act) mismatches.push(`${shade}: expected ${exp}, got ${act}`);
+    for (const key of new Set([...Object.keys(expectedQuantities), ...Object.keys(cjQuantities)])) {
+      const exp = Number(expectedQuantities[key] || 0);
+      const act = Number(cjQuantities[key] || 0);
+      if (exp !== act) mismatches.push(`${key}: expected ${exp}, got ${act}`);
     }
 
     if (mismatches.length > 0) {
@@ -638,26 +730,7 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     }
 
     await saveNovaHairState(db, state);
-    const costAmount = Number(cjData.orderAmount);
-    const costDateSource = orderPayload.processed_at || orderPayload.created_at || orderRecord.verified_at;
-    const costDate = new Intl.DateTimeFormat("en-CA", {
-      timeZone: getEnvVar("REPORTING_TIMEZONE", "Asia/Jerusalem"),
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date(costDateSource));
-    if (Number.isFinite(costAmount) && costAmount >= 0) {
-      await persistFinancialLedgerEntries([{
-        source: "CJ_ORDER_COSTS",
-        category: "CJ_VARIABLE_COST",
-        externalKey: orderId,
-        occurredDate: costDate,
-        amount: costAmount,
-        currency: "USD",
-        quality: "ESTIMATE",
-        metadata: { orderNumber: orderNum, costLabel: orderRecord.cost_label },
-      }]);
-    }
+    await recordSupplierCost(orderId, orderNum, orderPayload, { ...cjOrder, ...cjData });
     await db.prepare('UPDATE "NovaHairPendingOrder" SET syncState = ?, result = ?, completedAt = CURRENT_TIMESTAMP WHERE orderId = ?')
       .bind("CJ_VERIFIED", "PASS", orderId).run();
   }
@@ -686,57 +759,27 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
     return { handled: false, reason: `Order ${orderGid} already processed (idempotent)` };
   }
 
-  // 4. Identify bundle line items
+  // 4. Plan the parcel from every line CJ ships: bundle, extra bottles, add-ons.
   const lineItems: any[] = orderPayload.line_items || [];
-  let expectedBundle: ExpectedBundle | null = null;
+  const planned = planSupplierOrder(lineItems);
 
-  for (const li of lineItems) {
-    const sku = String(li.sku || "");
-    if (isNovaHairBundleSku(sku)) {
-      expectedBundle = decodeBundleSku(sku, Number(li.quantity || 1));
-      break;
+  if (!planned.ok) {
+    if (planned.code === "NO_SUPPLIER_LINES") {
+      return { handled: false, reason: `Order #${orderNum} does not contain NovaHair or OceAura bundle lines.` };
     }
-    // OceAura bundles ride the same queue; the components are spelled out
-    // in the SKU rather than derived from colours.
-    if (isOceAuraBundleSku(sku)) {
-      expectedBundle = decodeOceAuraBundleSku(sku, Number(li.quantity || 1));
-      break;
-    }
-  }
-
-  if (!expectedBundle) {
-    const shopifyComponents: Record<string, number> = {};
-    for (const li of lineItems) {
-      const s = String(li.sku || "");
-      const q = Number(li.quantity || 0);
-      const key = (Object.keys(CJ_PHYSICAL_MAPPINGS) as NovaHairComponentKey[])
-        .find(candidate => CJ_PHYSICAL_MAPPINGS[candidate].sku === s);
-      if (key) shopifyComponents[key] = q;
-    }
-
-    if (shopifyComponents.free_kit && shopifyComponents.free_kit > 0) {
-      const bottleSum = BOTTLE_KEYS.reduce((sum, key) => sum + (shopifyComponents[key] || 0), 0);
-      expectedBundle = {
-        bundle_size: bottleSum,
-        black: shopifyComponents.black || 0,
-        dark_brown: shopifyComponents.dark_brown || 0,
-        medium_brown: shopifyComponents.medium_brown || 0,
-        light_brown: shopifyComponents.light_brown || 0,
-        purple: shopifyComponents.purple || 0,
-        red: shopifyComponents.red || 0,
-        free_kit: shopifyComponents.free_kit || 1,
-        expected_weight_g: (bottleSum * 330.0) + ((shopifyComponents.free_kit || 1) * 110.0),
-        original_sku: `DECOMPOSED-BUNDLE-${bottleSum}B`
-      };
-    }
-  }
-
-  if (!expectedBundle) {
-    return { handled: false, reason: `Order #${orderNum} does not contain NovaHair or OceAura bundle lines.` };
+    // A line this code cannot read, or a product CJ cannot supply, is parked
+    // where the dashboard and the morning digest will show it. Answering "not
+    // handled" is how #4481 sat paid and unordered with nothing saying so.
+    await enqueuePendingOrder(orderPayload, { original_sku: planned.sku, reason: planned.reason } as any, db, {
+      syncState: "NEEDS_SUPPLIER_MAPPING",
+      result: planned.reason,
+    });
+    await saveNovaHairState(db, state);
+    return { handled: true, reason: planned.reason };
   }
 
   // Enqueue in D1 durable pending table
-  await enqueuePendingOrder(orderPayload, expectedBundle, db);
+  await enqueuePendingOrder(orderPayload, planned.expected, db);
   await saveNovaHairState(db, state);
-  return { handled: true, bundle: expectedBundle } as any;
+  return { handled: true, bundle: planned.expected } as any;
 }

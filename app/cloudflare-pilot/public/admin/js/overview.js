@@ -302,7 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
         orderCount > 0 && revenue.amount != null ? Number(revenue.amount) / orderCount : null);
       paintFinanceTile("spend", moneyText(spend), spend.source || "Meta Ads", spend.quality, null,
         compare.adSpend, spend.amount);
-      const cost = metrics.productCost || metrics.cjPaidCosts || {};
+      const cost = metrics.productCost || {};
       const costLabel = cost.amount == null
         ? "CJ costs are not synchronised for this window"
         : "What CJ charges for these orders";
