@@ -1,7 +1,7 @@
 import { supportD1 } from "../lib/support-d1.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
-import { decodeBundleSku } from "../lib/novahair-cj-auto-order.js";
+import { decodeAnyBundleSku } from "../lib/oceaura-cj-auto-order.js";
 import { enqueuePendingOrder, getD1, listCjOrders } from "./novahair-monitor.js";
 
 /**
@@ -76,9 +76,9 @@ export async function reconcileMissingCjOrders(options: { dryRun?: boolean } = {
     if (atCj.has(number)) { result.alreadyAtCj += 1; continue; }
     if (queued.has(number)) { result.alreadyQueued += 1; continue; }
 
-    const bundleLine = (order.lineItems || []).find(item => item.sku && decodeBundleSku(String(item.sku)));
+    const bundleLine = (order.lineItems || []).find(item => item.sku && decodeAnyBundleSku(String(item.sku)));
     if (!bundleLine) { result.undecodable.push(order.name || number); continue; }
-    const expected = decodeBundleSku(String(bundleLine.sku), Number(bundleLine.quantity) || 1);
+    const expected = decodeAnyBundleSku(String(bundleLine.sku), Number(bundleLine.quantity) || 1);
     if (!expected) { result.undecodable.push(order.name || number); continue; }
 
     if (options.dryRun) { result.enqueued.push(order.name || number); continue; }

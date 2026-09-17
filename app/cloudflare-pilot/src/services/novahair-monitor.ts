@@ -1,6 +1,7 @@
 import { env as cloudflareEnv } from "cloudflare:workers";
 // Re-exported so existing callers keep importing it from the monitor.
 export { decodeBundleSku } from "../lib/novahair-cj-auto-order.js";
+import { decodeOceAuraBundleSku, isOceAuraBundleSku } from "../lib/oceaura-cj-auto-order.js";
 
 const EXCLUDED_ORDER_NUMBERS = new Set(["4359", "4360", "4361", "4362"]);
 const EXCLUDED_TAG_KEYWORDS = ["INTERNAL_", "TEST", "CANARY", "BOOTSTRAP", "DO_NOT_FULFILL"];
@@ -695,6 +696,12 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
       expectedBundle = decodeBundleSku(sku, Number(li.quantity || 1));
       break;
     }
+    // OceAura bundles ride the same queue; the components are spelled out
+    // in the SKU rather than derived from colours.
+    if (isOceAuraBundleSku(sku)) {
+      expectedBundle = decodeOceAuraBundleSku(sku, Number(li.quantity || 1));
+      break;
+    }
   }
 
   if (!expectedBundle) {
@@ -725,7 +732,7 @@ export async function processNovaHairOrderWebhook(orderPayload: any, db: any): P
   }
 
   if (!expectedBundle) {
-    return { handled: false, reason: `Order #${orderNum} does not contain NovaHair bundle lines.` };
+    return { handled: false, reason: `Order #${orderNum} does not contain NovaHair or OceAura bundle lines.` };
   }
 
   // Enqueue in D1 durable pending table

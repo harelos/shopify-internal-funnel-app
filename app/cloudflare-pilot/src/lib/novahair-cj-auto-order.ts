@@ -10,6 +10,10 @@ export interface ExpectedBundle {
   free_kit: number;
   expected_weight_g: number;
   original_sku: string;
+  /** Absent on NovaHair bundles, which are built from the colour counts. */
+  brand?: "novahair" | "oceaura";
+  /** Component lines spelled out in advance; the colour counts are then unused. */
+  lines?: NovaHairCjProductLine[];
 }
 
 export type NovaHairComponentKey = "black" | "dark_brown" | "medium_brown" | "light_brown" | "purple" | "red" | "free_kit";
@@ -162,6 +166,13 @@ export function novaHairAutoCjOrderNumber(orderNum: unknown): string {
 }
 
 export function buildNovaHairCjProductLines(expected: ExpectedBundle, storeLineItemId?: string): NovaHairCjProductLine[] {
+  // A bundle that already names its components (OceAura) skips the colour
+  // arithmetic and the free-kit rule, which are NovaHair's alone.
+  if (Array.isArray(expected.lines) && expected.lines.length) {
+    return expected.lines
+      .filter(line => Number.isFinite(line.quantity) && line.quantity > 0)
+      .map(line => ({ vid: line.vid, sku: line.sku, quantity: line.quantity, ...(storeLineItemId ? { storeLineItemId } : {}) }));
+  }
   // Summed over every shade there is. Naming them one by one here is what
   // blocked Medium Brown orders after the shade was added: the decoder read
   // them correctly and this guard then rejected the bundle as empty.
@@ -241,7 +252,7 @@ export function buildNovaHairCjCreateOrderPayload(
     shippingAddress: optionalText(address.address1) ?? "",
     shippingAddress2: optionalText(address.address2),
     email: optionalText(orderPayload.email ?? orderPayload.contact_email),
-    remark: `Auto NovaHair fulfillment for Shopify order #${orderNum}; source ${expected.original_sku}`,
+    remark: `Auto ${expected.brand === "oceaura" ? "OceAura" : "NovaHair"} fulfillment for Shopify order #${orderNum}; source ${expected.original_sku}`,
     payType: 3,
     logisticName: options.logisticName ?? "CJPacket YP Special Line",
     fromCountryCode: options.fromCountryCode ?? "CN",
