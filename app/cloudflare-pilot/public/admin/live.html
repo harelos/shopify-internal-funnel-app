@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Live funnel — Commerce OS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/commerce-os.css">
+  <link rel="stylesheet" href="css/live.css">
+  <script defer src="js/commerce-os-shell.js"></script>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a href="index.html" class="brand-name">Funnel Control</a>
+        <span class="eyebrow">Live funnel</span>
+      </div>
+      <div class="top-actions">
+        <span class="live-pill" id="live-state"><span class="live-dot"></span>Connecting</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main live-main">
+    <div class="intro live-intro">
+      <div>
+        <h1>What shoppers are doing right now</h1>
+        <p class="muted">Every tap on the sales page, as it happens. Checkout steps come from the Shopify pixel and paid orders from the order webhook, so nothing here is guessed.</p>
+      </div>
+      <div class="live-controls">
+        <label class="live-control"><span>Page</span><select id="live-page"><option value="/pages/novahair-sales-staging">NovaHair sales page</option><option value="/pages/oceaura-sales-staging">OceAura sales page</option><option value="">All pages</option></select></label>
+        <label class="live-control live-check"><input type="checkbox" id="live-hide-internal" checked> Hide my own visits</label>
+        <button class="btn btn-sm" id="live-pause" type="button">Pause</button>
+      </div>
+    </div>
+
+    <section class="live-counters" aria-label="Last minutes">
+      <article><span>Active now</span><strong id="c-active">—</strong><small>tapped in the last 3 min</small></article>
+      <article><span>Landed</span><strong id="c-views">—</strong><small>last 10 min</small></article>
+      <article><span>Added to cart</span><strong id="c-atc">—</strong><small>last 10 min</small></article>
+      <article><span>Went to checkout</span><strong id="c-checkout">—</strong><small>last 10 min</small></article>
+      <article class="is-paid"><span>Paid</span><strong id="c-paid">—</strong><small>last 60 min</small></article>
+    </section>
+
+    <div class="live-grid">
+      <section class="panel live-panel">
+        <div class="panel-header"><div><h2>Visitors</h2><span class="eyebrow">ONE CARD PER SESSION · NEWEST FIRST</span></div><span class="badge badge-draft" id="live-session-count">0</span></div>
+        <div class="panel-body live-sessions" id="live-sessions"><p class="muted">Waiting for the first visitor…</p></div>
+      </section>
+      <section class="panel live-panel">
+        <div class="panel-header"><div><h2>Stream</h2><span class="eyebrow">EVERY ACTION · UPDATES EVERY 3 SECONDS</span></div><span class="badge badge-draft" id="live-event-count">0</span></div>
+        <div class="panel-body live-stream" id="live-stream"><p class="muted">Nothing yet.</p></div>
+      </section>
+    </div>
+
+    <section class="panel live-panel" style="margin-top:20px;">
+      <div class="panel-header"><div><h2>Checkout and orders</h2><span class="eyebrow">SHOPIFY PIXEL · ORDER WEBHOOK</span></div></div>
+      <div class="panel-body live-orders" id="live-orders"><p class="muted">No checkout activity in the last hour.</p></div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/live.js"></script>
+</body>
+</html>

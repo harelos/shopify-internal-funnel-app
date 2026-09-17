@@ -1,0 +1,62 @@
+.live-main { max-width: 1280px; }
+.live-intro { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end; }
+.live-intro h1 { margin-bottom: 4px; }
+.live-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.live-control { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.live-control select { padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); font: inherit; }
+.live-check input { width: 16px; height: 16px; }
+
+.live-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 700; color: var(--muted); }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #b3aea4; }
+.live-pill.is-live .live-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(25,123,91,.18); animation: live-pulse 1.6s ease-in-out infinite; }
+.live-pill.is-paused .live-dot { background: var(--yellow-border); }
+.live-pill.is-error .live-dot { background: var(--red); }
+@keyframes live-pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(25,123,91,.12); } 50% { box-shadow: 0 0 0 7px rgba(25,123,91,.04); } }
+@media (prefers-reduced-motion: reduce) { .live-pill.is-live .live-dot { animation: none; } }
+
+.live-counters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
+.live-counters article { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); display: grid; gap: 2px; }
+.live-counters span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.live-counters strong { font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.live-counters small { color: var(--muted); font-size: 12px; }
+.live-counters .is-paid { border-color: rgba(25,123,91,.4); background: #eef8f2; }
+.live-counters .is-paid strong { color: var(--green); }
+
+.live-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+.live-panel .panel-body { max-height: 70vh; overflow: auto; }
+
+.live-session { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); margin-bottom: 10px; }
+.live-session.is-active { border-color: rgba(25,123,91,.45); }
+.live-session.is-internal { opacity: .7; border-style: dashed; }
+.live-session__top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.live-session__who { font-weight: 800; }
+.live-session__meta { font-size: 12px; color: var(--muted); }
+.live-session__last { font-size: 14px; }
+.live-session__last time { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.live-steps { display: flex; flex-wrap: wrap; gap: 5px; }
+.live-step { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #efece5; color: #5a544a; }
+.live-step.on { background: #e3f2ea; color: #145941; }
+.live-step.paid { background: var(--green); color: #fff; }
+.live-variant { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: #fdebe4; color: #9a3d22; }
+
+.live-stream { display: grid; gap: 2px; }
+.live-row { display: grid; grid-template-columns: 56px 22px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 6px 4px; border-bottom: 1px solid #f0ece4; font-size: 14px; }
+.live-row.is-new { animation: live-in .5s ease; }
+@keyframes live-in { from { background: #fbf0c9; } to { background: transparent; } }
+.live-row time { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.live-row .live-icon { text-align: center; }
+.live-row .live-who { color: var(--muted); font-size: 12px; }
+.live-row.kind-cart_add, .live-row.kind-checkout_click { font-weight: 700; }
+.live-row.kind-section { color: var(--muted); }
+.live-row.is-internal { opacity: .55; }
+
+.live-orders { display: grid; gap: 6px; }
+.live-order { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 8px 6px; border-bottom: 1px solid #f0ece4; font-size: 14px; }
+.live-order.is-paid { font-weight: 800; color: var(--green); }
+.live-order time { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+@media (max-width: 960px) {
+  .live-counters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .live-grid { grid-template-columns: 1fr; }
+  .live-panel .panel-body { max-height: none; }
+}

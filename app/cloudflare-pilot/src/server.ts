@@ -25,6 +25,9 @@ import { supportAdminRouter, supportBridgeRouter } from "./routes/support-desk.j
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import trackPageRoutes from "./routes/track-page.js";
 import storefrontVisitRoutes from "./routes/storefront-visit.js";
+import { adaptiveExperimentAdminRouter } from "./routes/adaptive-experiments.js";
+import { liveAdminRouter, liveRuntimeRouter } from "./routes/live-activity.js";
+import { pageEditorAdminRouter } from "./routes/page-editor.js";
 import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
@@ -133,6 +136,8 @@ app.use("/apps/funnels", elementRuntimeRouter);
 // as its own sub-path, which is not on the storefront allowlist, so every
 // popup, concierge and cart-offer call from the storefront was rejected.
 app.use("/apps/funnels", trackPageRoutes);
+// The sales page reports live shopper actions here; the route verifies the app proxy signature itself.
+app.use("/apps/funnels", liveRuntimeRouter);
 
 // Mount ingest and order routes before the storefront proxy surface.
 app.use("/", shopifyIngestRoutes);
@@ -176,6 +181,9 @@ app.use("/api", requireShopifySession);
 app.use("/api", supportAdminRouter);
 app.use("/api", elementAdminRouter);
 app.use("/api", pageExperimentAdminRouter);
+app.use("/api", adaptiveExperimentAdminRouter);
+app.use("/api", liveAdminRouter);
+app.use("/api", pageEditorAdminRouter);
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);

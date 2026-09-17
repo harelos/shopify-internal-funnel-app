@@ -1,0 +1,214 @@
+/* NovaHair adaptive CRO modules (experiment nova_adaptive_cro_v2).
+   Nothing here paints until the engine adds .nh-cro--on, so a visitor without a variant
+   sees the page exactly as it is today. Tokens, radii and weights are the page's own. */
+
+.nova .nh-cro {
+  display: none;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity .2s ease, transform .2s ease;
+  font-family: 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  direction: rtl;
+  text-align: right;
+}
+.nova .nh-cro--on { display: block; }
+.nova .nh-cro--in { opacity: 1; transform: none; }
+.nova .nh-cro * { box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) {
+  .nova .nh-cro { transition: none; }
+}
+
+/* ---------- 1. Bundle Value Delta: an extension of the selected 2-pack card ---------- */
+.nova .nh-cro-vd {
+  border: 1px solid rgba(224,122,40,.55) !important;
+  border-radius: 12px !important;
+  background: #FFFFFF !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 1px 2px rgba(43,36,32,.04) !important;
+}
+.nova .nh-cro-vd__eyebrow {
+  margin-bottom: 4px;
+  color: #C05621;
+  font-size: .7rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.nova .nh-cro-vd__main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  line-height: 1.15;
+}
+.nova .nh-cro-vd__plus {
+  color: #F4570A;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+}
+.nova .nh-cro-vd__gain { color: #1A1A1A; font-size: .95rem; font-weight: 700; }
+.nova .nh-cro-vd__gain b { font-weight: 800; }
+.nova .nh-cro-vd__cmp {
+  margin-top: 4px;
+  overflow: hidden;
+  color: #555555;
+  font-size: .78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova .nh-cro-vd__cmp b { color: #1A1A1A; font-weight: 800; }
+.nova .nh-cro-vd__sub { margin-top: 1px; color: #888888; font-size: .74rem; font-weight: 650; }
+.nova .nh-cro-vd__row { display: flex; align-items: center; gap: 12px; margin-top: 9px; }
+.nova .nh-cro-vd__cta {
+  appearance: none;
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 2px solid #C84505 !important;
+  border-radius: 8px !important;
+  background: #F4570A !important;
+  color: #fff !important;
+  font: 800 15px/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  cursor: pointer;
+}
+.nova .nh-cro-vd__cta:hover { background: #D94806 !important; }
+.nova .nh-cro-vd__cta:focus-visible { outline: 3px solid rgba(244,87,10,.34); outline-offset: 3px; }
+.nova .nh-cro-vd__decline {
+  appearance: none;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: #51311F;
+  font: 700 .78rem/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+@media (min-width: 750px) {
+  .nova .nh-cro-vd.nh-cro--on {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
+    gap: 2px 18px;
+  }
+  .nova .nh-cro-vd__eyebrow { grid-column: 1 / -1; }
+  .nova .nh-cro-vd__row {
+    grid-row: 2 / span 3;
+    grid-column: 2;
+    min-width: 168px;
+    margin-top: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .nova .nh-cro-vd__decline { min-height: 28px; }
+}
+
+/* ---------- 2. Shade Rescue: a sub-card of the shade component ---------- */
+.nova .nh-cro-sr {
+  margin-top: 10px;
+  padding: 10px 12px 11px;
+  border: 1px solid rgba(224,122,40,.5) !important;
+  border-radius: 10px !important;
+  background: #FFF7F1 !important;
+}
+.nova .nh-cro-sr__q { margin-bottom: 3px; color: #1A1A1A; font-size: .9rem; font-weight: 800; line-height: 1.25; }
+.nova .nh-cro-sr__a { margin-bottom: 8px; color: #5A3A25; font-size: .78rem; font-weight: 600; line-height: 1.4; }
+.nova .nh-cro-sr__row { display: flex; align-items: center; gap: 12px; }
+.nova .nh-cro-sr__cta {
+  appearance: none;
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1.5px solid #F4570A !important;
+  border-radius: 999px !important;
+  background: #FFFCF9 !important;
+  color: #2B211C !important;
+  font: 800 .8rem/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  cursor: pointer;
+}
+.nova .nh-cro-sr__cta:focus-visible { outline: 3px solid rgba(244,87,10,.24); outline-offset: 2px; }
+.nova .nh-cro-sr__help {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: #51311F;
+  font: 750 .74rem/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---------- 3. Scroll Rescue: a compact shortcut, not a second hero ---------- */
+.nova .nh-cro-sc-wrap { padding: 0 16px; }
+.nova .nh-cro-sc {
+  width: min(100%, 340px);
+  margin: 0 auto;
+  padding: 18px 20px;
+  border: 1px solid rgba(224,122,40,.5) !important;
+  border-radius: 12px !important;
+  background: #FDFBF8 !important;
+  text-align: center;
+}
+.nova .nh-cro-sc__h { margin-bottom: 4px; color: #C05621; font-size: .8rem; font-weight: 800; line-height: 1.2; }
+.nova .nh-cro-sc__offer { color: #1A1A1A; font-size: 1.3rem; font-weight: 800; line-height: 1.15; }
+.nova .nh-cro-sc__sub { margin: 2px 0 10px; color: #555555; font-size: .78rem; font-weight: 650; }
+.nova .nh-cro-sc__cta {
+  appearance: none;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 12px;
+  border: 2px solid #C84505 !important;
+  border-radius: 8px !important;
+  background: #F4570A !important;
+  color: #fff !important;
+  font: 800 15px/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif !important;
+  cursor: pointer;
+}
+.nova .nh-cro-sc__cta:hover { background: #D94806 !important; }
+.nova .nh-cro-sc__cta:focus-visible { outline: 3px solid rgba(244,87,10,.34); outline-offset: 3px; }
+.nova .nh-cro-sc__trust { margin-top: 8px; color: #3F454A; font-size: .72rem; font-weight: 650; }
+
+/* ---------- 4. Value Delta inside the cart drawer ---------- */
+.nh-cro-cart {
+  display: none;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity .2s ease, transform .2s ease;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(224,122,40,.5);
+  border-radius: 12px;
+  background: #FDFBF8;
+  direction: rtl;
+  text-align: right;
+  font-family: 'Open Sans', 'Arial Hebrew', Arial, sans-serif;
+}
+.nh-cro-cart.nh-cro--on { display: block; }
+.nh-cro-cart.nh-cro--in { opacity: 1; transform: none; }
+.nh-cro-cart * { box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) { .nh-cro-cart { transition: none; } }
+.nh-cro-cart__t { margin-bottom: 2px; color: #C05621; font-size: .74rem; font-weight: 800; }
+.nh-cro-cart__m { color: #1A1A1A; font-size: .9rem; font-weight: 800; line-height: 1.3; }
+.nh-cro-cart__m b { color: #F4570A; font-size: 1.05rem; }
+.nh-cro-cart__c { margin: 3px 0 8px; color: #555555; font-size: .74rem; font-weight: 700; }
+.nh-cro-cart__c b { color: #1A1A1A; font-weight: 800; }
+.nh-cro-cart__cta {
+  appearance: none;
+  width: 100%;
+  min-height: 44px;
+  border: 1.5px solid #F4570A;
+  border-radius: 999px;
+  background: #FFFCF9;
+  color: #2B211C;
+  font: 800 .84rem/1.2 'Open Sans', 'Arial Hebrew', Arial, sans-serif;
+  cursor: pointer;
+}
+.nh-cro-cart__cta[disabled] { opacity: .6; cursor: progress; }
+.nh-cro-cart__cta:focus-visible { outline: 3px solid rgba(244,87,10,.24); outline-offset: 2px; }

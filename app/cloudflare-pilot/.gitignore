@@ -35,3 +35,11 @@ public/admin/js/*
 !public/admin/js/element-experiments.js
 !public/admin/js/support.js
 !public/admin/js/commerce-os-shell.js
+# Adaptive experiments panel, live funnel feed and page editor (2026-09-17).
+!public/admin/live.html
+!public/admin/page-editor.html
+!public/admin/css/live.css
+!public/admin/css/page-editor.css
+!public/admin/js/adaptive-experiments.js
+!public/admin/js/live.js
+!public/admin/js/page-editor.js

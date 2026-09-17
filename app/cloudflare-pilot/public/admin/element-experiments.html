@@ -54,9 +54,21 @@
 
   <main class="main">
     <div class="intro">
-      <h1>Element experiments</h1>
-      <p class="muted">Build and preview a single-element experiment without duplicating the Shopify page.</p>
+      <h1>Experiments</h1>
+      <p class="muted">Adaptive page tests are assigned by PostHog and paid for in Shopify. Element tests below swap one part of the page.</p>
     </div>
+
+    <section class="panel" id="adaptive-panel" style="margin-bottom:20px;">
+      <div class="panel-header">
+        <div><h2>Adaptive page tests</h2><span class="eyebrow">POSTHOG ASSIGNS THE VARIANT · SHOPIFY ORDERS ARE THE SOURCE OF TRUTH</span></div>
+        <div class="actions">
+          <a class="btn btn-sm" href="page-editor.html">Edit the page</a>
+          <a class="btn btn-sm" href="live.html">Watch it live</a>
+          <button class="btn btn-sm" id="adaptive-refresh" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body" id="adaptive-body"><p class="muted">Connecting to PostHog…</p></div>
+    </section>
 
     <div class="lab-layout">
       <aside class="stack">
@@ -160,6 +172,7 @@
   </main>
 
   <script src="js/api.js"></script>
+  <script src="js/adaptive-experiments.js"></script>
   <script src="js/element-experiments.js"></script>
 </body>
 </html>

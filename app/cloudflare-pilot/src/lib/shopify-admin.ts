@@ -836,4 +836,9 @@ export class ShopifyAdminClient {
 
     return data.orders.nodes;
   }
+
+  /** An Admin GraphQL operation for an admin route that has no dedicated helper yet. */
+  async adminGraphql<T>(query: string, variables: Record<string, unknown> = {}, sessionToken?: string): Promise<T> {
+    return this.graphql<T>(query, variables, sessionToken);
+  }
 }

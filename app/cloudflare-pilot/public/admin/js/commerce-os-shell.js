@@ -5,6 +5,7 @@
     ["index.html", "Overview"],
     ["growth-cockpit.html", "Growth"],
     ["journeys.html", "Journeys"],
+    ["live.html", "Live"],
     ["ai-concierge.html", "Experiences"],
     ["element-experiments.html", "Experiments"],
     ["support.html", "Support"],
@@ -16,6 +17,7 @@
     ["popup-analytics.html", "Popup analytics"],
     ["analytics.html", "Analytics"],
     ["funnel.html", "Funnels"],
+    ["page-editor.html", "Page editor"],
   ];
   function link(route, utility) {
     var item = document.createElement("a");

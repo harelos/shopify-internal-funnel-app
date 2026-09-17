@@ -46,7 +46,9 @@ test("the pages that carried an in-page section nav still carry it", () => {
   for (const page of ["index.html", "journeys.html", "operations.html", "shipment-control.html"]) {
     const html = read(`public/admin/${page}`);
     assert.match(html, /<nav class="os-nav"/, `${page} lost its section nav`);
-    const links = (html.match(/<nav class="os-nav"[\s\S]*?<\/nav>/)?.[0].match(/<a /g) || []).length;
-    assert.equal(links, 7, `${page} section nav should list all seven sections`);
+    const nav = html.match(/<nav class="os-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+    const links = (nav.match(/<a /g) || []).length;
+    assert.equal(links, 8, `${page} section nav should list all eight sections`);
+    assert.match(nav, /href="live\.html"/, `${page} section nav should link to the live funnel`);
   }
 });

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Page editor — Commerce OS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/commerce-os.css">
+  <link rel="stylesheet" href="css/page-editor.css">
+  <script defer src="js/commerce-os-shell.js"></script>
+</head>
+<body class="editor-body">
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand">
+        <a href="index.html" class="brand-name">Funnel Control</a>
+        <span class="eyebrow">Page editor</span>
+      </div>
+      <div class="top-actions editor-actions">
+        <label class="editor-page-pick"><span class="eyebrow">Page</span><select id="editor-page"><option value="">Loading pages…</option></select></label>
+        <span class="badge badge-draft" id="editor-status">NOT LOADED</span>
+        <button class="btn btn-sm" id="editor-reload" type="button" title="Throw away unsaved edits and load what Shopify has now">Reload</button>
+        <button class="btn btn-sm" id="editor-save" type="button">Save draft</button>
+        <button class="btn btn-sm" id="editor-preview" type="button" title="Writes the draft to a twin page you can open on your phone">Preview on phone</button>
+        <button class="btn btn-sm btn-primary" id="editor-publish" type="button">Publish</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="editor-layout">
+    <aside class="editor-side">
+      <section class="panel">
+        <div class="panel-header"><div><h2>Sections</h2><span class="eyebrow">DRAG TO REORDER · EYE TO HIDE</span></div><button class="btn btn-sm" id="editor-add-block" type="button">+ HTML block</button></div>
+        <ol class="panel-body editor-sections" id="editor-sections"><li class="muted">Load a page to see its sections.</li></ol>
+      </section>
+      <section class="panel" id="editor-inspector-panel">
+        <div class="panel-header"><div><h2>Selected</h2><span class="eyebrow" id="editor-selected-kind">CLICK ANYTHING IN THE PREVIEW</span></div></div>
+        <div class="panel-body" id="editor-inspector"><p class="muted">Click a text or an image in the preview. Double-click text to type straight into the page.</p></div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>Backups</h2><span class="eyebrow">EVERY PUBLISH KEEPS THE PREVIOUS PAGE</span></div></div>
+        <div class="panel-body editor-backups" id="editor-backups"><p class="muted">None yet.</p></div>
+      </section>
+    </aside>
+
+    <section class="editor-stage">
+      <div class="editor-stage-bar">
+        <div class="editor-device-toggle" role="group" aria-label="Preview width">
+          <button class="btn btn-sm btn-primary" type="button" data-width="390" aria-pressed="true">Phone</button>
+          <button class="btn btn-sm" type="button" data-width="1100" aria-pressed="false">Desktop</button>
+        </div>
+        <span class="muted" id="editor-hint">The preview shows the page's own styles. Buttons and scripts are switched off here; use "Preview on phone" to test the real thing.</span>
+      </div>
+      <div class="editor-frame-wrap" id="editor-frame-wrap" style="--frame-width:390px;">
+        <iframe id="editor-frame" title="Page preview" sandbox="allow-same-origin"></iframe>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="editor-modal" hidden>
+    <div class="modal editor-modal">
+      <h2 id="editor-modal-title">Add an HTML block</h2>
+      <p class="muted" id="editor-modal-copy">Paste HTML. It is inserted as its own section below the selected one (or at the end). Scripts are removed.</p>
+      <textarea id="editor-modal-html" rows="12" spellcheck="false" placeholder="&lt;h2&gt;כותרת&lt;/h2&gt;&lt;p&gt;טקסט&lt;/p&gt;"></textarea>
+      <div class="modal-actions"><button class="btn" type="button" id="editor-modal-cancel">Cancel</button><button class="btn btn-primary" type="button" id="editor-modal-ok">Insert</button></div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/page-editor.js"></script>
+</body>
+</html>
