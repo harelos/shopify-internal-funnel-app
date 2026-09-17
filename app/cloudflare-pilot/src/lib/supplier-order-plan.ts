@@ -2,11 +2,11 @@ import { decodeOceAuraBundleSku, isOceAuraBundleSku } from "./oceaura-cj-auto-or
 import {
   ALL_SHADE_KEYS,
   BOTTLE_KEYS,
-  BOTTLE_WEIGHT_G,
   CJ_ADDON_MAPPINGS,
   CJ_PHYSICAL_MAPPINGS,
-  FREE_KIT_WEIGHT_G,
   UNMAPPED_COMPONENTS,
+  bundleWeightG,
+  componentQuantity,
   decodeBundleSku,
   decodeExtraBottlesSku,
   emptyShadeCounts,
@@ -124,12 +124,13 @@ export function planSupplierOrder(lineItems: SupplierOrderLine[]): SupplierOrder
     // The bundle arrived as its component SKUs, one line per product.
     const bottleSum = BOTTLE_KEYS.reduce((sum, key) => sum + Number(components[key] || 0), 0);
     const kits = Number(components.free_kit || 0);
+    const counts = Object.fromEntries(BOTTLE_KEYS.map(key => [key, Number(components[key] || 0)])) as Record<string, number>;
     expected = {
       bundle_size: bottleSum,
       ...emptyShadeCounts(),
-      ...Object.fromEntries(BOTTLE_KEYS.map(key => [key, Number(components[key] || 0)])),
+      ...counts,
       free_kit: kits,
-      expected_weight_g: (bottleSum * BOTTLE_WEIGHT_G) + (kits * FREE_KIT_WEIGHT_G),
+      expected_weight_g: bundleWeightG(counts, kits),
       original_sku: `DECOMPOSED-BUNDLE-${bottleSum}B`,
     };
   }
@@ -150,7 +151,7 @@ export function planSupplierOrder(lineItems: SupplierOrderLine[]): SupplierOrder
   if (extraTotal > 0) {
     for (const key of ALL_SHADE_KEYS) expected[key] = Number(expected[key] || 0) + extraCounts[key];
     expected.bundle_size += extraTotal;
-    expected.expected_weight_g += extraTotal * BOTTLE_WEIGHT_G;
+    expected.expected_weight_g += bundleWeightG(extraCounts, 0);
     expected.extras = extras;
   }
 
@@ -159,10 +160,14 @@ export function planSupplierOrder(lineItems: SupplierOrderLine[]): SupplierOrder
     expected.expected_weight_g += expected.addons.reduce((sum, addon) => sum + addon.quantity * (CJ_ADDON_MAPPINGS[addon.sku]?.weight_g || 0), 0);
   }
 
-  const blonde = Number(expected.golden_blonde || 0);
-  if (blonde > 0) {
-    return fail("NO_SUPPLIER_MAPPING", expected.original_sku,
-      `${blonde} × ${UNMAPPED_COMPONENTS.golden_blonde.name} cannot be ordered: ${UNMAPPED_COMPONENTS.golden_blonde.reason}`);
+  // A shade the store sells that CJ has no variant for. Empty today; the next
+  // shade added to the catalogue lands here before it can lose an order.
+  for (const key of Object.keys(UNMAPPED_COMPONENTS)) {
+    const quantity = componentQuantity(expected, key);
+    if (quantity > 0) {
+      return fail("NO_SUPPLIER_MAPPING", expected.original_sku,
+        `${quantity} × ${UNMAPPED_COMPONENTS[key].name} cannot be ordered: ${UNMAPPED_COMPONENTS[key].reason}`);
+    }
   }
 
   return { ok: true, expected };

@@ -145,7 +145,7 @@ router.get("/operations/health", async (req, res) => {
     incidents.push({
       severity: "CRITICAL",
       area: "Fulfilment",
-      title: `${count(mappingHolds?.count)} paid order(s) contain a product CJ cannot supply`,
+      title: `${count(mappingHolds?.count)} paid order(s) contain a product with no CJ mapping`,
       action: `${orders || "These orders"}: ${(text(mappingHolds?.reason) || "no CJ variant exists for a line on the order").slice(0, 160)} Decide: source it, refund it, or add the mapping in code; nothing ships until then.`,
     });
   }

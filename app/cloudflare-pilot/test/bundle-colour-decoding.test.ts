@@ -43,8 +43,13 @@ test("every shade the decoder can emit is orderable from CJ", () => {
     assert.ok(mapping, `${key} has no CJ variant, so an order for it could not be placed`);
     assert.match(mapping.vid, /^\d{19}$/);
     assert.match(mapping.sku, /^CJYD\d{9}[A-Z]{2}$/);
-    assert.equal(mapping.weight_g, 330);
+    assert.ok(mapping.weight_g > 0, `${key} has no weight, so CJ could not quote postage for it`);
   }
+  // Six shades share one listing at 330 g; Golden Blonde is sourced from a
+  // second listing, so it weighs and costs differently and must not be
+  // assumed to match the others.
+  assert.equal(CJ_PHYSICAL_MAPPINGS.golden_blonde.weight_g, 370);
+  assert.equal(CJ_PHYSICAL_MAPPINGS.golden_blonde.sku, "CJYD316315806FU");
   // Verified against CJ product 2412030839551623800 on 2026-09-16.
   assert.equal(CJ_PHYSICAL_MAPPINGS.medium_brown.sku, "CJYD223160006FU");
   assert.equal(CJ_PHYSICAL_MAPPINGS.medium_brown.vid, "2507140803121609000");

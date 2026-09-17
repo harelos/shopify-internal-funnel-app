@@ -8,9 +8,9 @@ export interface ExpectedBundle {
   purple: number;
   red: number;
   /**
-   * Sold on the store since September 2026 with no CJ variant behind it, so a
-   * parcel that needs it is refused (see UNMAPPED_COMPONENTS) rather than
-   * shipped without it. Absent on bundles queued before the shade existed.
+   * Sold since September 2026. It has no variant on the six-shade listing;
+   * it is supplied from a second CJ listing (see CJ_PHYSICAL_MAPPINGS).
+   * Absent on bundles queued before the shade existed.
    */
   golden_blonde?: number;
   free_kit: number;
@@ -33,10 +33,10 @@ export interface ExpectedAddon {
   quantity: number;
 }
 
-export type NovaHairBottleKey = "black" | "dark_brown" | "medium_brown" | "light_brown" | "purple" | "red";
+export type NovaHairBottleKey = "black" | "dark_brown" | "medium_brown" | "light_brown" | "purple" | "red" | "golden_blonde";
 export type NovaHairComponentKey = NovaHairBottleKey | "free_kit";
-/** Every shade the store sells, whether or not CJ can supply it. */
-export type NovaHairShadeKey = NovaHairBottleKey | "golden_blonde";
+/** Every shade the store sells. Kept as its own name for the call sites that mean "a colour, not the kit". */
+export type NovaHairShadeKey = NovaHairBottleKey;
 
 export interface CjPhysicalMapping {
   vid: string;
@@ -48,6 +48,13 @@ export interface CjPhysicalMapping {
 export const BOTTLE_WEIGHT_G = 330.0;
 export const FREE_KIT_WEIGHT_G = 110.0;
 
+/**
+ * Six shades come from CJ listing 2412030839551623800 (330 g, $2.09).
+ * Golden Blonde has no variant there at all, which left #4481 paid and
+ * unshippable; it is supplied from listing 2609141240481605400 ("Gold",
+ * 370 g, $1.82), a different box from a different factory. Verified against
+ * CJ on 2026-09-17.
+ */
 export const CJ_PHYSICAL_MAPPINGS: Record<NovaHairComponentKey, CjPhysicalMapping> = {
   black: { vid: "2412030839551624000", sku: "CJYD223160001AZ", name: "Black", weight_g: BOTTLE_WEIGHT_G },
   dark_brown: { vid: "2412030839551624200", sku: "CJYD223160002BY", name: "Dark Brown", weight_g: BOTTLE_WEIGHT_G },
@@ -55,21 +62,18 @@ export const CJ_PHYSICAL_MAPPINGS: Record<NovaHairComponentKey, CjPhysicalMappin
   purple: { vid: "2412030839551624700", sku: "CJYD223160005EV", name: "Purple", weight_g: BOTTLE_WEIGHT_G },
   medium_brown: { vid: "2507140803121609000", sku: "CJYD223160006FU", name: "Medium Brown", weight_g: BOTTLE_WEIGHT_G },
   red: { vid: "2412030839551624600", sku: "CJYD223160004DW", name: "Red", weight_g: BOTTLE_WEIGHT_G },
+  golden_blonde: { vid: "2609141240481606305", sku: "CJYD316315806FU", name: "Golden Blonde", weight_g: 370.0 },
   free_kit: { vid: "ED56BD86-3AF9-4E8E-9855-FBD046D33613", sku: "CJBJMRPF00756-Suit", name: "Free Hair Dye Kit", weight_g: FREE_KIT_WEIGHT_G },
 };
 
 /**
- * Shades the store sells that CJ cannot supply. A parcel that needs one is
- * refused with NO_SUPPLIER_MAPPING and parked where a person will see it,
- * instead of being shipped short or, as happened to #4481, never ordered and
- * never mentioned anywhere.
+ * Shades the store sells that CJ cannot supply. Empty since Golden Blonde was
+ * sourced on 2026-09-17, and kept because the next shade added to the store
+ * will arrive the same way: a parcel that needs one is refused with
+ * NO_SUPPLIER_MAPPING and parked where a person will see it, instead of being
+ * shipped short or, as happened to #4481, never ordered and never mentioned.
  */
-export const UNMAPPED_COMPONENTS: Record<"golden_blonde", { name: string; reason: string }> = {
-  golden_blonde: {
-    name: "Golden Blonde",
-    reason: "CJ product 2412030839551623800 has no Golden Blonde variant; the shade is sold on the store with nothing behind it at the supplier.",
-  },
-};
+export const UNMAPPED_COMPONENTS: Record<string, { name: string; reason: string }> = {};
 
 /**
  * Products sold beside the bundle that CJ ships in the same parcel, keyed by
@@ -127,11 +131,27 @@ export class NovaHairCjAutoOrderError extends Error {
   }
 }
 
-/** Every bottle colour CJ can supply, in no particular order; free_kit is not a bottle. */
-export const BOTTLE_KEYS: NovaHairBottleKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red"];
+/** Every bottle colour, in no particular order; free_kit is not a bottle. */
+export const BOTTLE_KEYS: NovaHairBottleKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "golden_blonde"];
 
-/** Every shade the store sells, supplied or not. */
-export const ALL_SHADE_KEYS: NovaHairShadeKey[] = [...BOTTLE_KEYS, "golden_blonde"];
+/** Alias for the call sites that mean "every shade", supplied or not. */
+export const ALL_SHADE_KEYS: NovaHairShadeKey[] = BOTTLE_KEYS;
+
+/**
+ * How many of one component a parcel needs, read by name.
+ *
+ * UNMAPPED_COMPONENTS is keyed by shades that do not exist in the type yet —
+ * that is the whole point of it — so the lookup cannot be statically typed.
+ */
+export function componentQuantity(expected: ExpectedBundle, key: string): number {
+  return Number((expected as unknown as Record<string, unknown>)[key] || 0);
+}
+
+/** What CJ will weigh: each shade at its own listing's weight, plus the kits. */
+export function bundleWeightG(bottles: Partial<Record<NovaHairShadeKey, number>>, kits: number): number {
+  const shades = BOTTLE_KEYS.reduce((sum, key) => sum + (Number(bottles[key]) || 0) * CJ_PHYSICAL_MAPPINGS[key].weight_g, 0);
+  return shades + kits * FREE_KIT_WEIGHT_G;
+}
 
 /**
  * A NOVASALE SKU lists one quantity per colour, in catalogue order. Each new
@@ -180,7 +200,7 @@ export function decodeBundleSku(sku: string, parentQuantity: number = 1): Expect
     bundle_size: bundleSize * multiplier,
     ...bottles,
     free_kit: 1 * multiplier,
-    expected_weight_g: (bundleSize * multiplier * BOTTLE_WEIGHT_G) + (1 * multiplier * FREE_KIT_WEIGHT_G),
+    expected_weight_g: bundleWeightG(bottles, 1 * multiplier),
     original_sku: text,
   };
 }
@@ -231,7 +251,7 @@ export function decodeExtraBottlesSku(sku: string, parentQuantity: number = 1): 
   return counts;
 }
 
-const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "free_kit"];
+const COMPONENT_ORDER: NovaHairComponentKey[] = ["black", "dark_brown", "medium_brown", "light_brown", "purple", "red", "golden_blonde", "free_kit"];
 
 function compactText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -273,13 +293,12 @@ export function buildNovaHairCjProductLines(expected: ExpectedBundle, storeLineI
   const lines: NovaHairCjProductLine[] = [];
   const explicit = Array.isArray(expected.lines) && expected.lines.length > 0;
 
-  const unmapped = (Object.keys(UNMAPPED_COMPONENTS) as Array<keyof typeof UNMAPPED_COMPONENTS>)
-    .filter(key => Number(expected[key] || 0) > 0);
+  const unmapped = Object.keys(UNMAPPED_COMPONENTS).filter(key => componentQuantity(expected, key) > 0);
   if (unmapped.length) {
     throw new NovaHairCjAutoOrderError(
       "NO_SUPPLIER_MAPPING",
       `CJ has no variant for ${unmapped.map(key => UNMAPPED_COMPONENTS[key].name).join(", ")}; this parcel cannot be ordered until one exists.`,
-      { components: unmapped.map(key => ({ component: key, quantity: Number(expected[key] || 0) })) },
+      { components: unmapped.map(key => ({ component: key, quantity: componentQuantity(expected, key) })) },
     );
   }
 

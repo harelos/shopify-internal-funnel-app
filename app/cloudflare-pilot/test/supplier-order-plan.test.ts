@@ -8,6 +8,7 @@ import {
   decodeBundleSku,
   decodeExtraBottlesSku,
   NovaHairCjAutoOrderError,
+  UNMAPPED_COMPONENTS,
 } from "../src/lib/novahair-cj-auto-order.js";
 import { planSupplierOrder } from "../src/lib/supplier-order-plan.js";
 
@@ -32,20 +33,53 @@ test("a seven-colour SKU decodes with Golden Blonde last and the older shades in
   assert.equal(medium?.medium_brown, 4, "the six older shades keep their positions in the wider SKU");
 });
 
-test("a parcel needing Golden Blonde is refused, not shipped short or forgotten", () => {
-  // #4481: paid on 2026-09-16, never ordered, never mentioned anywhere.
+/**
+ * Golden Blonde has no variant on the six-shade listing, which left #4481
+ * paid and unshippable. Harel sourced it on 2026-09-17 from a second CJ
+ * listing (2609141240481605400, "Gold", 370 g, $1.82), so a blonde parcel is
+ * now ordered like any other — from a different box and a different factory.
+ */
+test("Golden Blonde is ordered from its own CJ listing", () => {
   const plan = planSupplierOrder([{ sku: "NOVASALE-4-0-0-0-0-0-0-4", quantity: 1 }]);
-  assert.equal(plan.ok, false);
-  if (!plan.ok) {
-    assert.equal(plan.code, "NO_SUPPLIER_MAPPING");
-    assert.match(plan.reason, /Golden Blonde/);
+  assert.ok(plan.ok);
+  if (!plan.ok) return;
+  assert.equal(plan.expected.golden_blonde, 4);
+  const lines = bySku(buildNovaHairCjProductLines(plan.expected));
+  assert.equal(lines.CJYD316315806FU, 4);
+  assert.equal(lines[CJ_PHYSICAL_MAPPINGS.free_kit.sku], 1);
+  assert.equal(CJ_PHYSICAL_MAPPINGS.golden_blonde.vid, "2609141240481606305");
+  // It is heavier than the other shades, and CJ charges postage by weight.
+  assert.equal(CJ_PHYSICAL_MAPPINGS.golden_blonde.weight_g, 370);
+  assert.equal(plan.expected.expected_weight_g, 4 * 370 + 110);
+});
+
+test("a mixed blonde bundle orders both listings in one parcel", () => {
+  const plan = planSupplierOrder([{ sku: "NOVASALE-4-2-0-0-0-0-0-2", quantity: 1 }]);
+  assert.ok(plan.ok);
+  if (!plan.ok) return;
+  const lines = bySku(buildNovaHairCjProductLines(plan.expected));
+  assert.equal(lines[CJ_PHYSICAL_MAPPINGS.black.sku], 2);
+  assert.equal(lines.CJYD316315806FU, 2);
+  assert.equal(plan.expected.expected_weight_g, 2 * 330 + 2 * 370 + 110);
+});
+
+test("the refusal guard still catches the next shade the store adds before CJ has it", () => {
+  // Empty today. This is the mechanism, not the blonde case: a shade that
+  // reaches the catalogue before a CJ variant exists must stop the parcel.
+  UNMAPPED_COMPONENTS.red = { name: "Test Shade", reason: "pinned by a test" };
+  try {
+    const plan = planSupplierOrder([{ sku: "NOVASALE-2-0-0-0-0-0-2-0", quantity: 1 }]);
+    assert.equal(plan.ok, false);
+    if (!plan.ok) assert.equal(plan.code, "NO_SUPPLIER_MAPPING");
+    const bundle = decodeBundleSku("NOVASALE-2-0-0-0-0-0-2-0");
+    assert.ok(bundle);
+    assert.throws(
+      () => buildNovaHairCjProductLines(bundle),
+      (error: unknown) => error instanceof NovaHairCjAutoOrderError && error.code === "NO_SUPPLIER_MAPPING",
+    );
+  } finally {
+    delete UNMAPPED_COMPONENTS.red;
   }
-  const bundle = decodeBundleSku("NOVASALE-4-2-0-0-0-0-0-2");
-  assert.ok(bundle);
-  assert.throws(
-    () => buildNovaHairCjProductLines(bundle),
-    (error: unknown) => error instanceof NovaHairCjAutoOrderError && error.code === "NO_SUPPLIER_MAPPING",
-  );
 });
 
 test("the extra-bottle upsell is read and folded into the parcel", () => {
@@ -81,13 +115,17 @@ test("extra bottles bought on their own become their own parcel, without a kit",
   ]);
 });
 
-test("blonde extra bottles are refused like a blonde bundle", () => {
+test("a blonde extra bottle rides along with a non-blonde bundle", () => {
   const plan = planSupplierOrder([
     { sku: "NOVASALE-2-2-0-0-0-0", quantity: 1 },
     { sku: "NOVAEXTRA-1-blonde", quantity: 1 },
   ]);
-  assert.equal(plan.ok, false);
-  if (!plan.ok) assert.equal(plan.code, "NO_SUPPLIER_MAPPING");
+  assert.ok(plan.ok);
+  if (!plan.ok) return;
+  assert.equal(plan.expected.black, 2);
+  assert.equal(plan.expected.golden_blonde, 1);
+  assert.equal(plan.expected.bundle_size, 3);
+  assert.equal(plan.expected.expected_weight_g, 2 * 330 + 370 + 110);
 });
 
 test("add-ons sold beside the bundle travel in the same CJ order", () => {

@@ -84,7 +84,7 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   if (num(cjFailures)) actions.push(`${num(cjFailures)} order(s) failed to reach CJ for another reason. Open Operations for the message CJ returned.`);
   if (num(mappingHolds)) {
     const orders = String(mappingHolds?.orders || "").split(",").filter(Boolean).slice(0, 12).map(n => `#${n}`).join(", ");
-    actions.push(`${num(mappingHolds)} paid order(s) contain a product CJ cannot supply (Golden Blonde, or an add-on with no CJ mapping): ${orders}. Nothing ships until you source it, refund it, or have the mapping added.`);
+    actions.push(`${num(mappingHolds)} paid order(s) contain a product with no CJ mapping (a new shade, or an add-on nobody has looked up): ${orders}. Nothing ships until you source it, refund it, or have the mapping added.`);
   }
   if (num(unsentToCj)) actions.push(`${num(unsentToCj)} sale(s) in the last 7 days are priced from an identical bundle because CJ holds no order for them.`);
   if (num(supportFailed)) actions.push(`${num(supportFailed)} support repl(y/ies) failed to send. Nothing is retried automatically.`);
