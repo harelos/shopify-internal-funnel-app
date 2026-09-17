@@ -13,6 +13,10 @@ public/admin/*
 public/admin/css/*
 !public/admin/js/
 public/admin/js/*
+# Real UI modules, whitelisted: the blanket rule above silently kept
+# money.js and range-picker.js out of git while production ran them.
+!public/admin/js/money.js
+!public/admin/js/range-picker.js
 !public/admin/growth-cockpit.html
 !public/admin/index.html
 !public/admin/journeys.html
