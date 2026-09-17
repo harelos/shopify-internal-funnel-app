@@ -58,10 +58,11 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
   const day = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(yesterday).first<DigestRow>().catch(() => null);
   const prior = await db.prepare(`SELECT * FROM "DashboardDailyMetric" WHERE "localDate" = ?`).bind(dayBefore).first<DigestRow>().catch(() => null);
 
-  const [addressHolds, cjFailures, mappingHolds, unsentToCj, supportFailed, escalated, criticalShipments, adComments, guardianState] = await Promise.all([
+  const [addressHolds, cjFailures, mappingHolds, placeholderPostcodes, unsentToCj, supportFailed, escalated, criticalShipments, adComments, guardianState] = await Promise.all([
     db.prepare(`SELECT COUNT(*) AS c, GROUP_CONCAT("orderNum") AS orders FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_ADDRESS_FIX'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "NovaHairPendingOrder" WHERE "syncState" LIKE '%FAILED%'`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c, GROUP_CONCAT("orderNum") AS orders FROM "NovaHairPendingOrder" WHERE "syncState" = 'NEEDS_SUPPLIER_MAPPING'`).first<DigestRow>().catch(() => null),
+    db.prepare(`SELECT COUNT(*) AS c FROM "NovaHairPendingOrder" WHERE "result" = 'PLACEHOLDER_POSTCODE' AND "lastAttemptAt" >= datetime('now','-7 days')`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "FinancialLedgerEntry" WHERE "source" = 'CJ_ORDER_COSTS' AND "occurredDate" >= ? AND json_extract("metadata", '$.costBasis') = 'CJ_BUNDLE_PRICE'`).bind(shiftDate(today, -7)).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportDraft" WHERE "status" IN ('FAILED','BOUNCED')`).first<DigestRow>().catch(() => null),
     db.prepare(`SELECT COUNT(*) AS c FROM "SupportConversation" WHERE "status" = 'ESCALATED'`).first<DigestRow>().catch(() => null),
@@ -110,6 +111,12 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
     actions.push(`The cost audit could not run: ${String((error as Error)?.message || error).slice(0, 120)}`);
   }
 
+  // Not an action — a parcel that shipped on a placeholder postcode is routed
+  // by street, city and phone, and the owner should know it happened.
+  const placeholderLine = num(placeholderPostcodes)
+    ? `${num(placeholderPostcodes)} parcel(s) in the last 7 days were sent to CJ with a placeholder postcode, because the shopper left it blank.`
+    : "";
+
   const profit = day ? Number(day.netRevenue || 0) - Number(day.productCost || 0) - Number(day.paymentFees || 0) - Number(day.adSpend || 0) : null;
   const priorProfit = prior ? Number(prior.netRevenue || 0) - Number(prior.productCost || 0) - Number(prior.paymentFees || 0) - Number(prior.adSpend || 0) : null;
 
@@ -124,6 +131,7 @@ export async function sendOwnerDigest(now: Date = new Date(), options: { force?:
       ? `Cost covers ${Number(day.costPricedOrders)} of ${Number(day.orders)} order(s); the rest have no CJ order yet.`
       : "",
     costAuditLine,
+    placeholderLine,
     "",
     actions.length ? "NEEDS YOU:" : "Nothing needs you this morning.",
     ...actions.map(line => `• ${line}`),

@@ -365,6 +365,24 @@ function parcelRemark(orderNum: string, expected: ExpectedBundle): string {
   return parts.join("; ").slice(0, 500);
 }
 
+/** CJ rule 4001: digits, spaces and hyphens only, 4–12 characters. */
+export function isUsableCjPostcode(value: unknown): boolean {
+  return /^[0-9 -]{4,12}$/.test(String(value ?? "").trim());
+}
+
+/**
+ * The street line CJ prints, as one field.
+ *
+ * Israeli shoppers split an address across Shopify's two lines however they
+ * like: "25" + "64, ליאון בלום" is a house number with the street underneath.
+ * Sending only address1 as CJ's shippingAddress puts "25" on the label. The
+ * path that actually delivered 79 parcels joins both lines into the one field,
+ * so this does the same.
+ */
+export function cjStreetLine(address: Record<string, unknown>): string {
+  return [address.address1, address.address2].map(optionalText).filter(Boolean).join(" ").trim();
+}
+
 export function buildNovaHairCjCreateOrderPayload(
   orderPayload: Record<string, unknown>,
   expected: ExpectedBundle,
@@ -373,6 +391,14 @@ export function buildNovaHairCjCreateOrderPayload(
     logisticName?: string;
     fromCountryCode?: string;
     isSandbox?: boolean;
+    /**
+     * Used only when the shopper left the postcode blank and the billing
+     * address has none either. CJ refuses an Israeli order without one, and
+     * Israeli last-mile couriers route on street, city and phone, so a
+     * merchant-approved placeholder is the difference between a parcel that
+     * ships and one that sits unsent. Empty disables the fallback.
+     */
+    fallbackPostcode?: string;
   } = {},
 ): NovaHairCjCreateOrderPayload {
   const address = orderPayload.shipping_address && typeof orderPayload.shipping_address === "object" && !Array.isArray(orderPayload.shipping_address)
@@ -397,19 +423,24 @@ export function buildNovaHairCjCreateOrderPayload(
     for (const product of products) if (product.sku === addon.sku) product.storeLineItemId = lineId;
   }
 
+  const realPostcode = [address.zip, billing.zip].map(optionalText).find(isUsableCjPostcode);
+  const fallback = optionalText(options.fallbackPostcode);
+  const postcode = realPostcode ?? (isUsableCjPostcode(fallback) ? fallback : undefined);
+  const placeholderPostcode = !realPostcode && Boolean(postcode);
+
   const payload: NovaHairCjCreateOrderPayload = {
     orderNumber: options.orderNumber ?? novaHairAutoCjOrderNumber(orderNum),
-    shippingZip: optionalText(address.zip) ?? optionalText(billing.zip),
+    shippingZip: postcode,
     shippingCountry: optionalText(address.country) ?? "Israel",
     shippingCountryCode: (optionalText(address.country_code) ?? "IL").toUpperCase(),
     shippingProvince: optionalText(address.province) ?? optionalText(address.city) ?? "Israel",
     shippingCity: optionalText(address.city) ?? optionalText(address.province) ?? "Israel",
     shippingPhone: normalizePhone(address.phone ?? orderPayload.phone),
     shippingCustomerName: customerName(address, orderPayload) ?? "",
-    shippingAddress: optionalText(address.address1) ?? "",
-    shippingAddress2: optionalText(address.address2),
+    // Both Shopify lines in the one field CJ prints; see cjStreetLine.
+    shippingAddress: cjStreetLine(address),
     email: optionalText(orderPayload.email ?? orderPayload.contact_email),
-    remark: parcelRemark(orderNum, expected),
+    remark: parcelRemark(orderNum, expected) + (placeholderPostcode ? `; postcode ${postcode} is a placeholder, route on street/city/phone` : ""),
     payType: 3,
     logisticName: options.logisticName ?? "CJPacket YP Special Line",
     fromCountryCode: options.fromCountryCode ?? "CN",
@@ -420,6 +451,8 @@ export function buildNovaHairCjCreateOrderPayload(
     products,
   };
 
+  // A postcode can be placeholdered; a street line cannot — a parcel with no
+  // street simply cannot be delivered, so it stops here rather than at CJ.
   const missing = [
     ["shippingCustomerName", payload.shippingCustomerName],
     ["shippingAddress", payload.shippingAddress],

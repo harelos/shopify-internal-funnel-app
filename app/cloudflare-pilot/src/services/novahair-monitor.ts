@@ -110,6 +110,7 @@ import {
   buildNovaHairCjCreateOrderPayload,
   CJ_ADDON_MAPPINGS,
   CJ_PHYSICAL_MAPPINGS,
+  isUsableCjPostcode,
   novaHairAutoCjOrderNumber,
   type ExpectedBundle,
   type NovaHairComponentKey,
@@ -278,6 +279,7 @@ async function ensureAutoCjOrder(orderPayload: any, expected: ExpectedBundle, or
   const payload = buildNovaHairCjCreateOrderPayload(orderPayload, expected, {
     orderNumber: novaHairAutoCjOrderNumber(orderNum),
     isSandbox: envFlag("NOVAHAIR_CJ_AUTO_CREATE_SANDBOX"),
+    fallbackPostcode: getEnvVar("NOVAHAIR_CJ_FALLBACK_POSTCODE"),
   });
   const response = await cjPost("shopping/order/createOrderV2", payload as unknown as Record<string, any>);
   const createdOrderId = response?.data?.orderId;
@@ -571,8 +573,13 @@ export async function processPendingQueueCron(db: any): Promise<void> {
     // correcting it in Shopify is all it takes to release the order.
     if (row.syncState === "NEEDS_ADDRESS_FIX") {
       const address = await refreshedShippingAddress(String(rawId));
-      if (!address || !String(address.zip || "").trim()) continue;
-      orderPayload.shipping_address = { ...(orderPayload.shipping_address || {}), ...address };
+      if (address) orderPayload.shipping_address = { ...(orderPayload.shipping_address || {}), ...address };
+      // A postcode the shopper never typed used to hold the order for ever:
+      // this gate waited for a real one and eight paid parcels sat unsent.
+      // With a merchant-approved placeholder configured the parcel can go, so
+      // only an order that has neither keeps waiting.
+      const zips = [orderPayload.shipping_address?.zip, orderPayload.billing_address?.zip];
+      if (!zips.some(isUsableCjPostcode) && !isUsableCjPostcode(getEnvVar("NOVAHAIR_CJ_FALLBACK_POSTCODE"))) continue;
     }
     const firstSeen = new Date(row.firstSeenAt).getTime();
     const elapsedSeconds = Math.floor((Date.now() - firstSeen) / 1000);
@@ -595,11 +602,17 @@ export async function processPendingQueueCron(db: any): Promise<void> {
           continue;
         }
         cjOrder = await ensureAutoCjOrder(orderPayload, expected, orderNum);
+        // Recorded, not hidden: a parcel sent on a placeholder postcode is
+        // routed by street, city and phone, and the owner is told how many.
+        const shipped = orderPayload.shipping_address || {};
+        const billed = orderPayload.billing_address || {};
+        const placeholder = getEnvVar("NOVAHAIR_CJ_FALLBACK_POSTCODE")
+          && ![shipped.zip, billed.zip].some(zip => isUsableCjPostcode(zip));
         await db.prepare(`
           UPDATE "NovaHairPendingOrder"
-          SET syncState = ?, attempts = ?, lastAttemptAt = CURRENT_TIMESTAMP
+          SET syncState = ?, attempts = ?, result = ?, lastAttemptAt = CURRENT_TIMESTAMP
           WHERE orderId = ?
-        `).bind("CJ_AUTO_CREATED", attempts, orderId).run();
+        `).bind("CJ_AUTO_CREATED", attempts, placeholder ? "PLACEHOLDER_POSTCODE" : null, orderId).run();
       } else {
         cjOrder = await findPurchasedCjOrder(orderNum, orderPayload);
       }
