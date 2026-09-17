@@ -30,7 +30,16 @@ const HUMAN_GREETING = /(?:היי|שלום|בוקר טוב|ערב טוב|צהר�
 // impersonates a platform's support while the sender is gmail, outlook, etc.
 // is a phishing follow-up, not the platform and not a customer.
 const FREE_WEBMAIL_SENDER = /@(?:gmail|googlemail|outlook|hotmail|live|yahoo|ymail|proton|protonmail|icloud|gmx|mail|aol|zoho)\.[a-z.]+$/i;
-const IMPERSONATES_PLATFORM = /(?:shopify (?:support|team|billing)|תמיכה של shopify|צוות shopify|תזכורת אחרונה|התראה אחרונה|בעיות שלא נפתרו|לפני שיוחלו הגבלות|unresolved issues affecting your (?:store|site)|suspend(?:ed|ing)? your (?:store|account)|verify your (?:store|account) now)/i;
+// Meta's page-verification template is the other half of this. It arrives in
+// Hebrew addressed to "מנהל יקר", claims the page was verified or is about to
+// lose its badge, and sends the owner to a "security centre" on a link the
+// sender controls. Meta does not write from gmail either.
+const IMPERSONATES_PLATFORM = /(?:shopify (?:support|team|billing)|תמיכה של shopify|צוות shopify|תזכורת אחרונה|התראה אחרונה|בעיות שלא נפתרו|לפני שיוחלו הגבלות|unresolved issues affecting your (?:store|site)|suspend(?:ed|ing)? your (?:store|account)|verify your (?:store|account) now|מנהל יקר|מרכז האבטחה|אישור אימות|אימות הדף|תג האימות|security c(?:entre|enter)|verification badge|page (?:has been )?verified|confirm your identity now)/i;
+// Same tell, different costume. A rights holder writes from a firm or a
+// company domain; an "official intellectual property notice" from a personal
+// gmail account is the extortion template, not a lawyer. Treating it as a
+// legal matter put it in the owner's queue every day and it is simply spam.
+const CLAIMS_LEGAL_AUTHORITY = /(?:הודעה רשמית|קניין רוחני|זכויות יוצרים|הפרת זכויות|סימני? מסחר|דרישה להסרה|נדרשת התייחסות|הליכים משפטיים|copyright (?:infringement|violation|notice)|trademark (?:infringement|violation)|intellectual property|cease and desist|dmca|takedown notice|legal (?:notice|department))/i;
 
 function languageOf(text: string): SupportTriageDecision["language"] {
   const hebrew = (text.match(HEBREW) || []).length;
@@ -58,6 +67,9 @@ export function triageMailboxMessage(input: {
   const from = input.fromAddress.trim();
   if (FREE_WEBMAIL_SENDER.test(from) && IMPERSONATES_PLATFORM.test(`${input.subject}\n${input.textBody}`)) {
     return { classification: "IGNORE", confidence: 0.98, language, reasons: ["IMPERSONATED_PLATFORM_FROM_FREE_WEBMAIL"] };
+  }
+  if (FREE_WEBMAIL_SENDER.test(from) && CLAIMS_LEGAL_AUTHORITY.test(`${input.subject}\n${input.textBody}`)) {
+    return { classification: "IGNORE", confidence: 0.97, language, reasons: ["LEGAL_CLAIM_FROM_FREE_WEBMAIL"] };
   }
   if (OPERATIONS_SENDER.test(from)) {
     return { classification: "IGNORE", confidence: 0.99, language, reasons: ["OPERATIONS_SERVICE_PROVIDER_SENDER"] };

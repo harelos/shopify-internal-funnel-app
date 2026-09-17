@@ -385,3 +385,51 @@ test("an intellectual property demand is legal, not a support question", () => {
   assert.equal(policy.mustEscalate, true);
   assert.equal(mayAutoAcknowledge({ ...ackBase, policy, hasVerifiedOrder: false }), false);
 });
+
+test("an IP shakedown from a personal gmail is spam, not a legal matter", () => {
+  // Verbatim from the mailbox. It reached the owner's queue every day as a
+  // legal escalation; a rights holder does not write from a personal account.
+  const spam = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "shivam764trivedi@gmail.com",
+    subject: "התראת הפרת זכויות יוצרים וסימני מסחר — דרישה להסרה מיידית",
+    textBody: "הודעה רשמית בדבר קניין רוחני וזכויות יוצרים. שימוש בלתי מורשה בנכסי קניין רוחני מוגנים. נדרשת התייחסות",
+  });
+  assert.equal(spam.classification, "IGNORE");
+  assert.deepEqual(spam.reasons, ["LEGAL_CLAIM_FROM_FREE_WEBMAIL"]);
+});
+
+test("a real rights holder writing from a firm domain still reaches a human", () => {
+  // The filter keys on the free-webmail sender, never on the subject alone,
+  // so a genuine notice from a company or law firm is not silenced.
+  const real = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "legal@brandprotection-firm.co.il",
+    subject: "התראת הפרת זכויות יוצרים וסימני מסחר",
+    textBody: "שלום, אנו מייצגים את בעלת הסימן ונדרשת התייחסותכם להפרת זכויות יוצרים באתר.",
+  });
+  assert.notEqual(real.classification, "IGNORE");
+});
+
+test("a customer who happens to use the word rights is not filtered", () => {
+  const customer = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "customer@gmail.com",
+    subject: "שאלה על ההזמנה",
+    textBody: "היי, מתי ההזמנה שלי תגיע? יש לי זכות לדעת מה קורה עם המשלוח",
+  });
+  assert.notEqual(customer.classification, "IGNORE");
+});
+
+test("the Meta page-verification phishing template is filtered", () => {
+  // Verbatim from the mailbox: a Hebrew "your page was verified, visit the
+  // security centre" note from a personal gmail, with the link the sender owns.
+  const phish = triageMailboxMessage({
+    direction: "INBOUND",
+    fromAddress: "karleluge@gmail.com",
+    subject: "סטטוס אישור אימות הדף – TigerbrandsglobalOffical",
+    textBody: "מנהל יקר, הדף שלך TigerbrandsglobalOffical קיבל אישור אימות. היכנס למרכז האבטחה כדי להמשיך בשילוב התג.",
+  });
+  assert.equal(phish.classification, "IGNORE");
+  assert.deepEqual(phish.reasons, ["IMPERSONATED_PLATFORM_FROM_FREE_WEBMAIL"]);
+});
