@@ -1,20 +1,19 @@
 # Custom Distribution configuration. Fill the client_id and public HTTPS URL
 # in the Shopify Dev Dashboard before deploying. An Admin-created custom app
 # cannot be embedded with App Bridge.
-client_id = "REPLACE_WITH_DEV_DASHBOARD_CLIENT_ID"
+client_id = "336aed7a0572b8179610ed2e5698cd78"
 name = "Funnel Control Internal"
-application_url = "https://REPLACE_WITH_PUBLIC_APP_HOST"
+application_url = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = false
-include_config_on_deploy = false
 
 [access_scopes]
 scopes = "read_orders,read_reports,read_pixels,write_app_proxy,write_pixels,read_customer_events"
 
 [app_proxy]
-url = "https://REPLACE_WITH_PUBLIC_APP_HOST"
+url = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev"
 subpath = "funnels"
 prefix = "apps"
 
@@ -23,8 +22,11 @@ api_version = "2026-07"
 
 [[webhooks.subscriptions]]
 topics = ["orders/paid", "orders/updated"]
-uri = "https://REPLACE_WITH_PUBLIC_APP_HOST/webhooks/shopify"
+uri = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/webhooks/shopify"
 
 [[webhooks.subscriptions]]
 topics = ["app/uninstalled"]
-uri = "https://REPLACE_WITH_PUBLIC_APP_HOST/webhooks/shopify"
+uri = "https://shopify-funnel-control.tigerbrands-funnel.workers.dev/webhooks/shopify"
+
+[auth]
+redirect_urls = ["https://shopify-funnel-control.tigerbrands-funnel.workers.dev/auth/callback"]

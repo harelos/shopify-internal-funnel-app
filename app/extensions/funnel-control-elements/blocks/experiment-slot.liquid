@@ -1,0 +1,33 @@
+<div
+  class="fce-slot"
+  data-funnel-slot="{{ block.settings.slot_key | escape }}"
+  data-funnel-slot-min-height="{{ block.settings.minimum_height }}"
+  style="--fce-slot-min-height: {{ block.settings.minimum_height }}px"
+  aria-live="polite"
+  {{ block.shopify_attributes }}
+></div>
+
+{% schema %}
+{
+  "name": "t:blocks.slot.name",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "slot_key",
+      "label": "t:blocks.slot.settings.slot_key",
+      "default": "novahair.sales.gallery.primary"
+    },
+    {
+      "type": "range",
+      "id": "minimum_height",
+      "label": "t:blocks.slot.settings.minimum_height",
+      "min": 0,
+      "max": 900,
+      "step": 10,
+      "unit": "px",
+      "default": 500
+    }
+  ]
+}
+{% endschema %}

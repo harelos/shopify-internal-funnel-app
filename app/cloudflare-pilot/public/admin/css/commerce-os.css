@@ -1,0 +1,49 @@
+:root {
+  --os-ink: #14231f;
+  --os-muted: #63716c;
+  --os-surface: #ffffff;
+  --os-canvas: #f5f7f5;
+  --os-line: #dce5e1;
+  --os-accent: #007a67;
+  --os-accent-soft: #e6f4ef;
+}
+
+body.commerce-os-page { background: var(--os-canvas); color: var(--os-ink); }
+.commerce-os-nav,
+.commerce-os-standalone {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 52px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.commerce-os-nav { border-top: 1px solid rgba(20, 35, 31, .1); }
+.commerce-os-standalone {
+  width: 100%; max-width: none; padding: 0 20px; background: var(--os-surface);
+  border-bottom: 1px solid var(--os-line); box-shadow: 0 1px 0 rgba(20,35,31,.03);
+}
+.commerce-os-wordmark {
+  flex: 0 0 auto; color: var(--os-ink); font-weight: 800; font-size: 14px; letter-spacing: -.01em;
+  text-decoration: none; margin-right: 10px;
+}
+.commerce-os-nav a {
+  flex: 0 0 auto; color: #50605a; font-weight: 700; font-size: 12px; line-height: 1;
+  text-decoration: none; padding: 9px 10px; border-radius: 8px; white-space: nowrap;
+}
+.commerce-os-nav a:hover { color: var(--os-ink); background: #f1f5f3; }
+.commerce-os-nav a[aria-current="page"] { color: #075f51; background: var(--os-accent-soft); }
+.commerce-os-nav .commerce-os-utility { color: #697770; font-weight: 650; }
+.commerce-os-page :focus-visible { outline: 3px solid rgba(0, 122, 103, .35); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .commerce-os-nav,
+  .commerce-os-standalone { width: 100%; min-height: 48px; padding-inline: 12px; gap: 3px; }
+  .commerce-os-nav a { font-size: 12px; padding: 9px 9px; }
+  .commerce-os-wordmark { font-size: 13px; margin-right: 5px; }
+  .commerce-os-page button, .commerce-os-page .btn { min-height: 40px; }
+  .commerce-os-page input, .commerce-os-page select, .commerce-os-page textarea { max-width: 100%; }
+}

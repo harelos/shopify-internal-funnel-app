@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "captured_at_utc": "2026-08-24T15:52:51Z",
+  "decision": "HOLD",
+  "currency": "USD",
+  "meta_account": {
+    "id": "act_8852331774866389",
+    "name": "Shopify Store 3",
+    "timezone": "Asia/Jerusalem",
+    "write_connector_verified": true
+  },
+  "active_campaign": {
+    "id": "120248307316790135",
+    "name": "TEST | NovaHair | ABO | Direct Offer vs VSL | IL",
+    "status": "ACTIVE",
+    "budget_mode": "ABO",
+    "adsets": [
+      {
+        "id": "120248307317390135",
+        "name": "Direct Offer Statics",
+        "effective_status": "ACTIVE",
+        "daily_budget": 24.0,
+        "learning": true,
+        "updated_at_account_time": "2026-08-24T13:09:31+03:00"
+      },
+      {
+        "id": "120248307320940135",
+        "name": "VSL Advertorial Controls / 7 Reasons",
+        "effective_status": "ACTIVE",
+        "daily_budget": 5.0,
+        "learning": true,
+        "updated_at_account_time": "2026-08-24T07:43:12+03:00"
+      }
+    ]
+  },
+  "shopify_test_lifetime": {
+    "since": "2026-08-22",
+    "real_orders": 8,
+    "new_customers": 7,
+    "returning_customers": 1,
+    "revenue": 593.91,
+    "refunds": 0.0,
+    "aov": 74.24,
+    "unfulfilled_real_orders": 8,
+    "strict_paid_utm_orders": 7,
+    "strict_paid_utm_new_customers": 7,
+    "strict_paid_utm_revenue": 513.91
+  },
+  "active_test_meta": {
+    "since": "2026-08-22",
+    "spend": 48.6,
+    "impressions": 2605,
+    "clicks": 119,
+    "inline_link_clicks": 78,
+    "landing_page_views": 72,
+    "add_to_carts": 24,
+    "initiate_checkouts": 15,
+    "omni_purchases": 7,
+    "omni_purchase_value": 523.06,
+    "cpa": 6.94,
+    "roas": 10.762551,
+    "all_click_ctr_pct": 4.57,
+    "link_ctr_pct": 2.99,
+    "all_click_cpc": 0.41,
+    "cpm": 18.66,
+    "lpv_rate_pct": 92.31,
+    "atc_per_lpv_pct": 33.33,
+    "checkout_per_atc_pct": 62.5,
+    "purchase_per_lpv_pct": 9.72
+  },
+  "economics_strict_paid": {
+    "shopify_revenue": 513.91,
+    "known_quoted_main_bundle_product_and_shipping": 226.62,
+    "payment_fees": null,
+    "unknown_addon_and_incremental_shipping_cost": null,
+    "meta_spend": 48.6,
+    "actual_contribution_profit": null,
+    "provisional_contribution_profit_upper_bound": 238.69,
+    "actual_contribution_margin_pct": null,
+    "provisional_contribution_margin_upper_bound_pct": 46.45,
+    "actual_break_even_cpa": null,
+    "provisional_break_even_cpa_upper_bound": 41.04,
+    "new_customer_cac": 6.94
+  },
+  "windows": {
+    "today": {
+      "shopify_real_orders": 4,
+      "shopify_revenue": 290.65,
+      "meta_spend": 14.23,
+      "meta_purchases": 3,
+      "meta_purchase_value": 221.79
+    },
+    "trailing_24h": {
+      "shopify_real_orders": 5,
+      "shopify_revenue": 353.91,
+      "meta_spend": null,
+      "limitation": "Current connectors did not return a reliable hourly spend breakdown."
+    },
+    "trailing_3d": {
+      "shopify_real_orders": 8,
+      "shopify_revenue": 593.91,
+      "meta_account_spend": 49.62
+    },
+    "trailing_7d": {
+      "shopify_known_real_orders": 8,
+      "shopify_known_real_revenue": 593.91,
+      "meta_account_spend": 59.31
+    }
+  },
+  "source_quality": {
+    "shopify_orders_and_refunds": "VERIFIED",
+    "shopify_customer_new_returning": "VERIFIED",
+    "meta_spend_and_funnel": "VERIFIED_CONNECTOR_READ",
+    "cj_main_bundle_costs": "VERIFIED_LIVE_QUOTE_MODEL_NOT_FINAL_CHARGE",
+    "cj_addon_costs": "UNKNOWN",
+    "cj_final_charged_costs": "UNKNOWN",
+    "shopify_payment_fees": "UNKNOWN_MISSING_SCOPE",
+    "exact_meta_trailing_24h_spend": "UNKNOWN"
+  },
+  "meta_actions_executed": 0
+}
