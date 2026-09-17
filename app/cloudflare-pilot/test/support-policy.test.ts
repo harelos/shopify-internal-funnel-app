@@ -3,10 +3,10 @@ import test from "node:test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluateSupportPolicy, mayAutoSend } from "../src/lib/support-policy.js";
+import { evaluateSupportPolicy, mayAutoSend, mayAutoAcknowledge } from "../src/lib/support-policy.js";
 import { triageMailboxMessage } from "../src/lib/support-triage.js";
 import { extractSupportOrderNumber } from "../src/lib/support-email.js";
-import { deterministicLowRiskDecision, ownerReviewHoldingDraft } from "../src/lib/support-replies.js";
+import { deterministicLowRiskDecision, ownerReviewHoldingDraft, escalationAcknowledgementReply } from "../src/lib/support-replies.js";
 
 test("chargeback, legal, refund and safety messages always escalate", () => {
   for (const text of [
@@ -318,4 +318,70 @@ test("a bare 'I have not received it' is still held as a delivery dispute", () =
     hasUnverifiedClaims: false,
     language: "HEBREW",
   }), false);
+});
+
+const ackBase = {
+  enabled: true,
+  automationMode: "AUTOSEND_LOW_RISK",
+  triageReasons: ["SUPPORT_INTENT", "HEBREW_CUSTOMER_SIGNAL"],
+  hasVerifiedOrder: true,
+  alreadyAcknowledged: false,
+  messageAgeMinutes: 30,
+  latestMessageIsInbound: true,
+  language: "HEBREW",
+};
+
+test("a real customer routed to a human is told so instead of hearing nothing", () => {
+  for (const text of [
+    "יש לי אלרגיה, מה הרכיבים במוצר?",
+    "אני רוצה החזר כספי על ההזמנה",
+    "מסומן כנמסר אבל לא קיבלתי את החבילה",
+  ]) {
+    const policy = evaluateSupportPolicy(text);
+    assert.equal(mayAutoSend({ ...ackBase, policy, confidence: 0.99, hasUnverifiedClaims: false }), false, `should not auto-answer: ${text}`);
+    assert.equal(mayAutoAcknowledge({ ...ackBase, policy }), true, `should acknowledge: ${text}`);
+  }
+});
+
+test("the mailbox's non-customers are never acknowledged", () => {
+  const policy = evaluateSupportPolicy("שלום, יש לנו הצעה עבורכם");
+  // Phishing and legal demands: replying confirms a human reads this address.
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy: { ...policy, topic: "FRAUD" } }), false);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy: { ...policy, topic: "LEGAL" } }), false);
+  // She asked for no more email; an acknowledgement is one more email.
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy: { ...policy, topic: "MARKETING_OPT_OUT" } }), false);
+  // Newsletters and vendor threads carry the machine-mail marker.
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, hasVerifiedOrder: false, triageReasons: ["SUPPORT_INTENT", "HEBREW_CUSTOMER_SIGNAL", "BUSINESS_OR_SYSTEM_MAIL_SIGNAL"] }), false);
+  // A supplier pitch has neither an order nor the Hebrew customer signal.
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, hasVerifiedOrder: false, triageReasons: ["PRE_SALE_INTENT"] }), false);
+  // The shipment monitor writes threads that have no customer message at all.
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, hasVerifiedOrder: false, triageReasons: ["SHIPMENT_MONITOR"] }), false);
+});
+
+test("an acknowledgement is sent once, only for this week, and never twice", () => {
+  const policy = evaluateSupportPolicy("אני רוצה החזר כספי");
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, alreadyAcknowledged: true }), false);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, messageAgeMinutes: 8 * 24 * 60 }), false);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, messageAgeMinutes: 6 * 24 * 60 }), true);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, latestMessageIsInbound: false }), false);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, enabled: false }), false);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, automationMode: "OFF" }), false);
+});
+
+test("the acknowledgement promises nothing, claims nothing and carries no dash", () => {
+  const text = escalationAcknowledgementReply();
+  assert.match(text, /הועברה לצוות/);
+  assert.doesNotMatch(text, /[—–]/);
+  // No timeframe, no outcome, no product or order claim.
+  assert.doesNotMatch(text, /\d+\s*(?:ימים|שעות|ימי עסקים)/);
+  assert.doesNotMatch(text, /החזר|זיכוי|מאושר|נמסר|יגיע/);
+});
+
+test("an intellectual property demand is legal, not a support question", () => {
+  // This arrived worded as an ordinary Hebrew message and scored as a customer
+  // question, which would have sent it an automated acknowledgement.
+  const policy = evaluateSupportPolicy("התראת הפרת זכויות יוצרים וסימני מסחר — דרישה להסרה מיידית");
+  assert.equal(policy.topic, "LEGAL");
+  assert.equal(policy.mustEscalate, true);
+  assert.equal(mayAutoAcknowledge({ ...ackBase, policy, hasVerifiedOrder: false }), false);
 });

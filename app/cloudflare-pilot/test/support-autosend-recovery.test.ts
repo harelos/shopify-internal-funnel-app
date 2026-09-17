@@ -31,6 +31,6 @@ test("a deterministic reply that failed only on delivery is resent, an AI reply 
   // Shipment outreach is rendered from verified tracking and has no inbound
   // message to re-draft from, so it retries with the other deterministic
   // renders rather than being stranded FAILED for good.
-  assert.match(desk, /status: "FAILED", attemptCount: \{ lt: 3 \}, model: \{ in: \["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1"\] \}/);
+  assert.match(desk, /status: "FAILED", attemptCount: \{ lt: 3 \}, model: \{ in: \["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1", ESCALATION_ACK_MODEL\] \}/);
   assert.match(desk, /data: \{ status: "QUEUED_TO_SEND", sendAfter: new Date\(\), claimedAt: null, lastDeliveryError: null \}/);
 });

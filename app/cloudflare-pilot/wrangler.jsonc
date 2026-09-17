@@ -33,6 +33,9 @@
     "SHOPIFY_PIXEL_INGEST_ENABLED": "true",
     "SUPPORT_AI_DRAFTS_ENABLED": "true",
     "SUPPORT_WORKER_SEND": "true",
+    // When the real answer has to wait for a person, the customer is told that
+    // within the minute instead of hearing nothing for days.
+    "SUPPORT_ESCALATION_ACK_ENABLED": "true",
     "SHIPMENT_OUTREACH_ENABLED": "true",
     "OWNER_DIGEST_ENABLED": "true",
     "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",
@@ -95,6 +98,7 @@
       "SHOPIFY_PIXEL_INGEST_ENABLED": "true",
       "SUPPORT_AI_DRAFTS_ENABLED": "false",
       "SUPPORT_WORKER_SEND": "false",
+      "SUPPORT_ESCALATION_ACK_ENABLED": "false",
       "SHIPMENT_OUTREACH_ENABLED": "false",
       "OWNER_DIGEST_ENABLED": "false",
       "SHOPIFY_STOREFRONT_DOMAIN": "tigerbrandsglobal.com",

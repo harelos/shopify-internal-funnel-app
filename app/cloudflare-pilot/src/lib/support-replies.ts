@@ -179,3 +179,25 @@ export function deterministicLowRiskDecision(input: {
     model: "verified-order-facts-v1",
   };
 }
+
+/**
+ * The note a customer gets the moment her message is routed to a person.
+ *
+ * It deliberately answers nothing. It states only what is true at that second:
+ * the message arrived, a person has it, an answer is coming. No timeframe is
+ * promised, because the queue is worked by one owner and a missed promise here
+ * costs more than the reassurance is worth. No dashes: they read as
+ * machine-written Hebrew.
+ */
+export function escalationAcknowledgementReply(): string {
+  return [
+    "היי,",
+    "",
+    "קיבלנו את הפנייה שלך והיא הועברה לצוות המתאים אצלנו לבדיקה.",
+    "",
+    "נחזור אלייך עם תשובה מלאה. אם יש פרט נוסף שיעזור לנו, את מוזמנת להשיב כאן.",
+    "",
+    "תודה על הסבלנות,",
+    "צוות Tiger Brands Global",
+  ].join("\n");
+}

@@ -4,7 +4,8 @@ import { getShipmentStatus } from "../lib/cj-tracking-store.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import { generateSupportDecision } from "../lib/support-ai.js";
-import { evaluateSupportPolicy, mayAutoSend, autoSendTopics } from "../lib/support-policy.js";
+import { evaluateSupportPolicy, mayAutoSend, mayAutoAcknowledge, autoSendTopics } from "../lib/support-policy.js";
+import { escalationAcknowledgementReply } from "../lib/support-replies.js";
 import { extractSupportOrderNumber } from "../lib/support-email.js";
 import { triageMailboxMessage, type SupportTriageClass } from "../lib/support-triage.js";
 import { supportD1, supportId, supportNow } from "../lib/support-d1.js";
@@ -12,6 +13,10 @@ import { enabledSupportFactTexts } from "../lib/support-knowledge.js";
 import { renderSupportContextMarkdown } from "../lib/support-context.js";
 
 const shopify = new ShopifyAdminClient();
+
+// Acknowledgements are deterministic text, so they retry on an SMTP timeout
+// like the other deterministic renders rather than being re-drafted.
+const ESCALATION_ACK_MODEL = "escalation-ack-v1";
 
 function canonicalEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -579,6 +584,48 @@ export async function draftSupportReply(conversationId: string, sessionToken?: s
       occurredAt: new Date(),
       payload: { draftId: draft.id, actor: "AUTOMATION_POLICY", reason: "LOW_RISK_POLICY_PASS" },
     });
+  } else {
+    // She wrote in and nothing came back, so she wrote again. When the real
+    // answer has to wait for a person, say so in seconds rather than leaving
+    // her guessing. This never answers the question and never touches a
+    // conversation the automation is already answering itself.
+    const alreadyAcknowledged = await prisma.supportDraft.count({
+      where: { conversationId: conversation.id, model: ESCALATION_ACK_MODEL, createdAt: { gte: latestInbound.sentAt } },
+    });
+    const acknowledge = mayAutoAcknowledge({
+      enabled: workerEnvValue("SUPPORT_ESCALATION_ACK_ENABLED") === "true",
+      automationMode: conversation.mailbox.automationMode,
+      policy,
+      triageReasons: String(conversation.triageReason || "").split(","),
+      hasVerifiedOrder: Array.isArray(orderContext) && orderContext.length > 0,
+      alreadyAcknowledged: alreadyAcknowledged > 0,
+      messageAgeMinutes: Math.max(0, (Date.now() - latestInbound.sentAt.getTime()) / 60000),
+      latestMessageIsInbound: latestMessage.direction === "INBOUND",
+      language: conversation.language,
+    });
+    if (acknowledge) {
+      const ack = await prisma.supportDraft.create({
+        data: {
+          conversationId: conversation.id,
+          status: "QUEUED_TO_SEND",
+          decision: "REPLY",
+          replyText: escalationAcknowledgementReply(),
+          model: ESCALATION_ACK_MODEL,
+          confidence: 1,
+          reason: `Routed to a human (${status}); the customer is told that rather than left waiting.`,
+          verifiedFactsJson: safeJson({ acknowledgementOnly: true }),
+          policyFlagsJson: safeJson([...policy.flags, "ACKNOWLEDGEMENT_ONLY"]),
+          sendAfter: new Date(),
+        },
+      });
+      await appendSupportEvidence({
+        conversationId: conversation.id,
+        kind: "SEND_AUTHORIZED",
+        source: "SUPPORT_POLICY",
+        occurredAt: new Date(),
+        payload: { draftId: ack.id, actor: "AUTOMATION_POLICY", reason: "ESCALATION_ACKNOWLEDGEMENT" },
+      });
+    }
   }
   await prisma.supportConversation.update({
     where: { id: conversation.id },
@@ -655,7 +702,16 @@ export async function processSupportOutbox() {
         aiGenerated: true,
         inReplyTo,
       } }),
-      prisma.supportConversation.update({ where: { id: draft.conversationId }, data: { status: "WAITING_CUSTOMER", lastAgentMessageAt: sentAt } }),
+      // An acknowledgement tells the customer a person is reading; it settles
+      // nothing. Flipping the thread to WAITING_CUSTOMER here would drop it
+      // out of the owner's escalation queue and lose the very work the note
+      // just promised her, so an escalated thread stays escalated.
+      prisma.supportConversation.update({
+        where: { id: draft.conversationId },
+        data: draft.model === ESCALATION_ACK_MODEL && draft.conversation.status === "ESCALATED"
+          ? { lastAgentMessageAt: sentAt }
+          : { status: "WAITING_CUSTOMER", lastAgentMessageAt: sentAt },
+      }),
     ]);
     await appendSupportEvidence({
       conversationId: draft.conversationId,
@@ -686,7 +742,7 @@ export async function processSupportDeskCron() {
   // for good. It is rendered from verified tracking, so it retries like the
   // other deterministic renders.
   await prisma.supportDraft.updateMany({
-    where: { status: "FAILED", attemptCount: { lt: 3 }, model: { in: ["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1"] } },
+    where: { status: "FAILED", attemptCount: { lt: 3 }, model: { in: ["verified-order-facts-v1", "approved-facts-v1", "shipment-outreach-v1", ESCALATION_ACK_MODEL] } },
     data: { status: "QUEUED_TO_SEND", sendAfter: new Date(), claimedAt: null, lastDeliveryError: null },
   });
   const due = await prisma.supportConversation.findMany({

@@ -10,7 +10,9 @@ export interface SupportPolicyDecision {
 
 const rules: Array<{ pattern: RegExp; flag: string; topic: string; risk: SupportRisk }> = [
   { pattern: /charge\s?back|הכחשת עסקה|חברת האשראי|ביטול עסקה דרך/i, flag: "CHARGEBACK_OR_DISPUTE", topic: "PAYMENT_DISPUTE", risk: "HIGH" },
-  { pattern: /עורך דין|תביעה|משטרה|consumer protection|lawyer|legal action/i, flag: "LEGAL_THREAT", topic: "LEGAL", risk: "HIGH" },
+  // An IP demand arrived worded as an ordinary Hebrew support message and none
+  // of these words appeared, so it scored as a customer question.
+  { pattern: /עורך דין|תביעה|משטרה|consumer protection|lawyer|legal action|זכויות יוצרים|סימני? מסחר|הפרת זכויות|copyright|trademark|infringement|cease and desist/i, flag: "LEGAL_THREAT", topic: "LEGAL", risk: "HIGH" },
   { pattern: /להסיר אותי|להוציא אותי|אל תשלחו|לא לשלוח|unsubscribe|opt[ -]?out|stop emailing/i, flag: "MARKETING_OPT_OUT", topic: "MARKETING_OPT_OUT", risk: "HIGH" },
   { pattern: /מחיקת (?:מידע|נתונים)|פרטיות|delete my data|privacy request|data deletion/i, flag: "PRIVACY_REQUEST", topic: "PRIVACY", risk: "HIGH" },
   { pattern: /אלרג|פריחה|כוויה|נשרף|נשירה|פציע|רופא|בית חולים|allerg|rash|burn|injur/i, flag: "HEALTH_OR_SAFETY", topic: "PRODUCT_SAFETY", risk: "HIGH" },
@@ -96,5 +98,56 @@ export function mayAutoSend(input: {
     && !input.hasUnverifiedClaims
     && recentEnough
     && input.latestMessageIsInbound !== false
+    && supportedLanguage;
+}
+
+/**
+ * Never acknowledge these. A holding note is still a reply from the support
+ * mailbox: to a phisher it confirms the address is read by a human, to an
+ * opt-out request it is one more email after she asked for none, and to a
+ * privacy request it starts a clock without answering it.
+ */
+const NEVER_ACKNOWLEDGE = new Set(["FRAUD", "LEGAL", "PRIVACY", "MARKETING_OPT_OUT"]);
+
+/**
+ * Whether a customer whose message is going to a human should still get an
+ * immediate note saying so.
+ *
+ * Silence is the worst answer: she wrote in, nothing came back, and she wrote
+ * again. This does not answer her question and must never look like it does.
+ * It exists so that "a human is reading this" arrives in seconds instead of
+ * days, and it is sent once per inbound message, never repeatedly.
+ *
+ * The hard part is that the mailbox also receives phishing, supplier pitches,
+ * newsletters and vendor threads, and triage marks those ACCEPTED too. A real
+ * Israeli customer leaves `HEBREW_CUSTOMER_SIGNAL`, or has a matched Shopify
+ * order; machine mail leaves `BUSINESS_OR_SYSTEM_MAIL_SIGNAL`.
+ */
+export function mayAutoAcknowledge(input: {
+  enabled: boolean;
+  automationMode: string;
+  policy: SupportPolicyDecision;
+  triageReasons: string[];
+  hasVerifiedOrder: boolean;
+  alreadyAcknowledged: boolean;
+  messageAgeMinutes: number;
+  latestMessageIsInbound: boolean;
+  language?: string;
+}): boolean {
+  const reasons = new Set(input.triageReasons.map(reason => reason.trim().toUpperCase()).filter(Boolean));
+  const looksLikeARealCustomer = input.hasVerifiedOrder || reasons.has("HEBREW_CUSTOMER_SIGNAL");
+  const looksLikeMachineMail = reasons.has("BUSINESS_OR_SYSTEM_MAIL_SIGNAL") || reasons.has("SHIPMENT_MONITOR");
+  // The owner only wants this week's customers chased; older threads are
+  // history he has deliberately archived.
+  const withinTheLastWeek = input.messageAgeMinutes <= 7 * 24 * 60;
+  const supportedLanguage = input.language === undefined || input.language === "HEBREW" || input.language === "MIXED";
+  return input.enabled
+    && input.automationMode !== "OFF"
+    && looksLikeARealCustomer
+    && !looksLikeMachineMail
+    && !NEVER_ACKNOWLEDGE.has(input.policy.topic)
+    && !input.alreadyAcknowledged
+    && withinTheLastWeek
+    && input.latestMessageIsInbound
     && supportedLanguage;
 }
