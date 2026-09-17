@@ -120,6 +120,10 @@ person or from an earlier run all stop it.
   The owner digest exists because of this; prefer surfacing an incident in
   `/api/operations/health` over swallowing.
 - 179 `any` annotations, mostly in the older route files.
+- Two sales funnels feed the CJ queue: NovaHair (`NOVASALE-` colour bundles) and
+  OceAura (`OCEASALE-{shampoo}-{conditioner}-{oil}`, decoded by
+  `src/lib/oceaura-cj-auto-order.ts`). Both ride `NovaHairPendingOrder`; an
+  OceAura bundle carries its component lines and has no free kit.
 - A second checkout of this repository on the Desktop deploys to the **same**
   Worker name. It holds an older comment guardian that only hid comments to
   keep a ratio and answered nobody. Deploy from this tree.
