@@ -7,6 +7,11 @@ export interface EmailScheduleSpec {
   // An anchor is a real-world state, never a label for a timer. In particular,
   // shipment messages must not be sent merely because an order is N days old.
   anchor?: "trigger" | "purchase" | "tracking" | "delay" | "delivered";
+  // "transactional" messages service an order the customer already paid for:
+  // confirmation, tracking, delay notices, and the instructions needed to use
+  // what arrived. They do not require marketing consent. Everything else is
+  // "marketing" (the default) and stays behind the consent gate.
+  kind?: "transactional" | "marketing";
 }
 
 export interface FlowScheduleSpec {
@@ -77,13 +82,13 @@ export const FLOW_SPECS: Record<LifecycleFlow, FlowScheduleSpec> = {
     flow: "post_purchase",
     triggerEvent: "shopify.post_purchase_started",
     emails: [
-      { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps", anchor: "purchase" },
-      { number: 2, offsetMinutes: 2 * day, content: "e02_first_use_prep", anchor: "purchase" },
-      { number: 3, offsetMinutes: 0, content: "e03_shipping_checkin", anchor: "tracking" },
-      { number: 4, offsetMinutes: 0, content: "e04_shipping_support", anchor: "delay" },
-      { number: 5, offsetMinutes: day, content: "e05_first_use_walkthrough", anchor: "delivered" },
-      { number: 6, offsetMinutes: 4 * day, content: "e06_troubleshooting", anchor: "delivered" },
-      { number: 7, offsetMinutes: 10 * day, content: "e07_hair_care", anchor: "delivered" },
+      { number: 1, offsetMinutes: 4 * 60, content: "e01_order_next_steps", anchor: "purchase", kind: "transactional" },
+      { number: 2, offsetMinutes: 2 * day, content: "e02_first_use_prep", anchor: "purchase", kind: "transactional" },
+      { number: 3, offsetMinutes: 0, content: "e03_shipping_checkin", anchor: "tracking", kind: "transactional" },
+      { number: 4, offsetMinutes: 0, content: "e04_shipping_support", anchor: "delay", kind: "transactional" },
+      { number: 5, offsetMinutes: day, content: "e05_first_use_walkthrough", anchor: "delivered", kind: "transactional" },
+      { number: 6, offsetMinutes: 4 * day, content: "e06_troubleshooting", anchor: "delivered", kind: "transactional" },
+      { number: 7, offsetMinutes: 10 * day, content: "e07_hair_care", anchor: "delivered", kind: "transactional" },
       { number: 8, offsetMinutes: 14 * day, content: "e08_review", anchor: "delivered" },
       { number: 9, offsetMinutes: 21 * day, content: "e09_soft_cross_sell", anchor: "delivered" },
       { number: 10, offsetMinutes: 28 * day, content: "e10_hair_gloss_cross_sell", anchor: "delivered" },
@@ -107,6 +112,26 @@ export function emailSpec(flow: LifecycleFlow, emailNumber: number): EmailSchedu
   const spec = FLOW_SPECS[flow].emails.find(email => email.number === emailNumber);
   if (!spec) throw new Error(`unknown_lifecycle_email:${flow}:${emailNumber}`);
   return spec;
+}
+
+/**
+ * NOT_SUBSCRIBED means she never made a choice, which an existing purchase
+ * covers. UNSUBSCRIBED and REDACTED are explicit refusals that no purchase
+ * overrides.
+ */
+export function consentAllowsMarketing(consentState: string | null | undefined): boolean {
+  return consentState !== "UNSUBSCRIBED" && consentState !== "REDACTED";
+}
+
+/**
+ * A paid order creates a service relationship, so transactional messages about
+ * that order go out whatever the marketing flag says.
+ */
+export function orderEmailAllowedForConsent(
+  spec: EmailScheduleSpec,
+  consentState: string | null | undefined,
+): boolean {
+  return spec.kind === "transactional" || consentAllowsMarketing(consentState);
 }
 
 // Resend retains historic aliases permanently. E05-E07 were duplicated from the

@@ -10,7 +10,7 @@ import {
   markScheduleRetry,
   setHealth,
 } from "./db";
-import { emailSpec, FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
+import { consentAllowsMarketing, emailSpec, FLOW_SPECS, resendTemplateAlias } from "./flow-specs";
 import { brandedTrackingDestination, secondaryLifecycleDestination, staticLifecycleDestination } from "./lifecycle-links";
 import { noteDispatchFailure, sendLifecycleEvent } from "./resend";
 import { appendLifecycleUtm, assertRecoveryIdentityPreserved, safeStorefrontUrl } from "./url";
@@ -358,10 +358,19 @@ async function orderEvent(env: LifecycleEnv, row: ScheduledLifecycleRow): Promis
   ).bind(row.entity_id).first<OrderRow>();
   if (!order?.email || !canDispatchTo(env, order.email)) return null;
   const config = lifecycleConfig(env);
-  const marketingEvent = row.event_name === "shopify.post_purchase_started"
+  const orderEvent = row.event_name === "shopify.post_purchase_started"
     || row.event_name === "shopify.replenishment_due";
-  if (marketingEvent && order.consent_state !== "SUBSCRIBED") return null;
-  if (marketingEvent && await localSuppression(env, order.email_hash)) return null;
+  if (orderEvent) {
+    // A transactional post-purchase message services an order she already paid
+    // for, so it is not gated on the marketing flag. Replenishment and the
+    // later post-purchase emails still are.
+    const transactional = row.event_name === "shopify.post_purchase_started"
+      && emailSpec("post_purchase", row.email_number).kind === "transactional";
+    if (!transactional && !consentAllowsMarketing(order.consent_state)) return null;
+    // A hard bounce or spam complaint suppresses everything, transactional
+    // included: the address itself is no longer safe to send to.
+    if (await localSuppression(env, order.email_hash)) return null;
+  }
   if (row.event_name === "shopify.post_purchase_started") {
     const spec = emailSpec("post_purchase", row.email_number);
     if (spec.anchor === "delivered" && !order.delivered_at) return null;

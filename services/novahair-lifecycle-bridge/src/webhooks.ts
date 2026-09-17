@@ -8,7 +8,7 @@ import {
   scheduleLifecycleEvent,
   setHealth,
 } from "./db";
-import { dueAt, FLOW_SPECS, replenishmentOffsetDays } from "./flow-specs";
+import { dueAt, FLOW_SPECS, orderEmailAllowedForConsent, replenishmentOffsetDays } from "./flow-specs";
 import { encryptTrackingNumber } from "./shipment-assurance";
 import { monitorResendQuota } from "./quota";
 import type {
@@ -310,14 +310,13 @@ export async function processFulfillmentObservation(
   const hasReliableTracking = Boolean(trackingNumberHash || safeTrackingUrl);
   if (
     config.shipmentCustomerMessagesEnabled
-    && order.consent_state === "SUBSCRIBED"
     && order.shipping_country_code === "IL"
     && !deliveredAt
     && !readyForPickupAt
   ) {
     if (hasReliableTracking) {
       const trackingSpec = FLOW_SPECS.post_purchase.emails.find(email => email.anchor === "tracking");
-      if (trackingSpec) {
+      if (trackingSpec && orderEmailAllowedForConsent(trackingSpec, order.consent_state)) {
         await scheduleLifecycleEvent(env.DB, {
           idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${trackingSpec.number}`,
           eventName: "shopify.post_purchase_started",
@@ -332,7 +331,7 @@ export async function processFulfillmentObservation(
     }
     if (status === "DELAYED") {
       const delaySpec = FLOW_SPECS.post_purchase.emails.find(email => email.anchor === "delay");
-      if (delaySpec) {
+      if (delaySpec && orderEmailAllowedForConsent(delaySpec, order.consent_state)) {
         await scheduleLifecycleEvent(env.DB, {
           idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${delaySpec.number}`,
           eventName: "shopify.post_purchase_started",
@@ -350,8 +349,10 @@ export async function processFulfillmentObservation(
   // Re-run this idempotent reconciliation for duplicate deliveries too. If a prior
   // attempt failed after recording the receipt, a webhook retry must repair every
   // missing schedule instead of treating the receipt as fully processed.
-  if (deliveredAt && order.consent_state === "SUBSCRIBED" && order.shipping_country_code === "IL") {
-    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "delivered")) {
+  if (deliveredAt && order.shipping_country_code === "IL") {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(
+      email => email.anchor === "delivered" && orderEmailAllowedForConsent(email, order.consent_state),
+    )) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${observation.shopifyOrderId}:post_purchase:email:${spec.number}`,
         eventName: "shopify.post_purchase_started",
@@ -530,8 +531,10 @@ export async function processPaidOrder(
     });
   }
 
-  if (consentState === "SUBSCRIBED" && isDomesticOrder) {
-    for (const spec of FLOW_SPECS.post_purchase.emails.filter(email => email.anchor === "purchase")) {
+  if (isDomesticOrder) {
+    for (const spec of FLOW_SPECS.post_purchase.emails.filter(
+      email => email.anchor === "purchase" && orderEmailAllowedForConsent(email, consentState),
+    )) {
       await scheduleLifecycleEvent(env.DB, {
         idempotencyKey: `order:${gid}:post_purchase:email:${spec.number}`,
         eventName: "shopify.post_purchase_started",
@@ -543,16 +546,19 @@ export async function processPaidOrder(
         now: current,
       });
     }
-    await scheduleLifecycleEvent(env.DB, {
-      idempotencyKey: `order:${gid}:replenishment_due`,
-      eventName: "shopify.replenishment_due",
-      flow: "replenishment",
-      emailNumber: 0,
-      entityType: "order",
-      entityId: gid,
-      dueAt: replenishmentDueAt,
-      now: current,
-    });
+    // Replenishment is entirely marketing: it asks for a second purchase.
+    if (consentState !== "UNSUBSCRIBED" && consentState !== "REDACTED") {
+      await scheduleLifecycleEvent(env.DB, {
+        idempotencyKey: `order:${gid}:replenishment_due`,
+        eventName: "shopify.replenishment_due",
+        flow: "replenishment",
+        emailNumber: 0,
+        entityType: "order",
+        entityId: gid,
+        dueAt: replenishmentDueAt,
+        now: current,
+      });
+    }
   }
   await setHealth(env.DB, "last_shopify_purchase", current, "OK", current);
   await env.DB.prepare(

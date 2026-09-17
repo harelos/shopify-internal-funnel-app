@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { FLOW_SPECS, resendTemplateAlias } from "../src/flow-specs";
+import { consentAllowsMarketing, emailSpec, FLOW_SPECS, orderEmailAllowedForConsent, resendTemplateAlias } from "../src/flow-specs";
 import { buildAutomationBlueprints, EVENT_DEFINITIONS, toResendWorkflow } from "../scripts/lib/automation-blueprints.mjs";
 
 const automations = buildAutomationBlueprints(Object.values(FLOW_SPECS));
@@ -19,6 +19,36 @@ test("six automations contain all 44 sends and start disabled", () => {
   assert.ok(automations.every((automation: { status: string }) => automation.status === "disabled"));
   const sends = automations.flatMap((automation: { steps: Array<{ type: string }> }) => automation.steps.filter(step => step.type === "send_email"));
   assert.equal(sends.length, 44);
+});
+
+test("a paid order unlocks its service emails without a marketing opt-in", () => {
+  // E01-E07 service the order she already paid for.
+  for (const n of [1, 2, 3, 4, 5, 6, 7]) {
+    const spec = emailSpec("post_purchase", n);
+    assert.equal(spec.kind, "transactional", `E${n} should be transactional`);
+    for (const consent of ["SUBSCRIBED", "NOT_SUBSCRIBED", "UNSUBSCRIBED", "UNKNOWN", "PENDING"]) {
+      assert.equal(orderEmailAllowedForConsent(spec, consent), true, `E${n} blocked for ${consent}`);
+    }
+  }
+  // E08-E12 sell something new, so an explicit opt-out still stops them.
+  for (const n of [8, 9, 10, 11, 12]) {
+    const spec = emailSpec("post_purchase", n);
+    assert.notEqual(spec.kind, "transactional", `E${n} should not be transactional`);
+    assert.equal(orderEmailAllowedForConsent(spec, "SUBSCRIBED"), true);
+    assert.equal(orderEmailAllowedForConsent(spec, "NOT_SUBSCRIBED"), true, `E${n} should reach never-asked buyers`);
+    assert.equal(orderEmailAllowedForConsent(spec, "UNSUBSCRIBED"), false, `E${n} must respect an opt-out`);
+    assert.equal(orderEmailAllowedForConsent(spec, "REDACTED"), false, `E${n} must respect redaction`);
+  }
+});
+
+test("an explicit opt-out is the only consent state that blocks marketing", () => {
+  assert.equal(consentAllowsMarketing("SUBSCRIBED"), true);
+  assert.equal(consentAllowsMarketing("NOT_SUBSCRIBED"), true);
+  assert.equal(consentAllowsMarketing("PENDING"), true);
+  assert.equal(consentAllowsMarketing("UNKNOWN"), true);
+  assert.equal(consentAllowsMarketing(null), true);
+  assert.equal(consentAllowsMarketing("UNSUBSCRIBED"), false);
+  assert.equal(consentAllowsMarketing("REDACTED"), false);
 });
 
 test("event-driven post-purchase aliases use isolated V2 drafts", () => {
