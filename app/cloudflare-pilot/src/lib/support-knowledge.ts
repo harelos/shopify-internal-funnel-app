@@ -13,7 +13,7 @@ export interface ApprovedSupportFact {
 export const DEFAULT_SUPPORT_FACTS = [
   { key: "delivery_time", position: 10, factText: "Delivery is available throughout Israel and normally takes 5–12 business days." },
   { key: "free_shipping", position: 20, factText: "Shipping is free for orders above ILS 199." },
-  { key: "novahair_shades", position: 30, factText: "NovaHair currently offers five shades." },
+  { key: "novahair_shades", position: 30, factText: "NovaHair currently offers six shades: black, dark brown, medium brown, light brown, purple and red. There is no blonde shade." },
   { key: "novahair_offer", position: 40, factText: "The recommended four-bottle offer is ILS 239." },
   { key: "coloring_kit", position: 50, factText: "Every order includes a coloring kit valued at ILS 79." },
   { key: "guarantee", position: 60, factText: "The store offers a 60-day guarantee; any refund, cancellation or shade-change action still requires human review and verified eligibility." },

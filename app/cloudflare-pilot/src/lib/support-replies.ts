@@ -15,7 +15,7 @@ export interface DeterministicSupportDecision {
 export const APPROVED_STORE_FACTS = [
   "Delivery is available throughout Israel and normally takes 5–12 business days.",
   "Shipping is free for orders above ILS 199.",
-  "NovaHair currently offers five shades.",
+  "NovaHair currently offers six shades: black, dark brown, medium brown, light brown, purple and red. There is no blonde shade.",
   "The recommended four-bottle offer is ILS 239.",
   "Every order includes a coloring kit valued at ILS 79.",
   "The store offers a 60-day guarantee; any refund, cancellation or shade-change action still requires human review and verified eligibility.",

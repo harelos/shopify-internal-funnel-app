@@ -32,6 +32,7 @@ export default {
       const { sendOwnerDigest } = await import("./services/owner-digest.js");
       const { reconcileMissingCjOrders } = await import("./services/cj-order-backfill.js");
       const { reconcileShopifyOrderAttribution } = await import("./services/shopify-order-reconcile.js");
+      const { processCommentGuardian } = await import("./services/comment-guardian.js");
       if (workerEnv?.DB) {
         // A rejection inside waitUntil settles after this try block has already
         // returned, so the catch below never sees it, and Promise.all would fail
@@ -71,6 +72,12 @@ export default {
         // Carrier events refresh a few orders at a time so the board never waits for the next snapshot.
         if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 2) {
           tasks.push(run("refreshShipmentTracking", refreshShipmentTracking()));
+        }
+        // Comments under a live ad are read by every future buyer. Four times an
+        // hour is fast enough to answer one, and slow enough that Meta's write
+        // limits are never near.
+        if (new Date(event.scheduledTime).getUTCMinutes() % 15 === 3) {
+          tasks.push(run("processCommentGuardian", processCommentGuardian()));
         }
         // Proactive delivery updates twice an hour; each run is capped and idempotent.
         if (new Date(event.scheduledTime).getUTCMinutes() % 30 === 7) {

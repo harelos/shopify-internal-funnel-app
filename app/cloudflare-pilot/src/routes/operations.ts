@@ -49,7 +49,7 @@ router.get("/operations/health", async (req, res) => {
   const authorization = req.get("authorization") ?? "";
   const sessionToken = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : undefined;
 
-  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel, shipmentRun, shipmentCounts] = await Promise.all([
+  const [mailbox, supportCounts, delivery, webhook, financial, experiment, exposure, orders, monitor, pixel, shipmentRun, shipmentCounts, guardian, guardianQueue] = await Promise.all([
     db.prepare(`SELECT "connectionStatus", "automationMode", "replyDelayMinutes", "lastSyncAt",
       "lastAgentRunAt", "nextAgentRunAt", "lastAgentResult", "lastScanCount", "ignoredMessageCount", "lastError"
       FROM "SupportMailbox" ORDER BY "updatedAt" DESC LIMIT 1`).first<Row>(),
@@ -87,6 +87,10 @@ router.get("/operations/health", async (req, res) => {
       SUM(CASE WHEN "isActionable" = 1 AND "workflowState" != 'RESOLVED' AND "severity" = 'CRITICAL' THEN 1 ELSE 0 END) AS "critical",
       SUM(CASE WHEN "isActionable" = 1 AND "workflowState" != 'RESOLVED' AND "contactTarget" LIKE '%CJ%' THEN 1 ELSE 0 END) AS "contactCj"
       FROM "ShipmentOrderState" WHERE "active" = 1`).first<Row>(),
+    db.prepare(`SELECT "mode", "lastRunAt", "lastSuccessAt", "lastError", "liveReplies", "liveHides"
+      FROM "CommentGuardianState" ORDER BY "updatedAt" DESC LIMIT 1`).first<Row>(),
+    db.prepare(`SELECT COUNT(*) AS "waiting" FROM "CommentGuardianComment"
+      WHERE "executedAction" IS NULL AND "recommendedAction" LIKE '%ESCALATE%'`).first<Row>(),
   ]);
 
   const financialRows = financial.results || [];
@@ -186,6 +190,16 @@ router.get("/operations/health", async (req, res) => {
     incidents.push({ severity: "CRITICAL", area: "Fulfillment", title: "Shipment evidence is stale", action: "Verify the Railway fulfillment worker before relying on the shipment queue." });
   } else if (count(shipmentRun.cjReadErrorCount) > 0 || text(shipmentRun.cjState) !== "CURRENT") {
     incidents.push({ severity: "WARNING", area: "Fulfillment", title: "CJ returned partial shipment evidence", action: "Open Shipment Control and work only from orders with verified source agreement." });
+  }
+  // An unanswered comment under a live ad is read by everyone the ad reaches.
+  const guardianError = String(guardian?.lastError ?? "").trim();
+  if (guardianError) {
+    incidents.push({ severity: "WARNING", area: "Ads", title: "Ad-comment guardian last run failed", action: `Meta reported: ${guardianError.slice(0, 120)}` });
+  } else if (guardian && stateFromAge(iso(guardian.lastSuccessAt), now, 90) === "ATTENTION") {
+    incidents.push({ severity: "WARNING", area: "Ads", title: "Ad comments have not been checked recently", action: "Comments under the live ads may be going unanswered. Check the Meta token." });
+  }
+  if (count(guardianQueue?.waiting) > 0) {
+    incidents.push({ severity: "WARNING", area: "Ads", title: `${count(guardianQueue?.waiting)} ad ${count(guardianQueue?.waiting) === 1 ? "comment needs" : "comments need"} a person`, action: "Health, accusation and payment comments are never answered automatically. Answer them on the ad." });
   }
   if (count(shipmentCounts?.critical) > 0) {
     incidents.push({ severity: "CRITICAL", area: "Fulfillment", title: `${count(shipmentCounts?.critical)} critical ${count(shipmentCounts?.critical) === 1 ? "shipment needs" : "shipments need"} action`, action: "Open Shipment Control and start with the first order." });

@@ -67,10 +67,34 @@ minute so they do not all hit external APIs at once.
 | `refreshShipmentTracking` | `:x2` of every 5 | re-reads CJ events, rescoring the board |
 | `sendOwnerDigest` | `:x6` of every 15 | sends once, at 07:00 Israel |
 | `processShipmentOutreach` | `:07`/`:37` | customer emails; capped and idempotent |
+| `processCommentGuardian` | `:x3` of every 15 | answers and hides comments on the live Meta ads |
 
 Anything that emails a customer is behind a flag: `SHIPMENT_OUTREACH_ENABLED`,
-`SUPPORT_WORKER_SEND`, `OWNER_DIGEST_ENABLED`. Staging sets all three to
-`false`.
+`SUPPORT_WORKER_SEND`, `OWNER_DIGEST_ENABLED`, and `COMMENT_GUARDIAN_ENABLED`
+for anything posted in public. Staging sets all four to `false`.
+
+### The ad-comment guardian
+
+`COMMENT_GUARDIAN_MODE` is `shadow` or `live`. Shadow decides and records but
+posts nothing; live posts at most 25 actions per run. It reads the comments on
+every ACTIVE ad, on both Facebook and Instagram, decides with
+`src/lib/comment-intent.ts`, and writes one row per comment to
+`CommentGuardianComment`.
+
+To see what it would say without it saying anything:
+
+    POST /api/growth-cockpit/comment-guardian?shadow=true
+
+which returns the decision and the exact reply for every comment it would act
+on. `?shadow=true` suppresses that one run only; the stored mode is untouched.
+
+It only answers what the store can stand behind: delivery, damage, "it did not
+work", shades, shipping and thanks. Health, skin, pregnancy, ingredients,
+regulatory approval, accusations, payment and price are **never** answered
+automatically — they are counted as escalations and surface in
+`/api/operations/health`. Comments pointing buyers at AliExpress are hidden
+without a reply. Nothing is ever answered twice: a reply from the page, from a
+person or from an earlier run all stop it.
 
 ## Money figures
 
@@ -96,6 +120,9 @@ Anything that emails a customer is behind a flag: `SHIPMENT_OUTREACH_ENABLED`,
   The owner digest exists because of this; prefer surfacing an incident in
   `/api/operations/health` over swallowing.
 - 179 `any` annotations, mostly in the older route files.
+- A second checkout of this repository on the Desktop deploys to the **same**
+  Worker name. It holds an older comment guardian that only hid comments to
+  keep a ratio and answered nobody. Deploy from this tree.
 - 29 test files assert on source text rather than behaviour. They catch wiring
   regressions and nothing else; new tests should call the function.
 - Railway hosts the shipment snapshot and its trial has expired, so that service

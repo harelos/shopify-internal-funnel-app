@@ -878,4 +878,17 @@ router.post("/growth-cockpit/owner-digest", async (req, res) => {
   }
 });
 
+/** Runs the ad-comment guardian now. With shadow=true it decides but posts nothing. */
+router.post("/growth-cockpit/comment-guardian", async (req, res) => {
+  try {
+    const { processCommentGuardian } = await import("../services/comment-guardian.js");
+    const forceShadow = String(req.query.shadow || "") === "true";
+    const result = await processCommentGuardian({ forceShadow, explain: forceShadow || String(req.query.explain || "") === "true" });
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ ok: true, ...result });
+  } catch (error: any) {
+    return res.status(502).json({ ok: false, error: String(error?.message || error).slice(0, 300) });
+  }
+});
+
 export default router;
