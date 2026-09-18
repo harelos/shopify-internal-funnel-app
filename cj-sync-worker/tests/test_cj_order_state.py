@@ -83,7 +83,9 @@ class CjOrderStateTests(unittest.TestCase):
         )
         add, remove = status_tag_changes(current, desired)
         self.assertEqual(add, ["CJ_STATUS_FULFILLED"])
-        self.assertEqual(len(remove), 6)
+        # CJ_PAID is the sticky ledger flag now, not a legacy status: it stays.
+        self.assertEqual(len(remove), 5)
+        self.assertNotIn("CJ_PAID", remove)
         self.assertNotIn("AfterSell Upsell", remove)
 
     def test_reconciled_status_does_not_write_again(self):

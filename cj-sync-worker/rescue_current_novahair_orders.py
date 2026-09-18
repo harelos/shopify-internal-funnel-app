@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cj_auth import cj_request as _cj_request  # noqa: E402
 from cj_auth import get_token, request_json  # noqa: E402
 from novahair_composition import COMPONENTS, parse_bundle_sku  # noqa: E402
+from cj_order_state import supplier_orders_for  # noqa: E402
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -420,7 +421,7 @@ def discover_targets(
         skus = [str(li.get("sku") or "") for li in (order.get("line_items") or [])]
         if not any(SKU_RE.match(sku) for sku in skus):
             continue
-        if existing.get(f"RESCUE-{number}"):
+        if supplier_orders_for(existing, number):
             continue
         if order.get("financial_status") != "paid" or order.get("cancelled_at"):
             skipped.append({"shopify_order": f"#{number}", "action": "SKIPPED", "reason": "NOT_PAID_OR_CANCELLED"})
@@ -463,7 +464,9 @@ def run(apply: bool, auto: bool = False, limit: int = 25) -> int:
         try:
             sku, composition, bottle_count = validate_order(order)
             rescue_number = f"RESCUE-{number}"
-            duplicates = existing.get(rescue_number) or []
+            # Under any prefix: an AUTO- order from the Cloudflare Worker is
+            # this sale's order too, and a second one would ship it twice.
+            duplicates = supplier_orders_for(existing, number)
             if len(duplicates) > 1:
                 raise ValueError("Multiple existing CJ rescue orders")
             if duplicates:

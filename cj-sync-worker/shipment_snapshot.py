@@ -19,12 +19,12 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from cj_auth import cj_request, get_token
+from cj_order_state import choose_supplier_order, shopify_number_of
 from monitor_cj_tracking_to_shopify import shopify_graphql
 from shipment_risk import score_shipment
 
 
 ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
-RESCUE_RE = re.compile(r"^RESCUE-(\d+)$")
 STATE_PATH = Path(__file__).resolve().parent / ".shipment_snapshot_state.json"
 SCHEDULE_HOURS = (9, 15, 21)
 
@@ -110,20 +110,26 @@ def discover_inventory(token: str) -> tuple[dict[str, dict[str, str]], dict[str,
             number = str(row.get("orderNum") or "").strip()
             if str(row.get("orderStatus") or "").upper() == "TRASH":
                 continue
-            match = RESCUE_RE.match(number)
-            if not match:
+            # Any purchase prefix: the board must show the AUTO- orders the
+            # Cloudflare Worker places, not only this worker's RESCUE- ones.
+            shopify_number = shopify_number_of(number)
+            if shopify_number is None:
                 continue
-            grouped.setdefault(f"#{match.group(1)}", []).append(row)
+            grouped.setdefault(f"#{shopify_number}", []).append(row)
         if len(rows) < 100:
             break
 
     unique: dict[str, dict[str, str]] = {}
     conflicts: dict[str, list[dict[str, Any]]] = {}
     for order_name, rows in grouped.items():
-        if len(rows) == 1:
+        # The paid copy stands for the sale; an unpaid extra beside it is
+        # noise to delete, not a conflict. Two paid copies, or several unpaid
+        # ones with nothing paid, stay a conflict for a person.
+        chosen, reason = choose_supplier_order(rows)
+        if chosen is not None and reason in {"paid", "unpaid", "unpaid_extra"}:
             unique[order_name] = {
-                "rescue": str(rows[0].get("orderNum") or ""),
-                "cj_order_id": str(rows[0].get("orderId") or ""),
+                "rescue": str(chosen.get("orderNum") or ""),
+                "cj_order_id": str(chosen.get("orderId") or ""),
             }
         else:
             conflicts[order_name] = rows

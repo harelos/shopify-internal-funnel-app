@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Poll CJ rescue orders and fulfill matching Shopify orders once tracking exists.
+"""Poll the supplier orders CJ holds and fulfill matching Shopify orders once tracking exists.
 
-Rescue orders are DISCOVERED from CJ at runtime by scanning for order numbers
-shaped RESCUE-{shopify order number}. Nothing is hardcoded, so any rescue
-created later is picked up automatically instead of silently going unmonitored.
+Orders are DISCOVERED from CJ at runtime: every live order filed under a
+purchase prefix (RESCUE-, AUTO-, MANUAL-, BACKFILL-) is mapped to its Shopify
+sale, so whichever system placed the order, it is monitored, tagged and
+fulfilled here. Nothing is hardcoded.
 
 It refuses to create a Shopify fulfillment without a real tracking number.
 """
@@ -23,10 +24,13 @@ from cj_auth import cj_request, get_token, request_json  # noqa: E402
 from cj_order_state import (  # noqa: E402
     STATUS_FULFILLED,
     age_tag_changes,
+    choose_supplier_order,
     classify_cj_payment,
     current_status_tag,
     elapsed_order_days,
     has_age_tag,
+    payment_flag_changes,
+    shopify_number_of,
     status_tag_changes,
 )
 
@@ -35,7 +39,6 @@ APP_DIR = Path(__file__).resolve().parent
 ENV_PATH = APP_DIR / ".env"
 SHOP_DOMAIN_DEFAULT = "jacobfelipe.myshopify.com"
 API_VERSION = "2024-10"
-RESCUE_RE = re.compile(r"^RESCUE-(\d+)$")
 
 
 def load_env_file(path: Path) -> None:
@@ -72,45 +75,56 @@ def cj_get(token: str, endpoint: str, params: dict[str, Any]) -> dict[str, Any]:
 
 
 def discover_rescue_orders(token: str) -> dict[str, dict[str, str]]:
-    """Find every live RESCUE-* order in CJ and map it to its Shopify order name.
+    """Every live supplier order CJ holds, one per Shopify sale.
 
-    Replaces a hardcoded table that had gone stale and left seven orders
-    unmonitored. TRASH rows are CJ's soft-deletes and must be ignored.
+    Any purchase prefix counts; the store's own shadow rows ("#4470") never do,
+    and TRASH rows are CJ's soft-deletes. Where CJ holds several live copies of
+    one sale the paid one is the order, and the unpaid extras are reported so
+    they can be deleted before someone pays them as well. Two paid copies is a
+    parcel bought twice: that sale is excluded and named for a person, while
+    every clean order keeps being monitored.
     """
-    found: dict[str, dict[str, str]] = {}
-    duplicates: list[str] = []
+    copies_by_sale: dict[str, list[dict[str, Any]]] = {}
     for page in range(1, 8):
         response = cj_request("GET", "shopping/order/list", params={"pageNum": page, "pageSize": 100}, token=token)
         rows = (response.get("data") or {}).get("list") or []
         if not rows:
             break
         for row in rows:
-            number = str(row.get("orderNum") or "").strip()
             if str(row.get("orderStatus") or "").upper() == "TRASH":
                 continue
-            match = RESCUE_RE.match(number)
-            if not match:
+            number = shopify_number_of(str(row.get("orderNum") or ""))
+            if number is None:
                 continue
-            shopify_name = f"#{match.group(1)}"
-            if shopify_name in found:
-                duplicates.append(shopify_name)
-                continue
-            found[shopify_name] = {"rescue": number, "cj_order_id": str(row.get("orderId") or "")}
+            copies_by_sale.setdefault(f"#{number}", []).append(row)
         if len(rows) < 100:
             break
 
-    if duplicates:
-        # Two+ CJ orders for one Shopify order means one could ship twice, so we
-        # must not auto-fulfill it. But halting the whole run would leave every
-        # other clean order unmonitored (one tangled Aug-25 order should not
-        # block today's shipments). So drop the ambiguous orders and process the
-        # rest; the excluded ones are surfaced for a human to untangle by hand.
-        dupe_names = sorted(set(duplicates))
-        for name in dupe_names:
-            found.pop(name, None)
+    found: dict[str, dict[str, str]] = {}
+    paid_twice: list[str] = []
+    unpaid_extras: list[str] = []
+    for shopify_name, copies in copies_by_sale.items():
+        chosen, reason = choose_supplier_order(copies)
+        if chosen is None:
+            if reason == "paid_twice":
+                paid_twice.append(shopify_name)
+            continue
+        if reason == "unpaid_extra":
+            extras = [str(row.get("orderNum") or "") for row in copies if row is not chosen]
+            unpaid_extras.append(f"{shopify_name} extra {', '.join(extras)}")
+        found[shopify_name] = {"rescue": str(chosen.get("orderNum") or ""), "cj_order_id": str(chosen.get("orderId") or "")}
+
+    if paid_twice:
+        names = sorted(paid_twice)
         print(
-            f"# WARNING: {len(dupe_names)} Shopify order(s) have multiple CJ rescue "
-            f"records and were EXCLUDED (resolve by hand): {dupe_names}",
+            f"# WARNING: {len(names)} Shopify order(s) have multiple PAID CJ orders "
+            f"and were EXCLUDED (resolve by hand): {names}",
+            file=sys.stderr,
+        )
+    if unpaid_extras:
+        print(
+            f"# NOTE: {len(unpaid_extras)} sale(s) carry an unpaid duplicate beside the paid order; "
+            f"delete the extra before it gets paid too: {sorted(unpaid_extras)}",
             file=sys.stderr,
         )
     return dict(sorted(found.items()))
@@ -288,6 +302,28 @@ def reconcile_age_tag(
     }
 
 
+def reconcile_payment_flag(
+    order_id: str,
+    current_tags: list[str],
+    payment_state: str,
+    apply: bool,
+) -> dict[str, Any]:
+    """Keep the CJ_PAID / CJ_UNPAID ledger flag true to what CJ says was paid."""
+    add, remove = payment_flag_changes(current_tags, payment_state)
+    errors: list[dict[str, Any]] = []
+    if apply:
+        if add:
+            errors.extend(add_tags(order_id, add))
+        if remove:
+            errors.extend(remove_tags(order_id, remove))
+    return {
+        "paymentFlag": payment_state,
+        "paymentFlagsAdded": add if apply else [],
+        "paymentFlagsRemoved": remove if apply else [],
+        "paymentFlagErrors": errors,
+    }
+
+
 def create_tracking_fulfillment(fulfillment_order: dict[str, Any], tracking: dict[str, str]) -> tuple[bool, list[dict[str, Any]]]:
     line_items = []
     for edge in (((fulfillment_order.get("lineItems") or {}).get("edges")) or []):
@@ -342,12 +378,17 @@ def run(apply: bool, emit_rows: bool = True) -> int:
 
         current_tags = shopify.get("tags") or []
         if STATUS_FULFILLED in current_tags and has_age_tag(current_tags):
-            rows.append({"order": shopify_order, "cj": expected["rescue"], "action": "COMPLETE_SKIPPED"})
+            # Fulfilled from CJ tracking, so paid: the ledger flag is stamped
+            # once here and never costs a CJ call again.
+            flag_result = reconcile_payment_flag(shopify["id"], current_tags, "paid", apply)
+            rows.append({"order": shopify_order, "cj": expected["rescue"], "action": "COMPLETE_SKIPPED", **flag_result})
             continue
 
         detail = cj_get(token, "shopping/order/getOrderDetail", {"orderId": expected["cj_order_id"]})
         cj_data = detail.get("data") or {}
         tracking = tracking_from_cj(cj_data)
+        # The detail is what CJ believes now; the list can lag it by hours.
+        flag_result = reconcile_payment_flag(shopify["id"], current_tags, classify_cj_payment(cj_data), apply)
 
         age_result = reconcile_age_tag(
             shopify["id"], current_tags, str(shopify.get("createdAt") or ""),
@@ -375,6 +416,7 @@ def run(apply: bool, emit_rows: bool = True) -> int:
                     "paymentDatePresent": bool(str(cj_data.get("paymentDate") or "").strip()),
                     **status_result,
                     **age_result,
+                    **flag_result,
                 }
             )
             continue
@@ -410,6 +452,7 @@ def run(apply: bool, emit_rows: bool = True) -> int:
                     "cjPayment": classify_cj_payment(cj_data).upper(),
                     **status_result,
                     **age_result,
+                    **flag_result,
                 }
             )
             continue
@@ -431,6 +474,7 @@ def run(apply: bool, emit_rows: bool = True) -> int:
                     "cjPayment": classify_cj_payment(cj_data).upper(),
                     **status_result,
                     **age_result,
+                    **flag_result,
                 }
             )
             continue
@@ -453,6 +497,7 @@ def run(apply: bool, emit_rows: bool = True) -> int:
                 "cjPayment": classify_cj_payment(cj_data).upper(),
                 **status_result,
                 **age_result,
+                **flag_result,
             }
         )
 

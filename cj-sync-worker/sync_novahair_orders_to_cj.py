@@ -10,7 +10,8 @@ path that delivered the 24 orders already in CJ.
 Safety model is inherited unchanged from rescue_current_novahair_orders.py:
   * dry run unless --apply
   * never confirms, pays, deletes or fulfills
-  * idempotent on CJ orderNum RESCUE-{shopify order number}
+  * idempotent on any purchased CJ order for the sale, whichever system
+    placed it (RESCUE-, AUTO-, MANUAL-, BACKFILL-)
   * skips unpaid / cancelled / fulfilled / test-tagged orders
   * never prints recipient PII
 
@@ -35,13 +36,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import rescue_current_novahair_orders as rescue  # noqa: E402
 from cj_auth import _build_ssl_context, get_token  # noqa: E402
+from cj_order_state import supplier_orders_for  # noqa: E402
 
 APP_DIR = Path(__file__).resolve().parent
 LOG_PATH = APP_DIR / "novahair_cj_sync_log.json"
 
-# The 24 orders already in CJ use this prefix. Keeping it is what makes the
-# sync idempotent against work the rescue script already did - a new prefix
-# would re-create every one of them as a duplicate.
+# What this worker files its own orders under. Idempotency does not rest on
+# it: an order the Cloudflare Worker filed as AUTO-{n} counts just the same
+# (supplier_orders_for), which is what stops the sale being bought twice.
 ORDER_PREFIX = "RESCUE-"
 
 LINK_NEXT = re.compile(r'<([^>]+)>;\s*rel="next"')
@@ -107,7 +109,7 @@ def run(apply: bool, days: int, limit: int, emit_rows: bool = True) -> int:
             rows.append({"order": f"#{number}", "action": "SKIPPED", "reason": str(exc)})
             continue
 
-        duplicates = existing.get(key) or []
+        duplicates = supplier_orders_for(existing, number)
         if len(duplicates) > 1:
             rows.append({"order": f"#{number}", "action": "BLOCKED", "reason": "multiple CJ orders"})
             continue

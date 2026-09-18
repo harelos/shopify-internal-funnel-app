@@ -29,9 +29,11 @@ CURRENT_STATUS_TAGS = {
     STATUS_TRACKING_RECEIVED,
     STATUS_FULFILLED,
 }
+# CJ_PAID is not historical any more: it is the sticky ledger flag written by
+# payment_flag_changes below and must survive every status change, so it is
+# deliberately absent from this set.
 LEGACY_OPERATIONAL_TAGS = {
     PAYMENT_REQUIRED_TAG,
-    PAID_TAG,
     ORDER_CREATED_TAG,
     UNSHIPPED_TAG,
     LEGACY_MISLEADING_TAG,
@@ -71,7 +73,11 @@ def classify_cj_payment(order: dict[str, Any]) -> str:
 
 
 def payment_tag_plan(order: dict[str, Any], has_tracking: bool) -> tuple[list[str], list[str]]:
-    """Return (tags_to_add, tags_to_remove) for the current CJ state."""
+    """Return (tags_to_add, tags_to_remove) for the current CJ state.
+
+    Legacy scheme, kept for its tests; the monitor writes one status tag via
+    current_status_tag and the ledger flag via payment_flag_changes.
+    """
     state = classify_cj_payment(order)
     if state == "unpaid":
         return (
@@ -170,3 +176,67 @@ def status_tag_changes(current_tags: list[str], desired_status: str | None) -> t
             remove.append(tag)
     add = [desired_status] if desired_status and desired_upper not in {str(t).strip().upper() for t in current_tags} else []
     return add, remove
+
+
+PAID_FLAG_TAG = PAID_TAG
+UNPAID_FLAG_TAG = "CJ_UNPAID"
+PURCHASE_RE = re.compile(r"^(?:RESCUE|AUTO|MANUAL|BACKFILL)-(\d+)$", re.IGNORECASE)
+
+
+def shopify_number_of(order_num: str) -> int | None:
+    """The Shopify order number a purchased CJ order belongs to, under any prefix.
+
+    RESCUE- is this worker's, AUTO- the Cloudflare Worker's (every order since
+    2026-09-16), MANUAL- and BACKFILL- a person's. The store's own shadow row
+    ("#4470") is the connection seeing the sale, not a purchase, and answers
+    None.
+    """
+    match = PURCHASE_RE.match(str(order_num or "").strip())
+    return int(match.group(1)) if match else None
+
+
+def supplier_orders_for(existing: dict[str, list[dict[str, Any]]], number: int) -> list[dict[str, Any]]:
+    """Every live CJ order for one sale, whichever system placed it.
+
+    Looking only for RESCUE-{n} is how this worker bought seventeen parcels a
+    second time on 2026-09-18: the Cloudflare Worker had already filed each of
+    them as AUTO-{n}, and the owner had paid for them nine minutes earlier.
+    """
+    rows: list[dict[str, Any]] = []
+    for order_num, copies in existing.items():
+        if shopify_number_of(order_num) == number:
+            rows.extend(copies)
+    return rows
+
+
+def choose_supplier_order(copies: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, str]:
+    """The one CJ order that stands for a sale, and why.
+
+    A paid copy outranks any unpaid one; among unpaid copies the newest wins.
+    Two paid copies means the parcel was bought twice, which no rule can pick
+    between, so the sale is handed back ("paid_twice") for a person.
+    """
+    live = [row for row in copies if str(row.get("orderStatus") or "").upper() != "TRASH"]
+    if not live:
+        return None, "none"
+    paid = [row for row in live if classify_cj_payment(row) == "paid"]
+    unpaid = [row for row in live if classify_cj_payment(row) != "paid"]
+    if len(paid) > 1:
+        return None, "paid_twice"
+    if paid:
+        return paid[0], "unpaid_extra" if unpaid else "paid"
+    newest = sorted(unpaid, key=lambda row: str(row.get("createDate") or ""))[-1]
+    return newest, "unpaid_ambiguous" if len(unpaid) > 1 else "unpaid"
+
+
+def payment_flag_changes(current_tags: list[str], payment_state: str) -> tuple[list[str], list[str]]:
+    """The ledger flag the owner reads: CJ_PAID once the supplier order is paid, CJ_UNPAID until then.
+
+    Unlike the status tag, which moves on to tracking and fulfilment, this one
+    stays put: an order paid at CJ keeps saying so.
+    """
+    if payment_state == "paid":
+        return effective_tag_changes(current_tags, [PAID_FLAG_TAG], [UNPAID_FLAG_TAG])
+    if payment_state == "unpaid":
+        return effective_tag_changes(current_tags, [UNPAID_FLAG_TAG], [PAID_FLAG_TAG])
+    return [], []
