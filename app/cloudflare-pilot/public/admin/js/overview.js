@@ -60,14 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // This endpoint only sees the visitors the app tracked, so its order count
     // is a subset, and showing it beside a profit built on every Shopify order
     // put two different revenues on one screen.
-    const coverage = data.conversionCoverage;
-    const measurable = coverage ? coverage.measurable !== false : data.overallConvRate != null;
-    setText("metric-conversion", measurable && data.overallConvRate != null ? `${Number(data.overallConvRate).toFixed(1)}%` : "Not measurable");
-    if (coverage) {
-      setText("metric-conversion-note", coverage.note);
-      const tile = byId("metric-conversion")?.closest(".metric-card");
-      if (tile) tile.dataset.quality = coverage.quality;
-    }
+    // The tracked conversion tile is gone. It could only ever divide orders by
+    // the visitors this app happened to see, and on most windows it saw none of
+    // the buyers, so the honest output was the words "Not measurable" sitting in
+    // the middle of a row of real money. The endpoint still returns
+    // conversionCoverage and overallConvRate for the analytics page.
     setText("metric-revenue-note", `${selectedWindow.label} · ${selectedWindow.timezone}`);
     setText("metric-orders-note", "Shopify-paid, test orders excluded");
     setText("growth-visitors", integer.format(Number(data.totalVisitors || 0)));

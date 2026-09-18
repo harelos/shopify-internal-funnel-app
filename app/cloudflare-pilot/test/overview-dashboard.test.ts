@@ -67,12 +67,15 @@ test("the conversion rate is measured against the population it was observed on"
   assert.doesNotMatch(accountHandler, /totalOrders \/ uniqueVisitorIds\.size/);
   assert.match(accountHandler, /convertedVisitorIds\.size \/ uniqueVisitorIds\.size/);
   assert.match(analytics, /conversionCoverage/);
-  assert.match(script, /conversionCoverage/);
-  assert.match(html, /Tracked conversion/);
+  // The overview no longer shows a conversion tile: it could only divide orders
+  // by the visitors this app saw, and on most windows it saw none of the buyers,
+  // so the tile read "Not measurable" in a row of real money. The endpoint still
+  // computes it honestly for the analytics page, which is what is asserted above.
+  assert.doesNotMatch(html, /Tracked conversion/);
 });
 
 test("the first screen answers the money questions, not just the traffic ones", () => {
-  for (const id of ["revenue", "orders", "conversion", "aov", "spend", "roas", "cogs", "fees", "profit", "becpa"]) {
+  for (const id of ["revenue", "orders", "aov", "spend", "roas", "cogs", "fees", "profit", "becpa"]) {
     assert.match(html, new RegExp(`id="metric-${id}"`), `the ${id} metric is missing from the overview`);
   }
   // They must come from the verified financial contract, for the selected window.
@@ -86,7 +89,6 @@ test("a conversion rate is withheld rather than reported as zero when orders exi
   assert.match(analytics, /overallConvRate = measurable/);
   // 0% would describe the business; the truth is that the tracking did not see them.
   assert.match(analytics, /Not measurable:/);
-  assert.match(script, /"Not measurable"/);
 });
 
 test("the window opens with one health number and shows what produced it", () => {
