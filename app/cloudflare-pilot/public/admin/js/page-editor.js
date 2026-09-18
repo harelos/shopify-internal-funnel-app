@@ -188,6 +188,14 @@ document.addEventListener("DOMContentLoaded", () => {
     frame.onload = wirePreview;
   }
   function serializeWithIds() { return state.doc.body.innerHTML; }
+  // the .nova root alone, for "Preview on phone": the Worker drops it into the live page's shell
+  function serializeNova() {
+    const nova = state.doc.querySelector(".nova");
+    if (!nova) return null;
+    const clone = nova.cloneNode(true);
+    [clone, ...clone.querySelectorAll(`[${EDIT_ID}]`)].forEach(el => { el.removeAttribute(EDIT_ID); el.removeAttribute("contenteditable"); el.removeAttribute("spellcheck"); });
+    return clone.outerHTML;
+  }
 
   function wirePreview() {
     const doc = frame.contentDocument;
@@ -316,10 +324,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = event.currentTarget;
     button.disabled = true; setStatus("WRITING PREVIEW…");
     try {
-      const r = await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/preview`, { body: serialize() });
+      const r = await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/preview`, { body: serialize(), nova: serializeNova() });
       setStatus("PREVIEW READY", "badge-active");
-      const opened = window.open(r.url, "_blank", "noopener");
-      if (!opened) Dialogs.alert(`The preview is ready. Open it on any phone:\n${r.url}`, { title: "Preview ready" });
+      byId("editor-hint").innerHTML = `Preview ready: <a href="${escape(r.url)}" target="_blank" rel="noopener">open it here</a> or send the link to your phone. It runs the draft with real buttons and scripts; the live page is untouched.`;
+      window.open(r.url, "_blank", "noopener");
     } catch (error) { setStatus("PREVIEW FAILED"); Dialogs.alert(error.message); }
     finally { button.disabled = false; }
   });

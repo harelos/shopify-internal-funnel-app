@@ -2,16 +2,20 @@ import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
-import { workerEnvValue } from "../lib/shopify-config.js";
-import { BACKUPS_PER_PAGE, cleanEditorMarkup, editableHandle, validateBody } from "../lib/page-editor.js";
+import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
+import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
+import { BACKUPS_PER_PAGE, cleanEditorMarkup, editableHandle, previewIsCurrent, previewPath, previewToken, validateBody, validateNova } from "../lib/page-editor.js";
 
 /**
  * The page editor's server side: read a sales page from Shopify, keep a draft,
- * preview it on a twin page, publish it with a backup, restore a backup.
+ * preview it on the store's own domain through the app proxy, publish it
+ * with a backup, restore a backup.
  * Nothing here touches the theme; only the page body changes, and every
  * publish leaves the previous body one click away.
  */
 export const pageEditorAdminRouter = Router();
+/** Storefront-facing: serves a draft inside the live page's shell at /apps/funnels/page-preview/:handle. */
+export const pageEditorProxyRouter = Router();
 
 const shopify = new ShopifyAdminClient();
 
@@ -62,9 +66,20 @@ async function createPage(input: Record<string, unknown>) {
   return data.pageCreate.page!;
 }
 
+function storefrontDomain(): string {
+  return workerEnvValue("SHOPIFY_STOREFRONT_DOMAIN") || workerEnvValue("SHOP_DOMAIN");
+}
+
 function storefrontUrl(handle: string): string {
-  const domain = workerEnvValue("SHOPIFY_STOREFRONT_DOMAIN") || workerEnvValue("SHOP_DOMAIN");
-  return `https://${domain}/pages/${handle}`;
+  return `https://${storefrontDomain()}/pages/${handle}`;
+}
+
+/** The live page as shoppers get it, scripts included; the editor shell and the phone preview both start from it. */
+async function fetchStorefrontHtml(handle: string): Promise<string> {
+  const url = storefrontUrl(handle);
+  const response = await fetch(url, { headers: { "User-Agent": "FunnelControl page editor", Accept: "text/html" }, signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw new Error(`The storefront returned HTTP ${response.status} for ${url}.`);
+  return await response.text();
 }
 
 async function backupPage(page: ShopifyPage, note: string): Promise<string> {
@@ -110,7 +125,6 @@ pageEditorAdminRouter.get("/page-editor/pages/:handle", async (req, res) => {
       page: { ...page, url: storefrontUrl(handle) },
       draft: draft || null,
       backups: backups.results || [],
-      previewUrl: storefrontUrl(`${handle}-editor-preview`),
     });
   } catch (error) { fail(res, error); }
 });
@@ -118,13 +132,10 @@ pageEditorAdminRouter.get("/page-editor/pages/:handle", async (req, res) => {
 pageEditorAdminRouter.get("/page-editor/pages/:handle/shell", async (req, res) => {
   try {
     const handle = editableHandle(req.params.handle);
-    const url = storefrontUrl(handle);
-    const response = await fetch(url, { headers: { "User-Agent": "FunnelControl page editor", Accept: "text/html" }, signal: AbortSignal.timeout(15000) });
-    if (!response.ok) throw new Error(`The storefront returned HTTP ${response.status} for ${url}.`);
-    const html = (await response.text())
+    const html = (await fetchStorefrontHtml(handle))
       .replace(/<script\b[\s\S]*?<\/script>/gi, "")
       .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "")
-      .replace(/<head>/i, `<head><base href="${url}">`);
+      .replace(/<head>/i, `<head><base href="${storefrontUrl(handle)}">`);
     res.type("html").send(html);
   } catch (error) { fail(res, error); }
 });
@@ -151,21 +162,18 @@ pageEditorAdminRouter.delete("/page-editor/pages/:handle/draft", async (req, res
   } catch (error) { fail(res, error); }
 });
 
-/** Writes the draft to a twin page so it can be opened on a phone before it goes live. */
+/** Keeps the draft's .nova root for the proxy route below; the link it returns is on the store's own domain. */
 pageEditorAdminRouter.post("/page-editor/pages/:handle/preview", async (req, res) => {
   try {
     const handle = editableHandle(req.params.handle);
     const body = cleanEditorMarkup(validateBody(req.body?.body));
-    const source = await findPage(handle);
-    if (!source) return res.status(404).json({ error: `No page with the handle "${handle}".` });
-    const previewHandle = `${handle}-editor-preview`;
-    const existing = await findPage(previewHandle);
-    if (existing) {
-      await updatePage(existing.id, { body, templateSuffix: source.templateSuffix, isPublished: true });
-    } else {
-      await createPage({ title: `Preview · ${source.title}`, handle: previewHandle, body, templateSuffix: source.templateSuffix, isPublished: true });
-    }
-    res.json({ ok: true, url: `${storefrontUrl(previewHandle)}?fc_internal=1&nocache=${Date.now()}` });
+    const nova = cleanEditorMarkup(validateNova(req.body?.nova));
+    const token = previewToken();
+    await db().prepare(`
+      INSERT INTO "PageEditorPreview" ("handle","token","nova","body","createdAt") VALUES (?,?,?,?,?)
+      ON CONFLICT("handle") DO UPDATE SET "token" = excluded."token", "nova" = excluded."nova", "body" = excluded."body", "createdAt" = excluded."createdAt"`)
+      .bind(handle, token, nova, body, new Date().toISOString()).run();
+    res.json({ ok: true, url: `https://${storefrontDomain()}${previewPath(handle, token)}` });
   } catch (error) { fail(res, error); }
 });
 
@@ -205,4 +213,40 @@ pageEditorAdminRouter.post("/page-editor/pages/:handle/restore/:id", async (req,
     const updated = await updatePage(page.id, { body: backup.body, templateSuffix: backup.templateSuffix });
     res.json({ ok: true, restoredFrom: backup.id, safetyBackupId, updatedAt: updated.updatedAt });
   } catch (error) { fail(res, error); }
+});
+
+/**
+ * GET /apps/funnels/page-preview/:handle?t=<token>
+ * Shopify signs the request on its way through the app proxy. The live page is
+ * fetched exactly as shoppers get it and its .nova root is swapped for the
+ * draft's, so every script, style and relative link works and nothing on
+ * Shopify changes. A twin Shopify page would have been simpler, but this store
+ * serves a freshly created page as 404 for many minutes.
+ */
+pageEditorProxyRouter.get("/page-preview/:handle", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  try {
+    if (getShopifyConfig().requireEmbeddedAuth && !verifyShopifyAppProxyRequest(req)) {
+      return res.status(401).type("text/plain").send("This preview link only works on the store's own domain.");
+    }
+    const handle = editableHandle(req.params.handle);
+    const row = await db().prepare(`SELECT "token","nova","createdAt" FROM "PageEditorPreview" WHERE "handle" = ?`)
+      .bind(handle).first<{ token: string; nova: string; createdAt: string }>();
+    if (!row || !previewIsCurrent(row, req.query.t)) {
+      return res.status(404).type("text/plain").send("This preview link has expired. Press \"Preview on phone\" in the page editor for a fresh one.");
+    }
+    const shell = await fetchStorefrontHtml(handle);
+    let swapped = 0;
+    const html = await new HTMLRewriter()
+      .on("head", { element(el) { el.prepend('<meta name="robots" content="noindex,nofollow">', { html: true }); } })
+      .on(".nova", { element(el) { if (swapped++ === 0) el.replace(row.nova, { html: true }); } })
+      .transform(new Response(shell, { headers: { "content-type": "text/html; charset=utf-8" } }))
+      .text();
+    if (!swapped) throw new Error("The live page has no .nova root to swap.");
+    res.type("html").send(html);
+  } catch (error) {
+    const message = String((error as Error)?.message || error).slice(0, 300);
+    res.status(/not a page handle|only opens/.test(message) ? 400 : 502).type("text/plain").send(`Preview unavailable: ${message}`);
+  }
 });

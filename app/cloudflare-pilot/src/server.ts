@@ -27,7 +27,7 @@ import trackPageRoutes from "./routes/track-page.js";
 import storefrontVisitRoutes from "./routes/storefront-visit.js";
 import { adaptiveExperimentAdminRouter } from "./routes/adaptive-experiments.js";
 import { liveAdminRouter, liveRuntimeRouter } from "./routes/live-activity.js";
-import { pageEditorAdminRouter } from "./routes/page-editor.js";
+import { pageEditorAdminRouter, pageEditorProxyRouter } from "./routes/page-editor.js";
 import { workerEnvValue } from "./lib/shopify-config.js";
 import { seedDemoFunnelIfNeeded } from "./services/seed.js";
 
@@ -138,6 +138,7 @@ app.use("/apps/funnels", elementRuntimeRouter);
 app.use("/apps/funnels", trackPageRoutes);
 // The sales page reports live shopper actions here; the route verifies the app proxy signature itself.
 app.use("/apps/funnels", liveRuntimeRouter);
+app.use("/apps/funnels", pageEditorProxyRouter);
 
 // Mount ingest and order routes before the storefront proxy surface.
 app.use("/", shopifyIngestRoutes);
