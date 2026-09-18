@@ -5,6 +5,8 @@ import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
 import { looksLikeBot, requestLimited } from "../lib/request-limit.js";
 import { looksLikeInternalTraffic } from "../lib/internal-traffic.js";
+import { CRO_EXPERIMENT_KEY, countersFromEvents, weightsFromFlag } from "../lib/cro-assignment.js";
+import { getFlagByKey, postHogConfigured } from "../lib/posthog-admin.js";
 import {
   LIVE_RETENTION_HOURS,
   deviceClass,
@@ -66,6 +68,25 @@ liveRuntimeRouter.post("/live", async (req, res) => {
       randomUUID(), shop, batch.sessionKey, batch.visitorKey, new Date(event.at).toISOString(), receivedAt,
       event.kind, event.label, batch.page, JSON.stringify(event.detail), device, batch.source, batch.variant, isInternal ? 1 : 0,
     )));
+    // The live feed is pruned after two days, so the test's denominator cannot
+    // live in it. One durable row per visitor, raised as they go.
+    if (batch.variant) {
+      const counters = countersFromEvents(batch.events as Array<{ kind?: unknown }>);
+      try {
+        await handle.prepare(`
+          INSERT INTO "CroAssignment" ("id","experimentKey","variant","visitorKey","firstSeenAt","lastSeenAt","addedToCart","reachedCheckout","isInternal")
+          VALUES (?,?,?,?,?,?,?,?,?)
+          ON CONFLICT("experimentKey","visitorKey") DO UPDATE SET
+            "lastSeenAt" = excluded."lastSeenAt",
+            "addedToCart" = max("CroAssignment"."addedToCart", excluded."addedToCart"),
+            "reachedCheckout" = max("CroAssignment"."reachedCheckout", excluded."reachedCheckout")`)
+          .bind(randomUUID(), CRO_EXPERIMENT_KEY, batch.variant, batch.visitorKey, receivedAt, receivedAt,
+                counters.addedToCart ? 1 : 0, counters.reachedCheckout ? 1 : 0, isInternal ? 1 : 0).run();
+      } catch (error) {
+        console.warn("cro_assignment_write_failed", String((error as Error)?.message || error).slice(0, 120));
+      }
+    }
+
     // keep two days; one request in fifty pays for the sweep
     if (Math.random() < 0.02) {
       const cutoff = new Date(Date.now() - LIVE_RETENTION_HOURS * 3600 * 1000).toISOString();
@@ -135,3 +156,32 @@ liveAdminRouter.get("/live/feed", async (req, res) => {
 function safeJson(value: string): Record<string, unknown> {
   try { return JSON.parse(value || "{}"); } catch { return {}; }
 }
+
+/**
+ * GET /apps/funnels/cro-split
+ *
+ * The sales page buckets the visitor itself rather than waiting for PostHog,
+ * so it needs to know the split. PostHog stays the place the split is edited;
+ * this just publishes it. Cached briefly so a burst of visitors is one call.
+ */
+let splitCache: { at: number; body: unknown } | null = null;
+const SPLIT_CACHE_MS = 60_000;
+
+liveRuntimeRouter.get("/cro-split", async (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60");
+  try {
+    if (splitCache && Date.now() - splitCache.at < SPLIT_CACHE_MS) return res.json(splitCache.body);
+    const flag = postHogConfigured() ? await getFlagByKey(CRO_EXPERIMENT_KEY) : null;
+    const body = {
+      flag: CRO_EXPERIMENT_KEY,
+      active: flag ? Boolean(flag.active) : false,
+      variants: weightsFromFlag(flag),
+    };
+    splitCache = { at: Date.now(), body };
+    return res.json(body);
+  } catch (error) {
+    // A page that cannot reach us still has to test something, so it falls back on its own.
+    console.warn("cro_split_unavailable", String((error as Error)?.message || error).slice(0, 120));
+    return res.status(503).json({ error: "split unavailable" });
+  }
+});

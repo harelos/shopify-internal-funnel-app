@@ -591,6 +591,96 @@
     if (state.addedToCart) tagCart();
   }
 
+  /* ------------------------------------------------------------ self-assignment */
+
+  /* PostHog only answers once the shopper has accepted cookies. On the first night that left
+   * roughly five sessions in seven with no variant at all, including both paid orders, so the
+   * test measured almost nobody. The page therefore buckets the visitor itself, from a key it
+   * already has, and tells PostHog afterwards. Same FNV-1a hash as src/lib/cro-assignment.ts:
+   * keep the two in step or a visitor lands in different buckets in different places. */
+
+  var SPLIT_URL = '/apps/funnels/cro-split';
+  var SPLIT_CACHE_KEY = 'nova_cro_split_v1';
+  var SPLIT_CACHE_MS = 10 * 60 * 1000;
+  var DEFAULT_SPLIT = [{ key: 'control', weight: 50 }, { key: 'full_adaptive', weight: 50 }];
+
+  function visitorKey() {
+    var m = doc.cookie.match(/(?:^|; )_fc_visitor=([^;]+)/);
+    var fromCookie = m ? decodeURIComponent(m[1]) : '';
+    if (/^[A-Za-z0-9_-]{8,120}$/.test(fromCookie)) return fromCookie;
+    try {
+      var stored = global.localStorage.getItem('nh_live_visitor');
+      if (stored) return stored;
+      var fresh = 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      global.localStorage.setItem('nh_live_visitor', fresh);
+      return fresh;
+    } catch (_) {
+      /* storage denied: still bucket this page load rather than dropping the visitor */
+      return 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+    }
+  }
+
+  function hashKey(key) {
+    var hash = 2166136261;
+    for (var i = 0; i < key.length; i += 1) {
+      hash ^= key.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function bucket(key, weights) {
+    var eligible = [];
+    for (var i = 0; i < weights.length; i += 1) {
+      if (weights[i] && Number(weights[i].weight) > 0 && VARIANTS.indexOf(weights[i].key) !== -1) eligible.push(weights[i]);
+    }
+    if (!eligible.length || !key) return null;
+    var total = 0;
+    for (var t = 0; t < eligible.length; t += 1) total += Number(eligible[t].weight);
+    var point = hashKey(key) % total;
+    for (var v = 0; v < eligible.length; v += 1) {
+      point -= Number(eligible[v].weight);
+      if (point < 0) return eligible[v].key;
+    }
+    return eligible[eligible.length - 1].key;
+  }
+
+  function cachedSplit() {
+    try {
+      var raw = global.localStorage.getItem(SPLIT_CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.at || Date.now() - parsed.at > SPLIT_CACHE_MS) return null;
+      return parsed;
+    } catch (_) { return null; }
+  }
+
+  function assignFrom(split) {
+    if (state.variant) return;
+    if (split && split.active === false) return;         /* test paused: leave the page alone */
+    var weights = (split && split.variants && split.variants.length) ? split.variants : DEFAULT_SPLIT;
+    var chosen = bucket(visitorKey(), weights);
+    if (chosen) start(chosen);
+  }
+
+  /* Ask for the current split, but never block on it: a cached or default split buckets the
+   * visitor straight away, and a fresher answer only changes who is bucketed next time. */
+  function selfAssign() {
+    var cached = cachedSplit();
+    if (cached) assignFrom(cached);
+    var done = false;
+    try {
+      global.fetch(SPLIT_URL, { credentials: 'omit' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (body) {
+        done = true;
+        if (!body || !body.variants) return;
+        try { global.localStorage.setItem(SPLIT_CACHE_KEY, JSON.stringify({ at: Date.now(), active: body.active, variants: body.variants })); } catch (_) {}
+        assignFrom(body);
+      })['catch'](function () { done = true; assignFrom(cached || null); });
+    } catch (_) { assignFrom(cached || null); }
+    /* if the network is slow or blocked, bucket anyway rather than losing the visitor */
+    global.setTimeout(function () { if (!done) assignFrom(cached || null); }, 1500);
+  }
+
   /* This store starts PostHog opted out and opts in only after Shopify reports consent, which
    * leaves the flags unfetched: onFeatureFlags never fires on its own here. So ask for them, then
    * watch until they arrive. getAllFeatureFlags does not record an exposure, so the poll is silent;
@@ -606,6 +696,8 @@
         ? flags.some(function (f) { return f && f.key === FLAG; })
         : Object.prototype.hasOwnProperty.call(flags, FLAG));
       if (present && typeof ph.getFeatureFlag === 'function') {
+        /* Records the exposure for shoppers who did consent, so PostHog's own view still works.
+         * The variant this page uses is already decided; PostHog no longer overrides it. */
         var variant = ph.getFeatureFlag(FLAG);
         if (variant) { start(String(variant)); return; }
       }
@@ -633,7 +725,7 @@
     var override = null;
     try { override = new global.URLSearchParams(global.location.search).get('nova_cro_variant'); } catch (_) {}
     if (override && VARIANTS.indexOf(override) !== -1) start(override);   /* QA only, this page load only */
-    else watchFlags();
+    else { selfAssign(); watchFlags(); }
 
     global.NovaCRO = {
       get variant() { return state.variant; },

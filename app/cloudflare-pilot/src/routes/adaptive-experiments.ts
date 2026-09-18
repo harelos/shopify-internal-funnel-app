@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { env as cloudflareEnv } from "cloudflare:workers";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import {
   PostHogConfigurationError,
@@ -63,6 +64,35 @@ function toClickHouseTime(iso: string): string {
   return iso.replace("T", " ").replace(/\.\d+Z$/, "").replace("Z", "");
 }
 
+/**
+ * Who was in the test, counted from the page's own reports.
+ *
+ * PostHog only ever saw the shoppers who accepted cookies, which on the first
+ * night was a small minority, so the table it produced was empty next to real
+ * orders. These rows are written by the sales page itself for every visitor.
+ */
+async function exposuresFromFirstParty(key: string, since: string): Promise<ExposureRow[]> {
+  const envObj = (cloudflareEnv as any) ?? (globalThis as any).__SHOPIFY_WORKER_ENV__;
+  const db = envObj?.DB;
+  if (!db) return [];
+  const rows = await db.prepare(`
+    SELECT "variant",
+           COUNT(*) AS visitors,
+           SUM("addedToCart") AS add_to_cart,
+           SUM("reachedCheckout") AS checkout
+    FROM "CroAssignment"
+    WHERE "experimentKey" = ? AND "isInternal" = 0 AND "firstSeenAt" >= ?
+    GROUP BY "variant"`).bind(key, since).all();
+  return ((rows.results || []) as any[]).map(row => ({
+    variant: String(row.variant),
+    visitors: Number(row.visitors) || 0,
+    addToCart: Number(row.add_to_cart) || 0,
+    checkout: Number(row.checkout) || 0,
+  }));
+}
+
+/** Kept for reference: what PostHog alone can see, which is only consenting shoppers. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function exposuresFromPostHog(key: string, since: string): Promise<ExposureRow[]> {
   const feature = `properties['$feature/${key}']`;
   const rows = await hogql<[string, number, number, number]>(`
@@ -131,8 +161,8 @@ async function describe(key: string, experiments: PostHogExperiment[] | null) {
   if (cached && Date.now() - cached.at < RESULTS_TTL_MS) {
     results = cached.value;
   } else {
-    const [exposures, orders] = await Promise.allSettled([exposuresFromPostHog(key, since), ordersFromShopify(since)]);
-    if (exposures.status === "rejected") resultErrors.posthog = String(exposures.reason?.message || exposures.reason).slice(0, 200);
+    const [exposures, orders] = await Promise.allSettled([exposuresFromFirstParty(key, since), ordersFromShopify(since)]);
+    if (exposures.status === "rejected") resultErrors.visitors = String(exposures.reason?.message || exposures.reason).slice(0, 200);
     if (orders.status === "rejected") resultErrors.shopify = String(orders.reason?.message || orders.reason).slice(0, 200);
     results = buildAdaptiveResults({
       variants,
@@ -154,7 +184,7 @@ async function describe(key: string, experiments: PostHogExperiment[] | null) {
     variants,
     results,
     sources: {
-      visitors: { name: "PostHog", state: resultErrors.posthog ? "ERROR" : "ACTUAL", error: resultErrors.posthog || null },
+      visitors: { name: "Sales page", state: resultErrors.visitors ? "ERROR" : "ACTUAL", error: resultErrors.visitors || null },
       orders: { name: "Shopify orders", state: resultErrors.shopify ? "ERROR" : "ACTUAL", error: resultErrors.shopify || null },
     },
     links: {
