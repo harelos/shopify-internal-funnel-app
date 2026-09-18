@@ -39,6 +39,8 @@
 .editor-frame-wrap { display: flex; justify-content: center; padding: 18px; background: #e7e2d8; border-radius: 16px; min-height: 70vh; }
 .editor-frame-wrap iframe { width: var(--frame-width, 390px); max-width: 100%; height: calc(100vh - 150px); min-height: 640px; border: 0; border-radius: 22px; background: #fff; box-shadow: 0 18px 50px rgba(20,14,10,.22); }
 
+/* style.css gives .modal-overlay a display of its own, which beats the hidden attribute */
+#editor-modal[hidden] { display: none !important; }
 .editor-modal { width: min(720px, calc(100vw - 32px)); }
 .editor-modal textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 13px; direction: ltr; }
 

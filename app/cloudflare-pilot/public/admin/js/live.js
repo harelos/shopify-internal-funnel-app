@@ -88,7 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function poll() {
-    if (state.paused || document.hidden) return;
+    if (state.paused) return;
+    // fill the screen once even in a background tab, then wait until it is looked at
+    if (document.hidden && state.polledOnce) return;
+    state.polledOnce = true;
     try {
       const params = new URLSearchParams();
       if (state.cursor) params.set("since", state.cursor);
@@ -100,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setPill("live", `Live · ${clock.format(new Date(data.now))}`);
     } catch (error) {
       state.failures += 1;
-      setPill("error", state.failures > 3 ? `Lost the connection: ${error.message}` : "Reconnecting…");
+      setPill("error", `${state.failures > 3 ? "Lost the connection" : "Reconnecting"} · ${error.message}`);
     }
   }
 
