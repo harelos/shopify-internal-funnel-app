@@ -55,8 +55,19 @@
   <main class="main">
     <div class="intro">
       <h1>Experiments</h1>
-      <p class="muted">Adaptive page tests are assigned by PostHog and paid for in Shopify. Element tests below swap one part of the page.</p>
+      <p class="muted">Whole-page tests send half your ad traffic to a different page. Adaptive page tests are assigned by PostHog and paid for in Shopify. Element tests below swap one part of the page.</p>
     </div>
+
+    <section class="panel" id="page-tests-panel" style="margin-bottom:20px;">
+      <div class="panel-header">
+        <div><h2>Whole-page tests</h2><span class="eyebrow">TWO DIFFERENT PAGES · SPLIT BEFORE ANYTHING LOADS</span></div>
+        <div class="actions">
+          <button class="btn btn-sm" id="page-tests-add" type="button">New page test</button>
+          <button class="btn btn-sm" id="page-tests-refresh" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body" id="page-tests-body"><p class="muted">Loading page tests…</p></div>
+    </section>
 
     <section class="panel" id="adaptive-panel" style="margin-bottom:20px;">
       <div class="panel-header">
@@ -173,6 +184,7 @@
 
   <script src="js/api.js"></script>
   <script src="js/dialogs.js"></script>
+  <script src="js/page-experiments.js"></script>
   <script src="js/adaptive-experiments.js"></script>
   <script src="js/element-experiments.js"></script>
 </body>

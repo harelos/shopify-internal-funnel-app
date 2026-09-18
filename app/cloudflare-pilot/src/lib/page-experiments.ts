@@ -9,12 +9,18 @@ type D1Like = {
 
 export type { PageExperimentVariantRow } from "./page-experiment-split.js";
 export {
+  EXPERIMENT_KEY_PATTERN,
   VISITOR_COOKIE,
   chooseVariant,
+  experimentStatus,
   isValidVisitorKey,
   newVisitorKey,
   normalizeLandingPath,
+  normalizeNewExperiment,
+  normalizeWeights,
   redirectTarget,
+  reuseVisitorKey,
+  visitorCookie,
 } from "./page-experiment-split.js";
 
 export interface PageExperimentRow {

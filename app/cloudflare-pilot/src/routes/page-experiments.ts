@@ -1,21 +1,26 @@
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import {
+  EXPERIMENT_KEY_PATTERN,
   VISITOR_COOKIE,
   chooseVariant,
+  experimentStatus,
   findRunningExperiment,
-  isValidVisitorKey,
   newVisitorKey,
   normalizeLandingPath,
+  normalizeNewExperiment,
+  normalizeWeights,
   pageExperimentDb,
   recordAssignment,
   redirectTarget,
+  reuseVisitorKey,
+  visitorCookie,
 } from "../lib/page-experiments.js";
 import { reconcilePageExperimentOrders } from "../services/page-experiment-attribution.js";
+import { workerEnvValue } from "../lib/shopify-config.js";
 
 export const pageExperimentRuntimeRouter = Router();
 export const pageExperimentAdminRouter = Router();
-
-const EXPERIMENT_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 
 function readCookie(header: string | undefined, name: string): string | undefined {
   if (!header) return undefined;
@@ -56,8 +61,11 @@ pageExperimentRuntimeRouter.get("/go/:experimentKey", async (req, res) => {
     return res.redirect(302, redirectTarget(settled.landingPath, req.originalUrl.split("?")[1] || ""));
   }
 
-  const existingKey = readCookie(req.get("cookie"), VISITOR_COOKIE);
-  const visitorKey = isValidVisitorKey(existingKey) ? existingKey : newVisitorKey();
+  const cookieHeader = req.get("cookie");
+  const visitorKey = reuseVisitorKey([
+    readCookie(cookieHeader, VISITOR_COOKIE),
+    readCookie(cookieHeader, "_shopify_y"),
+  ]) || newVisitorKey();
   const variant = chooseVariant(variants, visitorKey);
   if (!variant) return res.status(503).json({ error: "The experiment has no eligible variation." });
 
@@ -75,13 +83,9 @@ pageExperimentRuntimeRouter.get("/go/:experimentKey", async (req, res) => {
     isInternal,
   }).catch(() => { /* a lost assignment must not cost the visitor their page */ });
 
-  res.cookie?.(VISITOR_COOKIE, visitorKey, {
-    maxAge: 180 * 86400 * 1000,
-    httpOnly: false,
-    sameSite: "lax",
-    secure: true,
-    path: "/",
-  });
+  const already = res.getHeader("Set-Cookie");
+  const cookie = visitorCookie(visitorKey);
+  res.setHeader("Set-Cookie", already ? (Array.isArray(already) ? [...already, cookie] : [String(already), cookie]) : cookie);
   res.setHeader("Cache-Control", "no-store");
   return res.redirect(302, redirectTarget(variant.landingPath, req.originalUrl.split("?")[1] || ""));
 });
@@ -154,3 +158,72 @@ pageExperimentAdminRouter.post("/page-experiments/reconcile", async (req, res) =
 });
 
 export { normalizeLandingPath };
+
+/* ------------------------------------------------------------------ admin edits */
+
+function failEdit(res: import("express").Response, error: unknown) {
+  const message = String((error as Error)?.message || error).slice(0, 240);
+  res.status(/add up|whole number|not part of|listed twice|needs a share|at least|short name|storefront path|variation|already/i.test(message) ? 400 : 500).json({ error: message });
+}
+
+async function variantIds(db: NonNullable<ReturnType<typeof pageExperimentDb>>, experimentId: string): Promise<string[]> {
+  const rows = await db.prepare(`SELECT "id" FROM "PageExperimentVariant" WHERE "experimentId" = ? ORDER BY "isControl" DESC, "key" ASC`).bind(experimentId).all();
+  return (rows.results || []).map((row: any) => String(row.id));
+}
+
+/** Change how traffic is shared between the pages. Takes effect on the next visitor. */
+pageExperimentAdminRouter.patch("/page-experiments/:id/weights", async (req, res) => {
+  const db = pageExperimentDb();
+  if (!db) return res.status(503).json({ error: "The experiment store is unavailable." });
+  try {
+    const experimentId = String(req.params.id);
+    const ids = await variantIds(db, experimentId);
+    if (!ids.length) return res.status(404).json({ error: "No such page test." });
+    const weights = normalizeWeights(req.body?.variants, ids);
+    for (const row of weights) {
+      await db.prepare(`UPDATE "PageExperimentVariant" SET "weight" = ? WHERE "id" = ? AND "experimentId" = ?`)
+        .bind(row.weight, row.id, experimentId).run();
+    }
+    await db.prepare(`UPDATE "PageExperiment" SET "updatedAt" = ? WHERE "id" = ?`).bind(new Date().toISOString(), experimentId).run();
+    return res.json({ ok: true, variants: weights });
+  } catch (error) { return failEdit(res, error); }
+});
+
+/** Start or stop the split. A stopped test sends everyone to the control page. */
+pageExperimentAdminRouter.post("/page-experiments/:id/status", async (req, res) => {
+  const db = pageExperimentDb();
+  if (!db) return res.status(503).json({ error: "The experiment store is unavailable." });
+  try {
+    const experimentId = String(req.params.id);
+    const status = experimentStatus(req.body?.status);
+    const now = new Date().toISOString();
+    const existing = await db.prepare(`SELECT "startedAt" FROM "PageExperiment" WHERE "id" = ?`).bind(experimentId).first();
+    if (!existing) return res.status(404).json({ error: "No such page test." });
+    await db.prepare(`UPDATE "PageExperiment" SET "status" = ?, "startedAt" = ?, "stoppedAt" = ?, "updatedAt" = ? WHERE "id" = ?`)
+      .bind(status, status === "RUNNING" ? (existing.startedAt || now) : existing.startedAt, status === "STOPPED" ? now : null, now, experimentId).run();
+    return res.json({ ok: true, status });
+  } catch (error) { return failEdit(res, error); }
+});
+
+/** Add a new whole-page test. The pages must already exist on the storefront. */
+pageExperimentAdminRouter.post("/page-experiments", async (req, res) => {
+  const db = pageExperimentDb();
+  if (!db) return res.status(503).json({ error: "The experiment store is unavailable." });
+  try {
+    const draft = normalizeNewExperiment(req.body, workerEnvValue("SHOPIFY_STOREFRONT_DOMAIN") || workerEnvValue("SHOP_DOMAIN"));
+    const clash = await db.prepare(`SELECT "id" FROM "PageExperiment" WHERE "key" = ?`).bind(draft.key).first();
+    if (clash) return res.status(400).json({ error: `A page test called "${draft.key}" already exists.` });
+    const shop = await db.prepare(`SELECT "id" FROM "Shop" WHERE lower("domain") = ? LIMIT 1`).bind(String(workerEnvValue("SHOP_DOMAIN")).toLowerCase()).first();
+    if (!shop) return res.status(503).json({ error: "This shop is not set up yet." });
+
+    const experimentId = randomUUID();
+    const now = new Date().toISOString();
+    await db.prepare(`INSERT INTO "PageExperiment" ("id","shopId","key","name","hypothesis","status","createdAt","updatedAt") VALUES (?,?,?,?,?,?,?,?)`)
+      .bind(experimentId, shop.id, draft.key, draft.name, draft.hypothesis, "DRAFT", now, now).run();
+    for (const variant of draft.variants) {
+      await db.prepare(`INSERT INTO "PageExperimentVariant" ("id","experimentId","key","label","landingPath","weight","isControl","createdAt") VALUES (?,?,?,?,?,?,?,?)`)
+        .bind(randomUUID(), experimentId, variant.key, variant.label, variant.landingPath, variant.weight, variant.isControl, now).run();
+    }
+    return res.json({ ok: true, id: experimentId, key: draft.key });
+  } catch (error) { return failEdit(res, error); }
+});
