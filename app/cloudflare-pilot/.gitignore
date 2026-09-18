@@ -43,3 +43,4 @@ public/admin/js/*
 !public/admin/js/adaptive-experiments.js
 !public/admin/js/live.js
 !public/admin/js/page-editor.js
+!public/admin/js/dialogs.js

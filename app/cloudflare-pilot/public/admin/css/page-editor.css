@@ -42,6 +42,7 @@
 /* style.css gives .modal-overlay a display of its own, which beats the hidden attribute */
 #editor-modal[hidden] { display: none !important; }
 .editor-modal { width: min(720px, calc(100vw - 32px)); }
+.editor-modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .editor-modal textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 13px; direction: ltr; }
 
 @media (max-width: 960px) {

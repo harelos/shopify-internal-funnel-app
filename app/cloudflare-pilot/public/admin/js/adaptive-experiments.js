@@ -91,28 +91,30 @@ document.addEventListener("DOMContentLoaded", () => {
       const refreshTotal = () => { const value = sum(); total.textContent = value; total.style.color = value === 100 ? "" : "var(--red)"; };
       inputs.forEach(input => input.addEventListener("input", refreshTotal));
       card.querySelector('[data-action="save-split"]').addEventListener("click", async event => {
+        const button = event.currentTarget; // null after the first await
         if (sum() !== 100) { status.textContent = `Percentages add up to ${sum()}; they must add up to 100.`; return; }
-        event.currentTarget.disabled = true; status.textContent = "Saving…";
+        button.disabled = true; status.textContent = "Saving…";
         try {
           await API.patch(`/api/adaptive-experiments/${encodeURIComponent(key)}/allocations`, {
             variants: inputs.map(input => ({ key: input.closest("tr").dataset.variant, percentage: Number(input.value) })),
           });
           status.textContent = "Saved. New visitors follow the new split immediately; returning visitors keep the variant they were given.";
         } catch (error) { status.textContent = error.message; }
-        finally { event.currentTarget.disabled = false; }
+        finally { button.disabled = false; }
       });
       card.querySelectorAll('[data-action="pause"],[data-action="resume"]').forEach(button => button.addEventListener("click", async () => {
         const action = button.dataset.action;
-        if (action === "pause" && !confirm("Pause the test? Every visitor sees the normal page until you resume.")) return;
+        if (action === "pause" && !await Dialogs.confirm("Pause the test? Every visitor sees the normal page until you resume.", { title: "Pause the test", okLabel: "Pause" })) return;
         button.disabled = true;
         try { await API.post(`/api/adaptive-experiments/${encodeURIComponent(key)}/${action}`, {}); await load(); }
-        catch (error) { alert(error.message); button.disabled = false; }
+        catch (error) { Dialogs.alert(error.message); button.disabled = false; }
       }));
       card.querySelector('[data-action="reset"]').addEventListener("click", async event => {
-        if (!confirm("Restart the clock? The table starts counting from now. Nothing is deleted in PostHog or Shopify.")) return;
-        event.currentTarget.disabled = true;
+        const button = event.currentTarget;
+        if (!await Dialogs.confirm("Restart the clock? The table starts counting from now. Nothing is deleted in PostHog or Shopify.", { title: "Restart the clock", okLabel: "Restart" })) return;
+        button.disabled = true;
         try { await API.post(`/api/adaptive-experiments/${encodeURIComponent(key)}/reset`, {}); await load(); }
-        catch (error) { alert(error.message); event.currentTarget.disabled = false; }
+        catch (error) { Dialogs.alert(error.message); button.disabled = false; }
       });
     });
   }

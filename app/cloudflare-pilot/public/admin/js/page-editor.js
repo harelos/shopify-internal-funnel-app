@@ -42,14 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
       select.innerHTML = pages.map(p => `<option value="${escape(p.handle)}">${escape(p.title)} — /pages/${escape(p.handle)}</option>`).join("") || '<option value="">No editable pages</option>';
       const wanted = new URLSearchParams(location.search).get("handle") || (pages.find(p => p.handle === "novahair-sales-staging") ? "novahair-sales-staging" : pages[0]?.handle);
       if (wanted) { select.value = wanted; await loadPage(wanted); }
-    } catch (error) { setStatus("ERROR", "badge-draft"); alert(error.message); }
+    } catch (error) { setStatus("ERROR", "badge-draft"); Dialogs.alert(error.message); }
   }
 
   async function loadPage(handle, { preferDraft = true } = {}) {
     setStatus("LOADING…");
     const data = await API.get(`/api/page-editor/pages/${encodeURIComponent(handle)}`);
     state.handle = handle; state.page = data.page; state.dirty = false; state.selectedId = null;
-    const useDraft = preferDraft && data.draft && confirm(`There is a saved draft from ${when(data.draft.updatedAt)}. Continue editing it?\n\n(Cancel loads what is live on Shopify instead.)`);
+    const useDraft = Boolean(preferDraft && data.draft)
+      && await Dialogs.confirm(`There is a saved draft from ${when(data.draft.updatedAt)}. Continue editing it, or load what is live on Shopify?`, { title: "Saved draft found", okLabel: "Continue the draft", cancelLabel: "Load the live page" });
     parseBody(useDraft ? data.draft.body : data.page.body);
     renderBackups(data.backups);
     try { state.shell = await fetchShell(handle); } catch { state.shell = null; }
@@ -103,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="editor-section__grip" aria-hidden="true">⋮⋮</span>
         <span class="editor-section__name">${escape(name)}<small>${escape(detail)}</small></span>
         <span class="editor-section__tools">
+          <button type="button" data-tool="up" title="Move up" aria-label="Move up">▲</button><button type="button" data-tool="down" title="Move down" aria-label="Move down">▼</button>
           ${locked ? '<span class="muted" title="The page\'s scripts need this section">🔒</span>' : `<button type="button" data-tool="hide" title="${hidden ? "Show" : "Hide"}">${hidden ? "🙈" : "👁"}</button>`}
           ${custom ? '<button type="button" data-tool="delete" class="is-danger" title="Delete this block">✕</button>' : ""}
         </span></li>`;
@@ -130,13 +132,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (el.hasAttribute("hidden")) el.removeAttribute("hidden"); else el.setAttribute("hidden", "");
         markDirty(); renderAll();
       });
-      item.querySelector('[data-tool="delete"]')?.addEventListener("click", () => {
-        if (!confirm("Delete this HTML block?")) return;
+      item.querySelector('[data-tool="up"]')?.addEventListener("click", () => moveSection(item.dataset.id, -1));
+      item.querySelector('[data-tool="down"]')?.addEventListener("click", () => moveSection(item.dataset.id, 1));
+      item.querySelector('[data-tool="delete"]')?.addEventListener("click", async () => {
+        if (!await Dialogs.confirm("Delete this HTML block?", { title: "Delete block", okLabel: "Delete" })) return;
         byEditId(item.dataset.id).remove(); markDirty(); renderAll();
       });
     });
   }
   function byEditId(id) { return state.doc.querySelector(`[${EDIT_ID}="${id}"]`); }
+  // the ▲▼ buttons: the same move as a drag, for touch screens and keyboards
+  function moveSection(id, direction) {
+    const list = sections();
+    const el = byEditId(id);
+    const target = list[list.indexOf(el) + direction];
+    if (!el || !target) return;
+    if (direction < 0) target.parentNode.insertBefore(el, target); else target.parentNode.insertBefore(el, target.nextSibling);
+    markDirty(); state.selectedId = id; renderAll();
+  }
 
   function addBlock(html) {
     const clean = html.replace(/<script\b[\s\S]*?<\/script>/gi, "");
@@ -271,10 +284,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!backups?.length) { box.innerHTML = '<p class="muted">None yet. The first publish creates one.</p>'; return; }
     box.innerHTML = backups.map(b => `<div class="editor-backup"><div><strong>${escape(when(b.createdAt))}</strong><span>${escape(b.note || "")} · ${Math.round(b.bytes / 1024)} KB</span></div><button class="btn btn-sm" type="button" data-restore="${escape(b.id)}">Restore</button></div>`).join("");
     box.querySelectorAll("[data-restore]").forEach(button => button.addEventListener("click", async () => {
-      if (!confirm("Put this backup live now? The current live page is backed up first.")) return;
+      if (!await Dialogs.confirm("Put this backup live now? The page as it is now is backed up first.", { title: "Restore this backup", okLabel: "Put it live" })) return;
       button.disabled = true;
-      try { await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/restore/${button.dataset.restore}`, {}); await loadPage(state.handle, { preferDraft: false }); alert("Restored. The live page is back to that version."); }
-      catch (error) { alert(error.message); button.disabled = false; }
+      try { await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/restore/${button.dataset.restore}`, {}); await loadPage(state.handle, { preferDraft: false }); Dialogs.alert("Restored. The live page is back to that version.", { title: "Restored" }); }
+      catch (error) { Dialogs.alert(error.message); button.disabled = false; }
     }));
   }
 
@@ -283,40 +296,46 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderAll() { renderSections(); renderInspector(); renderPreview(); }
 
   byId("editor-page").addEventListener("change", async event => {
-    if (state.dirty && !confirm("You have unsaved edits. Switch page and lose them?")) { event.target.value = state.handle; return; }
-    try { await loadPage(event.target.value); } catch (error) { alert(error.message); }
+    const select = event.target;
+    if (state.dirty && !await Dialogs.confirm("You have unsaved edits. Switch page and lose them?", { okLabel: "Switch page" })) { select.value = state.handle; return; }
+    try { await loadPage(select.value); } catch (error) { Dialogs.alert(error.message); }
   });
   byId("editor-reload").addEventListener("click", async () => {
-    if (state.dirty && !confirm("Throw away unsaved edits and reload from Shopify?")) return;
-    try { await loadPage(state.handle, { preferDraft: false }); } catch (error) { alert(error.message); }
+    if (state.dirty && !await Dialogs.confirm("Throw away unsaved edits and reload from Shopify?", { okLabel: "Reload" })) return;
+    try { await loadPage(state.handle, { preferDraft: false }); } catch (error) { Dialogs.alert(error.message); }
   });
+  // event.currentTarget is null once a handler has awaited, so every handler keeps its button first
   byId("editor-save").addEventListener("click", async event => {
-    event.currentTarget.disabled = true; setStatus("SAVING DRAFT…");
+    const button = event.currentTarget;
+    button.disabled = true; setStatus("SAVING DRAFT…");
     try { const r = await API.put(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/draft`, { body: serialize(), note: state.draftNote }); state.dirty = false; setStatus(`DRAFT SAVED ${when(r.updatedAt)}`, "badge-active"); }
-    catch (error) { setStatus("SAVE FAILED"); alert(error.message); }
-    finally { event.currentTarget.disabled = false; }
+    catch (error) { setStatus("SAVE FAILED"); Dialogs.alert(error.message); }
+    finally { button.disabled = false; }
   });
   byId("editor-preview").addEventListener("click", async event => {
-    event.currentTarget.disabled = true; setStatus("WRITING PREVIEW…");
+    const button = event.currentTarget;
+    button.disabled = true; setStatus("WRITING PREVIEW…");
     try {
       const r = await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/preview`, { body: serialize() });
       setStatus("PREVIEW READY", "badge-active");
-      window.open(r.url, "_blank", "noopener");
-    } catch (error) { setStatus("PREVIEW FAILED"); alert(error.message); }
-    finally { event.currentTarget.disabled = false; }
+      const opened = window.open(r.url, "_blank", "noopener");
+      if (!opened) Dialogs.alert(`The preview is ready. Open it on any phone:\n${r.url}`, { title: "Preview ready" });
+    } catch (error) { setStatus("PREVIEW FAILED"); Dialogs.alert(error.message); }
+    finally { button.disabled = false; }
   });
   byId("editor-publish").addEventListener("click", async event => {
-    const note = prompt("Publish to the live page. One line for the backup note (what did you change?):", "");
+    const button = event.currentTarget;
+    const note = await Dialogs.prompt("This replaces the page shoppers see. One line for the backup note: what did you change?", "", { title: "Publish to the live page", okLabel: "Publish now" });
     if (note === null) return;
-    event.currentTarget.disabled = true; setStatus("PUBLISHING…");
+    button.disabled = true; setStatus("PUBLISHING…");
     try {
       const r = await API.post(`/api/page-editor/pages/${encodeURIComponent(state.handle)}/publish`, { body: serialize(), note });
       state.dirty = false;
       setStatus(r.unchanged ? "NOTHING TO PUBLISH" : "PUBLISHED", "badge-active");
       await loadPage(state.handle, { preferDraft: false });
-      if (!r.unchanged) alert("Published. The previous version is in Backups if you need it back.");
-    } catch (error) { setStatus("PUBLISH FAILED"); alert(error.message); }
-    finally { event.currentTarget.disabled = false; }
+      if (!r.unchanged) Dialogs.alert("Published. The previous version is in Backups if you need it back.", { title: "Published" });
+    } catch (error) { setStatus("PUBLISH FAILED"); Dialogs.alert(error.message); }
+    finally { button.disabled = false; }
   });
   byId("editor-add-block").addEventListener("click", () => { byId("editor-modal-html").value = ""; byId("editor-modal").hidden = false; byId("editor-modal-html").focus(); });
   byId("editor-modal-cancel").addEventListener("click", () => { byId("editor-modal").hidden = true; });
