@@ -16,6 +16,17 @@ describe("normalizeAllocations", () => {
   it("refuses a split that does not reach 100", () => {
     assert.throws(() => normalizeAllocations(KEYS.map(key => ({ key, percentage: 10 })), KEYS), /add up to 50/);
   });
+  it("accepts a two-arm 50/50 with the unused variants parked at zero", () => {
+    const rows = normalizeAllocations([
+      { key: "control", percentage: 50 }, { key: "value_delta", percentage: 0 }, { key: "shade_rescue", percentage: 0 },
+      { key: "scroll_rescue", percentage: 0 }, { key: "full_adaptive", percentage: 50 },
+    ], KEYS);
+    assert.deepEqual(rows.map(row => row.percentage), [50, 0, 0, 0, 50]);
+  });
+  it("accepts an all-off split so the test can be switched off from the panel", () => {
+    const rows = normalizeAllocations(KEYS.map(key => ({ key, percentage: key === "control" ? 100 : 0 })), KEYS);
+    assert.equal(rows[0].percentage, 100);
+  });
   it("refuses unknown, missing and fractional variants", () => {
     assert.throws(() => normalizeAllocations([{ key: "nope", percentage: 100 }], KEYS), /Unknown variant/);
     assert.throws(() => normalizeAllocations([{ key: "control", percentage: 100 }], KEYS), /missing/);
