@@ -46,6 +46,8 @@ const STOREFRONT_PROXY_PATHS = new Set([
   // A storefront page view, signed by the app proxy like the rest of these.
   "/visit",
   "/popup/confirm-lead",
+  // Hands the exit popup's discount code to a shopper who has just left an email.
+  "/popup/exit-coupon",
   "/popup/customer/capture",
   "/popup/customer/context",
   "/popup/customer/result-email",

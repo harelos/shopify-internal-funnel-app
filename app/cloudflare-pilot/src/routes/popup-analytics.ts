@@ -256,6 +256,24 @@ router.post("/popup/customer/capture", async (req, res) => {
   }
 });
 
+/**
+ * The exit popup's discount code.
+ *
+ * The code used to be rendered into every page and merely hidden, so coupon
+ * sites and auto-apply extensions read it out of the HTML without ever leaving
+ * an address: sixteen redemptions against nine emails collected in a fortnight.
+ * It now lives here and is handed over only after an email has been submitted.
+ */
+router.post("/popup/exit-coupon", async (req, res) => {
+  if (customerRequestLimited(req, "exit_coupon", 10, 10 * 60_000)) return res.status(429).json({ error: "rate_limited" });
+  const email = normalizedEmail(req.body?.email);
+  if (!email) return res.status(400).json({ error: "invalid_email" });
+  const code = (workerEnvValue("NOVAHAIR_EXIT_POPUP_CODE") || "NOVA10").trim();
+  if (!code) return res.status(503).json({ error: "no_code_configured" });
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ code });
+});
+
 router.post("/popup/customer/context", async (req, res) => {
   if (customerRequestLimited(req, "context", 30, 10 * 60_000)) return res.status(429).json({ saved: false });
   const token = readOpaqueToken(req.body?.customerToken, "customer");
