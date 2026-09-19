@@ -959,10 +959,19 @@ export async function handleResendWebhook(env: LifecycleEnv, request: Request, n
     // Campaign engagement is keyed by the Resend message id we stored when the
     // campaign email was sent, so opens and clicks land on the right send.
     const campaignEmailId = payload.data.email_id;
-    if (campaignEmailId && ["email.opened", "email.clicked"].includes(payload.type)) {
-      const column = payload.type === "email.opened" ? "opened_at" : "clicked_at";
+    const CAMPAIGN_EVENT_COLUMN: Record<string, string> = {
+      "email.opened": "opened_at",
+      "email.clicked": "clicked_at",
+      // A bounce or a complaint is what the delivery-health guard reads, so it
+      // has to land on the campaign that caused it, not only on the suppression
+      // list where it says nothing about which send went wrong.
+      "email.bounced": "bounced_at",
+      "email.complained": "complained_at",
+    };
+    const campaignColumn = CAMPAIGN_EVENT_COLUMN[payload.type];
+    if (campaignEmailId && campaignColumn) {
       await env.DB.prepare(
-        `UPDATE campaign_recipients SET ${column} = COALESCE(${column}, ?) WHERE resend_email_id = ?`,
+        `UPDATE campaign_recipients SET ${campaignColumn} = COALESCE(${campaignColumn}, ?) WHERE resend_email_id = ?`,
       ).bind(payload.created_at, campaignEmailId).run();
     }
 

@@ -5,6 +5,8 @@ import {
   applyUnsubscribe,
   approveCampaign,
   assertAllowedCtaUrl,
+  assessCampaignHealth,
+  campaignGapDays,
   campaignBudget,
   campaignBrief,
   campaignReport,
@@ -14,8 +16,10 @@ import {
   preheaderBlock,
   renderSubject,
   setCampaignStatus,
+  sunsetUnengaged,
 } from "../src/campaigns";
 import { upsertCustomerFromShopify } from "../src/customers";
+import { localSuppression } from "../src/dispatch";
 import { compileSegment, countSegment, parseSegmentFilter, previewSegment, saveSegment } from "../src/segments";
 import { hashEmail } from "../src/crypto";
 import { isoNow } from "../src/db";
@@ -586,7 +590,8 @@ test("nobody gets two campaigns inside the frequency gap, and lifecycle mail doe
     const row = await db.prepare(
       "SELECT skip_reason FROM campaign_recipients WHERE campaign_id = ? AND email_hash = ?",
     ).bind(second.campaignId, hash).first<{ skip_reason: string }>();
-    assert.equal(row!.skip_reason, "frequency_cap");
+    // The reason records which gap applied, so a skip is explainable.
+    assert.equal(row!.skip_reason, "frequency_cap_5d");
 
     // Once the gap has passed, a third campaign reaches them again.
     const later = new Date(NOW.getTime() + 6 * 86_400_000);
@@ -692,6 +697,150 @@ test("a scheduled campaign waits for its date, then sends without being touched 
     row = await db.prepare("SELECT status FROM campaigns WHERE campaign_id = ?")
       .bind(created.campaignId).first<{ status: string }>();
     assert.equal(row!.status, "SENT");
+  } finally {
+    await dispose();
+  }
+});
+
+test("the gap each person gets is earned by engagement, not the same for everyone", () => {
+  const base = 2;
+  const at = (input: Partial<Parameters<typeof campaignGapDays>[0]>) => campaignGapDays({
+    emailsSent: 5, emailsOpened: 2, lastOpenAt: null, lastClickAt: null, ...input,
+  }, base, NOW);
+
+  // Never mailed: no signal, so the baseline.
+  assert.equal(at({ emailsSent: 0, emailsOpened: 0 }), 2);
+  // Clicked this week: she is listening, so she can hear from us twice as often.
+  assert.equal(at({ lastClickAt: daysAgo(3) }), 1);
+  // Opened this month: baseline.
+  assert.equal(at({ lastOpenAt: daysAgo(10) }), 2);
+  // Opened once, long ago.
+  assert.equal(at({ lastOpenAt: daysAgo(200) }), 4);
+  // Mailed twice, never opened: back off.
+  assert.equal(at({ emailsSent: 2, emailsOpened: 0 }), 6);
+  // Mailed four times, never opened: back right off.
+  assert.equal(at({ emailsSent: 4, emailsOpened: 0 }), 12);
+  // A click always outranks a long silence.
+  assert.equal(at({ emailsSent: 9, emailsOpened: 0, lastClickAt: daysAgo(1) }), 1);
+  // The baseline is the single knob: everything scales from it.
+  assert.equal(campaignGapDays({ emailsSent: 2, emailsOpened: 0, lastOpenAt: null, lastClickAt: null }, 1, NOW), 3);
+});
+
+test("a campaign that is bouncing or drawing complaints halts itself", async () => {
+  // Rates are ignored until enough has been sent for them to mean anything.
+  assert.equal(assessCampaignHealth({ sent: 10, bounced: 10, complained: 10, unsubscribed: 0 }).halt, null);
+  // Gmail treats 0.3% complaints as bulk, so that is the ceiling.
+  assert.equal(assessCampaignHealth({ sent: 1000, bounced: 0, complained: 3, unsubscribed: 0 }).halt, "complaint_rate");
+  assert.equal(assessCampaignHealth({ sent: 1000, bounced: 50, complained: 0, unsubscribed: 0 }).halt, "bounce_rate");
+  assert.equal(assessCampaignHealth({ sent: 1000, bounced: 0, complained: 0, unsubscribed: 50 }).halt, "unsubscribe_rate");
+  assert.equal(assessCampaignHealth({ sent: 1000, bounced: 10, complained: 1, unsubscribed: 10 }).halt, null);
+
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db, { CAMPAIGN_BATCH_SIZE: "10", CAMPAIGN_MIN_GAP_DAYS: "0" });
+  try {
+    for (let index = 0; index < 60; index += 1) {
+      await addCustomer(env, { email: `burn${index}@example.com`, orders: 1, lastOrder: daysAgo(index + 1) });
+    }
+    await saveSegment(env as never, { name: "All", filter: {}, createdBy: "AGENT" }, NOW);
+    const created = await createCampaign(env as never, {
+      name: "Bad list", segmentId: "seg_all", subject: "נושא", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair",
+    }, NOW);
+    await approveCampaign(env as never, created.campaignId, "harel", NOW);
+
+    // Send enough for a rate to be meaningful.
+    for (let tick = 0; tick < 5; tick += 1) await dispatchDueCampaigns(env as never, NOW, okFetcher());
+    let row = await db.prepare("SELECT status, sent_count FROM campaigns WHERE campaign_id = ?")
+      .bind(created.campaignId).first<{ status: string; sent_count: number }>();
+    assert.equal(Number(row!.sent_count), 50);
+    assert.equal(row!.status, "SENDING");
+
+    // Complaints start arriving for the people already mailed.
+    await db.prepare(
+      `UPDATE campaign_recipients SET complained_at = ?
+       WHERE campaign_id = ? AND sent_at IS NOT NULL AND rowid IN (
+         SELECT rowid FROM campaign_recipients WHERE campaign_id = ? AND sent_at IS NOT NULL LIMIT 3)`,
+    ).bind(isoNow(NOW), created.campaignId, created.campaignId).run();
+
+    const result = await dispatchDueCampaigns(env as never, NOW, okFetcher());
+    assert.equal(result.halted, 1);
+    assert.equal(result.sent, 0, "nobody else is mailed once it halts");
+
+    row = await db.prepare("SELECT status, halt_reason FROM campaigns WHERE campaign_id = ?")
+      .bind(created.campaignId).first<{ status: string; halt_reason: string }>();
+    assert.equal(row!.status, "CANCELLED");
+    assert.equal(row!.halt_reason, "complaint_rate");
+    // The spared audience is visible, not deleted.
+    const spared = await db.prepare(
+      "SELECT COUNT(*) n FROM campaign_recipients WHERE campaign_id = ? AND skip_reason = 'halted_complaint_rate'",
+    ).bind(created.campaignId).first<{ n: number }>();
+    assert.equal(Number(spared!.n), 10);
+  } finally {
+    await dispose();
+  }
+});
+
+test("addresses mailed repeatedly that never open are retired from marketing", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db);
+  try {
+    await addCustomer(env, { email: "ghost@example.com", orders: 1, lastOrder: daysAgo(300) });
+    await addCustomer(env, { email: "reader@example.com", orders: 1, lastOrder: daysAgo(300) });
+    const ghost = await hashEmail("ghost@example.com", "test-hash-key-that-is-never-used-in-production");
+    const reader = await hashEmail("reader@example.com", "test-hash-key-that-is-never-used-in-production");
+    await db.prepare("UPDATE customers SET emails_sent = 7, emails_opened = 0, emails_clicked = 0 WHERE email_hash = ?").bind(ghost).run();
+    await db.prepare("UPDATE customers SET emails_sent = 7, emails_opened = 1, emails_clicked = 0 WHERE email_hash = ?").bind(reader).run();
+
+    assert.deepEqual(await sunsetUnengaged(env as never, NOW), { retired: 1 });
+    const row = await db.prepare("SELECT reason, active FROM suppressions WHERE email_hash = ?")
+      .bind(ghost).first<{ reason: string; active: number }>();
+    assert.equal(row!.reason, "unengaged_sunset");
+    // Someone who opened even once is left alone.
+    assert.equal(await db.prepare("SELECT COUNT(*) n FROM suppressions WHERE email_hash = ?").bind(reader).first("n"), 0);
+    // Marketing only: an order confirmation still reaches the retired address.
+    assert.equal(await localSuppression(env as never, ghost, "marketing"), true);
+    assert.equal(await localSuppression(env as never, ghost, "all"), true);
+    // It is idempotent.
+    assert.deepEqual(await sunsetUnengaged(env as never, NOW), { retired: 0 });
+  } finally {
+    await dispose();
+  }
+});
+
+test("a recipient stranded mid-send is reclaimed instead of hanging the campaign", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db, { CAMPAIGN_BATCH_SIZE: "10", CAMPAIGN_MIN_GAP_DAYS: "0" });
+  try {
+    await addCustomer(env, { email: "stranded@example.com", orders: 1, lastOrder: daysAgo(3) });
+    await saveSegment(env as never, { name: "All", filter: {}, createdBy: "AGENT" }, NOW);
+    const created = await createCampaign(env as never, {
+      name: "Stall", segmentId: "seg_all", subject: "נושא", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair",
+    }, NOW);
+    await approveCampaign(env as never, created.campaignId, "harel", NOW);
+
+    // The isolate died after marking SENDING and before Resend answered.
+    await db.prepare(
+      "UPDATE campaign_recipients SET status = 'SENDING', attempts = 1 WHERE campaign_id = ?",
+    ).bind(created.campaignId).run();
+
+    // Too soon to tell a stall from a send in flight.
+    let result = await dispatchDueCampaigns(env as never, NOW, okFetcher());
+    assert.equal(result.sent, 0);
+    assert.equal(
+      await db.prepare("SELECT status FROM campaign_recipients WHERE campaign_id = ?").bind(created.campaignId).first("status"),
+      "SENDING",
+    );
+
+    // Well past a tick, it is reclaimed and sent.
+    const later = new Date(NOW.getTime() + 20 * 60_000);
+    result = await dispatchDueCampaigns(env as never, later, okFetcher());
+    assert.equal(result.sent, 1);
+    assert.equal(
+      await db.prepare("SELECT status FROM campaigns WHERE campaign_id = ?").bind(created.campaignId).first("status"),
+      "SENT",
+      "the campaign completes instead of hanging on a stuck row",
+    );
   } finally {
     await dispose();
   }

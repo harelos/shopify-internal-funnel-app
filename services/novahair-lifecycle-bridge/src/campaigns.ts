@@ -450,6 +450,43 @@ async function renderForRecipient(
   return { html: preheaderBlock(campaign.preheader) + body, unsubscribeUrl: unsubUrl };
 }
 
+// ---------------------------------------------------------------------------
+// How often one person may be mailed.
+//
+// A flat gap treats a woman who opens every email the same as one who has
+// ignored four in a row. The baseline (CAMPAIGN_MIN_GAP_DAYS) is the setting;
+// engagement scales it. Someone who clicks can hear from us twice as often,
+// and someone who has never opened backs off automatically without anyone
+// maintaining a list.
+// ---------------------------------------------------------------------------
+export interface FrequencyInput {
+  emailsSent: number;
+  emailsOpened: number;
+  lastOpenAt: string | null;
+  lastClickAt: string | null;
+}
+
+export function campaignGapDays(input: FrequencyInput, baseGapDays: number, now: Date): number {
+  const within = (iso: string | null, days: number) => {
+    if (!iso) return false;
+    const at = new Date(iso).getTime();
+    return Number.isFinite(at) && now.getTime() - at <= days * 86_400_000;
+  };
+  const sent = Math.max(0, input.emailsSent);
+  const opened = Math.max(0, input.emailsOpened);
+
+  // Never mailed: no signal either way, so use the baseline.
+  if (sent === 0) return baseGapDays;
+  // Clicked recently. The strongest signal there is.
+  if (within(input.lastClickAt, 14)) return Math.max(1, Math.round(baseGapDays / 2));
+  if (within(input.lastOpenAt, 30)) return baseGapDays;
+  // Mailed repeatedly and never once opened. Back off hard.
+  if (opened === 0 && sent >= 4) return baseGapDays * 6;
+  if (opened === 0 && sent >= 2) return baseGapDays * 3;
+  // Opened at some point, but not lately.
+  return baseGapDays * 2;
+}
+
 async function sendOne(
   env: LifecycleEnv,
   campaign: CampaignRow,
@@ -462,19 +499,35 @@ async function sendOne(
 
   // The snapshot was taken at approval time. Re-check the things that must be
   // true at the moment of sending, not the moment of approval.
-  const gapCutoff = new Date(now.getTime() - config.campaignMinGapDays * 86_400_000).toISOString();
   const live = await env.DB.prepare(
-    `SELECT c.consent_state,
+    `SELECT c.consent_state, c.emails_sent, c.emails_opened, c.last_open_at, c.last_click_at,
             (SELECT COUNT(*) FROM suppressions s WHERE s.email_hash = c.email_hash AND s.active = 1) AS suppressed,
-            (SELECT COUNT(*) FROM campaign_recipients r
-              WHERE r.email_hash = c.email_hash AND r.campaign_id <> ?
-                AND r.sent_at IS NOT NULL AND r.sent_at >= ?) AS recent_campaigns
+            (SELECT MAX(r.sent_at) FROM campaign_recipients r
+              WHERE r.email_hash = c.email_hash AND r.campaign_id <> ? AND r.sent_at IS NOT NULL) AS last_campaign_at
      FROM customers c WHERE c.email_hash = ?`,
-  ).bind(campaign.campaign_id, gapCutoff, recipient.email_hash).first<{
+  ).bind(campaign.campaign_id, recipient.email_hash).first<{
     consent_state: string;
+    emails_sent: number;
+    emails_opened: number;
+    last_open_at: string | null;
+    last_click_at: string | null;
     suppressed: number;
-    recent_campaigns: number;
+    last_campaign_at: string | null;
   }>();
+
+  // The gap this particular person has earned, rather than one flat number.
+  const gapDays = live
+    ? campaignGapDays({
+      emailsSent: Number(live.emails_sent ?? 0),
+      emailsOpened: Number(live.emails_opened ?? 0),
+      lastOpenAt: live.last_open_at,
+      lastClickAt: live.last_click_at,
+    }, config.campaignMinGapDays, now)
+    : config.campaignMinGapDays;
+  const insideGap = Boolean(
+    live?.last_campaign_at
+    && new Date(live.last_campaign_at).getTime() > now.getTime() - gapDays * 86_400_000,
+  );
   const skip = !live
     ? "customer_row_missing"
     : Number(live.suppressed) > 0
@@ -483,8 +536,8 @@ async function sendOne(
         ? `consent_${live.consent_state.toLowerCase()}`
         // Two campaigns approved close together must not both land on the same
         // person. Lifecycle mail is deliberately not counted here.
-        : campaign.kind === "marketing" && Number(live.recent_campaigns) > 0
-          ? "frequency_cap"
+        : campaign.kind === "marketing" && insideGap
+          ? `frequency_cap_${gapDays}d`
           : !canDispatchTo(env, recipient.email)
             ? "recipient_not_allowed_in_current_mode"
             : null;
@@ -599,11 +652,153 @@ async function refreshCampaignCounts(env: LifecycleEnv, campaignId: string, now:
   return counts;
 }
 
+// ---------------------------------------------------------------------------
+// Two automations that run off the back of every send.
+//
+// Nobody wants to police a list by hand, and by the time a human notices a bad
+// send the mailbox providers have already noticed. These do it per tick.
+// ---------------------------------------------------------------------------
+
+export interface CampaignHealth {
+  sent: number;
+  bounced: number;
+  complained: number;
+  unsubscribed: number;
+  bounceRate: number;
+  complaintRate: number;
+  unsubscribeRate: number;
+  halt: string | null;
+}
+
+/**
+ * A campaign's own delivery health. Gmail starts treating a sender as bulk
+ * around a 0.3% complaint rate, so the thresholds here are deliberately far
+ * below the level where damage is already done, and only apply once enough has
+ * been sent for a rate to mean anything.
+ */
+export function assessCampaignHealth(counts: {
+  sent: number;
+  bounced: number;
+  complained: number;
+  unsubscribed: number;
+}): CampaignHealth {
+  const sent = Math.max(0, counts.sent);
+  const rate = (value: number) => (sent > 0 ? value / sent : 0);
+  const bounceRate = rate(counts.bounced);
+  const complaintRate = rate(counts.complained);
+  const unsubscribeRate = rate(counts.unsubscribed);
+  let halt: string | null = null;
+  // Below this the numbers are noise: one bounce in ten is not a trend.
+  if (sent >= 40) {
+    if (complaintRate >= 0.003) halt = "complaint_rate";
+    else if (bounceRate >= 0.05) halt = "bounce_rate";
+    else if (unsubscribeRate >= 0.05) halt = "unsubscribe_rate";
+  }
+  return {
+    sent,
+    bounced: counts.bounced,
+    complained: counts.complained,
+    unsubscribed: counts.unsubscribed,
+    bounceRate,
+    complaintRate,
+    unsubscribeRate,
+    halt,
+  };
+}
+
+export async function campaignHealth(env: LifecycleEnv, campaignId: string): Promise<CampaignHealth> {
+  const row = await env.DB.prepare(
+    `SELECT
+       SUM(CASE WHEN sent_at IS NOT NULL THEN 1 ELSE 0 END) AS sent,
+       SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) AS bounced,
+       SUM(CASE WHEN complained_at IS NOT NULL THEN 1 ELSE 0 END) AS complained,
+       SUM(CASE WHEN unsubscribed_at IS NOT NULL THEN 1 ELSE 0 END) AS unsubscribed
+     FROM campaign_recipients WHERE campaign_id = ?`,
+  ).bind(campaignId).first<Record<string, number>>();
+  return assessCampaignHealth({
+    sent: Number(row?.sent ?? 0),
+    bounced: Number(row?.bounced ?? 0),
+    complained: Number(row?.complained ?? 0),
+    unsubscribed: Number(row?.unsubscribed ?? 0),
+  });
+}
+
+/**
+ * Stop a campaign that is going badly, before the rest of the audience is
+ * mailed. Whatever is still queued is skipped rather than deleted, so the
+ * report shows exactly who was spared and why.
+ */
+export async function haltCampaign(
+  env: LifecycleEnv,
+  campaignId: string,
+  reason: string,
+  now: Date,
+): Promise<void> {
+  const current = isoNow(now);
+  await env.DB.prepare(
+    `UPDATE campaigns SET status = 'CANCELLED', halt_reason = ?, completed_at = ?, updated_at = ?
+     WHERE campaign_id = ? AND status IN ('APPROVED', 'SENDING')`,
+  ).bind(reason, current, current, campaignId).run();
+  await env.DB.prepare(
+    `UPDATE campaign_recipients SET status = 'SKIPPED', skip_reason = ?
+     WHERE campaign_id = ? AND status = 'QUEUED'`,
+  ).bind(`halted_${reason}`, campaignId).run();
+  await setHealth(env.DB, "campaign_halt", JSON.stringify({ campaignId, reason, at: current }), "CRITICAL", current);
+  await recordLifecycleError(env.DB, {
+    component: "campaign_guard",
+    code: `campaign_halted_${reason}`,
+    safeMessage: "A campaign was stopped automatically because its delivery health crossed a safe threshold.",
+    retryable: false,
+    now: current,
+  });
+}
+
+/**
+ * Retire addresses that have been mailed repeatedly and have never once
+ * opened. They are the addresses most likely to be dead or hostile, and they
+ * are what turns a sending domain into a bulk sender. Suppressed as marketing
+ * only, so order and shipping mail still reaches them.
+ */
+export async function sunsetUnengaged(
+  env: LifecycleEnv,
+  now: Date,
+  threshold = 6,
+): Promise<{ retired: number }> {
+  const current = isoNow(now);
+  const rows = await env.DB.prepare(
+    `SELECT c.email_hash, c.shopify_customer_id
+     FROM customers c
+     WHERE c.emails_sent >= ? AND c.emails_opened = 0 AND c.emails_clicked = 0
+       AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.email_hash = c.email_hash AND s.active = 1)
+     LIMIT 200`,
+  ).bind(threshold).all<{ email_hash: string; shopify_customer_id: string | null }>();
+  const people = rows.results ?? [];
+  if (people.length === 0) return { retired: 0 };
+
+  const statements = people.map((person) => env.DB.prepare(
+    `INSERT INTO suppressions
+       (email_hash, source, reason, occurred_at, shopify_customer_id, active, created_at, updated_at)
+     VALUES (?, 'SUNSET', 'unengaged_sunset', ?, ?, 1, ?, ?)
+     ON CONFLICT(email_hash) DO NOTHING`,
+  ).bind(person.email_hash, current, person.shopify_customer_id, current, current));
+  for (let index = 0; index < statements.length; index += 50) {
+    await env.DB.batch(statements.slice(index, index + 50));
+  }
+  await setHealth(
+    env.DB,
+    "campaign_sunset_status",
+    JSON.stringify({ retired: people.length, threshold, at: current }),
+    "OK",
+    current,
+  );
+  return { retired: people.length };
+}
+
 export async function dispatchDueCampaigns(
   env: LifecycleEnv,
   now = new Date(),
   fetcher: typeof fetch = fetch,
-): Promise<{ campaigns: number; sent: number; failed: number; skipped: number; budget: number; reason: string | null }> {
+): Promise<{ campaigns: number; sent: number; failed: number; skipped: number; halted: number; budget: number; reason: string | null }> {
   const current = isoNow(now);
   const config = lifecycleConfig(env);
   const due = await env.DB.prepare(
@@ -614,17 +809,43 @@ export async function dispatchDueCampaigns(
      LIMIT 5`,
   ).bind(current).all<CampaignRow>();
   const campaigns = due.results ?? [];
-  if (campaigns.length === 0) return { campaigns: 0, sent: 0, failed: 0, skipped: 0, budget: 0, reason: null };
+  if (campaigns.length === 0) return { campaigns: 0, sent: 0, failed: 0, skipped: 0, halted: 0, budget: 0, reason: null };
+
+  // A recipient is marked SENDING before the Resend call. If the isolate dies
+  // between the two, that row is never picked up again: the batch query only
+  // takes QUEUED, and the campaign can never finish because a SENDING row keeps
+  // its queue non-empty forever. Reclaim anything stalled well past a tick.
+  // Re-sending is safe because the Resend call carries a per-recipient
+  // idempotency key, so a duplicate request cannot become a duplicate email.
+  const stalled = new Date(now.getTime() - 15 * 60_000).toISOString();
+  await env.DB.prepare(
+    `UPDATE campaign_recipients SET status = 'QUEUED'
+     WHERE status = 'SENDING' AND queued_at <= ? AND attempts < ?`,
+  ).bind(stalled, MAX_ATTEMPTS).run();
+  await env.DB.prepare(
+    `UPDATE campaign_recipients SET status = 'FAILED', last_error_code = 'stalled_in_sending'
+     WHERE status = 'SENDING' AND queued_at <= ? AND attempts >= ?`,
+  ).bind(stalled, MAX_ATTEMPTS).run();
 
   const budget = await campaignBudget(env, now);
   let remaining = budget.allowed;
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let halted = 0;
 
   for (const campaign of campaigns) {
     if (remaining <= 0) break;
     if (!config.resendApiKey || !config.resendFrom) break;
+    // Check delivery health before mailing anyone else. A campaign that is
+    // bouncing or drawing complaints stops here, with the rest of its audience
+    // untouched, rather than running to the end of the list.
+    const health = await campaignHealth(env, campaign.campaign_id);
+    if (health.halt) {
+      await haltCampaign(env, campaign.campaign_id, health.halt, now);
+      halted += 1;
+      continue;
+    }
     if (campaign.status === "APPROVED") {
       await env.DB.prepare(
         "UPDATE campaigns SET status = 'SENDING', started_at = COALESCE(started_at, ?), updated_at = ? WHERE campaign_id = ?",
@@ -675,11 +896,11 @@ export async function dispatchDueCampaigns(
   await setHealth(
     env.DB,
     "campaign_dispatch_status",
-    JSON.stringify({ campaigns: campaigns.length, sent, failed, skipped, budget: budget.allowed, reason: budget.reason }),
-    failed > 0 ? "DEGRADED" : "OK",
+    JSON.stringify({ campaigns: campaigns.length, sent, failed, skipped, halted, budget: budget.allowed, reason: budget.reason }),
+    halted > 0 ? "CRITICAL" : failed > 0 ? "DEGRADED" : "OK",
     current,
   );
-  return { campaigns: campaigns.length, sent, failed, skipped, budget: budget.allowed, reason: budget.reason };
+  return { campaigns: campaigns.length, sent, failed, skipped, halted, budget: budget.allowed, reason: budget.reason };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { assertCoreConfiguration, lifecycleConfig, lifecycleMode } from "./config";
 import { acquireCronLock, healthValue, isoNow, releaseCronLock, setHealth } from "./db";
-import { dispatchDueCampaigns } from "./campaigns";
+import { dispatchDueCampaigns, sunsetUnengaged } from "./campaigns";
 import {
   backfillEmailEngagement,
   recomputeEngagementScores,
@@ -111,6 +111,9 @@ export async function runLifecycleCron(
     // Campaigns run last and inside their own quota budget, so lifecycle mail
     // always gets the send capacity it needs first.
     await dispatchDueCampaigns(env, now);
+    // Retire addresses that have been mailed repeatedly and never once opened.
+    // Cheap, bounded, and the single biggest protection for the sending domain.
+    await sunsetUnengaged(env, now);
     await monitorDeliveryWatch(env, now);
     await monitorResendQuota(env, now);
     await setHealth(env.DB, "lifecycle_runtime_status", "healthy", "OK", current);
