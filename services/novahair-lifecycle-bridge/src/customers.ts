@@ -264,6 +264,99 @@ export async function touchCustomerConsent(
 // Periodic score refresh. Pulls every row, recomputes in JS so the formula
 // lives in exactly one place, writes back in batches.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// One-time seed of email engagement from automation_tracking.
+//
+// The live counters are fed by Resend webhooks, which only started landing on
+// customer rows when this table was created. Everything sent before that is
+// recorded in automation_tracking, so without this the engagement score would
+// read every past opener and clicker as cold.
+//
+// automation_tracking has no opened_at column: its status is a progression
+// (SENT -> DELIVERED -> OPENED -> CLICKED), so the row's updated_at is used as
+// the open time, which is when the open moved it to that status.
+// ---------------------------------------------------------------------------
+export async function backfillEmailEngagement(
+  env: LifecycleEnv,
+  now: Date,
+): Promise<{ people: number; updated: boolean }> {
+  if ((await healthValue(env.DB, "customers_engagement_backfill_done")) === "true") {
+    return { people: 0, updated: false };
+  }
+  const current = isoNow(now);
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT recipient_hash AS hash,
+              SUM(CASE WHEN status IN ('SENT', 'DELIVERED', 'OPENED', 'CLICKED') THEN 1 ELSE 0 END) AS sent,
+              SUM(CASE WHEN status IN ('OPENED', 'CLICKED') THEN 1 ELSE 0 END) AS opened,
+              SUM(CASE WHEN status = 'CLICKED' THEN 1 ELSE 0 END) AS clicked,
+              -- A scheduled row can carry a due time in sent_at, so the last
+              -- send must come only from rows that actually went out.
+              MAX(CASE WHEN status IN ('SENT', 'DELIVERED', 'OPENED', 'CLICKED') THEN sent_at END) AS last_sent,
+              MAX(CASE WHEN status IN ('OPENED', 'CLICKED') THEN updated_at END) AS last_open,
+              MAX(clicked_at) AS last_click
+       FROM automation_tracking
+       WHERE recipient_hash IS NOT NULL
+       GROUP BY recipient_hash`,
+    ).all<{
+      hash: string;
+      sent: number;
+      opened: number;
+      clicked: number;
+      last_sent: string | null;
+      last_open: string | null;
+      last_click: string | null;
+    }>();
+
+    let people = 0;
+    for (const row of rows.results ?? []) {
+      // max() never lowers a counter the webhook has already moved past.
+      const result = await env.DB.prepare(
+        `UPDATE customers SET
+           emails_sent = max(emails_sent, ?),
+           emails_opened = max(emails_opened, ?),
+           emails_clicked = max(emails_clicked, ?),
+           last_email_at = CASE WHEN ? IS NOT NULL AND (last_email_at IS NULL OR ? > last_email_at) THEN ? ELSE last_email_at END,
+           last_open_at = CASE WHEN ? IS NOT NULL AND (last_open_at IS NULL OR ? > last_open_at) THEN ? ELSE last_open_at END,
+           last_click_at = CASE WHEN ? IS NOT NULL AND (last_click_at IS NULL OR ? > last_click_at) THEN ? ELSE last_click_at END,
+           updated_at = ?
+         WHERE email_hash = ?`,
+      ).bind(
+        Number(row.sent ?? 0),
+        Number(row.opened ?? 0),
+        Number(row.clicked ?? 0),
+        row.last_sent, row.last_sent, row.last_sent,
+        row.last_open, row.last_open, row.last_open,
+        row.last_click, row.last_click, row.last_click,
+        current,
+        row.hash,
+      ).run();
+      if (result.meta?.changes) people += 1;
+    }
+
+    await setHealth(env.DB, "customers_engagement_backfill_done", "true", "OK", current);
+    await setHealth(
+      env.DB,
+      "customers_engagement_backfill_status",
+      JSON.stringify({ candidates: rows.results?.length ?? 0, people }),
+      "OK",
+      current,
+    );
+    // Scores computed before the seed are stale, so force one recompute.
+    await env.DB.prepare("DELETE FROM health_state WHERE key = 'last_customer_score_refresh'").run();
+    return { people, updated: true };
+  } catch (error) {
+    await recordLifecycleError(env.DB, {
+      component: "customers_engagement_backfill",
+      code: error instanceof Error ? error.message.slice(0, 100) : "engagement_backfill_failed",
+      safeMessage: "Seeding email engagement from automation tracking failed; it will retry.",
+      retryable: true,
+      now: current,
+    });
+    return { people: 0, updated: false };
+  }
+}
+
 export async function recomputeEngagementScores(env: LifecycleEnv, now: Date): Promise<number> {
   const current = isoNow(now);
   const rows = await env.DB.prepare(

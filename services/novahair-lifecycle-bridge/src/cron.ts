@@ -1,7 +1,12 @@
 import { assertCoreConfiguration, lifecycleConfig, lifecycleMode } from "./config";
 import { acquireCronLock, healthValue, isoNow, releaseCronLock, setHealth } from "./db";
 import { dispatchDueCampaigns } from "./campaigns";
-import { recomputeEngagementScores, syncCustomerBackfill, syncCustomerProducts } from "./customers";
+import {
+  backfillEmailEngagement,
+  recomputeEngagementScores,
+  syncCustomerBackfill,
+  syncCustomerProducts,
+} from "./customers";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { monitorResendQuota } from "./quota";
 import { dispatchResendContactUpdates } from "./resend";
@@ -87,6 +92,8 @@ export async function runLifecycleCron(
           shopifyGraphql<T>(e, query, variables, { accessToken: ordersToken })
       : shopifyGraphql;
     await syncCustomerProducts(env, now, ordersGraphql);
+    // Seeds past opens and clicks once, then forces a score refresh.
+    await backfillEmailEngagement(env, now);
     const lastScoreRefresh = await healthValue(env.DB, "last_customer_score_refresh");
     if (syncIsDue(lastScoreRefresh, now, 6 * 60)) {
       await recomputeEngagementScores(env, now);

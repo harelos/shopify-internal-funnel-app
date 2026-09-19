@@ -3,6 +3,7 @@ import { test } from "node:test";
 import worker from "../src/worker";
 import { hashEmail } from "../src/crypto";
 import {
+  backfillEmailEngagement,
   engagementScore,
   recomputeEngagementScores,
   syncCustomerBackfill,
@@ -295,6 +296,60 @@ test("admin customers endpoint is hidden without auth and never returns a raw em
 
     const hot = await (await worker.fetch(new Request("https://worker.test/api/lifecycle/admin/customers?min_score=40", { headers }), env, context)).json() as any;
     assert.equal(hot.total, 2); // a@ (50) and c@ (10d → 40 + 10 = 50)
+  } finally {
+    await dispose();
+  }
+});
+
+test("past opens and clicks are seeded once from automation tracking", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db, { LIFECYCLE_MODE: "production" });
+  try {
+    await upsertCustomerFromShopify(env as never, {
+      id: "gid://shopify/Customer/900", firstName: null, updatedAt: NOW.toISOString(), numberOfOrders: 1,
+      lastOrder: { createdAt: daysAgo(200) },
+      defaultEmailAddress: { emailAddress: "history@example.com", marketingState: "SUBSCRIBED", marketingOptInLevel: null, marketingUpdatedAt: null, validFormat: true },
+    }, NOW, "SHOPIFY_BACKFILL");
+    const hash = await hashEmail("history@example.com", "test-hash-key-that-is-never-used-in-production");
+
+    const track = async (status: string, sentAt: string, updatedAt: string, clickedAt: string | null) =>
+      db.prepare(
+        `INSERT INTO automation_tracking
+          (idempotency_key, flow, email_number, entity_type, entity_id, recipient_hash, template_alias,
+           status, sent_at, clicked_at, utm_campaign, utm_content, created_at, updated_at)
+         VALUES (?, 'welcome', 1, 'customer', 'c900', ?, 'welcome-1', ?, ?, ?, 'c', 'c', ?, ?)`,
+      ).bind(`key-${status}-${sentAt}`, hash, status, sentAt, clickedAt, sentAt, updatedAt).run();
+
+    await track("DELIVERED", daysAgo(40), daysAgo(40), null);
+    await track("OPENED", daysAgo(20), daysAgo(19), null);
+    await track("CLICKED", daysAgo(10), daysAgo(9), daysAgo(9));
+    await track("SCHEDULED", daysAgo(1), daysAgo(1), null);
+
+    const seeded = await backfillEmailEngagement(env as never, NOW);
+    assert.deepEqual(seeded, { people: 1, updated: true });
+
+    const row = await db.prepare(
+      `SELECT emails_sent, emails_opened, emails_clicked, last_email_at, last_open_at, last_click_at
+       FROM customers WHERE email_hash = ?`,
+    ).bind(hash).first<Record<string, unknown>>();
+    // SCHEDULED was never sent, so it is not counted.
+    assert.equal(Number(row!.emails_sent), 3);
+    assert.equal(Number(row!.emails_opened), 2);
+    assert.equal(Number(row!.emails_clicked), 1);
+    assert.equal(row!.last_email_at, daysAgo(10));
+    assert.equal(row!.last_click_at, daysAgo(9));
+
+    // A click 9 days ago is worth 30, one order 10, a 200-day-old order 10.
+    await recomputeEngagementScores(env as never, NOW);
+    const scored = await db.prepare("SELECT engagement_score FROM customers WHERE email_hash = ?")
+      .bind(hash).first<{ engagement_score: number }>();
+    assert.equal(Number(scored!.engagement_score), 50);
+
+    // It runs once; a second call is a no-op and never double-counts.
+    assert.deepEqual(await backfillEmailEngagement(env as never, NOW), { people: 0, updated: false });
+    const again = await db.prepare("SELECT emails_sent FROM customers WHERE email_hash = ?")
+      .bind(hash).first<{ emails_sent: number }>();
+    assert.equal(Number(again!.emails_sent), 3);
   } finally {
     await dispose();
   }
