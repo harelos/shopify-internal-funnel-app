@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="shopify-api-key" content="%SHOPIFY_API_KEY%">
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <title>Funnels — Funnel Control</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/commerce-os.css">
+  <link rel="stylesheet" href="css/os-base.css">
+  <link rel="stylesheet" href="css/funnel-stats.css">
+  <script defer src="js/commerce-os-shell.js"></script>
+</head>
+<body>
+  <main class="main fs-main">
+    <div class="intro fs-intro">
+      <div>
+        <p class="eyebrow">FUNNELS · DAY BY DAY</p>
+        <h1>How the funnel converts, one day at a time</h1>
+        <p class="muted">Visitors, add to cart, checkout, purchases and revenue for one sales page. Fold the days into weeks or months, pick August or September, and see where the drop is.</p>
+      </div>
+      <a class="btn btn-sm btn-ghost" href="funnel.html" title="The older step-by-step funnel builder">Funnel builder</a>
+    </div>
+
+    <section class="fs-controls" aria-label="Table controls">
+      <label class="fs-control"><span>Funnel</span><select class="select" id="fs-funnel"></select></label>
+      <div class="fs-control"><span>Period</span>
+        <div class="fs-presets" id="fs-presets">
+          <button type="button" class="fs-chip" data-preset="7">7 days</button>
+          <button type="button" class="fs-chip" data-preset="14">14 days</button>
+          <button type="button" class="fs-chip is-active" data-preset="30">30 days</button>
+          <button type="button" class="fs-chip" data-preset="month">This month</button>
+          <button type="button" class="fs-chip" data-preset="2026-09">September</button>
+          <button type="button" class="fs-chip" data-preset="2026-08">August</button>
+          <button type="button" class="fs-chip" data-preset="custom">Custom</button>
+        </div>
+      </div>
+      <div class="fs-control fs-custom" id="fs-custom" hidden>
+        <span>From / to</span>
+        <div class="fs-dates"><input class="input" type="date" id="fs-from"><input class="input" type="date" id="fs-to"><button class="btn btn-sm" type="button" id="fs-apply">Apply</button></div>
+      </div>
+      <div class="fs-control"><span>Group by</span>
+        <div class="fs-segment" id="fs-group" role="radiogroup">
+          <button type="button" data-group="day" aria-checked="true" role="radio">Day</button>
+          <button type="button" data-group="week" aria-checked="false" role="radio">Week</button>
+          <button type="button" data-group="month" aria-checked="false" role="radio">Month</button>
+        </div>
+      </div>
+      <div class="fs-control fs-control--end">
+        <button class="btn btn-sm" type="button" id="fs-export">Download CSV</button>
+        <button class="btn btn-sm btn-ghost" type="button" id="fs-refresh">Refresh</button>
+      </div>
+    </section>
+
+    <section class="fs-kpis" id="fs-kpis" aria-label="Period totals"></section>
+
+    <section class="panel fs-panel">
+      <div class="panel-header">
+        <div><h2 id="fs-title">Funnel</h2><span class="eyebrow" id="fs-subtitle">Loading…</span></div>
+        <span class="badge badge-draft" id="fs-status">LOADING</span>
+      </div>
+      <div class="fs-table-wrap">
+        <table class="fs-table" id="fs-table">
+          <thead>
+            <tr>
+              <th class="fs-col-date">Date</th>
+              <th title="Visitors who landed on the page">Visitors</th>
+              <th title="Visitors who added to cart">Add to cart</th>
+              <th title="Share of visitors who added to cart">ATC %</th>
+              <th title="Visitors who reached checkout">Checkout</th>
+              <th title="Share of visitors who reached checkout">Checkout %</th>
+              <th title="Paid orders from this funnel (Shopify)">Purchases</th>
+              <th title="Purchases ÷ visitors">CVR</th>
+              <th title="Purchases ÷ checkouts">Checkout → buy</th>
+              <th title="Net revenue of those orders (Shopify)">Revenue</th>
+              <th title="Revenue ÷ visitors">Per visitor</th>
+              <th title="Where the visitor numbers come from">Source</th>
+            </tr>
+          </thead>
+          <tbody id="fs-body"><tr><td colspan="12" class="fs-empty">Loading the table…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="fs-foot" id="fs-foot"></div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/dialogs.js"></script>
+  <script src="js/funnel-stats.js"></script>
+</body>
+</html>
