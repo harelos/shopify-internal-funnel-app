@@ -47,6 +47,7 @@ export interface LifecycleEnv {
   RESEND_MONTHLY_RUN_LIMIT?: string;
   CAMPAIGN_LIFECYCLE_RESERVE?: string;
   CAMPAIGN_BATCH_SIZE?: string;
+  CAMPAIGN_MIN_GAP_DAYS?: string;
   SHOPIFY_WEBHOOK_SECRET?: string;
   SHOPIFY_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;

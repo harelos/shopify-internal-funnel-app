@@ -3,6 +3,7 @@ import { lifecycleAnalytics, lifecycleAudienceActivity, lifecycleFlowCatalog } f
 import {
   applyUnsubscribe,
   approveCampaign,
+  campaignBrief,
   campaignReport,
   createCampaign,
   listCampaigns,
@@ -261,6 +262,9 @@ async function campaignAdminRoute(env: LifecycleEnv, request: Request, url: URL)
         createdBy: text(body.createdBy) || "ADMIN",
       });
       return json({ ok: true, ...saved });
+    }
+    if (path === "/api/lifecycle/admin/campaigns/brief" && method === "GET") {
+      return json(await campaignBrief(env));
     }
     if (path === "/api/lifecycle/admin/campaigns" && method === "GET") {
       return json(await listCampaigns(env, url));

@@ -6,6 +6,7 @@ import {
   approveCampaign,
   assertAllowedCtaUrl,
   campaignBudget,
+  campaignBrief,
   campaignReport,
   createCampaign,
   dispatchDueCampaigns,
@@ -549,6 +550,88 @@ test("a campaign click is attributed to its recipient without an automation row"
       "SELECT clicked_at FROM campaign_recipients WHERE campaign_id = ? AND email_hash = ?",
     ).bind(created.campaignId, hash).first<{ clicked_at: string | null }>();
     assert.ok(recipient!.clicked_at, "the click should land on the campaign recipient row");
+  } finally {
+    await dispose();
+  }
+});
+
+test("nobody gets two campaigns inside the frequency gap, and lifecycle mail does not count", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db, { CAMPAIGN_BATCH_SIZE: "10", CAMPAIGN_MIN_GAP_DAYS: "5" });
+  try {
+    await addCustomer(env, { email: "twice@example.com", orders: 1, lastOrder: daysAgo(3) });
+    await saveSegment(env as never, { name: "All", filter: {}, createdBy: "AGENT" }, NOW);
+
+    const first = await createCampaign(env as never, {
+      name: "First", segmentId: "seg_all", subject: "ראשון", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair",
+    }, NOW);
+    await approveCampaign(env as never, first.campaignId, "harel", NOW);
+    assert.equal((await dispatchDueCampaigns(env as never, NOW, okFetcher())).sent, 1);
+
+    // A second campaign approved the next day must not reach the same person.
+    const nextDay = new Date(NOW.getTime() + 86_400_000);
+    const second = await createCampaign(env as never, {
+      name: "Second", segmentId: "seg_all", subject: "שני", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair",
+    }, nextDay);
+    await approveCampaign(env as never, second.campaignId, "harel", nextDay);
+    let result = await dispatchDueCampaigns(env as never, nextDay, okFetcher());
+    assert.equal(result.sent, 0);
+    assert.equal(result.skipped, 1);
+
+    const hash = await hashEmail("twice@example.com", "test-hash-key-that-is-never-used-in-production");
+    const row = await db.prepare(
+      "SELECT skip_reason FROM campaign_recipients WHERE campaign_id = ? AND email_hash = ?",
+    ).bind(second.campaignId, hash).first<{ skip_reason: string }>();
+    assert.equal(row!.skip_reason, "frequency_cap");
+
+    // Once the gap has passed, a third campaign reaches them again.
+    const later = new Date(NOW.getTime() + 6 * 86_400_000);
+    const third = await createCampaign(env as never, {
+      name: "Third", segmentId: "seg_all", subject: "שלישי", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair",
+    }, later);
+    await approveCampaign(env as never, third.campaignId, "harel", later);
+    result = await dispatchDueCampaigns(env as never, later, okFetcher());
+    assert.equal(result.sent, 1);
+  } finally {
+    await dispose();
+  }
+});
+
+test("the brief reports real capacity, the audience, and the rules that are enforced", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db, { CAMPAIGN_BATCH_SIZE: "10" });
+  try {
+    await addCustomer(env, { email: "buyer1@example.com", orders: 2, spent: 400, lastOrder: daysAgo(5) });
+    await addCustomer(env, { email: "buyer2@example.com", orders: 1, lastOrder: daysAgo(200) });
+    await addCustomer(env, { email: "gone@example.com", consent: "UNSUBSCRIBED", orders: 1 });
+
+    const brief = await campaignBrief(env as never, NOW) as Record<string, never>;
+    const capacity = brief.capacity as unknown as Record<string, number>;
+    const audience = brief.audience as unknown as Record<string, number>;
+    const excluded = brief.excludedFromEveryCampaign as unknown as Record<string, number>;
+
+    assert.equal(capacity.dailyCampaignCeiling, 60);
+    assert.equal(capacity.remainingToday, 60);
+    assert.equal(audience.reachable_total, 2);
+    assert.equal(audience.repeat_buyers, 1);
+    assert.equal(audience.lapsed_90d, 1);
+    assert.equal(audience.bought_last_30d, 1);
+    assert.equal(excluded.unsubscribed, 1);
+    assert.equal(excluded.totalCustomers, 3);
+
+    const frequency = brief.frequency as unknown as Record<string, number>;
+    assert.equal(frequency.minGapDays, 5);
+
+    const enforced = brief.enforcedRules as unknown as string[];
+    assert.ok(enforced.some((rule) => rule.includes("{{UNSUBSCRIBE_URL}}")));
+    assert.ok(enforced.some((rule) => rule.includes("DRAFT")));
+    const brand = brief.brandRules as unknown as string[];
+    assert.ok(brand.some((rule) => rule.includes("סיוון")));
+    // The brief must never leak an address.
+    assert.doesNotMatch(JSON.stringify(brief), /@example\.com/);
   } finally {
     await dispose();
   }

@@ -435,20 +435,32 @@ async function sendOne(
 
   // The snapshot was taken at approval time. Re-check the things that must be
   // true at the moment of sending, not the moment of approval.
+  const gapCutoff = new Date(now.getTime() - config.campaignMinGapDays * 86_400_000).toISOString();
   const live = await env.DB.prepare(
     `SELECT c.consent_state,
-            (SELECT COUNT(*) FROM suppressions s WHERE s.email_hash = c.email_hash AND s.active = 1) AS suppressed
+            (SELECT COUNT(*) FROM suppressions s WHERE s.email_hash = c.email_hash AND s.active = 1) AS suppressed,
+            (SELECT COUNT(*) FROM campaign_recipients r
+              WHERE r.email_hash = c.email_hash AND r.campaign_id <> ?
+                AND r.sent_at IS NOT NULL AND r.sent_at >= ?) AS recent_campaigns
      FROM customers c WHERE c.email_hash = ?`,
-  ).bind(recipient.email_hash).first<{ consent_state: string; suppressed: number }>();
+  ).bind(campaign.campaign_id, gapCutoff, recipient.email_hash).first<{
+    consent_state: string;
+    suppressed: number;
+    recent_campaigns: number;
+  }>();
   const skip = !live
     ? "customer_row_missing"
     : Number(live.suppressed) > 0
       ? "suppressed"
       : campaign.kind === "marketing" && !["SUBSCRIBED", "NOT_SUBSCRIBED"].includes(live.consent_state)
         ? `consent_${live.consent_state.toLowerCase()}`
-        : !canDispatchTo(env, recipient.email)
-          ? "recipient_not_allowed_in_current_mode"
-          : null;
+        // Two campaigns approved close together must not both land on the same
+        // person. Lifecycle mail is deliberately not counted here.
+        : campaign.kind === "marketing" && Number(live.recent_campaigns) > 0
+          ? "frequency_cap"
+          : !canDispatchTo(env, recipient.email)
+            ? "recipient_not_allowed_in_current_mode"
+            : null;
   if (skip) {
     await env.DB.prepare(
       `UPDATE campaign_recipients SET status = 'SKIPPED', skip_reason = ?
@@ -709,6 +721,112 @@ export async function campaignReport(env: LifecycleEnv, campaignId: string): Pro
       unsubscribeRate: rate(Number(stats?.unsubscribed ?? 0)),
       ordersAfterSend: Number(orders?.orders ?? 0),
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The proposal brief. Everything an agent needs before it writes a campaign,
+// in one read: how much room there is to send, who is actually reachable, what
+// already went out, and the rules that are enforced whether it follows them or
+// not. A proposal written without this is guessing.
+// ---------------------------------------------------------------------------
+const BRIEF_SEGMENTS: Array<{ key: string; filter: Record<string, unknown> }> = [
+  { key: "reachable_total", filter: {} },
+  { key: "explicitly_subscribed", filter: { consent: ["SUBSCRIBED"] } },
+  { key: "never_asked", filter: { consent: ["NOT_SUBSCRIBED"] } },
+  { key: "bought_last_30d", filter: { orderedWithinDays: 30 } },
+  { key: "lapsed_90d", filter: { lastOrderOlderThanDays: 90 } },
+  { key: "repeat_buyers", filter: { minOrders: 2 } },
+  { key: "one_time_buyers", filter: { minOrders: 1, maxOrders: 1 } },
+  { key: "never_ordered", filter: { neverOrdered: true } },
+  { key: "novahair_buyers", filter: { novahairBuyer: true } },
+  { key: "engaged_score_40_plus", filter: { minScore: 40 } },
+  { key: "opened_last_90d", filter: { openedWithinDays: 90 } },
+];
+
+export async function campaignBrief(env: LifecycleEnv, now = new Date()): Promise<Record<string, unknown>> {
+  const config = lifecycleConfig(env);
+  const budget = await campaignBudget(env, now);
+  const usage = await usageSnapshot(env.DB, now, usageLimitsFor(env));
+  const threshold = usageThresholds(usage.limits);
+
+  const audience: Record<string, number> = {};
+  for (const entry of BRIEF_SEGMENTS) {
+    const compiled = compileSegment(parseSegmentFilter(entry.filter), now);
+    const row = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM (SELECT c.email_hash FROM customers c WHERE ${compiled.where} LIMIT ?)`,
+    ).bind(...compiled.binds, compiled.limit).first<{ n: number }>();
+    audience[entry.key] = Number(row?.n ?? 0);
+  }
+
+  const excluded = await env.DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM customers) AS customers,
+       (SELECT COUNT(*) FROM customers WHERE consent_state = 'UNSUBSCRIBED') AS unsubscribed,
+       (SELECT COUNT(*) FROM suppressions WHERE active = 1) AS suppressed,
+       (SELECT COUNT(*) FROM customers WHERE email IS NULL OR email = '') AS no_email`,
+  ).first<Record<string, number>>();
+
+  const recent = await env.DB.prepare(
+    `SELECT campaign_id, name, subject, status, recipients_total, sent_count,
+            skipped_count, approved_at, completed_at
+     FROM campaigns
+     WHERE status IN ('APPROVED', 'SENDING', 'SENT')
+     ORDER BY COALESCE(completed_at, approved_at, created_at) DESC LIMIT 10`,
+  ).all<Record<string, unknown>>();
+
+  const gapCutoff = new Date(now.getTime() - config.campaignMinGapDays * 86_400_000).toISOString();
+  const recentlyMailed = await env.DB.prepare(
+    "SELECT COUNT(DISTINCT email_hash) AS n FROM campaign_recipients WHERE sent_at >= ?",
+  ).bind(gapCutoff).first<{ n: number }>();
+
+  return {
+    ok: true,
+    capacity: {
+      perTick: budget.allowed,
+      reason: budget.reason,
+      dailyCampaignCeiling: budget.dayCeiling,
+      sentToday: usage.dayEmails,
+      sentThisMonth: usage.monthEmails,
+      remainingToday: Math.max(0, budget.dayCeiling - usage.dayEmails),
+      remainingThisMonth: Math.max(0, threshold.monthCritical - usage.monthEmails),
+      planLimits: usage.limits,
+      lifecycleReservePerDay: config.campaignLifecycleReserve,
+      // At this rate, a campaign of N people takes N / remainingToday days.
+      note: "A campaign larger than remainingThisMonth cannot finish this month.",
+    },
+    audience,
+    excludedFromEveryCampaign: {
+      unsubscribed: Number(excluded?.unsubscribed ?? 0),
+      suppressed: Number(excluded?.suppressed ?? 0),
+      noEmail: Number(excluded?.no_email ?? 0),
+      totalCustomers: Number(excluded?.customers ?? 0),
+    },
+    frequency: {
+      minGapDays: config.campaignMinGapDays,
+      peopleMailedInsideTheGap: Number(recentlyMailed?.n ?? 0),
+      note: "Anyone in that group is skipped at send time, whatever the segment says.",
+    },
+    recentCampaigns: recent.results ?? [],
+    // Enforced in code, not advice: a proposal that breaks one is rejected.
+    enforcedRules: [
+      "A marketing campaign must contain {{UNSUBSCRIBE_URL}} or it cannot be created.",
+      "A CTA link must be https and on the storefront, shop, or worker domain.",
+      "A segment filter is an allowlist; unknown keys are rejected, never ignored.",
+      "No campaign reaches UNSUBSCRIBED, REDACTED, suppressed or address-less people.",
+      "Nothing sends from DRAFT: a human approval is required to build the audience.",
+      "Consent and suppression are re-checked per recipient at the moment of sending.",
+      `No one receives two campaign emails within ${config.campaignMinGapDays} days.`,
+    ],
+    // Brand rules the code cannot check. The proposer is responsible for these.
+    brandRules: [
+      "Write Hebrew for an Israeli reader, RTL, second person female.",
+      "Sign as סיוון מ-NovaHair by TigerBrandsGlobal.",
+      "No em-dashes anywhere in the copy.",
+      "No health or medical claims, and no claim of regulatory approval.",
+      "No invented reviews, statistics, scarcity or deadlines.",
+      "Say אפשר rather than ניתן.",
+    ],
   };
 }
 

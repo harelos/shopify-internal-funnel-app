@@ -50,6 +50,9 @@ export function lifecycleConfig(env: LifecycleEnv) {
     // starve an order confirmation or a shipping update.
     campaignLifecycleReserve: boundedInteger(env.CAMPAIGN_LIFECYCLE_RESERVE, 30, 0, 100_000),
     campaignBatchSize: boundedInteger(env.CAMPAIGN_BATCH_SIZE, 25, 1, 200),
+    // Minimum days between two campaign emails to the same person. Lifecycle
+    // mail is not counted: a shipping update must never delay a newsletter.
+    campaignMinGapDays: boundedInteger(env.CAMPAIGN_MIN_GAP_DAYS, 5, 0, 365),
     syncIntervalMinutes: boundedInteger(env.LIFECYCLE_SYNC_INTERVAL_MINUTES, 10, 5, 60),
     syncOverlapMinutes: boundedInteger(env.LIFECYCLE_SYNC_OVERLAP_MINUTES, 30, 10, 180),
     maxPages: boundedInteger(env.LIFECYCLE_MAX_PAGES, 10, 1, 30),
