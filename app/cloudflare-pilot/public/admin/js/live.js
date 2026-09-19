@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const hideInternal = byId("live-hide-internal");
   const pill = byId("live-state");
 
-  const ICONS = { view: "👋", section: "↓", bundle: "📦", shade: "🎨", compare: "⇄", mix: "🧪", module: "✨", module_action: "👆", cart_add: "🛒", cart_open: "🛒", cart_close: "✕", checkout_click: "💳", click: "•", popup: "💬", leave: "🚪" };
+  const ICONS = { view: "👋", section: "↓", bundle: "📦", shade: "🎨", compare: "⇄", mix: "🧪", module: "✨", module_action: "👆", cart_add: "🛒", cart_open: "🛒", cart_close: "✕", cart_change: "🛒", checkout_click: "💳", click: "•", popup: "💬", concierge: "🤖", faq: "❓", gallery: "🖼", reviews: "⭐", signal: "📡", leave: "🚪" };
   const DEVICE = { "iphone-facebook": "iPhone · Facebook", "android-facebook": "Android · Facebook", "iphone-instagram": "iPhone · Instagram", "android-instagram": "Android · Instagram", iphone: "iPhone", android: "Android", mobile: "Phone", desktop: "Desktop", unknown: "Unknown device" };
   const VARIANT = { control: "control", value_delta: "value delta", shade_rescue: "shade rescue", scroll_rescue: "scroll rescue", full_adaptive: "all three" };
 

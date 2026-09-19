@@ -13,6 +13,10 @@ const httpHandler = httpServerHandler({ port: 3000 });
 export default {
   fetch(request: Request, workerEnv: any, ctx: any) {
     (globalThis as any).__SHOPIFY_WORKER_ENV__ = workerEnv;
+    // Routes that must finish something after the response has gone out (a
+    // lead confirmation still waiting on Shopify's search index) hand the
+    // promise to the current request's context through this hook.
+    (globalThis as any).__FC_WAIT_UNTIL__ = (task: Promise<unknown>) => { try { ctx.waitUntil(task); } catch (_) { /* context already settled */ } };
     return httpHandler.fetch!(request as any, workerEnv, ctx);
   },
   async scheduled(event: any, workerEnv: any, ctx: any) {

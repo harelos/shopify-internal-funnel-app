@@ -21,6 +21,7 @@ import { aiConciergeStorefront, aiConciergeAdmin } from "./routes/ai-concierge.j
 import { cartOfferAdmin, cartOfferStorefront } from "./routes/cart-offers.js";
 import { elementAdminRouter, elementRuntimeRouter } from "./routes/element-experiments.js";
 import { pageExperimentAdminRouter, pageExperimentRuntimeRouter } from "./routes/page-experiments.js";
+import funnelStatsRouter from "./routes/funnel-stats.js";
 import { supportAdminRouter, supportBridgeRouter } from "./routes/support-desk.js";
 import { requireShopifySession } from "./middleware/shopify-auth.js";
 import trackPageRoutes from "./routes/track-page.js";
@@ -185,6 +186,7 @@ app.use("/api", pageExperimentAdminRouter);
 app.use("/api", adaptiveExperimentAdminRouter);
 app.use("/api", liveAdminRouter);
 app.use("/api", pageEditorAdminRouter);
+app.use("/api", funnelStatsRouter);
 app.use("/api", funnelRoutes);
 app.use("/api", stepRoutes);
 app.use("/api", variantRoutes);

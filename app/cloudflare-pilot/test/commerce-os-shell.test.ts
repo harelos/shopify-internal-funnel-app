@@ -21,7 +21,7 @@ test("Every live Commerce OS screen includes the responsive shared shell", () =>
   for (const page of [
     "index.html", "growth-cockpit.html", "journeys.html", "ai-concierge.html",
     "element-experiments.html", "support.html", "operations.html", "shipment-control.html",
-    "cart-offers.html", "popup-analytics.html", "analytics.html", "funnel.html", "editor.html",
+    "cart-offers.html", "popup-analytics.html", "analytics.html", "funnel.html", "editor.html", "funnel-stats.html",
   ]) {
     const html = readFileSync(path.join(admin, page), "utf8");
     assert.match(html, /css\/commerce-os\.css/);
@@ -44,12 +44,16 @@ test("every destination is reachable from the menu, exactly once", () => {
     "index.html", "growth-cockpit.html", "journeys.html", "analytics.html",
     "popup-analytics.html", "ai-concierge.html", "element-experiments.html",
     "support.html", "shipment-control.html", "operations.html",
-    "funnel.html", "cart-offers.html",
+    "funnel-stats.html", "cart-offers.html", "page-editor.html",
   ];
   for (const destination of destinations) {
     const occurrences = shell.split(`["${destination}", `).length - 1;
     assert.equal(occurrences, 1, `${destination} appears ${occurrences} times in the menu`);
   }
+  // The older step-by-step builder and the HTML editor are reached from their
+  // parent tab (Funnels, Page editor), which stays lit while they are open.
+  assert.match(shell, /"funnel\.html": "funnel-stats\.html"/);
+  assert.match(shell, /"editor\.html": "page-editor\.html"/);
   assert.doesNotMatch(shell, /commerce-os-subnav/, "a section-scoped submenu is hiding destinations again");
 });
 

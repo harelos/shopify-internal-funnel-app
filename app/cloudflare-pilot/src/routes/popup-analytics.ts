@@ -1,5 +1,5 @@
 import { getFlagByKey, postHogConfigured } from "../lib/posthog-admin.js";
-import { DEFAULT_POPUP_WEIGHTS, POPUP_EXPERIMENT_KEY, bucketVisitor, weightsFromFlag, type CroVariantWeight } from "../lib/cro-assignment.js";
+import { DEFAULT_POPUP_WEIGHTS, POPUP_EXPERIMENT_KEY, bucketVisitor, weightsFromFlag, type CroVariantWeight, knownExperimentKey, EXPERIMENTS } from "../lib/cro-assignment.js";
 import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import { Router } from "express";
@@ -274,12 +274,31 @@ router.post("/popup/customer/capture", async (req, res) => {
  * assignment through the live beacon, which is what the results table counts.
  */
 let popupSplitCache: { at: number; weights: CroVariantWeight[]; active: boolean } | null = null;
+/** Splits of the other first-party tests this endpoint decides (the concierge dock), cached a minute each. */
+const otherSplitCache = new Map<string, { at: number; weights: CroVariantWeight[]; active: boolean }>();
 
 router.get("/popup/offer-variant", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (customerRequestLimited(req, "offer_variant", 60, 10 * 60_000)) return res.status(429).json({ error: "rate_limited" });
   const visitorKey = String(req.query.visitor ?? "").trim();
   if (!/^[A-Za-z0-9_-]{8,120}$/.test(visitorKey)) return res.status(400).json({ error: "invalid_visitor" });
+  // Any other registered test asks here too, by key; it gets its arm and nothing else.
+  const otherKey = knownExperimentKey(req.query.experiment);
+  if (otherKey && otherKey !== POPUP_EXPERIMENT_KEY) {
+    try {
+      let cached = otherSplitCache.get(otherKey);
+      if (!cached || Date.now() - cached.at > 60_000) {
+        const flag = postHogConfigured() ? await getFlagByKey(otherKey).catch(() => null) : null;
+        cached = { at: Date.now(), weights: weightsFromFlag(flag, EXPERIMENTS[otherKey].fallback), active: flag ? Boolean(flag.active) : true };
+        otherSplitCache.set(otherKey, cached);
+      }
+      const control = EXPERIMENTS[otherKey].control;
+      const variant = cached.active ? (bucketVisitor(visitorKey, cached.weights) || control) : control;
+      return res.json({ experiment: otherKey, variant });
+    } catch {
+      return res.status(503).json({ error: "split_unavailable" });
+    }
+  }
   try {
     if (!popupSplitCache || Date.now() - popupSplitCache.at > 60_000) {
       const flag = postHogConfigured() ? await getFlagByKey(POPUP_EXPERIMENT_KEY).catch(() => null) : null;
@@ -305,6 +324,22 @@ router.post("/popup/exit-coupon", async (req, res) => {
   const code = (workerEnvValue("NOVAHAIR_EXIT_POPUP_CODE") || "NOVA10").trim();
   if (!code) return res.status(503).json({ error: "no_code_configured" });
   res.setHeader("Cache-Control", "no-store");
+  // Releasing the code is the moment the lead exists: the Shopify form that
+  // follows never reports back, so the lead is recorded here. Keyed by a hash
+  // of the address, so one person counts once and the address is never stored.
+  try {
+    const normalized = normalizePopupEventInput({ ...req.body, event: "popup_submit_success" }, true);
+    if (!("error" in normalized)) {
+      const customerKey = createHmac("sha256", workerEnvValue("SHOPIFY_CLIENT_SECRET")).update(email).digest("hex").slice(0, 32);
+      await persistPopupEvent({
+        ...normalized,
+        eventKey: `popup_submit_success:${normalized.payload.popupVersion}:customer:${customerKey}`,
+        payload: { ...normalized.payload, consent: req.body?.consent === true, confirmationSource: "exit_coupon_release", customerKey },
+      }, req.query as Record<string, unknown>, "STOREFRONT");
+    }
+  } catch (error: any) {
+    console.warn("[POPUP LEAD RECORD FAILED]", String(error?.message || error).slice(0, 200));
+  }
   return res.json({ code });
 });
 

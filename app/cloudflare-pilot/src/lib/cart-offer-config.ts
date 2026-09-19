@@ -26,12 +26,30 @@ export interface CartOfferItem {
   discountStrategy?: "fixed_amount_v1";
 }
 
+/**
+ * Version B of the offers, shown to the visitors the split sends there while
+ * the test runs. Same shape as the published set; the split itself lives in
+ * the Experiments screen (PostHog flag nova_cart_offer_v1).
+ */
+export interface CartOfferExperiment {
+  enabled: boolean;
+  carouselTitle: string;
+  carousel: CartOfferItem[];
+  bumps: CartOfferItem[];
+}
+
 export interface CartOfferConfig {
   schemaVersion: 1;
   currency: "ILS";
   carouselTitle: string;
   carousel: CartOfferItem[];
   bumps: CartOfferItem[];
+  experiment?: CartOfferExperiment;
+}
+
+/** Every item in the config, both versions, for validation and publishing. */
+export function allCartOfferItems(config: CartOfferConfig): CartOfferItem[] {
+  return [...config.carousel, ...config.bumps, ...(config.experiment?.carousel ?? []), ...(config.experiment?.bumps ?? [])];
 }
 
 export interface CartOfferValidationResult {
@@ -128,8 +146,25 @@ export function validateCartOfferConfig(input: unknown): CartOfferValidationResu
     .map((item, index) => normalizeItem(item, "carousel", index, errors));
   const bumps = bumpsInput.slice(0, CART_OFFER_MAX_BUMPS)
     .map((item, index) => normalizeItem(item, "bump", index, errors));
-  const ids = [...carousel, ...bumps].map(item => item.id);
-  if (new Set(ids).size !== ids.length) errors.push("offer item ids must be unique");
+
+  let experiment: CartOfferExperiment | undefined;
+  const experimentInput = source.experiment && typeof source.experiment === "object" && !Array.isArray(source.experiment)
+    ? source.experiment as Record<string, unknown>
+    : null;
+  if (experimentInput) {
+    const bCarousel = (Array.isArray(experimentInput.carousel) ? experimentInput.carousel : []).slice(0, CART_OFFER_MAX_CAROUSEL_ITEMS)
+      .map((item, index) => normalizeItem(item, "carousel", index, errors));
+    const bBumps = (Array.isArray(experimentInput.bumps) ? experimentInput.bumps : []).slice(0, CART_OFFER_MAX_BUMPS)
+      .map((item, index) => normalizeItem(item, "bump", index, errors));
+    experiment = {
+      enabled: experimentInput.enabled === true,
+      carouselTitle: text(experimentInput.carouselTitle, 90) || "מוצרים משלימים במחיר מיוחד",
+      carousel: bCarousel,
+      bumps: bBumps,
+    };
+  }
+  const ids = [...carousel, ...bumps, ...(experiment?.carousel ?? []), ...(experiment?.bumps ?? [])].map(item => item.id);
+  if (new Set(ids).size !== ids.length) errors.push("offer item ids must be unique across both versions");
 
   return {
     ok: errors.length === 0,
@@ -140,6 +175,7 @@ export function validateCartOfferConfig(input: unknown): CartOfferValidationResu
       carouselTitle: text(source.carouselTitle, 90) || "מוצרים משלימים במחיר מיוחד",
       carousel,
       bumps,
+      ...(experiment ? { experiment } : {}),
     },
   };
 }

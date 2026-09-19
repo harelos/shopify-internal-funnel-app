@@ -5,7 +5,7 @@
   --ink: #17231e;
   --muted: #66716a;
   --line: #d6d1c6;
-  --accent: #d85336;
+  --accent: var(--brand);
   --green: #197b5b;
   --blue: #2563eb;
   --red: #dc2626;
@@ -82,7 +82,7 @@ a:hover { text-decoration: underline; }
 }
 .btn:hover { background: #eae5d9; }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn-primary:hover { background: #c24328; }
+.btn-primary:hover { background: var(--brand-deep); }
 .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
 .btn-danger:hover { background: #b91c1c; }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
@@ -167,7 +167,7 @@ a:hover { text-decoration: underline; }
 }
 .step-node:active { cursor: grabbing; }
 .step-node:hover { border-color: var(--ink); }
-.step-node.active { border-color: var(--accent); background: #fff; box-shadow: 0 2px 8px rgba(216, 83, 54, 0.15); }
+.step-node.active { border-color: var(--accent); background: #fff; box-shadow: 0 2px 8px rgba(25, 91, 69, 0.15); }
 .step-node.dragging { opacity: 0.4; border-style: dashed; }
 .step-node.drag-over { border-color: var(--green); background: #f0fdf4; transform: scale(1.02); }
 
@@ -249,7 +249,7 @@ a:hover { text-decoration: underline; }
 }
 .funnel-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #e06d53 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, #2f8b6d 100%);
   border-radius: 6px;
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;

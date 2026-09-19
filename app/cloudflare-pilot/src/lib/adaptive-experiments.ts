@@ -1,3 +1,4 @@
+import { ORDER_ATTRIBUTES } from "./cro-assignment.js";
 /**
  * The adaptive page tests: PostHog assigns the variant on the storefront, the
  * page reacts in the browser, and the outcome is read from two places that do
@@ -107,9 +108,10 @@ export interface OrderLike {
  * property in case a theme copies attributes onto lines.
  */
 export function variantFromOrder(order: OrderLike, experimentKey: string): string | null {
-  if (experimentKey === POPUP_EXPERIMENT) {
-    const own = (order.customAttributes || []).find(attribute => attribute.key === POPUP_ORDER_ATTRIBUTE && attribute.value);
-    return own?.value || variantFromLineItems(order.lineItems.nodes, POPUP_LINE_ITEM_PROPERTY);
+  const names = ORDER_ATTRIBUTES[experimentKey];
+  if (names) {
+    const own = (order.customAttributes || []).find(attribute => attribute.key === names.attribute && attribute.value);
+    return own?.value || variantFromLineItems(order.lineItems.nodes, names.lineItemProperty);
   }
   return variantFromLineItems(order.lineItems.nodes);
 }

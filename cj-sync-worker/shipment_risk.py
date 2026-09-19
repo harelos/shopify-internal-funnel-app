@@ -283,14 +283,28 @@ def score_shipment(record: dict[str, Any], *, now: datetime | None = None) -> di
             "Internal",
         ))
 
+    # Two successful sales on one order is the post-purchase upsell charging
+    # separately (239 + 99, 219 + 9.90). It explains a customer's statement; it
+    # is not a problem to work, so it is informational and never actionable.
     if sale_count > 1:
         signals.append(_signal(
-            "MULTIPLE_SALE_TRANSACTIONS", "MEDIUM", f"{sale_count} successful SALE transactions",
-            "Review Shopify transactions and AfterSell before explaining the total charge to the customer.",
-            "Internal",
+            "MULTIPLE_SALE_TRANSACTIONS", "MONITORING", f"{sale_count} successful SALE transactions",
+            "Post-purchase upsell charged separately. Nothing to do unless the customer asks about two charges.",
+            "Monitor",
         ))
 
+    # Shopify's fraud review matters before the parcel leaves. Once the order is
+    # fulfilled the review moment has passed; keep the note, drop the task.
+    if shopify_fulfillment == "FULFILLED":
+        signals = [
+            {**signal, "severity": "MONITORING", "contact": "Monitor",
+             "action": "Already fulfilled; the risk review moment has passed. Keep for the record."}
+            if signal["code"] == "SHOPIFY_MEDIUM_RISK" else signal
+            for signal in signals
+        ]
+
     signals.sort(key=lambda item: SEVERITY_WEIGHT[item["severity"]], reverse=True)
+    actionable = [signal for signal in signals if signal["severity"] != "MONITORING"]
     primary = signals[0] if signals else _signal(
         "MONITORING", "MONITORING",
         (stage_label if stage != "UNKNOWN" else "Moving normally") if tracking_present else "Within the normal preparation window",
@@ -305,7 +319,7 @@ def score_shipment(record: dict[str, Any], *, now: datetime | None = None) -> di
         "doNow": primary["action"],
         "contactTarget": primary["contact"],
         "signals": signals,
-        "isActionable": bool(signals),
+        "isActionable": bool(actionable),
         "orderBusinessDays": order_business_days,
         "labelBusinessDays": label_business_days,
         "inactiveDays": inactive_days,

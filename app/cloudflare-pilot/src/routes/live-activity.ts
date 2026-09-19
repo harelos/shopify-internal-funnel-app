@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
+import { hashAnonymousKey } from "../services/element-ab-engine.js";
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
@@ -61,11 +62,14 @@ liveRuntimeRouter.post("/live", async (req, res) => {
     const isInternal = batch.isInternal || looksLikeInternalTraffic({ query: req.query as Record<string, unknown> });
     const receivedAt = new Date().toISOString();
     const handle = db();
+    // The same hash the checkout pixel's visitor ends up under, so Journeys can
+    // join this feed to a paid order without comparing raw keys.
+    const visitorHash = hashAnonymousKey(batch.visitorKey);
     const insert = handle.prepare(`
-      INSERT INTO "LiveActivity" ("id","shopId","sessionKey","visitorKey","occurredAt","receivedAt","kind","label","page","detail","device","source","variant","isInternal")
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+      INSERT INTO "LiveActivity" ("id","shopId","sessionKey","visitorKey","visitorHash","occurredAt","receivedAt","kind","label","page","detail","device","source","variant","isInternal")
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     await handle.batch(batch.events.map(event => insert.bind(
-      randomUUID(), shop, batch.sessionKey, batch.visitorKey, new Date(event.at).toISOString(), receivedAt,
+      randomUUID(), shop, batch.sessionKey, batch.visitorKey, visitorHash, new Date(event.at).toISOString(), receivedAt,
       event.kind, event.label, batch.page, JSON.stringify(event.detail), device, batch.source, batch.variant, isInternal ? 1 : 0,
     )));
     // The live feed is pruned after two days, so a test's denominator cannot
@@ -94,7 +98,7 @@ liveRuntimeRouter.post("/live", async (req, res) => {
       }
     }
 
-    // keep two days; one request in fifty pays for the sweep
+    // keep a month; one request in fifty pays for the sweep
     if (Math.random() < 0.02) {
       const cutoff = new Date(Date.now() - LIVE_RETENTION_HOURS * 3600 * 1000).toISOString();
       await handle.prepare(`DELETE FROM "LiveActivity" WHERE "receivedAt" < ?`).bind(cutoff).run();

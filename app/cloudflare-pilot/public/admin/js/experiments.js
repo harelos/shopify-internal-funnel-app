@@ -42,14 +42,18 @@ document.addEventListener("DOMContentLoaded", () => {
     scroll_rescue: "Scroll rescue",
     email_gate: "Code after email — as it is",
     instant_code: "Code shown at once",
+    dock: "Concierge button always visible",
+    variant_b: "Version B of the cart offers",
   };
   const label = key => VARIANT_LABELS[key] || key;
   const KINDS = {
     page: { title: "WHOLE PAGE", blurb: "Two different pages; the ad link splits visitors before anything loads." },
     adaptive: { title: "ON-PAGE MODULES", blurb: "The sales page shows extra modules to part of its visitors." },
     popup: { title: "EXIT POPUP OFFER", blurb: "What the exit popup offers: the code after an email, or at once." },
+    concierge: { title: "CONCIERGE", blurb: "A floating “talk to me” button that opens the concierge any time, against the concierge on exit intent only." },
+    cart: { title: "CART OFFERS", blurb: "The side cart's published offers against Version B, decided per visitor. Edit Version B on the Cart offers page." },
   };
-  const kindOf = exp => exp.kind === "page" ? "page" : /popup/.test(exp.key) ? "popup" : "adaptive";
+  const kindOf = exp => exp.kind === "page" ? "page" : /popup/.test(exp.key) ? "popup" : /concierge|dock/.test(exp.key) ? "concierge" : /cart_offer/.test(exp.key) ? "cart" : "adaptive";
 
   const openState = () => { try { return JSON.parse(localStorage.getItem(OPEN_KEY) || "{}"); } catch { return {}; } };
   const setOpen = (id, open) => { try { const state = openState(); state[id] = open; localStorage.setItem(OPEN_KEY, JSON.stringify(state)); } catch { /* per-viewer nicety only */ } };

@@ -13,7 +13,7 @@
   <style>
     .lab-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; align-items:start; }
     .slot-card { width:100%; padding:12px; text-align:left; border:1px solid var(--line); background:var(--card); cursor:pointer; border-radius:8px; margin-bottom:8px; }
-    .slot-card.active { border-color:var(--accent); box-shadow:0 0 0 2px rgba(216,83,54,.13); }
+    .slot-card.active { border-color:var(--accent); box-shadow:0 0 0 2px rgba(25, 91, 69, .13); }
     .stack { display:grid; gap:14px; }
     .variant-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.85fr); gap:20px; }
     .preview-shell { margin:auto; width:390px; max-width:100%; padding:10px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 16px 40px rgba(23,35,30,.12); }
@@ -39,6 +39,7 @@
     .uplift-negative { color:var(--red); font-weight:800; }
     @media (max-width:900px) { .lab-layout,.variant-grid { grid-template-columns:1fr; } }
   </style>
+  <link rel="stylesheet" href="css/os-base.css">
 </head>
 <body>
   <header class="top-bar">

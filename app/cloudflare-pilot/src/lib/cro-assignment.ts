@@ -82,10 +82,33 @@ export const DEFAULT_POPUP_WEIGHTS: CroVariantWeight[] = [
   { key: "instant_code", weight: 50 },
 ];
 
+/** A floating "talk to me" button that opens the concierge any time, against the exit-intent-only concierge. */
+export const CONCIERGE_DOCK_EXPERIMENT_KEY = "nova_concierge_dock_v1";
+export const DEFAULT_DOCK_WEIGHTS: CroVariantWeight[] = [
+  { key: "control", weight: 50 },
+  { key: "dock", weight: 50 },
+];
+
+/** The side cart's offers: the published set against a second version, decided per visitor. */
+export const CART_OFFER_EXPERIMENT_KEY = "nova_cart_offer_v1";
+export const DEFAULT_CART_OFFER_WEIGHTS: CroVariantWeight[] = [
+  { key: "control", weight: 50 },
+  { key: "variant_b", weight: 50 },
+];
+
 /** Every test the storefront may report an assignment for, with the split used when PostHog is unreachable. */
 export const EXPERIMENTS: Record<string, { fallback: CroVariantWeight[]; control: string }> = {
   [CRO_EXPERIMENT_KEY]: { fallback: DEFAULT_CRO_WEIGHTS, control: "control" },
   [POPUP_EXPERIMENT_KEY]: { fallback: DEFAULT_POPUP_WEIGHTS, control: "email_gate" },
+  [CONCIERGE_DOCK_EXPERIMENT_KEY]: { fallback: DEFAULT_DOCK_WEIGHTS, control: "control" },
+  [CART_OFFER_EXPERIMENT_KEY]: { fallback: DEFAULT_CART_OFFER_WEIGHTS, control: "control" },
+};
+
+/** The cart attribute (and line-item property) an order carries for each test. */
+export const ORDER_ATTRIBUTES: Record<string, { attribute: string; lineItemProperty: string }> = {
+  [POPUP_EXPERIMENT_KEY]: { attribute: "nova_popup_variant", lineItemProperty: "_nova_popup_variant" },
+  [CONCIERGE_DOCK_EXPERIMENT_KEY]: { attribute: "nova_concierge_dock", lineItemProperty: "_nova_concierge_dock" },
+  [CART_OFFER_EXPERIMENT_KEY]: { attribute: "nova_cart_offer_variant", lineItemProperty: "_nova_cart_offer_variant" },
 };
 
 /** The experiment key as this app knows it, or null for anything else a request may carry. */

@@ -1,10 +1,11 @@
-import { Router } from "express";
+import { Router, raw } from "express";
 import { randomUUID } from "node:crypto";
 import { env as cloudflareEnv } from "cloudflare:workers";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { getShopifyConfig, workerEnvValue } from "../lib/shopify-config.js";
 import { verifyShopifyAppProxyRequest } from "../middleware/shopify-auth.js";
 import { BACKUPS_PER_PAGE, cleanEditorMarkup, editableHandle, previewIsCurrent, previewPath, previewToken, validateBody, validateNova } from "../lib/page-editor.js";
+import { IMAGE_CONTENT_TYPES, MAX_IMAGE_BYTES, describeUploadError, safeImageFilename, uploadImageToShopifyFiles } from "../lib/shopify-files.js";
 
 /**
  * The page editor's server side: read a sales page from Shopify, keep a draft,
@@ -189,6 +190,40 @@ pageEditorAdminRouter.post("/page-editor/pages/:handle/publish", async (req, res
     await db().prepare(`DELETE FROM "PageEditorDraft" WHERE "handle" = ?`).bind(handle).run();
     res.json({ ok: true, backupId, updatedAt: updated.updatedAt, url: storefrontUrl(handle) });
   } catch (error) { fail(res, error); }
+});
+
+/**
+ * POST /api/page-editor/upload?filename=<name>&alt=<alt text>
+ * Body: the picture's bytes, Content-Type image/png, image/jpeg or image/webp, at most 8 MB.
+ * Reply: { ok, url, alt, width, height, fileId } once Shopify Files has processed it.
+ *
+ * The bytes travel raw rather than as base64 JSON: server.ts parses every
+ * JSON body with a 2 MB cap before any router runs, so a JSON envelope
+ * would cap pictures near 1.4 MB. The raw parser below is this route's own
+ * and only reads image content types, so nothing else changes.
+ */
+const imageBody = raw({ type: [...IMAGE_CONTENT_TYPES], limit: MAX_IMAGE_BYTES + 64 * 1024 });
+pageEditorAdminRouter.post("/page-editor/upload", (req, res, next) => imageBody(req, res, (error?: unknown) => {
+  if (!error) return next();
+  const tooLarge = (error as { type?: string })?.type === "entity.too.large";
+  res.status(tooLarge ? 413 : 400).json({ error: tooLarge ? "The picture is bigger than 8 MB. Shrink it and try again." : "The picture could not be read." });
+}), async (req, res) => {
+  try {
+    const contentType = String(req.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!IMAGE_CONTENT_TYPES.has(contentType) || !Buffer.isBuffer(req.body)) {
+      return res.status(400).json({ error: "Send a PNG, JPG or WEBP picture as the request body, with its content type." });
+    }
+    const bytes = req.body as Buffer;
+    if (!bytes.length) return res.status(400).json({ error: "The picture is empty." });
+    if (bytes.length > MAX_IMAGE_BYTES) return res.status(413).json({ error: "The picture is bigger than 8 MB. Shrink it and try again." });
+    const filename = safeImageFilename(req.query.filename, contentType);
+    const alt = String(req.query.alt ?? "").slice(0, 300);
+    const uploaded = await uploadImageToShopifyFiles({ bytes: new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), filename, contentType, alt }, shopify);
+    res.json({ ok: true, ...uploaded });
+  } catch (error) {
+    const message = describeUploadError(error);
+    res.status(/still processing/.test(message) ? 504 : /refused|missing the write_files|did not accept|could not process|Only PNG|empty|limit/.test(message) ? 400 : 502).json({ error: message });
+  }
 });
 
 pageEditorAdminRouter.get("/page-editor/pages/:handle/backups/:id", async (req, res) => {

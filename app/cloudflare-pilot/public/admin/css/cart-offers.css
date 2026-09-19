@@ -103,3 +103,9 @@
 }
 
 
+
+/* Version B */
+.offer-toggle { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.offer-toggle input { width: 16px; height: 16px; margin: 0; }
+.offer-subhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 10px; }
+.offer-subhead h3 { margin: 0; font-size: 13.5px; }

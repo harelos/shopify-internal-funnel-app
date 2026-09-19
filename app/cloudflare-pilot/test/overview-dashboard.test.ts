@@ -17,7 +17,7 @@ test("Commerce OS overview keeps every primary product destination working", () 
   const shell = fs.readFileSync(path.join(root, "public/admin/js/commerce-os-shell.js"), "utf8");
   for (const [label, href] of [
     ["Overview", "index.html"],
-    ["Growth", "growth-cockpit.html"],
+    ["Insights", "growth-cockpit.html"],
     ["Journeys", "journeys.html"],
     ["Experiences", "ai-concierge.html"],
     ["Experiments", "element-experiments.html"],

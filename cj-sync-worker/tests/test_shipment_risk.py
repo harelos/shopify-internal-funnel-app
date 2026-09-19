@@ -91,9 +91,28 @@ class ShipmentRiskTests(unittest.TestCase):
             trackingRoutes=[{"acceptTime": "2026-09-08 15:00:00", "remark": "In transit"}],
             saleTransactionCount=2,
         ), now=NOW)
+        # the post-purchase upsell charges separately: a note for support, never a task
         self.assertEqual(scored["primarySignal"], "MULTIPLE_SALE_TRANSACTIONS")
-        self.assertEqual(scored["severity"], "MEDIUM")
+        self.assertEqual(scored["severity"], "MONITORING")
+        self.assertFalse(scored["isActionable"])
         self.assertTrue(scored["afterSellLikely"])
+
+    def test_medium_risk_is_informational_once_fulfilled(self):
+        scored = score_shipment(self.base(
+            orderCreatedAt="2026-09-08T08:00:00+03:00",
+            cjCreatedAt="2026-09-08 13:00:00",
+            cjPaymentAt="2026-09-08 13:05:00",
+            cjStatus="PROCESSING",
+            trackingPresent=True,
+            outWarehouseAt="2026-09-08 14:00:00",
+            trackingStatus="En Route",
+            trackingRoutes=[{"acceptTime": "2026-09-08 15:00:00", "remark": "In transit"}],
+            shopifyRiskRecommendation="INVESTIGATE",
+            shopifyFulfillmentStatus="FULFILLED",
+        ), now=NOW)
+        self.assertEqual(scored["primarySignal"], "SHOPIFY_MEDIUM_RISK")
+        self.assertEqual(scored["severity"], "MONITORING")
+        self.assertFalse(scored["isActionable"])
 
     def test_carrier_exception_is_same_day_critical(self):
         scored = score_shipment(self.base(

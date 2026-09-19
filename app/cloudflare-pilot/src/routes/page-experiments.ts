@@ -1,6 +1,7 @@
 import { hogql, postHogConfigured } from "../lib/posthog-admin.js";
 import { resolveFxRate } from "../lib/fx.js";
 import { Router } from "express";
+import { looksLikeBot } from "../lib/request-limit.js";
 import { randomUUID } from "node:crypto";
 import {
   EXPERIMENT_KEY_PATTERN,
@@ -61,6 +62,15 @@ pageExperimentRuntimeRouter.get("/go/:experimentKey", async (req, res) => {
       || variants[0];
     res.setHeader("Cache-Control", "no-store");
     return res.redirect(302, redirectTarget(settled.landingPath, req.originalUrl.split("?")[1] || ""));
+  }
+
+  // Facebook's link checker, its in-app prefetch and other crawlers hit the ad
+  // link far more often than people do. They get the control page and no row,
+  // so the visitor counts describe people.
+  if (looksLikeBot(req.get("user-agent"))) {
+    const control = variants.find(variant => variant.isControl) || variants[0];
+    res.setHeader("Cache-Control", "no-store");
+    return res.redirect(302, redirectTarget(control.landingPath, req.originalUrl.split("?")[1] || ""));
   }
 
   const cookieHeader = req.get("cookie");

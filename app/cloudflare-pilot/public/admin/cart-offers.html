@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/cart-offers.css">
   <link rel="stylesheet" href="css/commerce-os.css">
   <script defer src="js/commerce-os-shell.js"></script>
+  <link rel="stylesheet" href="css/os-base.css">
 </head>
 <body>
   <header class="top-bar">
@@ -63,6 +64,24 @@
         <button class="btn" id="add-bump" type="button">Add bump</button>
       </div>
       <div class="offer-list" id="bump-list"></div>
+    </section>
+
+    <section class="panel offer-section" id="experiment-section">
+      <div class="panel-header">
+        <div>
+          <h2 id="experiment-heading">Version B — for a test</h2>
+          <p class="muted">A second set of offers. When the test runs, half the visitors see this set instead; the split and the results live in <a href="element-experiments.html">Experiments → Cart offers</a>.</p>
+        </div>
+        <label class="offer-toggle"><input type="checkbox" id="experiment-enabled"> Run the test</label>
+      </div>
+      <div class="panel-body">
+        <label class="eyebrow" for="carousel-title-b">Carousel title (Version B)</label>
+        <input class="input" id="carousel-title-b" maxlength="90" autocomplete="off">
+        <div class="offer-subhead"><h3>Carousel (Version B)</h3><button class="btn btn-sm" id="add-carousel-b" type="button">Add product</button></div>
+        <div class="offer-list" id="carousel-b-list"></div>
+        <div class="offer-subhead"><h3>Order bumps (Version B)</h3><button class="btn btn-sm" id="add-bump-b" type="button">Add bump</button></div>
+        <div class="offer-list" id="bump-b-list"></div>
+      </div>
     </section>
   </main>
 

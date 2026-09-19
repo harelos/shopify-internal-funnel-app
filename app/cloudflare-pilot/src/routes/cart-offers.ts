@@ -1,10 +1,13 @@
 import { Router, type Request } from "express";
+import { CART_OFFER_EXPERIMENT_KEY, DEFAULT_CART_OFFER_WEIGHTS, bucketVisitor, weightsFromFlag, type CroVariantWeight } from "../lib/cro-assignment.js";
+import { getFlagByKey, postHogConfigured } from "../lib/posthog-admin.js";
 import { ShopifyAdminClient } from "../lib/shopify-admin.js";
 import { workerEnvValue } from "../lib/shopify-config.js";
 import {
   discountFixedAmount,
   type CartOfferConfig,
   type CartOfferItem,
+  allCartOfferItems,
   validateCartOfferConfig,
 } from "../lib/cart-offer-config.js";
 import {
@@ -218,7 +221,7 @@ async function deleteOfferDiscount(req: Request, id: string): Promise<void> {
 }
 
 async function hydrateForPublish(req: Request, config: CartOfferConfig): Promise<CartOfferConfig> {
-  const allItems = [...config.carousel, ...config.bumps];
+  const allItems = allCartOfferItems(config);
   const resolved = await resolveVariants(req, [...new Set(allItems.map(item => item.variantId))]);
   const errors: string[] = [];
   const hydrate = (item: CartOfferItem): CartOfferItem => {
@@ -249,20 +252,46 @@ async function hydrateForPublish(req: Request, config: CartOfferConfig): Promise
       discountNodeId: "",
     };
   };
-  const hydrated = {
+  const hydrated: CartOfferConfig = {
     ...config,
     carousel: config.carousel.map(hydrate),
     bumps: config.bumps.map(hydrate),
+    ...(config.experiment ? { experiment: { ...config.experiment, carousel: config.experiment.carousel.map(hydrate), bumps: config.experiment.bumps.map(hydrate) } } : {}),
   };
   if (errors.length) throw new Error(errors.join(" "));
   return hydrated;
 }
 
-storefront.get("/cart-offers-config", async (_req, res) => {
+/** The split of the cart-offer test, from PostHog, cached a minute. */
+let cartSplitCache: { at: number; weights: CroVariantWeight[]; active: boolean } | null = null;
+async function cartOfferVariant(visitorKey: string): Promise<string> {
+  if (!cartSplitCache || Date.now() - cartSplitCache.at > 60_000) {
+    const flag = postHogConfigured() ? await getFlagByKey(CART_OFFER_EXPERIMENT_KEY).catch(() => null) : null;
+    cartSplitCache = { at: Date.now(), weights: weightsFromFlag(flag, DEFAULT_CART_OFFER_WEIGHTS), active: flag ? Boolean(flag.active) : true };
+  }
+  if (!cartSplitCache.active) return "control";
+  return bucketVisitor(visitorKey, cartSplitCache.weights) || "control";
+}
+
+/** Version B as the storefront sees it: the published set with B's title and items. */
+function variantConfig(config: CartOfferConfig, variant: string): CartOfferConfig {
+  if (variant !== "variant_b" || !config.experiment?.enabled) return config;
+  return { ...config, carouselTitle: config.experiment.carouselTitle, carousel: config.experiment.carousel, bumps: config.experiment.bumps };
+}
+
+storefront.get("/cart-offers-config", async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   try {
     const stored = await loadCartOfferConfig();
-    return res.json({ ok: true, revision: stored.publishedRevision, config: publicConfig(stored.published) });
+    const visitorKey = String(req.query.visitor ?? "").trim();
+    const testing = Boolean(stored.published.experiment?.enabled) && /^[A-Za-z0-9_-]{8,120}$/.test(visitorKey);
+    const variant = testing ? await cartOfferVariant(visitorKey) : "control";
+    return res.json({
+      ok: true,
+      revision: stored.publishedRevision,
+      config: publicConfig(variantConfig(stored.published, variant)),
+      experiment: testing ? { key: CART_OFFER_EXPERIMENT_KEY, variant } : null,
+    });
   } catch (error) {
     console.error("[CART OFFER STOREFRONT READ FAILED]", error);
     return res.status(503).json({ ok: false, error: "Cart offers are temporarily unavailable." });
@@ -345,9 +374,9 @@ admin.post("/cart-offers/publish", async (req, res) => {
     const current = await loadCartOfferConfig();
     const hydrated = await hydrateForPublish(req, validated.value);
     const currentItems = new Map(
-      [...current.published.carousel, ...current.published.bumps].map(item => [item.id, item]),
+      allCartOfferItems(current.published).map(item => [item.id, item]),
     );
-    for (const item of [...hydrated.carousel, ...hydrated.bumps]) {
+    for (const item of allCartOfferItems(hydrated)) {
       if (!item.enabled) continue;
       const previous = currentItems.get(item.id);
       if (
@@ -366,9 +395,9 @@ admin.post("/cart-offers/publish", async (req, res) => {
 
     const stored = await publishCartOfferConfig(hydrated);
     const retainedDiscounts = new Set(
-      [...hydrated.carousel, ...hydrated.bumps].map(item => item.discountNodeId).filter(Boolean),
+      allCartOfferItems(hydrated).map(item => item.discountNodeId).filter(Boolean),
     );
-    const oldDiscounts = [...current.published.carousel, ...current.published.bumps]
+    const oldDiscounts = allCartOfferItems(current.published)
       .map(item => item.discountNodeId)
       .filter((id): id is string => Boolean(id) && !retainedDiscounts.has(id));
     const cleanupErrors: string[] = [];

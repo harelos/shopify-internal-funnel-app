@@ -8,10 +8,14 @@
 
 export const LIVE_KINDS = new Set([
   "view", "section", "bundle", "shade", "compare", "mix", "module", "module_action",
-  "cart_add", "cart_open", "cart_close", "checkout_click", "click", "popup", "leave",
+  "cart_add", "cart_open", "cart_close", "cart_change", "checkout_click", "click", "popup", "leave",
+  "faq", "gallery", "reviews", "concierge", "signal",
 ]);
 
-export const LIVE_RETENTION_HOURS = 48;
+/* Thirty days, so a journey can be read back for any order in the month, and so
+ * a test's per-visitor rows and the feed tell the same story. About three
+ * thousand rows a day at today's traffic. */
+export const LIVE_RETENTION_HOURS = 24 * 30;
 export const MAX_BATCH = 30;
 
 export interface BeaconEvent {

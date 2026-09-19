@@ -27,6 +27,22 @@
   var sessionKey = stored(global.sessionStorage, 'nh_live_session');
   var visitorKey = (cookie('_fc_visitor').match(/^[A-Za-z0-9_-]{8,120}$/) || [])[0] || stored(global.localStorage, 'nh_live_visitor');
 
+  /* The checkout pixel reads the _funnel_context cookie the attribution script keeps,
+     and only carries a visitorId if something put one there. Nothing did on this page,
+     so nine checkouts in ten reached the app with no person behind them. Put this
+     page's key in; the attribution script keeps whatever visitorId it finds. */
+  (function shareVisitorKey() {
+    try {
+      var raw = cookie('_funnel_context');
+      var ctx = raw ? JSON.parse(raw) : {};
+      if (!ctx || typeof ctx !== 'object' || Array.isArray(ctx)) ctx = {};
+      if (ctx.visitorId === visitorKey) return;
+      if (ctx.visitorId && /^[A-Za-z0-9_-]{8,180}$/.test(ctx.visitorId)) { visitorKey = ctx.visitorId; return; }
+      ctx.visitorId = visitorKey;
+      doc.cookie = '_funnel_context=' + encodeURIComponent(JSON.stringify(ctx)) + '; Path=/; Max-Age=2592000; SameSite=Lax; Secure';
+    } catch (_) {}
+  })();
+
   var params; try { params = new URLSearchParams(global.location.search); } catch (_) { params = { get: function () { return null; } }; }
   function sourceLabel() {
     try {
@@ -128,6 +144,12 @@
     if (t.closest('#mainCheckout, #stickyCtaBtn, [data-nova-action="add-to-cart"]')) { push('click', 'tapped the buy button: ' + text(t.closest('button'), 40)); return; }
     if (t.closest('.nh-exit-popup, .nh-exit-popup__dialog')) { push('popup', 'exit popup: ' + text(t.closest('button, a') || t, 40)); return; }
     if (t.closest('[data-return-to-buybox], .nh-midpage-cta__button')) { push('click', 'tapped a mid-page button'); return; }
+    var faq = t.closest('.faq-item__trigger, .faq-item summary, [data-faq-trigger]');
+    if (faq) { push('faq', 'opened a question: ' + text(faq, 70).replace(/\s*\+$/, ''), { question: text(faq, 90) }); return; }
+    var thumb = t.closest('.thumb, [data-media-id], .gallery-thumb, .ugc-gallery__item');
+    if (thumb) { push('gallery', 'looked at a gallery photo', { media: thumb.getAttribute('data-media-id') || null }); return; }
+    if (t.closest('.ugc-review-card, #ugcModalCta, .reviews-summary, [data-review-id], .reviews-insights')) { push('reviews', 'read the reviews', {}); return; }
+    if (t.closest('[data-popup-code], .nh-exit-popup__code, [data-copy-code]')) { push('popup', 'copied the discount code'); return; }
     var control = t.closest('a, button, [role="button"], summary, .thumb');
     if (control) push('click', 'tapped ' + (control.tagName === 'A' ? 'link' : 'button') + (text(control, 40) ? ': ' + text(control, 40) : ''), { tag: control.tagName.toLowerCase(), id: control.id || null });
   }, true);
@@ -153,6 +175,49 @@
     if (d.name === 'nova_cro_module_viewed') push('module', 'saw ' + String(props.module || '').replace(/_/g, ' ') + (props.placement ? ' (' + props.placement.replace(/_/g, ' ') + ')' : ''), { module: props.module, placement: props.placement || null });
     else if (d.name === 'nova_cro_triggered') push('module', 'qualified for ' + String(props.module || '').replace(/_/g, ' ') + ' (' + String(props.reason || '').replace(/_/g, ' ') + ')', { module: props.module, reason: props.reason || null, viewed: false });
   });
+
+  /* The popup engine, the concierge and the cart scripts report to PostHog. Mirror
+     the ones a person would want to see in the feed, straight from the call, so
+     the feed shows them within seconds and even for shoppers who never accepted
+     cookies (PostHog drops those; the call is still made). */
+  var MIRROR = {
+    popup_signal: ['signal', function (p) { return 'exit signal: ' + String(p.signal || p.trigger || p.reason || 'seen').replace(/_/g, ' '); }],
+    popup_eligible: ['signal', function () { return 'became eligible for the exit popup'; }],
+    popup_suppressed: ['signal', function (p) { return 'popup held back (' + String(p.reason || 'rule').replace(/_/g, ' ') + ')'; }],
+    popup_view: ['popup', function () { return 'saw the exit popup'; }],
+    popup_closed: ['popup', function () { return 'closed the exit popup'; }],
+    popup_continue_clicked: ['popup', function () { return 'continued from the popup'; }],
+    popup_email_started: ['popup', function () { return 'started typing an email in the popup'; }],
+    popup_submit_success: ['popup', function () { return 'left an email in the popup'; }],
+    popup_ai_step: ['concierge', function (p) { return 'concierge: ' + String(p.step || p.stage || p.lane || p.agent || 'step').replace(/_/g, ' '); }],
+    bump_added: ['cart_change', function (p) { return 'added the cart bump' + (p.title || p.product ? ': ' + String(p.title || p.product).slice(0, 40) : ''); }],
+    cart_item_removed: ['cart_change', function () { return 'removed an item from the cart'; }],
+    shade_required_prompt_shown: ['shade', function () { return 'was asked to pick a shade first'; }],
+    shade_mix_completed: ['mix', function () { return 'mixed shades in the pack'; }],
+    shade_compare_continued: ['compare', function () { return 'chose a shade from the comparison'; }],
+    add_to_cart_attempted: ['click', function () { return 'tried to add to cart'; }],
+    exit_offer_viewed: ['popup', function () { return 'saw the exit offer'; }],
+    exit_offer_submitted: ['popup', function () { return 'took the exit offer'; }],
+    exit_offer_dismissed: ['popup', function () { return 'dismissed the exit offer'; }]
+  };
+  var mirrored = 0;
+  function mirror(name, props) {
+    var spec = MIRROR[name];
+    if (!spec || mirrored >= 60) return;
+    mirrored += 1;
+    var p = props && typeof props === 'object' ? props : {};
+    push(spec[0], String(spec[1](p)).slice(0, 120), { event: name });
+  }
+  (function wrapPostHog(tries) {
+    var ph = global.posthog;
+    if (ph && ph.__loaded && typeof ph.capture === 'function' && !ph.__nhLiveMirror) {
+      var original = ph.capture;
+      ph.capture = function (name, props) { try { mirror(name, props); } catch (_) {} return original.apply(this, arguments); };
+      ph.__nhLiveMirror = true;
+      return;
+    }
+    if (tries < 40) global.setTimeout(function () { wrapPostHog(tries + 1); }, 500);
+  })(0);
 
   function leave() {
     push('leave', 'left after ' + Math.round((Date.now() - started) / 1000) + 's', { seconds: Math.round((Date.now() - started) / 1000), depth: lastDepth });

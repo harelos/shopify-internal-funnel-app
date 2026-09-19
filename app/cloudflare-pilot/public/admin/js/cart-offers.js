@@ -26,17 +26,26 @@
     return kind + "-" + suffix;
   }
 
+  /* "carousel_b" and "bump_b" are Version B's lists; the item itself is still a carousel item or a bump. */
+  function baseKind(kind) { return kind.replace(/_b$/, ""); }
+  function experiment() {
+    if (!state.experiment) state.experiment = { enabled: false, carouselTitle: "", carousel: [], bumps: [] };
+    return state.experiment;
+  }
+
   function blankItem(kind) {
     return {
-      id: newId(kind), kind: kind, enabled: true, position: 0,
+      id: newId(kind), kind: baseKind(kind), enabled: true, position: 0,
       productId: "", variantId: "", productTitle: "", variantTitle: "",
-      title: "", priceIls: "", compareAtIls: "", anchorText: kind === "carousel" ? "Price when added" : "",
-      buttonText: kind === "carousel" ? "Add" : "Add to order",
+      title: "", priceIls: "", compareAtIls: "", anchorText: baseKind(kind) === "carousel" ? "Price when added" : "",
+      buttonText: baseKind(kind) === "carousel" ? "Add" : "Add to order",
       imageUrl: "", imageAlt: "", storefrontPriceIls: "", discountNodeId: ""
     };
   }
 
   function listFor(kind) {
+    if (kind === "carousel_b") return experiment().carousel;
+    if (kind === "bump_b") return experiment().bumps;
     return kind === "carousel" ? state.carousel : state.bumps;
   }
 
@@ -48,9 +57,9 @@
     list.forEach(function (item, index) { item.position = index; });
   }
 
-  function renderItem(item, index, total) {
+  function renderItem(item, index, total, listKind) {
     var node = itemTemplate.content.firstElementChild.cloneNode(true);
-    node.dataset.kind = item.kind;
+    node.dataset.kind = listKind;
     node.dataset.id = item.id;
     var image = node.querySelector(".offer-image");
     if (item.imageUrl) image.src = item.imageUrl;
@@ -71,23 +80,23 @@
         setStatus("You have unsaved changes.", false);
       });
     });
-    node.querySelector(".choose-product").addEventListener("click", function () { openPicker(item.kind, item.id); });
+    node.querySelector(".choose-product").addEventListener("click", function () { openPicker(listKind, item.id); });
     node.querySelector(".remove-item").addEventListener("click", function () {
-      var list = listFor(item.kind);
+      var list = listFor(listKind);
       list.splice(list.indexOf(item), 1);
       updatePositions(list);
       render();
       setStatus("The item was removed from this draft.", false);
     });
-    node.querySelector(".move-up").addEventListener("click", function () { moveItem(item.kind, item.id, -1); });
-    node.querySelector(".move-down").addEventListener("click", function () { moveItem(item.kind, item.id, 1); });
+    node.querySelector(".move-up").addEventListener("click", function () { moveItem(listKind, item.id, -1); });
+    node.querySelector(".move-down").addEventListener("click", function () { moveItem(listKind, item.id, 1); });
     return node;
   }
 
   function renderList(kind, targetId) {
     var list = listFor(kind);
     var target = document.getElementById(targetId);
-    target.replaceChildren.apply(target, list.map(function (item, index) { return renderItem(item, index, list.length); }));
+    target.replaceChildren.apply(target, list.map(function (item, index) { return renderItem(item, index, list.length, kind); }));
   }
 
   function render() {
@@ -95,6 +104,11 @@
     document.getElementById("carousel-title").value = state.carouselTitle || "";
     renderList("carousel", "carousel-list");
     renderList("bump", "bump-list");
+    var exp = experiment();
+    document.getElementById("experiment-enabled").checked = exp.enabled === true;
+    document.getElementById("carousel-title-b").value = exp.carouselTitle || "";
+    renderList("carousel_b", "carousel-b-list");
+    renderList("bump_b", "bump-b-list");
   }
 
   function moveItem(kind, id, delta) {
@@ -110,7 +124,7 @@
   }
 
   function addItem(kind) {
-    var max = kind === "carousel" ? 12 : 8;
+    var max = baseKind(kind) === "carousel" ? 12 : 8;
     var list = listFor(kind);
     if (list.length >= max) return setStatus("You reached the item limit for this area.", true);
     list.push(blankItem(kind));
@@ -195,6 +209,11 @@
     state.carouselTitle = document.getElementById("carousel-title").value.trim();
     updatePositions(state.carousel);
     updatePositions(state.bumps);
+    var exp = experiment();
+    exp.enabled = document.getElementById("experiment-enabled").checked;
+    exp.carouselTitle = document.getElementById("carousel-title-b").value.trim();
+    updatePositions(exp.carousel);
+    updatePositions(exp.bumps);
     return state;
   }
 
@@ -255,6 +274,10 @@
   document.getElementById("carousel-title").addEventListener("input", function () { setStatus("You have unsaved changes.", false); });
   document.getElementById("add-carousel").addEventListener("click", function () { addItem("carousel"); });
   document.getElementById("add-bump").addEventListener("click", function () { addItem("bump"); });
+  document.getElementById("add-carousel-b").addEventListener("click", function () { addItem("carousel_b"); });
+  document.getElementById("add-bump-b").addEventListener("click", function () { addItem("bump_b"); });
+  document.getElementById("carousel-title-b").addEventListener("input", function () { setStatus("You have unsaved changes.", false); });
+  document.getElementById("experiment-enabled").addEventListener("change", function () { setStatus("You have unsaved changes. Publish to start or stop the test.", false); });
   document.getElementById("save-draft").addEventListener("click", saveDraft);
   document.getElementById("publish").addEventListener("click", publish);
   document.getElementById("close-picker").addEventListener("click", closePicker);
