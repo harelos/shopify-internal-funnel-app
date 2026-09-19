@@ -59,14 +59,15 @@ document.addEventListener("DOMContentLoaded", () => {
   /** One shape for every kind, so the card renders the same columns. */
   function normalizeAdaptive(exp) {
     const r = exp.results;
-    const control = r.variants.find(v => v.isControl) || r.variants[0];
-    const challengers = r.variants.filter(v => v !== control);
+    const variants = r.variants.map(v => ({ ...v, id: v.key, label: label(v.key), weight: v.percentage }));
+    const control = variants.find(v => v.isControl) || variants[0];
+    const challengers = variants.filter(v => v !== control);
     const live = challengers.find(v => v.percentage > 0) || challengers.slice().sort((a, b) => b.visitors - a.visitors)[0] || null;
     return {
       id: exp.key, key: exp.key, kind: kindOf(exp), name: exp.name, running: Boolean(exp.active),
       startedAt: exp.startedAt || exp.since, currency: r.currency, spend: r.spend, note: r.note, sources: exp.sources, links: exp.links,
       control, challenger: live, share: control ? 100 - control.percentage : 0,
-      variants: r.variants.map(v => ({ ...v, id: v.key, label: label(v.key), weight: v.percentage })),
+      variants,
       totals: r.totals, unattributed: r.totals.unattributedOrders,
     };
   }
