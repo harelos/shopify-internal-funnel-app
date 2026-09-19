@@ -605,7 +605,10 @@
   var SPLIT_URL = '/apps/funnels/cro-split';
   var SPLIT_CACHE_KEY = 'nova_cro_split_v1';
   var SPLIT_CACHE_MS = 10 * 60 * 1000;
-  var DEFAULT_SPLIT = [{ key: 'control', weight: 50 }, { key: 'full_adaptive', weight: 50 }];
+  /* Used only when the app cannot be reached in time. It mirrors the standing decision
+   * (2026-09-19: every visitor gets the full experience) so that a slow connection does not
+   * quietly put people back on the control page. Whenever the split does arrive, it rules. */
+  var DEFAULT_SPLIT = [{ key: 'full_adaptive', weight: 100 }];
 
   function visitorKey() {
     var m = doc.cookie.match(/(?:^|; )_fc_visitor=([^;]+)/);
@@ -680,8 +683,11 @@
         assignFrom(body);
       })['catch'](function () { done = true; assignFrom(cached || null); });
     } catch (_) { assignFrom(cached || null); }
-    /* if the network is slow or blocked, bucket anyway rather than losing the visitor */
-    global.setTimeout(function () { if (!done) assignFrom(cached || null); }, 1500);
+    /* If the network is slow or blocked, bucket anyway rather than losing the visitor. The app
+     * proxy often needs more than 1.5 s on mobile; at that limit two visitors in five were being
+     * bucketed from the fallback instead of the flag. The modules react to later behaviour
+     * (cart, shade picker, scrolling), so a few seconds' wait costs the visitor nothing. */
+    global.setTimeout(function () { if (!done) assignFrom(cached || null); }, 6000);
   }
 
   /* This store starts PostHog opted out and opts in only after Shopify reports consent, which
