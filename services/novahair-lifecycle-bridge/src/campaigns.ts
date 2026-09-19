@@ -390,6 +390,19 @@ export async function campaignBudget(env: LifecycleEnv, now = new Date()): Promi
   };
 }
 
+/**
+ * Render the subject for one recipient. A name in the subject line is the
+ * difference between a greeting and an address, so `{{FIRST_NAME}}` works there
+ * too. When the name is unknown the placeholder collapses and any comma or
+ * whitespace it left behind is trimmed, rather than shipping ", השורשים".
+ */
+export function renderSubject(subject: string, firstName: string | null): string {
+  const name = firstName?.trim() ?? "";
+  if (!subject.includes("{{FIRST_NAME}}")) return subject;
+  const rendered = subject.replaceAll("{{FIRST_NAME}}", name);
+  return (name ? rendered : rendered.replace(/^[\s,،]+/, "")).trim();
+}
+
 async function renderForRecipient(
   env: LifecycleEnv,
   campaign: CampaignRow,
@@ -495,7 +508,7 @@ async function sendOne(
         from: config.resendFrom,
         to: [recipient.email],
         reply_to: config.resendReplyTo || undefined,
-        subject: campaign.subject,
+        subject: renderSubject(campaign.subject, recipient.first_name),
         html: rendered.html,
         headers: Object.keys(headers).length ? headers : undefined,
         tags: [{ name: "campaign", value: campaign.slug.slice(0, 50) }],

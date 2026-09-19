@@ -11,6 +11,7 @@ import {
   createCampaign,
   dispatchDueCampaigns,
   ensureUnsubscribeToken,
+  renderSubject,
   setCampaignStatus,
 } from "../src/campaigns";
 import { upsertCustomerFromShopify } from "../src/customers";
@@ -635,4 +636,12 @@ test("the brief reports real capacity, the audience, and the rules that are enfo
   } finally {
     await dispose();
   }
+});
+
+test("a subject line carries her name, and collapses cleanly when there is none", () => {
+  assert.equal(renderSubject("{{FIRST_NAME}}, השורשים תמיד חוזרים", "שרי"), "שרי, השורשים תמיד חוזרים");
+  // No name must not leave a dangling comma at the front of the subject.
+  assert.equal(renderSubject("{{FIRST_NAME}}, השורשים תמיד חוזרים", null), "השורשים תמיד חוזרים");
+  assert.equal(renderSubject("{{FIRST_NAME}}, השורשים תמיד חוזרים", "   "), "השורשים תמיד חוזרים");
+  assert.equal(renderSubject("חזרנו למלאי", "שרי"), "חזרנו למלאי");
 });
