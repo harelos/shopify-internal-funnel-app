@@ -659,3 +659,40 @@ test("the preheader is hidden in the body, because no API field carries it", () 
   // It is escaped, so a stray angle bracket cannot break out of the div.
   assert.match(preheaderBlock("<b>x</b>"), /&lt;b&gt;x&lt;\/b&gt;/);
 });
+
+test("a scheduled campaign waits for its date, then sends without being touched again", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = productionEnv(db, { CAMPAIGN_BATCH_SIZE: "10" });
+  try {
+    await addCustomer(env, { email: "later@example.com", orders: 1, lastOrder: daysAgo(3) });
+    await saveSegment(env as never, { name: "All", filter: {}, createdBy: "AGENT" }, NOW);
+
+    const sendAfter = new Date(NOW.getTime() + 3 * 86_400_000).toISOString();
+    const created = await createCampaign(env as never, {
+      name: "Scheduled", segmentId: "seg_all", subject: "נושא", html: HTML, proposedBy: "AGENT",
+      ctaUrl: "https://tigerbrandsglobal.com/pages/novahair", sendAfter,
+    }, NOW);
+    await approveCampaign(env as never, created.campaignId, "harel", NOW);
+
+    // Approved, audience frozen, but the date has not arrived.
+    let result = await dispatchDueCampaigns(env as never, NOW, okFetcher());
+    assert.equal(result.campaigns, 0);
+    assert.equal(result.sent, 0);
+    let row = await db.prepare("SELECT status FROM campaigns WHERE campaign_id = ?")
+      .bind(created.campaignId).first<{ status: string }>();
+    assert.equal(row!.status, "APPROVED");
+
+    // A day early is still early.
+    result = await dispatchDueCampaigns(env as never, new Date(NOW.getTime() + 2 * 86_400_000), okFetcher());
+    assert.equal(result.sent, 0);
+
+    // On the day, it goes out on its own with no further approval.
+    result = await dispatchDueCampaigns(env as never, new Date(NOW.getTime() + 3 * 86_400_000 + 60_000), okFetcher());
+    assert.equal(result.sent, 1);
+    row = await db.prepare("SELECT status FROM campaigns WHERE campaign_id = ?")
+      .bind(created.campaignId).first<{ status: string }>();
+    assert.equal(row!.status, "SENT");
+  } finally {
+    await dispose();
+  }
+});
