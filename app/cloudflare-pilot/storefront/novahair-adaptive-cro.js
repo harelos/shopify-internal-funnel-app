@@ -444,8 +444,11 @@
   function maybeScrollRescue() {
     if (!state.on.scrollRescue || session.sc >= 1) return;
     if (state.addedToCart || state.checkoutStarted || state.bundleTouched) return;
-    capture('nova_cro_triggered', { module: 'scroll_rescue', reason: 'depth_45', depth: Math.round(state.maxDepth * 100) });
+    // Reported only when the module actually shows. Reporting before the
+    // open-dialog check fired on every scroll past 45% while another module
+    // was open: 257 events from nine shoppers on 2026-09-18.
     if (anyOpen()) return;
+    capture('nova_cro_triggered', { module: 'scroll_rescue', reason: 'depth_45', depth: Math.round(state.maxDepth * 100) });
     showScrollRescue();
   }
 
