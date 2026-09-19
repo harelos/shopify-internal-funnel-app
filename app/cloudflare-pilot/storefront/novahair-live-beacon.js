@@ -219,6 +219,33 @@
     if (tries < 40) global.setTimeout(function () { wrapPostHog(tries + 1); }, 500);
   })(0);
 
+  /* Meta's own cookies. _fbc is the click that brought her, _fbp the browser. Meta matches a
+     server-side purchase to an ad far better when it has them, and the only way they reach the
+     order is as cart attributes, so write them once per session next to the visitor key. */
+  (function handClickIdsToTheCart() {
+    var fbp = cookie('_fbp');
+    var fbc = cookie('_fbc');
+    if (!fbc) {
+      var click = params.get('fbclid');
+      if (click) fbc = 'fb.1.' + Date.now() + '.' + click;
+    }
+    var payload = { nova_visitor: visitorKey };
+    if (/^fb\.[0-9]\.[0-9]+\./.test(fbp || '')) payload.nova_fbp = fbp;
+    if (/^fb\.[0-9]\.[0-9]+\./.test(fbc || '')) payload.nova_fbc = fbc;
+    var signature = JSON.stringify(payload);
+    try { if (global.sessionStorage.getItem('nh_meta_ids') === signature) return; } catch (_) {}
+    var write = function () {
+      return global.fetch('/cart/update.js', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ attributes: payload })
+      }).then(function () { try { global.sessionStorage.setItem('nh_meta_ids', signature); } catch (_) {} }).catch(function () {});
+    };
+    /* _fbp is written by Meta's pixel a moment after load, so try again once it exists. */
+    if (!payload.nova_fbp) global.setTimeout(handClickIdsToTheCart, 4000);
+    if (typeof global.novaFunnelEnqueueCartMutation === 'function') global.novaFunnelEnqueueCartMutation('nova-meta-ids', write);
+    else write();
+  })();
+
   function leave() {
     push('leave', 'left after ' + Math.round((Date.now() - started) / 1000) + 's', { seconds: Math.round((Date.now() - started) / 1000), depth: lastDepth });
     flush(true);

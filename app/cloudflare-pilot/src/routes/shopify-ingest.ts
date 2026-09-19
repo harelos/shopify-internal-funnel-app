@@ -395,6 +395,31 @@ router.post("/webhooks/shopify", async (req, res) => {
       });
       if (!normalized.accepted) return res.status(400).json({ ok: false, error: "Unsupported paid-order payload." });
       await persistOrderPaid(shop.id, normalized.value, payload);
+      // The same sale, told to Meta from here. The browser pixel misses a good share of these
+      // in the Facebook in-app browser; both carry the order id as the event id, so Meta keeps
+      // one. Off unless META_CAPI_ENABLED is "true". It runs after the response so Shopify is
+      // never kept waiting, and a refusal by Meta never fails the webhook.
+      try {
+        const { buildPurchaseEvent, capiConfigFrom, matchQuality, sendMetaEvents } = await import("../lib/meta-capi.js");
+        const config = capiConfigFrom(workerEnvValue);
+        if (config.enabled) {
+          const event = buildPurchaseEvent(payload as any);
+          if ("error" in event) {
+            console.warn(JSON.stringify({ message: "meta_capi_skipped", reason: event.error }));
+          } else {
+            const quality = matchQuality(event);
+            const deliver = sendMetaEvents([event], config).then(result => console.log(JSON.stringify({
+              message: "meta_capi_purchase", sent: result.sent, received: result.received ?? null,
+              skipped: result.skipped ?? null, error: result.error ?? null,
+              matchFields: quality.fields.length, matchScore: quality.score,
+            })));
+            const waitUntil = (globalThis as any).__FC_WAIT_UNTIL__;
+            if (typeof waitUntil === "function") waitUntil(deliver); else await deliver;
+          }
+        }
+      } catch (capiError) {
+        console.warn(JSON.stringify({ message: "meta_capi_failed", error: String((capiError as Error)?.message || capiError).slice(0, 200) }));
+      }
     } else if (topic === "orders/updated") {
       await persistOrderUpdated(shop.id, payload);
     } else if (topic !== "orders/create" && topic !== "app/uninstalled") {

@@ -41,7 +41,7 @@ test("Legacy operations routing does not point Commerce OS operations at Cart Of
  */
 test("every destination is reachable from the menu, exactly once", () => {
   const destinations = [
-    "index.html", "growth-cockpit.html", "journeys.html", "analytics.html",
+    "index.html", "growth-cockpit.html", "journeys.html",
     "popup-analytics.html", "ai-concierge.html", "element-experiments.html",
     "support.html", "shipment-control.html", "operations.html",
     "funnel-stats.html", "cart-offers.html", "page-editor.html",
@@ -50,10 +50,15 @@ test("every destination is reachable from the menu, exactly once", () => {
     const occurrences = shell.split(`["${destination}", `).length - 1;
     assert.equal(occurrences, 1, `${destination} appears ${occurrences} times in the menu`);
   }
-  // The older step-by-step builder and the HTML editor are reached from their
-  // parent tab (Funnels, Page editor), which stays lit while they are open.
+  // Three pages are reached from a parent tab rather than a tab of their own, and
+  // that parent stays lit while they are open: the older step-by-step builder, the
+  // HTML editor, and the attribution report that folded into Insights.
   assert.match(shell, /"funnel\.html": "funnel-stats\.html"/);
   assert.match(shell, /"editor\.html": "page-editor\.html"/);
+  assert.match(shell, /"analytics\.html": "growth-cockpit\.html"/);
+  assert.equal(shell.split('["analytics.html", ').length - 1, 0, "Analytics folded into Insights; it should not have its own tab");
+  const insights = readFileSync(path.join(admin, "growth-cockpit.html"), "utf8");
+  assert.match(insights, /analytics\.html/, "Insights must link to the attribution report it absorbed");
   assert.doesNotMatch(shell, /commerce-os-subnav/, "a section-scoped submenu is hiding destinations again");
 });
 

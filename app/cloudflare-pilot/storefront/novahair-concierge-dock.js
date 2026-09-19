@@ -49,7 +49,7 @@
   }
 
   var css = ''
-    + '.nh-dock{position:fixed;right:14px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:9000;display:flex;align-items:center;gap:10px;'
+    + '.nh-dock{position:fixed;right:14px;bottom:var(--nh-dock-bottom,110px);z-index:9000;display:flex;align-items:center;gap:10px;'
     + 'max-width:calc(100vw - 28px);padding:10px 14px 10px 10px;border:0;border-radius:999px;background:#17231e;color:#fff;font:600 14px/1.2 "Heebo","Assistant",system-ui,sans-serif;'
     + 'box-shadow:0 10px 30px rgba(20,31,26,.28),0 2px 6px rgba(20,31,26,.18);cursor:pointer;direction:rtl;transition:transform .18s ease,opacity .18s ease}'
     + '.nh-dock:active{transform:scale(.97)}'
@@ -59,7 +59,7 @@
     + '.nh-dock--mini{padding:8px}'
     + '.nh-dock__dot{position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#34c759;box-shadow:0 0 0 2px #17231e}'
     + 'body.nh-ai-open .nh-dock,body.nova-ai-open .nh-dock,body.nh-exit-popup-open .nh-dock{opacity:0;pointer-events:none}'
-    + '@media (max-width:480px){.nh-dock{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}}';
+    + '@media (max-width:480px){.nh-dock{right:12px}}';
 
   function mount() {
     if (doc.querySelector('.nh-dock')) return;
@@ -71,6 +71,75 @@
     button.innerHTML = '<span class="nh-dock__face" aria-hidden="true">💬</span><span class="nh-dock__text">שאלה על הגוון? דברי איתי</span><span class="nh-dock__dot" aria-hidden="true"></span>';
     doc.body.appendChild(button);
     var shownAt = Date.now();
+
+    /* The moment engine, in its smallest form. Each moment is a thing she just did, a line
+       that answers it, and a rank. The highest-ranked moment that is true wins; when none is,
+       the button keeps its opening line. Rank matters because two can be true at once: a
+       shopper who changed shades twice and then went quiet at the price wants the price line. */
+    var DEFAULT_LABEL = 'שאלה על הגוון? דברי איתי';
+    var moments = [
+      { id: 'shade_doubt', rank: 1, label: 'מתלבטת בין גוונים? אני אעזור', test: function (s) { return s.shadeChanges >= 2 && !s.addedToCart; } },
+      { id: 'price_pause', rank: 2, label: 'שאלה על המחיר או המשלוח?', test: function (s) { return s.sawPrice && s.idleSeconds >= 12 && !s.addedToCart; } },
+      { id: 'deep_no_cart', rank: 0, label: 'רוצה שאעזור לך לבחור?', test: function (s) { return s.maxDepth >= 60 && !s.addedToCart; } }
+    ];
+    var signals = { shadeChanges: 0, sawPrice: false, addedToCart: false, maxDepth: 0, idleSeconds: 0, lastAction: Date.now() };
+    var currentMoment = null;
+
+    function labelNode() { return button.querySelector('.nh-dock__text'); }
+    function applyMoment() {
+      signals.idleSeconds = Math.round((Date.now() - signals.lastAction) / 1000);
+      var best = null;
+      for (var i = 0; i < moments.length; i++) {
+        var m = moments[i];
+        var hit = false;
+        try { hit = m.test(signals); } catch (_) { hit = false; }
+        if (hit && (!best || m.rank > best.rank)) best = m;
+      }
+      var next = best ? best.id : null;
+      if (next === currentMoment) return;
+      currentMoment = next;
+      var node = labelNode();
+      if (node) node.textContent = best ? best.label : DEFAULT_LABEL;
+      if (best) {
+        button.classList.remove('nh-dock--mini');
+        capture('concierge_dock_moment', { experiment: EXPERIMENT, variant: 'dock', moment: best.id });
+      }
+    }
+    function touch() { signals.lastAction = Date.now(); }
+    doc.addEventListener('click', function (event) {
+      if (!event.isTrusted || !event.target || !event.target.closest) return;
+      touch();
+      if (event.target.closest('.nh-shade-option-v2, .shade-option')) signals.shadeChanges += 1;
+      if (event.target.closest('[data-nova-action="add-to-cart"], #mainCheckout, #stickyCtaBtn')) signals.addedToCart = true;
+    }, true);
+    doc.addEventListener('sales-page-commerce:added', function () { signals.addedToCart = true; touch(); });
+    global.addEventListener('scroll', function () {
+      touch();
+      var height = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) - global.innerHeight;
+      if (height <= 0) return;
+      var depth = Math.round(((global.scrollY || global.pageYOffset || 0) / height) * 100);
+      if (depth > signals.maxDepth) signals.maxDepth = depth;
+      var box = doc.querySelector('.bundle-cards-container, #buy');
+      if (box && box.getBoundingClientRect().top < global.innerHeight * 0.8) signals.sawPrice = true;
+    }, { passive: true });
+    global.setInterval(applyMoment, 2000);
+    /* The sticky buy bar owns the bottom of the screen and carries the price.
+       Sit above whatever height it currently has, and follow it when it changes. */
+    function sitAboveStickyBar() {
+      var bar = doc.getElementById('stickyBuyBar') || doc.querySelector('.nh-sticky-v3');
+      var clearance = 18;
+      if (bar) {
+        var rect = bar.getBoundingClientRect();
+        var visible = rect.height > 0 && rect.bottom > global.innerHeight - 4;
+        clearance = visible ? Math.round(rect.height) + 14 : 24;
+      }
+      button.style.setProperty('--nh-dock-bottom', 'calc(' + clearance + 'px + env(safe-area-inset-bottom,0px))');
+    }
+    sitAboveStickyBar();
+    global.addEventListener('resize', sitAboveStickyBar, { passive: true });
+    global.addEventListener('scroll', sitAboveStickyBar, { passive: true });
+    var bar = doc.getElementById('stickyBuyBar') || doc.querySelector('.nh-sticky-v3');
+    if (bar && global.MutationObserver) new MutationObserver(sitAboveStickyBar).observe(bar, { attributes: true, attributeFilter: ['class', 'style'] });
     capture('concierge_dock_shown', { experiment: EXPERIMENT, variant: 'dock' });
     global.setTimeout(function () { button.classList.add('nh-dock--mini'); }, 7000);
     button.addEventListener('mouseenter', function () { button.classList.remove('nh-dock--mini'); });

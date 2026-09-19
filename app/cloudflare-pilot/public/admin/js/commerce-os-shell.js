@@ -27,10 +27,9 @@
     ["cart-offers.html", "Cart offers"],
     ["popup-analytics.html", "Popup analytics"],
     ["page-editor.html", "Page editor"],
-    ["analytics.html", "Analytics"],
   ];
   // pages reached from a tab but not listed themselves light up their parent tab
-  var PARENT = { "funnel.html": "funnel-stats.html", "editor.html": "page-editor.html" };
+  var PARENT = { "funnel.html": "funnel-stats.html", "editor.html": "page-editor.html", "analytics.html": "growth-cockpit.html" };
   var current = PARENT[path] || path;
 
   function link(route, tool) {
