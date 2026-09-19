@@ -8,6 +8,7 @@
   <title>Element A/B Lab — Funnel Control</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/commerce-os.css">
+  <link rel="stylesheet" href="css/experiments.css">
   <script defer src="js/commerce-os-shell.js"></script>
   <style>
     .lab-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:20px; align-items:start; }
@@ -53,34 +54,21 @@
   </header>
 
   <main class="main">
-    <div class="intro">
-      <h1>Experiments</h1>
-      <p class="muted">Whole-page tests send half your ad traffic to a different page. Adaptive page tests are assigned by PostHog and paid for in Shopify. Element tests below swap one part of the page.</p>
+    <div class="exp-intro">
+      <div>
+        <h1>Experiments</h1>
+        <p class="muted">Every test the store runs, one line each. Open a test for its funnel — visitors, add to cart, checkout, orders, revenue and an estimated ROAS — and its controls. Money comes from Shopify orders; visitors from the app's own assignment rows.</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm btn-primary" id="experiments-add" type="button">New page test</button>
+        <a class="btn btn-sm" href="page-editor.html">Edit the page</a>
+        <a class="btn btn-sm" href="live.html">Watch it live</a>
+        <button class="btn btn-sm btn-ghost" id="experiments-refresh" type="button">Refresh</button>
+      </div>
     </div>
-
-    <section class="panel" id="page-tests-panel" style="margin-bottom:20px;">
-      <div class="panel-header">
-        <div><h2>Whole-page tests</h2><span class="eyebrow">TWO DIFFERENT PAGES · SPLIT BEFORE ANYTHING LOADS</span></div>
-        <div class="actions">
-          <button class="btn btn-sm" id="page-tests-add" type="button">New page test</button>
-          <button class="btn btn-sm" id="page-tests-refresh" type="button">Refresh</button>
-        </div>
-      </div>
-      <div class="panel-body" id="page-tests-body"><p class="muted">Loading page tests…</p></div>
-    </section>
-
-    <section class="panel" id="adaptive-panel" style="margin-bottom:20px;">
-      <div class="panel-header">
-        <div><h2>Adaptive page tests</h2><span class="eyebrow">POSTHOG ASSIGNS THE VARIANT · SHOPIFY ORDERS ARE THE SOURCE OF TRUTH</span></div>
-        <div class="actions">
-          <a class="btn btn-sm" href="page-editor.html">Edit the page</a>
-          <a class="btn btn-sm" href="live.html">Watch it live</a>
-          <button class="btn btn-sm" id="adaptive-refresh" type="button">Refresh</button>
-        </div>
-      </div>
-      <div class="panel-body" id="adaptive-body"><p class="muted">Connecting to PostHog…</p></div>
-    </section>
-
+    <div class="exp-list" id="experiments-list"><div class="exp-empty">Loading tests…</div></div>
+    <details class="exp-advanced">
+      <summary>Element tests — gallery lab <span class="muted">swap one part of the page; advanced</span></summary>
     <div class="lab-layout">
       <aside class="stack">
         <section class="panel">
@@ -180,12 +168,12 @@
         </div>
       </section>
     </div>
+    </details>
   </main>
 
   <script src="js/api.js"></script>
   <script src="js/dialogs.js"></script>
-  <script src="js/page-experiments.js"></script>
-  <script src="js/adaptive-experiments.js"></script>
+  <script src="js/experiments.js"></script>
   <script src="js/element-experiments.js"></script>
 </body>
 </html>

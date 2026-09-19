@@ -45,13 +45,13 @@ export function bucketVisitor(visitorKey: string, weights: CroVariantWeight[]): 
 }
 
 /** Shapes whatever PostHog returns into the list the storefront can bucket with. */
-export function weightsFromFlag(flag: unknown): CroVariantWeight[] {
+export function weightsFromFlag(flag: unknown, fallback: CroVariantWeight[] = DEFAULT_CRO_WEIGHTS): CroVariantWeight[] {
   const variants = (flag as any)?.filters?.multivariate?.variants;
-  if (!Array.isArray(variants) || !variants.length) return DEFAULT_CRO_WEIGHTS;
+  if (!Array.isArray(variants) || !variants.length) return fallback;
   const rows = variants
     .map((variant: any) => ({ key: String(variant?.key ?? "").trim(), weight: Number(variant?.rollout_percentage) }))
     .filter(row => row.key && Number.isFinite(row.weight) && row.weight >= 0);
-  if (!rows.length || !rows.some(row => row.weight > 0)) return DEFAULT_CRO_WEIGHTS;
+  if (!rows.length || !rows.some(row => row.weight > 0)) return fallback;
   return rows;
 }
 
@@ -70,3 +70,26 @@ export function countersFromEvents(events: Array<{ kind?: unknown }>): Assignmen
 }
 
 export const CRO_EXPERIMENT_KEY = "nova_adaptive_cro_v2";
+
+/**
+ * The exit popup's offer test: the code released only after an email, or
+ * shown at once. Bucketed the same way as the page test, from the same key.
+ */
+export const POPUP_EXPERIMENT_KEY = "nova_popup_offer_v1";
+
+export const DEFAULT_POPUP_WEIGHTS: CroVariantWeight[] = [
+  { key: "email_gate", weight: 50 },
+  { key: "instant_code", weight: 50 },
+];
+
+/** Every test the storefront may report an assignment for, with the split used when PostHog is unreachable. */
+export const EXPERIMENTS: Record<string, { fallback: CroVariantWeight[]; control: string }> = {
+  [CRO_EXPERIMENT_KEY]: { fallback: DEFAULT_CRO_WEIGHTS, control: "control" },
+  [POPUP_EXPERIMENT_KEY]: { fallback: DEFAULT_POPUP_WEIGHTS, control: "email_gate" },
+};
+
+/** The experiment key as this app knows it, or null for anything else a request may carry. */
+export function knownExperimentKey(value: unknown): string | null {
+  const key = String(value ?? "").trim();
+  return Object.prototype.hasOwnProperty.call(EXPERIMENTS, key) ? key : null;
+}

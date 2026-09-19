@@ -1,3 +1,5 @@
+import { hogql, postHogConfigured } from "../lib/posthog-admin.js";
+import { resolveFxRate } from "../lib/fx.js";
 import { Router } from "express";
 import { randomUUID } from "node:crypto";
 import {
@@ -119,30 +121,92 @@ pageExperimentAdminRouter.get("/page-experiments/:id/results", async (req, res) 
 
   const visitorsByVariant = new Map((assignments.results || []).map((row: any) => [row.variantId, Number(row.visitors)]));
   const ordersByVariant = new Map((orders.results || []).map((row: any) => [row.variantId, row]));
+  const experimentRow = (await db.prepare(`SELECT "startedAt", "createdAt" FROM "PageExperiment" WHERE "id" = ?`).bind(experimentId).first()) as { startedAt: string | null; createdAt: string } | null;
+  const since = new Date(experimentRow?.startedAt || experimentRow?.createdAt || Date.now() - 14 * 86400000).toISOString();
+  const paths = (variants.results || []).map((variant: any) => String(variant.landingPath));
+  const [funnel, spend] = await Promise.all([pageFunnelFromPostHog(paths, since), pageSpendSince(since)]);
+  const totalVisitors = [...visitorsByVariant.values()].reduce((sum, n) => sum + n, 0);
 
   return res.json({
     experimentId,
+    since,
+    spend,
     measurement: {
       visitors: "Server-side assignments made by the traffic splitter, excluding internal traffic.",
       orders: "Paid Shopify orders whose recorded landing page matches the variation's page.",
+      funnel: "Add-to-cart and checkout clicks come from PostHog, which only sees shoppers who accepted cookies; read them as rates, not totals.",
       caveat: "A visitor who reaches a variation page without passing the splitter is counted as an order but not as a visitor.",
     },
     variants: (variants.results || []).map((variant: any) => {
       const visitors = visitorsByVariant.get(variant.id) || 0;
       const orderRow: any = ordersByVariant.get(variant.id);
       const orderCount = Number(orderRow?.orders || 0);
+      const revenue = orderRow?.revenue != null ? Number(Number(orderRow.revenue).toFixed(2)) : 0;
+      const steps = funnel?.get(String(variant.landingPath)) || null;
+      const spendShare = spend && totalVisitors > 0 && visitors > 0 && (!orderRow?.currency || spend.currency === orderRow.currency)
+        ? Number((spend.amount * visitors / totalVisitors).toFixed(2)) : null;
       return {
         ...variant,
         isControl: Boolean(variant.isControl),
         visitors,
         orders: orderCount,
-        revenue: orderRow?.revenue != null ? Number(Number(orderRow.revenue).toFixed(2)) : 0,
+        revenue,
         currency: orderRow?.currency ?? null,
         conversionRate: visitors > 0 ? Number(((orderCount / visitors) * 100).toFixed(2)) : null,
+        revenuePerVisitor: visitors > 0 ? Number((revenue / visitors).toFixed(2)) : null,
+        addToCart: steps?.addToCart ?? null,
+        checkout: steps?.checkout ?? null,
+        addToCartRate: steps && steps.viewers > 0 ? Number((steps.addToCart / steps.viewers).toFixed(4)) : null,
+        checkoutRate: steps && steps.viewers > 0 ? Number((steps.checkout / steps.viewers).toFixed(4)) : null,
+        spendShare,
+        roas: spendShare && spendShare > 0 ? Number((revenue / spendShare).toFixed(2)) : null,
       };
     }),
   });
 });
+
+/**
+ * What PostHog saw happen on each page since the test began. Consent gates
+ * PostHog, so these are a sample of the visitors; the splitter's count is the
+ * denominator that matters, and these give the rates between the steps.
+ */
+async function pageFunnelFromPostHog(paths: string[], since: string): Promise<Map<string, { viewers: number; addToCart: number; checkout: number }> | null> {
+  if (!paths.length || !postHogConfigured()) return null;
+  try {
+    const list = paths.map(path => `'${path.replace(/'/g, "''")}'`).join(",");
+    const from = since.replace("T", " ").replace(/\.\d+Z$/, "").replace("Z", "");
+    const rows = await hogql<[string, number, number, number]>(`
+      SELECT properties.$pathname AS path,
+             uniqIf(distinct_id, event = '$pageview') AS viewers,
+             uniqIf(distinct_id, event IN ('add_to_cart_succeeded', 'cart_line_added', 'nova_add_to_cart', 'oceaura_add_to_cart')) AS add_to_cart,
+             uniqIf(distinct_id, event IN ('checkout_clicked', 'nova_checkout_clicked', 'oceaura_checkout_click')) AS checkout
+      FROM events
+      WHERE timestamp >= toDateTime('${from}') AND properties.$pathname IN (${list})
+      GROUP BY path`);
+    return new Map(rows.map((row) => [String(row[0]), { viewers: Number(row[1]) || 0, addToCart: Number(row[2]) || 0, checkout: Number(row[3]) || 0 }]));
+  } catch (error) {
+    console.warn("page_experiment_funnel_unavailable", String((error as Error)?.message || error).slice(0, 120));
+    return null;
+  }
+}
+
+/** Meta spend booked since the test began, in the store's currency; null when nothing is booked. */
+async function pageSpendSince(since: string): Promise<{ amount: number; currency: string; note: string } | null> {
+  const db = pageExperimentDb();
+  if (!db) return null;
+  try {
+    const row: any = await db.prepare(`SELECT SUM("amount") AS usd FROM "FinancialLedgerEntry"
+      WHERE "source" = 'META_ADS_INSIGHTS' AND "category" = 'AD_SPEND' AND "currency" = 'USD' AND "occurredDate" >= ?`).bind(since.slice(0, 10)).first();
+    const usd = Number(row?.usd) || 0;
+    if (!usd) return null;
+    const reporting = (workerEnvValue("REPORTING_CURRENCY") || "ILS").toUpperCase();
+    const quote = await resolveFxRate("USD", reporting).catch(() => null);
+    if (!quote?.rate) return { amount: Number(usd.toFixed(2)), currency: "USD", note: "Meta spend in USD; no exchange rate available, so ROAS is not shown." };
+    return { amount: Number((usd * quote.rate).toFixed(2)), currency: reporting, note: `Meta spend since ${since.slice(0, 10)}, converted at ${quote.rate} USD/${reporting}; each page's share follows its share of visitors.` };
+  } catch {
+    return null;
+  }
+}
 
 pageExperimentAdminRouter.post("/page-experiments/reconcile", async (req, res) => {
   try {

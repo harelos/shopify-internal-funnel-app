@@ -28,6 +28,8 @@ export interface BeaconBatch {
   device: string;
   source: string;
   variant: string | null;
+  /** Assignments for other tests the page reports alongside its own variant, keyed by experiment. */
+  experiments: Record<string, string>;
   isInternal: boolean;
   events: BeaconEvent[];
 }
@@ -72,6 +74,18 @@ function text(value: unknown, max: number): string {
 
 const KEY = /^[A-Za-z0-9_-]{8,120}$/;
 
+/** `{ experimentKey: variant }` pairs, shape-checked here and allow-listed by the route. */
+function experimentsFrom(value: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return out;
+  for (const [rawKey, rawVariant] of Object.entries(value as Record<string, unknown>).slice(0, 8)) {
+    const key = text(rawKey, 60);
+    const variant = text(rawVariant, 40);
+    if (/^[a-z0-9_]{3,60}$/i.test(key) && /^[a-z0-9_]{1,40}$/i.test(variant)) out[key] = variant;
+  }
+  return out;
+}
+
 /** Validates one beacon post. Throws on anything that is not the shape the page sends. */
 export function normalizeBeaconBatch(body: unknown, now = Date.now()): BeaconBatch {
   const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
@@ -114,6 +128,7 @@ export function normalizeBeaconBatch(body: unknown, now = Date.now()): BeaconBat
     device: text(input.device, 24) || "unknown",
     source: text(input.source, 80) || "direct",
     variant: text(input.variant, 40) || null,
+    experiments: experimentsFrom(input.experiments),
     isInternal: input.isInternal === true,
     events,
   };

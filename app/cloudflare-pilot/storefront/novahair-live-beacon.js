@@ -53,8 +53,15 @@
   })();
 
   function variant() { return doc.documentElement.getAttribute('data-nova-cro') || null; }
+  /* Other tests the page runs, written by their own scripts (the exit popup's offer test). */
+  function experiments() {
+    try {
+      var parsed = JSON.parse(global.localStorage.getItem('nh_experiments') || 'null');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_) { return {}; }
+  }
   function payload(events) {
-    return JSON.stringify({ sessionKey: sessionKey, visitorKey: visitorKey, page: PAGE, device: device, source: source, variant: variant(), isInternal: isInternal, events: events });
+    return JSON.stringify({ sessionKey: sessionKey, visitorKey: visitorKey, page: PAGE, device: device, source: source, variant: variant(), experiments: experiments(), isInternal: isInternal, events: events });
   }
   function flush(unloading) {
     if (timer) { global.clearTimeout(timer); timer = null; }

@@ -1,0 +1,60 @@
+/* Experiments: one quiet list, every test folded to a single line until opened. */
+.exp-intro { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; align-items: flex-end; margin-bottom: 18px; }
+.exp-intro h1 { margin-bottom: 4px; }
+.exp-intro .actions { gap: 8px; }
+.exp-list { display: grid; gap: 10px; }
+.exp { border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
+.exp[data-running="true"] { border-color: rgba(25, 123, 91, 0.35); }
+.exp-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; width: 100%; padding: 14px 18px; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.exp-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.exp-head-main { display: grid; gap: 4px; min-width: 0; }
+.exp-kind { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
+.exp-kind .badge { letter-spacing: 0.04em; }
+.exp-name { font-size: 15px; font-weight: 800; line-height: 1.25; }
+.exp-state { font-size: 12px; color: var(--muted); }
+.exp-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: flex-end; }
+.exp-sum span { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.04em; }
+.exp-sum b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.exp-sum .exp-uplift-positive { color: var(--green); }
+.exp-sum .exp-uplift-negative { color: var(--red); }
+.exp-chev { width: 18px; height: 18px; margin-left: 10px; color: var(--muted); transition: transform 0.15s ease; }
+.exp[data-open="true"] .exp-chev { transform: rotate(180deg); }
+.exp-body { display: grid; gap: 14px; padding: 4px 18px 18px; border-top: 1px solid var(--line); }
+.exp-body[hidden] { display: none; }
+.exp-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.exp-kpi { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, 0.6); }
+.exp-kpi-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
+.exp-kpi-value { margin-top: 4px; font-size: 21px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.exp-kpi-note { margin-top: 3px; font-size: 11px; color: var(--muted); }
+.exp-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.exp-controls .exp-status { font-size: 12px; color: var(--muted); }
+.exp-split { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, 0.5); }
+.exp-split-sentence { font-size: 13px; line-height: 1.5; }
+.exp-link { display: grid; gap: 6px; padding: 12px 14px; border: 1px dashed var(--accent); border-radius: 10px; background: rgba(216, 83, 54, 0.04); }
+.exp-link code { font-size: 12px; overflow-wrap: anywhere; }
+.exp-table-wrap { overflow-x: auto; }
+.exp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.exp-table th { text-align: left; padding: 8px 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.exp-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.exp-table tr:last-child td { border-bottom: 0; }
+.exp-table td .muted { font-size: 11px; }
+.exp-table .exp-pct { width: 64px; margin: 0; padding: 5px 7px; }
+.exp-table .is-best { color: var(--green); font-weight: 800; }
+.exp-note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.exp-sources { display: flex; flex-wrap: wrap; gap: 6px; }
+.exp-empty { padding: 26px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+.exp-advanced { margin-top: 26px; }
+.exp-advanced > summary { cursor: pointer; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-weight: 800; list-style: none; }
+.exp-advanced > summary::-webkit-details-marker { display: none; }
+.exp-advanced > summary::after { content: "▾"; float: right; color: var(--muted); }
+.exp-advanced[open] > summary::after { content: "▴"; }
+.exp-advanced > summary .muted { font-weight: 500; margin-left: 8px; }
+.exp-advanced .lab-layout { margin-top: 16px; }
+@media (max-width: 960px) {
+  .exp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .exp-head { grid-template-columns: 1fr; }
+  .exp-sum { justify-content: flex-start; }
+}
+@media (max-width: 600px) {
+  .exp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

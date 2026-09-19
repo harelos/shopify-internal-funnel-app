@@ -1,3 +1,5 @@
+import { getFlagByKey, postHogConfigured } from "../lib/posthog-admin.js";
+import { DEFAULT_POPUP_WEIGHTS, POPUP_EXPERIMENT_KEY, bucketVisitor, weightsFromFlag, type CroVariantWeight } from "../lib/cro-assignment.js";
 import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { reportingMoneyFor } from "../lib/reporting-currency.js";
 import { Router } from "express";
@@ -264,6 +266,38 @@ router.post("/popup/customer/capture", async (req, res) => {
  * an address: sixteen redemptions against nine emails collected in a fortnight.
  * It now lives here and is handed over only after an email has been submitted.
  */
+/**
+ * Which offer this shopper's exit popup makes: the code after an email (the
+ * page as it was) or the code at once. Decided here from the visitor key with
+ * the same hash the page test uses, so the split is one number in PostHog and
+ * the instant arm's code never sits in the page source. The page reports the
+ * assignment through the live beacon, which is what the results table counts.
+ */
+let popupSplitCache: { at: number; weights: CroVariantWeight[]; active: boolean } | null = null;
+
+router.get("/popup/offer-variant", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  if (customerRequestLimited(req, "offer_variant", 60, 10 * 60_000)) return res.status(429).json({ error: "rate_limited" });
+  const visitorKey = String(req.query.visitor ?? "").trim();
+  if (!/^[A-Za-z0-9_-]{8,120}$/.test(visitorKey)) return res.status(400).json({ error: "invalid_visitor" });
+  try {
+    if (!popupSplitCache || Date.now() - popupSplitCache.at > 60_000) {
+      const flag = postHogConfigured() ? await getFlagByKey(POPUP_EXPERIMENT_KEY).catch(() => null) : null;
+      popupSplitCache = { at: Date.now(), weights: weightsFromFlag(flag, DEFAULT_POPUP_WEIGHTS), active: flag ? Boolean(flag.active) : true };
+    }
+    const variant = popupSplitCache.active ? (bucketVisitor(visitorKey, popupSplitCache.weights) || "email_gate") : "email_gate";
+    const code = variant === "instant_code" ? (workerEnvValue("NOVAHAIR_EXIT_POPUP_INSTANT_CODE") || "NOVA10NOW").trim() : null;
+    return res.json({
+      experiment: POPUP_EXPERIMENT_KEY,
+      variant,
+      code,
+      version: variant === "instant_code" ? "novahair_popup_v3_instant" : "novahair_popup_v3_gate",
+    });
+  } catch {
+    return res.status(503).json({ error: "split_unavailable" });
+  }
+});
+
 router.post("/popup/exit-coupon", async (req, res) => {
   if (customerRequestLimited(req, "exit_coupon", 10, 10 * 60_000)) return res.status(429).json({ error: "rate_limited" });
   const email = normalizedEmail(req.body?.email);

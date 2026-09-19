@@ -16,10 +16,14 @@ import {
 import {
   buildAdaptiveResults,
   normalizeAllocations,
-  variantFromLineItems,
+  variantFromOrder,
   type ExposureRow,
+  type OrderLike,
   type OrderRow,
 } from "../lib/adaptive-experiments.js";
+import { EXPERIMENTS } from "../lib/cro-assignment.js";
+import { workerEnvValue } from "../lib/shopify-config.js";
+import { resolveFxRate } from "../lib/fx.js";
 
 /**
  * The adaptive page tests, as the merchant sees them: which experiences are
@@ -110,15 +114,14 @@ async function exposuresFromPostHog(key: string, since: string): Promise<Exposur
   }));
 }
 
-interface OrderNode {
+interface OrderNode extends OrderLike {
   id: string;
   name: string;
   cancelledAt: string | null;
   currentTotalPriceSet: { shopMoney: { amount: string; currencyCode: string } };
-  lineItems: { nodes: Array<{ customAttributes: Array<{ key: string; value: string | null }> }> };
 }
 
-async function ordersFromShopify(since: string): Promise<OrderRow[]> {
+async function ordersFromShopify(since: string, experimentKey: string): Promise<OrderRow[]> {
   const orders: OrderRow[] = [];
   let cursor: string | null = null;
   for (let page = 0; page < 8; page += 1) {
@@ -129,6 +132,7 @@ async function ordersFromShopify(since: string): Promise<OrderRow[]> {
           nodes {
             id name cancelledAt
             currentTotalPriceSet { shopMoney { amount currencyCode } }
+            customAttributes { key value }
             lineItems(first: 25) { nodes { customAttributes { key value } } }
           }
         }
@@ -136,7 +140,7 @@ async function ordersFromShopify(since: string): Promise<OrderRow[]> {
     for (const node of data.orders.nodes) {
       orders.push({
         orderId: node.id,
-        variant: variantFromLineItems(node.lineItems.nodes),
+        variant: variantFromOrder(node, experimentKey),
         amount: Number(node.currentTotalPriceSet.shopMoney.amount) || 0,
         currency: node.currentTotalPriceSet.shopMoney.currencyCode,
         cancelled: Boolean(node.cancelledAt),
@@ -146,6 +150,30 @@ async function ordersFromShopify(since: string): Promise<OrderRow[]> {
     cursor = data.orders.pageInfo.endCursor;
   }
   return orders;
+}
+
+/**
+ * Meta spend booked for the window, restated in the store's currency so it can
+ * sit next to revenue. The ledger holds one USD row per day; the FX quote is
+ * the same one the growth cockpit uses. Null when nothing is booked yet.
+ */
+async function adSpendSince(since: string): Promise<{ amount: number; currency: string; note: string } | null> {
+  const envObj = (cloudflareEnv as any) ?? (globalThis as any).__SHOPIFY_WORKER_ENV__;
+  const db = envObj?.DB;
+  if (!db) return null;
+  const row = await db.prepare(`SELECT SUM("amount") AS usd FROM "FinancialLedgerEntry"
+    WHERE "source" = 'META_ADS_INSIGHTS' AND "category" = 'AD_SPEND' AND "currency" = 'USD' AND "occurredDate" >= ?`)
+    .bind(since.slice(0, 10)).first();
+  const usd = Number(row?.usd) || 0;
+  if (!usd) return null;
+  const reporting = (workerEnvValue("REPORTING_CURRENCY") || "ILS").toUpperCase();
+  const quote = await resolveFxRate("USD", reporting).catch(() => null);
+  if (!quote?.rate) return { amount: Number(usd.toFixed(2)), currency: "USD", note: "Meta spend in USD; no exchange rate available, so ROAS is not shown." };
+  return {
+    amount: Number((usd * quote.rate).toFixed(2)),
+    currency: reporting,
+    note: `Meta spend since ${since.slice(0, 10)}, converted at ${quote.rate} USD/${reporting}. Each variant's share follows its share of visitors, so ROAS is an estimate.`,
+  };
 }
 
 async function describe(key: string, experiments: PostHogExperiment[] | null) {
@@ -161,13 +189,15 @@ async function describe(key: string, experiments: PostHogExperiment[] | null) {
   if (cached && Date.now() - cached.at < RESULTS_TTL_MS) {
     results = cached.value;
   } else {
-    const [exposures, orders] = await Promise.allSettled([exposuresFromFirstParty(key, since), ordersFromShopify(since)]);
+    const [exposures, orders, spend] = await Promise.allSettled([exposuresFromFirstParty(key, since), ordersFromShopify(since, key), adSpendSince(since)]);
     if (exposures.status === "rejected") resultErrors.visitors = String(exposures.reason?.message || exposures.reason).slice(0, 200);
     if (orders.status === "rejected") resultErrors.shopify = String(orders.reason?.message || orders.reason).slice(0, 200);
     results = buildAdaptiveResults({
       variants,
       exposures: exposures.status === "fulfilled" ? exposures.value : [],
       orders: orders.status === "fulfilled" ? orders.value : [],
+      controlKey: EXPERIMENTS[key]?.control,
+      spend: spend.status === "fulfilled" ? spend.value : null,
     });
     if (!Object.keys(resultErrors).length) resultsCache.set(cacheKey, { at: Date.now(), value: results });
   }
@@ -223,9 +253,15 @@ adaptiveExperimentAdminRouter.patch("/adaptive-experiments/:key/allocations", as
     const variants = (flag.filters.multivariate?.variants || []).map(variant => ({
       ...variant, rollout_percentage: allocations.find(row => row.key === variant.key)!.percentage,
     }));
-    const updated = await updateFlag(flag.id, { filters: { ...flag.filters, multivariate: { variants } } });
+    await updateFlag(flag.id, { filters: { ...flag.filters, multivariate: { variants } } });
     resultsCache.clear();
-    res.json({ ok: true, variants: variantsOf(updated) });
+    // Read back rather than trust the write: a split the owner set and never
+    // saw take effect is worse than an error.
+    const confirmed = await getFlagByKey(key);
+    const saved = confirmed ? variantsOf(confirmed) : [];
+    const matches = saved.length === allocations.length && allocations.every(row => saved.find(v => v.key === row.key)?.percentage === row.percentage);
+    if (!matches) return res.status(502).json({ error: "PostHog did not keep the new split. Nothing changed for visitors; try again.", variants: saved });
+    res.json({ ok: true, variants: saved });
   } catch (error) { fail(res, error, /add up|Unknown|missing|whole number|twice|Send one/.test(String((error as Error)?.message)) ? 400 : 500); }
 });
 

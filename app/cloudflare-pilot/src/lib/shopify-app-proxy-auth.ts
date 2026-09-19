@@ -48,6 +48,8 @@ const STOREFRONT_PROXY_PATHS = new Set([
   "/popup/confirm-lead",
   // Hands the exit popup's discount code to a shopper who has just left an email.
   "/popup/exit-coupon",
+  // Which offer the exit popup makes this visitor (the popup offer test).
+  "/popup/offer-variant",
   "/popup/customer/capture",
   "/popup/customer/context",
   "/popup/customer/result-email",
