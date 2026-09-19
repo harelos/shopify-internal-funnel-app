@@ -354,3 +354,48 @@ test("past opens and clicks are seeded once from automation tracking", async () 
     await dispose();
   }
 });
+
+test("product history syncs in bulk, so a tick finishes and saves its cursor", async () => {
+  const { db, dispose } = await testDatabase();
+  const env = testEnv(db, { LIFECYCLE_MODE: "production", LIFECYCLE_MAX_PAGES: "1" });
+  try {
+    await setHealth(db, "customers_backfill_done", "true", "OK", NOW.toISOString());
+    for (let index = 0; index < 120; index += 1) {
+      await upsertCustomerFromShopify(env as never, {
+        id: `gid://shopify/Customer/${index}`, firstName: null, updatedAt: NOW.toISOString(), numberOfOrders: 1,
+        defaultEmailAddress: { emailAddress: `bulk${index}@example.com`, marketingState: "SUBSCRIBED", marketingOptInLevel: null, marketingUpdatedAt: null, validFormat: true },
+      }, NOW, "SHOPIFY_BACKFILL");
+    }
+
+    // More customers than fit in one D1 parameter list, so the read must chunk.
+    const nodes = Array.from({ length: 120 }, (_, index) => ({
+      id: `gid://shopify/Order/${index}`,
+      customer: { id: `gid://shopify/Customer/${index}` },
+      lineItems: { nodes: [{ product: { handle: index % 2 === 0 ? "NovaSale-4" : "hair-gloss" } }] },
+    }));
+    let calls = 0;
+    const graphql = async <T>(): Promise<T> => {
+      calls += 1;
+      return { orders: { nodes, pageInfo: { hasNextPage: true, endCursor: "cursor-page-1" } } } as T;
+    };
+
+    const first = await syncCustomerProducts(env as never, NOW, graphql);
+    assert.equal(first.customersTouched, 120);
+    assert.equal(calls, 1);
+    // The cursor is saved, so the next tick moves on instead of repeating.
+    assert.equal(
+      await db.prepare("SELECT value FROM health_state WHERE key='customers_products_cursor'").first("value"),
+      "cursor-page-1",
+    );
+    assert.equal(
+      Number(await db.prepare("SELECT COUNT(*) n FROM customers WHERE novahair_buyer = 1").first("n")),
+      60,
+    );
+
+    // Re-running over the same orders writes nothing, because nothing changed.
+    const second = await syncCustomerProducts(env as never, NOW, graphql);
+    assert.equal(second.customersTouched, 0);
+  } finally {
+    await dispose();
+  }
+});

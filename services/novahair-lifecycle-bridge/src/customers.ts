@@ -536,17 +536,40 @@ export async function syncCustomerProducts(
       if (!data.orders.pageInfo.hasNextPage) { done = true; break; }
     }
 
+    // A thousand orders means up to a thousand customers. Doing a SELECT and an
+    // UPDATE per customer is two thousand sequential round trips, which does not
+    // finish inside a cron tick: the cursor below is then never written, so the
+    // next tick repeats the same work and the rest of the cron never runs.
+    // Read in chunks that respect D1's parameter limit, write in batches.
+    const customerIds = [...handlesByCustomer.keys()];
+    const existingByCustomerId = new Map<string, { email_hash: string; products_json: string }>();
+    for (let index = 0; index < customerIds.length; index += 90) {
+      const chunk = customerIds.slice(index, index + 90);
+      const rows = await env.DB.prepare(
+        `SELECT email_hash, shopify_customer_id, products_json FROM customers
+         WHERE shopify_customer_id IN (${chunk.map(() => "?").join(", ")})`,
+      ).bind(...chunk).all<{ email_hash: string; shopify_customer_id: string; products_json: string }>();
+      for (const row of rows.results ?? []) {
+        existingByCustomerId.set(row.shopify_customer_id, { email_hash: row.email_hash, products_json: row.products_json });
+      }
+    }
+
     let customersTouched = 0;
-    for (const [cid, set] of handlesByCustomer) {
-      const existing = await env.DB.prepare(
-        "SELECT email_hash, products_json FROM customers WHERE shopify_customer_id = ?",
-      ).bind(cid).first<{ email_hash: string; products_json: string }>();
+    const updates: ReturnType<D1Database["prepare"]>[] = [];
+    for (const [customerId, handles] of handlesByCustomer) {
+      const existing = existingByCustomerId.get(customerId);
       if (!existing) continue;
-      const merged = mergeHandles(existing.products_json, [...set]);
-      await env.DB.prepare(
+      const merged = mergeHandles(existing.products_json, [...handles]);
+      // Writing a value identical to the stored one costs a round trip and
+      // changes nothing, so a re-run over already-synced orders is nearly free.
+      if (JSON.stringify(merged) === existing.products_json) continue;
+      updates.push(env.DB.prepare(
         "UPDATE customers SET products_json = ?, novahair_buyer = ?, updated_at = ? WHERE email_hash = ?",
-      ).bind(JSON.stringify(merged), isNovaHairBuyer(merged), current, existing.email_hash).run();
+      ).bind(JSON.stringify(merged), isNovaHairBuyer(merged), current, existing.email_hash));
       customersTouched += 1;
+    }
+    for (let index = 0; index < updates.length; index += 50) {
+      await env.DB.batch(updates.slice(index, index + 50));
     }
 
     if (done) {

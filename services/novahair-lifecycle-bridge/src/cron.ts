@@ -59,7 +59,10 @@ export async function runLifecycleCron(
   }
   assertCoreConfiguration(env);
   const owner = crypto.randomUUID();
-  const locked = await acquireCronLock(env.DB, "novahair_lifecycle_cron", owner, now, 240);
+  // The lease must outlast a slow tick, or the next one starts alongside it and
+  // both redo the same work. It stays under the 10-minute schedule so a lock
+  // orphaned by a dead isolate still frees itself before the following tick.
+  const locked = await acquireCronLock(env.DB, "novahair_lifecycle_cron", owner, now, 540);
   if (!locked) return;
   try {
     const config = lifecycleConfig(env);
