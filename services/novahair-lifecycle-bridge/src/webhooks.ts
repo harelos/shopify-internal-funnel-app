@@ -956,6 +956,16 @@ export async function handleResendWebhook(env: LifecycleEnv, request: Request, n
       await touchCustomerOnEmailEvent(env, recipientHash, payload.type, payload.created_at, now);
     }
 
+    // Campaign engagement is keyed by the Resend message id we stored when the
+    // campaign email was sent, so opens and clicks land on the right send.
+    const campaignEmailId = payload.data.email_id;
+    if (campaignEmailId && ["email.opened", "email.clicked"].includes(payload.type)) {
+      const column = payload.type === "email.opened" ? "opened_at" : "clicked_at";
+      await env.DB.prepare(
+        `UPDATE campaign_recipients SET ${column} = COALESCE(${column}, ?) WHERE resend_email_id = ?`,
+      ).bind(payload.created_at, campaignEmailId).run();
+    }
+
     const hardBounce = payload.type === "email.bounced"
       && (payload.data.bounce?.type ?? "Permanent").toLowerCase() === "permanent";
     const contactUnsubscribed = payload.type === "contact.updated" && payload.data.unsubscribed === true;

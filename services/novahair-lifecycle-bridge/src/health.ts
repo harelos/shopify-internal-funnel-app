@@ -1,4 +1,4 @@
-import { lifecycleConfig } from "./config";
+import { lifecycleConfig, usageLimitsFor } from "./config";
 import { constantTimeEqual } from "./crypto";
 import { healthValue, usageSnapshot } from "./db";
 import type { D1Database, LifecycleEnv } from "./types";
@@ -71,7 +71,7 @@ export async function lifecycleHealth(env: LifecycleEnv, now = new Date()): Prom
     scalar(env.DB, "SELECT COUNT(*) AS count FROM resend_resources WHERE resource_type = 'AUTOMATION'"),
     scalar(env.DB, "SELECT COUNT(*) AS count FROM resend_resources WHERE resource_type = 'WEBHOOK' AND UPPER(status) = 'ENABLED'"),
     scalar(env.DB, "SELECT COUNT(*) AS count FROM resend_resources WHERE resource_type = 'DOMAIN' AND UPPER(status) = 'VERIFIED'"),
-    usageSnapshot(env.DB, now),
+    usageSnapshot(env.DB, now, usageLimitsFor(env)),
   ]);
   const degraded = openErrors > 0 || deadSchedules > 0 || uncertainEvents > 0 || pendingContactUpdates > 0 || quota.critical;
   return {

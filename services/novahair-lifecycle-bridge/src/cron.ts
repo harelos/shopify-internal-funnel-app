@@ -1,10 +1,18 @@
 import { assertCoreConfiguration, lifecycleConfig, lifecycleMode } from "./config";
 import { acquireCronLock, healthValue, isoNow, releaseCronLock, setHealth } from "./db";
+import { dispatchDueCampaigns } from "./campaigns";
 import { recomputeEngagementScores, syncCustomerBackfill, syncCustomerProducts } from "./customers";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { monitorResendQuota } from "./quota";
 import { dispatchResendContactUpdates } from "./resend";
-import { ensureLifecycleWebhooks, shopifyGraphql, syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
+import {
+  ensureLifecycleWebhooks,
+  pushShopifyConsentUpdates,
+  shopifyGraphql,
+  syncAbandonedCheckouts,
+  syncCustomerConsent,
+  syncPaidOrders,
+} from "./shopify";
 import { reconcilePostPurchaseTransitUpdates } from "./webhooks";
 import { processLifecycleIdentityClaims, processStorefrontLifecycleEvents } from "./storefront";
 import { reconcileShipmentAssurance } from "./shipment-assurance";
@@ -86,7 +94,13 @@ export async function runLifecycleCron(
     await processLifecycleIdentityClaims(env, now);
     await processStorefrontLifecycleEvents(env, now);
     await dispatchResendContactUpdates(env, now);
+    // An unsubscribe we recorded locally has to reach Shopify before the next
+    // consent sync pulls Shopify's stale value back over it.
+    await pushShopifyConsentUpdates(env, now);
     await dispatchDueLifecycleEvents(env, now, owner);
+    // Campaigns run last and inside their own quota budget, so lifecycle mail
+    // always gets the send capacity it needs first.
+    await dispatchDueCampaigns(env, now);
     await monitorDeliveryWatch(env, now);
     await monitorResendQuota(env, now);
     await setHealth(env.DB, "lifecycle_runtime_status", "healthy", "OK", current);

@@ -1,5 +1,6 @@
 import { randomOpaqueToken } from "./crypto";
 import type {
+  ClickFlow,
   D1Database,
   LifecycleFlow,
   ScheduledLifecycleRow,
@@ -250,7 +251,7 @@ export async function createClickToken(
   input: {
     entityType: string;
     entityId: string;
-    flow: LifecycleFlow;
+    flow: ClickFlow;
     emailNumber: number;
     encryptedTargetUrl: string;
     utmCampaign: string;
@@ -295,7 +296,7 @@ export interface ClickTokenRow {
   token: string;
   entity_type: string;
   entity_id: string;
-  flow: LifecycleFlow;
+  flow: ClickFlow;
   email_number: number;
   target_url: string;
   utm_campaign: string;
@@ -361,6 +362,35 @@ export async function incrementUsageOnce(
   await db.batch(statements);
 }
 
+export interface UsageLimits {
+  dailyEmails: number;
+  monthlyEmails: number;
+  monthlyRuns: number;
+}
+
+/** Resend's free tier. Overridden from config once the account is upgraded. */
+export const FREE_TIER_LIMITS: UsageLimits = {
+  dailyEmails: 100,
+  monthlyEmails: 3000,
+  monthlyRuns: 10000,
+};
+
+/**
+ * Guard and warning thresholds, held as fractions of the plan limit so raising
+ * the plan raises the guard with it. The default limits reproduce the original
+ * hard-coded values exactly: 70/90 of 100 a day, 2400/2900 of 3000 a month.
+ */
+export function usageThresholds(limits: UsageLimits) {
+  return {
+    dayWarning: Math.floor(limits.dailyEmails * 0.7),
+    dayCritical: Math.floor(limits.dailyEmails * 0.9),
+    monthWarning: Math.floor(limits.monthlyEmails * 0.8),
+    monthCritical: Math.floor(limits.monthlyEmails * 29 / 30),
+    runsWarning: Math.floor(limits.monthlyRuns * 0.9),
+    runsCritical: Math.floor(limits.monthlyRuns * 0.98),
+  };
+}
+
 export interface UsageSnapshot {
   dayEmails: number;
   monthEmails: number;
@@ -370,12 +400,17 @@ export interface UsageSnapshot {
   localMonthRuns: number;
   observedDayEmails: number | null;
   observedMonthEmails: number | null;
+  limits: UsageLimits;
   warning: boolean;
   critical: boolean;
   dispatchAllowed: boolean;
 }
 
-export async function usageSnapshot(db: D1Database, now = new Date()): Promise<UsageSnapshot> {
+export async function usageSnapshot(
+  db: D1Database,
+  now = new Date(),
+  limits: UsageLimits = FREE_TIER_LIMITS,
+): Promise<UsageSnapshot> {
   const day = now.toISOString().slice(0, 10);
   const month = day.slice(0, 7);
   const daily = await db.prepare(
@@ -413,6 +448,7 @@ export async function usageSnapshot(db: D1Database, now = new Date()): Promise<U
   const dayEmails = Math.max(localDayEmails, observedDayEmails ?? 0);
   const monthEmails = Math.max(localMonthEmails, observedMonthEmails ?? 0);
   const monthRuns = localMonthRuns;
+  const threshold = usageThresholds(limits);
   return {
     dayEmails,
     monthEmails,
@@ -422,8 +458,15 @@ export async function usageSnapshot(db: D1Database, now = new Date()): Promise<U
     localMonthRuns,
     observedDayEmails,
     observedMonthEmails,
-    warning: dayEmails >= 70 || monthEmails >= 2400 || monthRuns >= 9000,
-    critical: dayEmails >= 90 || monthEmails >= 2900 || monthRuns >= 9800,
-    dispatchAllowed: dayEmails < 90 && monthEmails < 2900 && monthRuns < 9800,
+    limits,
+    warning: dayEmails >= threshold.dayWarning
+      || monthEmails >= threshold.monthWarning
+      || monthRuns >= threshold.runsWarning,
+    critical: dayEmails >= threshold.dayCritical
+      || monthEmails >= threshold.monthCritical
+      || monthRuns >= threshold.runsCritical,
+    dispatchAllowed: dayEmails < threshold.dayCritical
+      && monthEmails < threshold.monthCritical
+      && monthRuns < threshold.runsCritical,
   };
 }

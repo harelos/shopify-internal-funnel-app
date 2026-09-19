@@ -1050,4 +1050,103 @@ export async function syncCustomerConsent(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Consent pushed back to Shopify. Without this, an unsubscribe recorded on our
+// side would be overwritten by the next consent sync pulling Shopify's older,
+// still-subscribed value.
+// ---------------------------------------------------------------------------
+const CONSENT_UPDATE_MUTATION = `mutation NovaHairConsentPush($input: CustomerEmailMarketingConsentUpdateInput!) {
+  customerEmailMarketingConsentUpdate(input: $input) {
+    customer { id }
+    userErrors { field message }
+  }
+}`;
+
+interface ConsentPushRow {
+  idempotency_key: string;
+  shopify_customer_id: string;
+  email_hash: string;
+  marketing_state: string;
+  attempts: number;
+  max_attempts: number;
+}
+
+export async function pushShopifyConsentUpdates(
+  env: LifecycleEnv,
+  now = new Date(),
+  graphql = shopifyGraphql,
+): Promise<{ attempted: number; pushed: number; failed: number }> {
+  const current = isoNow(now);
+  const rows = await env.DB.prepare(
+    `SELECT idempotency_key, shopify_customer_id, email_hash, marketing_state, attempts, max_attempts
+     FROM shopify_consent_updates
+     WHERE status IN ('PENDING', 'RETRY') AND next_attempt_at <= ?
+     ORDER BY next_attempt_at ASC LIMIT 25`,
+  ).bind(current).all<ConsentPushRow>();
+  const pending = rows.results ?? [];
+  if (pending.length === 0) return { attempted: 0, pushed: 0, failed: 0 };
+
+  let pushed = 0;
+  let failed = 0;
+  for (const row of pending) {
+    await env.DB.prepare(
+      `UPDATE shopify_consent_updates SET status = 'SENDING', attempts = attempts + 1, updated_at = ?
+       WHERE idempotency_key = ? AND status IN ('PENDING', 'RETRY')`,
+    ).bind(current, row.idempotency_key).run();
+    try {
+      const data = await graphql<{
+        customerEmailMarketingConsentUpdate: {
+          customer: { id: string } | null;
+          userErrors: Array<{ field: string[] | null; message: string }>;
+        };
+      }>(env, CONSENT_UPDATE_MUTATION, {
+        input: {
+          customerId: row.shopify_customer_id,
+          emailMarketingConsent: {
+            marketingState: row.marketing_state,
+            consentUpdatedAt: current,
+          },
+        },
+      });
+      const errors = data.customerEmailMarketingConsentUpdate?.userErrors ?? [];
+      if (errors.length === 0 && data.customerEmailMarketingConsentUpdate?.customer) {
+        await env.DB.prepare(
+          `UPDATE shopify_consent_updates SET status = 'SENT', sent_at = ?, updated_at = ?, last_error_code = NULL
+           WHERE idempotency_key = ?`,
+        ).bind(current, current, row.idempotency_key).run();
+        pushed += 1;
+        continue;
+      }
+      // A user error is a rejection, not a transient fault: do not retry it.
+      await env.DB.prepare(
+        "UPDATE shopify_consent_updates SET status = 'DEAD', last_error_code = ?, updated_at = ? WHERE idempotency_key = ?",
+      ).bind(`shopify_user_error:${(errors[0]?.message ?? "unknown").slice(0, 60)}`, current, row.idempotency_key).run();
+      failed += 1;
+    } catch (error) {
+      const exhausted = row.attempts + 1 >= row.max_attempts;
+      const code = error instanceof Error ? error.message : "shopify_consent_push_failed";
+      await env.DB.prepare(
+        `UPDATE shopify_consent_updates
+         SET status = ?, next_attempt_at = ?, last_error_code = ?, updated_at = ?
+         WHERE idempotency_key = ?`,
+      ).bind(
+        exhausted ? "DEAD" : "RETRY",
+        new Date(now.getTime() + Math.min(6 * 60 * 60_000, 30_000 * 2 ** row.attempts)).toISOString(),
+        code.slice(0, 100),
+        current,
+        row.idempotency_key,
+      ).run();
+      failed += 1;
+    }
+  }
+  await setHealth(
+    env.DB,
+    "shopify_consent_push_status",
+    JSON.stringify({ attempted: pending.length, pushed, failed }),
+    failed ? "DEGRADED" : "OK",
+    current,
+  );
+  return { attempted: pending.length, pushed, failed };
+}
+
 export { ABANDONED_CHECKOUT_QUERY, CUSTOMERS_QUERY, PAID_ORDERS_QUERY };

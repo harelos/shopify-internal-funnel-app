@@ -42,6 +42,11 @@ export interface LifecycleEnv {
   /** Optional token with read_all_orders, used only for order-history syncs that need no PII. */
   SHOPIFY_ORDERS_ACCESS_TOKEN?: string;
   SHOPIFY_ACCESS_TOKEN?: string;
+  RESEND_DAILY_EMAIL_LIMIT?: string;
+  RESEND_MONTHLY_EMAIL_LIMIT?: string;
+  RESEND_MONTHLY_RUN_LIMIT?: string;
+  CAMPAIGN_LIFECYCLE_RESERVE?: string;
+  CAMPAIGN_BATCH_SIZE?: string;
   SHOPIFY_WEBHOOK_SECRET?: string;
   SHOPIFY_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
@@ -72,6 +77,13 @@ export type LifecycleFlow =
   | "browse_abandonment"
   | "post_purchase"
   | "replenishment";
+
+/**
+ * What a click token may belong to. A one-off campaign is deliberately not a
+ * `LifecycleFlow`: it has no schedule, no email specs and no static
+ * destinations, it only borrows the click-token and UTM machinery.
+ */
+export type ClickFlow = LifecycleFlow | "campaign";
 
 export type LifecycleEventName =
   | "shopify.checkout_abandoned"

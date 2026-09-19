@@ -1,5 +1,5 @@
-import { lifecycleConfig } from "./config";
-import { isoNow, setHealth, usageSnapshot } from "./db";
+import { lifecycleConfig, usageLimitsFor } from "./config";
+import { isoNow, setHealth, usageSnapshot, usageThresholds } from "./db";
 import type { D1Database, LifecycleEnv } from "./types";
 
 function usedQuota(value: string | null): number | null {
@@ -41,21 +41,23 @@ interface QuotaAlert {
 function alertsFor(snapshot: Awaited<ReturnType<typeof usageSnapshot>>, now: Date): QuotaAlert[] {
   const day = now.toISOString().slice(0, 10);
   const month = day.slice(0, 7);
+  const limits = snapshot.limits;
+  const threshold = usageThresholds(limits);
   const alerts: QuotaAlert[] = [];
-  if (snapshot.dayEmails >= 90) {
-    alerts.push({ key: "daily_critical", period: day, level: "CRITICAL", label: "emails/day", used: snapshot.dayEmails, limit: 100 });
-  } else if (snapshot.dayEmails >= 70) {
-    alerts.push({ key: "daily_warning", period: day, level: "WARNING", label: "emails/day", used: snapshot.dayEmails, limit: 100 });
+  if (snapshot.dayEmails >= threshold.dayCritical) {
+    alerts.push({ key: "daily_critical", period: day, level: "CRITICAL", label: "emails/day", used: snapshot.dayEmails, limit: limits.dailyEmails });
+  } else if (snapshot.dayEmails >= threshold.dayWarning) {
+    alerts.push({ key: "daily_warning", period: day, level: "WARNING", label: "emails/day", used: snapshot.dayEmails, limit: limits.dailyEmails });
   }
-  if (snapshot.monthEmails >= 2900) {
-    alerts.push({ key: "monthly_email_critical", period: month, level: "CRITICAL", label: "emails/month", used: snapshot.monthEmails, limit: 3000 });
-  } else if (snapshot.monthEmails >= 2400) {
-    alerts.push({ key: "monthly_email_warning", period: month, level: "WARNING", label: "emails/month", used: snapshot.monthEmails, limit: 3000 });
+  if (snapshot.monthEmails >= threshold.monthCritical) {
+    alerts.push({ key: "monthly_email_critical", period: month, level: "CRITICAL", label: "emails/month", used: snapshot.monthEmails, limit: limits.monthlyEmails });
+  } else if (snapshot.monthEmails >= threshold.monthWarning) {
+    alerts.push({ key: "monthly_email_warning", period: month, level: "WARNING", label: "emails/month", used: snapshot.monthEmails, limit: limits.monthlyEmails });
   }
-  if (snapshot.monthRuns >= 9800) {
-    alerts.push({ key: "monthly_runs_critical", period: month, level: "CRITICAL", label: "automation runs/month", used: snapshot.monthRuns, limit: 10000 });
-  } else if (snapshot.monthRuns >= 9000) {
-    alerts.push({ key: "monthly_runs_warning", period: month, level: "WARNING", label: "automation runs/month", used: snapshot.monthRuns, limit: 10000 });
+  if (snapshot.monthRuns >= threshold.runsCritical) {
+    alerts.push({ key: "monthly_runs_critical", period: month, level: "CRITICAL", label: "automation runs/month", used: snapshot.monthRuns, limit: limits.monthlyRuns });
+  } else if (snapshot.monthRuns >= threshold.runsWarning) {
+    alerts.push({ key: "monthly_runs_warning", period: month, level: "WARNING", label: "automation runs/month", used: snapshot.monthRuns, limit: limits.monthlyRuns });
   }
   return alerts;
 }
@@ -95,7 +97,7 @@ export async function monitorResendQuota(
   now = new Date(),
   fetcher: typeof fetch = fetch,
 ): Promise<void> {
-  const snapshot = await usageSnapshot(env.DB, now);
+  const snapshot = await usageSnapshot(env.DB, now, usageLimitsFor(env));
   const current = isoNow(now);
   await setHealth(
     env.DB,

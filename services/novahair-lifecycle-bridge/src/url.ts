@@ -1,4 +1,4 @@
-import type { LifecycleFlow } from "./types";
+import type { ClickFlow, LifecycleFlow } from "./types";
 
 export interface LifecycleUtm {
   source: "resend";
@@ -7,20 +7,32 @@ export interface LifecycleUtm {
   content: string;
 }
 
-export function campaignForFlow(flow: LifecycleFlow): string {
+export function campaignForFlow(flow: ClickFlow): string {
   return `novahair_${flow}`;
 }
 
-export function appendLifecycleUtm(target: string, flow: LifecycleFlow, content: string): {
+/**
+ * `campaignOverride` lets a one-off campaign carry its own utm_campaign
+ * (`novahair_campaign_<slug>`) instead of the generic per-flow value, so each
+ * newsletter shows up separately in analytics. Flows pass nothing and keep the
+ * value `campaignForFlow` has always produced.
+ */
+export function appendLifecycleUtm(
+  target: string,
+  flow: ClickFlow,
+  content: string,
+  campaignOverride?: string,
+): {
   url: string;
   utm: LifecycleUtm;
 } {
   const parsed = new URL(target);
   if (!["https:", "http:"].includes(parsed.protocol)) throw new Error("unsupported_target_protocol");
+  const override = campaignOverride?.trim();
   const utm: LifecycleUtm = {
     source: "resend",
     medium: "email",
-    campaign: campaignForFlow(flow),
+    campaign: override && /^[A-Za-z0-9_-]{1,120}$/.test(override) ? override : campaignForFlow(flow),
     content,
   };
   parsed.searchParams.set("utm_source", utm.source);

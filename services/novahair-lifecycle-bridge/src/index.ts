@@ -1,7 +1,16 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
 import { lifecycleAnalytics, lifecycleAudienceActivity, lifecycleFlowCatalog } from "./analytics";
+import {
+  applyUnsubscribe,
+  approveCampaign,
+  campaignReport,
+  createCampaign,
+  listCampaigns,
+  setCampaignStatus,
+} from "./campaigns";
 import { decryptSensitive, hashPayload } from "./crypto";
 import { customerDirectory } from "./customers";
+import { listSegments, parseSegmentFilter, previewSegment, saveSegment } from "./segments";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { consumeClickToken, isoNow, setHealth } from "./db";
 import { isLifecycleAdmin, lifecycleHealth } from "./health";
@@ -72,7 +81,7 @@ async function handleClick(env: LifecycleEnv, token: string): Promise<Response> 
   if (!row) return new Response("Link expired", { status: 410 });
   const storedTarget = await decryptSensitive(row.target_url, lifecycleConfig(env).dataKey);
   const currentTarget = await currentClickDestination(env, row, storedTarget);
-  const target = appendLifecycleUtm(currentTarget, row.flow, row.utm_content).url;
+  const target = appendLifecycleUtm(currentTarget, row.flow, row.utm_content, row.utm_campaign).url;
   const parsed = new URL(target);
   if (
     parsed.searchParams.get("utm_source") !== "resend"
@@ -85,6 +94,17 @@ async function handleClick(env: LifecycleEnv, token: string): Promise<Response> 
   }
   const now = isoNow();
   const attributionKey = `click:${token}`;
+  // A campaign click token carries its recipient in the entity id, so it needs
+  // no automation_tracking row to be attributable.
+  const campaignRecipientHash = row.entity_type === "campaign"
+    ? row.entity_id.split(":")[1] ?? null
+    : null;
+  if (campaignRecipientHash) {
+    await env.DB.prepare(
+      `UPDATE campaign_recipients SET clicked_at = COALESCE(clicked_at, ?)
+       WHERE campaign_id = ? AND email_hash = ?`,
+    ).bind(now, row.entity_id.split(":")[0] ?? "", campaignRecipientHash).run();
+  }
   const tracking = await env.DB.prepare(
     `SELECT recipient_hash, template_id, automation_id, resend_email_id, sent_at
      FROM automation_tracking
@@ -128,7 +148,7 @@ async function handleClick(env: LifecycleEnv, token: string): Promise<Response> 
     now,
     row.entity_type,
     row.entity_id,
-    tracking?.recipient_hash ?? null,
+    tracking?.recipient_hash ?? campaignRecipientHash,
     now,
     now,
   ).run();
@@ -140,6 +160,151 @@ async function handleClick(env: LifecycleEnv, token: string): Promise<Response> 
       "Referrer-Policy": "no-referrer",
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Unsubscribe. GET shows a page with one button; POST performs it, which is
+// also what Gmail's one-click List-Unsubscribe-Post sends.
+// ---------------------------------------------------------------------------
+function unsubscribePage(title: string, body: string, buttonToken?: string): Response {
+  const button = buttonToken
+    ? `<form method="post" action="/api/lifecycle/u/${buttonToken}">
+         <button type="submit">להסיר אותי מהרשימה</button>
+       </form>`
+    : "";
+  return new Response(
+    `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>${title}</title>
+<style>
+  body{margin:0;background:#faf7f4;color:#1d1a17;font-family:Arial,Helvetica,sans-serif;
+       display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+  .card{background:#fff;border:1px solid #e8e0d8;border-radius:14px;padding:28px;max-width:440px;width:100%;
+        box-shadow:0 2px 12px rgba(0,0,0,.05)}
+  h1{font-size:20px;margin:0 0 12px}
+  p{font-size:15px;line-height:1.7;margin:0 0 18px;color:#4a443e}
+  button{background:#1d1a17;color:#fff;border:0;border-radius:8px;padding:13px 22px;font-size:15px;
+         cursor:pointer;width:100%}
+  .brand{font-size:12px;letter-spacing:.12em;color:#8b8179;margin:0 0 20px}
+</style></head><body><div class="card">
+<p class="brand">TIGERBRANDSGLOBAL</p><h1>${title}</h1><p>${body}</p>${button}
+</div></body></html>`,
+    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
+  );
+}
+
+async function handleUnsubscribeRoute(
+  env: LifecycleEnv,
+  token: string,
+  method: string,
+): Promise<Response> {
+  if (!/^[A-Za-z0-9_-]{24,64}$/.test(token)) return new Response("Not found", { status: 404 });
+  if (method === "GET") {
+    const known = await env.DB.prepare(
+      "SELECT 1 AS found FROM customers WHERE unsubscribe_token = ?",
+    ).bind(token).first<{ found: number }>();
+    if (!known) {
+      return unsubscribePage("הקישור כבר לא פעיל", "אפשר לכתוב לנו ונטפל בזה ידנית.");
+    }
+    return unsubscribePage(
+      "להפסיק לקבל מיילים שיווקיים?",
+      "עדכוני הזמנה ומשלוח ימשיכו להישלח, כי הם חלק מהשירות על הזמנה שכבר בוצעה.",
+      token,
+    );
+  }
+  const result = await applyUnsubscribe(env, token);
+  if (!result.ok) return unsubscribePage("הקישור כבר לא פעיל", "אפשר לכתוב לנו ונטפל בזה ידנית.");
+  return unsubscribePage(
+    result.alreadyUnsubscribed ? "כבר הסרנו אותך קודם" : "הוסרת מהרשימה",
+    "לא נשלח לך יותר מיילים שיווקיים. עדכונים על הזמנה פעילה עדיין יגיעו.",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Segment and campaign administration. Everything here is behind the admin
+// token; the only public surfaces this feature adds are the click redirect and
+// the unsubscribe page.
+// ---------------------------------------------------------------------------
+async function readJson(request: Request): Promise<Record<string, unknown>> {
+  try {
+    const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("body_invalid");
+    return body as Record<string, unknown>;
+  } catch {
+    throw new Error("body_invalid");
+  }
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+async function campaignAdminRoute(env: LifecycleEnv, request: Request, url: URL): Promise<Response> {
+  const path = url.pathname.replace(/\/+$/, "");
+  const method = request.method;
+  try {
+    if (path === "/api/lifecycle/admin/segments" && method === "GET") {
+      return json(await listSegments(env));
+    }
+    if (path === "/api/lifecycle/admin/segments/preview" && method === "POST") {
+      const body = await readJson(request);
+      const filter = parseSegmentFilter(body.filter);
+      return json({ ok: true, filter, ...(await previewSegment(env, filter)) });
+    }
+    if (path === "/api/lifecycle/admin/segments" && method === "POST") {
+      const body = await readJson(request);
+      const saved = await saveSegment(env, {
+        name: text(body.name),
+        description: text(body.description) || null,
+        filter: body.filter,
+        createdBy: text(body.createdBy) || "ADMIN",
+      });
+      return json({ ok: true, ...saved });
+    }
+    if (path === "/api/lifecycle/admin/campaigns" && method === "GET") {
+      return json(await listCampaigns(env, url));
+    }
+    if (path === "/api/lifecycle/admin/campaigns" && method === "POST") {
+      const body = await readJson(request);
+      return json(await createCampaign(env, {
+        name: text(body.name),
+        segmentId: text(body.segmentId),
+        subject: text(body.subject),
+        preheader: text(body.preheader) || null,
+        html: text(body.html),
+        ctaUrl: text(body.ctaUrl) || null,
+        kind: body.kind === "transactional" ? "transactional" : "marketing",
+        sendAfter: text(body.sendAfter) || null,
+        maxRecipients: typeof body.maxRecipients === "number" ? body.maxRecipients : null,
+        proposedBy: text(body.proposedBy) || "ADMIN",
+        proposalReason: text(body.proposalReason) || null,
+      }), 201);
+    }
+    const action = path.match(/^\/api\/lifecycle\/admin\/campaigns\/([A-Za-z0-9_.-]+)(?:\/(approve|reject|cancel))?$/);
+    if (action) {
+      const campaignId = action[1] ?? "";
+      const verb = action[2];
+      if (!verb && method === "GET") return json(await campaignReport(env, campaignId));
+      if (verb === "approve" && method === "POST") {
+        const body = await readJson(request);
+        return json(await approveCampaign(env, campaignId, text(body.approvedBy) || "ADMIN"));
+      }
+      if (verb === "reject" && method === "POST") {
+        const body = await readJson(request);
+        return json(await setCampaignStatus(env, campaignId, "REJECTED", text(body.reason) || null));
+      }
+      if (verb === "cancel" && method === "POST") {
+        const body = await readJson(request);
+        return json(await setCampaignStatus(env, campaignId, "CANCELLED", text(body.reason) || null));
+      }
+    }
+    return json({ ok: false, error: "not_found" }, 404);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "campaign_admin_failed";
+    const clientError = /^(segment_|campaign_invalid_|campaign_not_|campaign_cannot_|body_invalid|segment_name_invalid)/.test(code);
+    return json({ ok: false, error: code.slice(0, 120) }, clientError ? 400 : 500);
+  }
 }
 
 async function registerResources(env: LifecycleEnv, request: Request): Promise<Response> {
@@ -207,6 +372,17 @@ export async function handleLifecycleRequest(
   if (url.pathname === "/api/lifecycle/admin/customers" && request.method === "GET") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
     return json(await customerDirectory(env, url));
+  }
+  if (url.pathname.startsWith("/api/lifecycle/u/") && ["GET", "POST"].includes(request.method)) {
+    return handleUnsubscribeRoute(env, url.pathname.slice("/api/lifecycle/u/".length), request.method);
+  }
+  if (url.pathname.startsWith("/api/lifecycle/admin/segments")) {
+    if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
+    return campaignAdminRoute(env, request, url);
+  }
+  if (url.pathname.startsWith("/api/lifecycle/admin/campaigns")) {
+    if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
+    return campaignAdminRoute(env, request, url);
   }
   if (url.pathname === "/api/lifecycle/admin/analytics" && request.method === "GET") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });

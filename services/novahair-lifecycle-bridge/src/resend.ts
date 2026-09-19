@@ -1,4 +1,4 @@
-import { canDispatchTo, lifecycleConfig } from "./config";
+import { canDispatchTo, lifecycleConfig, usageLimitsFor } from "./config";
 import { hashEmail, hashPayload } from "./crypto";
 import { incrementUsageOnce, isoNow, recordLifecycleError, setHealth, usageSnapshot } from "./db";
 import { captureResendQuotaHeaders } from "./quota";
@@ -175,7 +175,7 @@ export async function sendLifecycleEvent(
   if (!canDispatchTo(env, input.event.email)) throw new Error("recipient_not_allowed_in_current_mode");
   if (!config.resendApiKey) throw new Error("resend_api_key_missing");
 
-  const quota = await usageSnapshot(env.DB, now);
+  const quota = await usageSnapshot(env.DB, now, usageLimitsFor(env));
   if (!quota.dispatchAllowed) {
     await setHealth(env.DB, "resend_quota_status", JSON.stringify(quota), "CRITICAL", current);
     throw new Error("resend_free_tier_guard_active");

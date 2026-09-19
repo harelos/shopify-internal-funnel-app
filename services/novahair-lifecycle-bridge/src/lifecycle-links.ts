@@ -1,5 +1,5 @@
 import { safeStorefrontUrl } from "./url";
-import type { LifecycleFlow } from "./types";
+import type { ClickFlow, LifecycleFlow } from "./types";
 
 const PATHS = {
   sales: "/pages/novahair-sales-staging",
@@ -63,10 +63,10 @@ const STATIC_DESTINATIONS: Partial<Record<LifecycleFlow, Record<number, keyof ty
 
 export function staticLifecycleDestination(
   storefrontDomain: string,
-  flow: LifecycleFlow,
+  flow: ClickFlow,
   emailNumber: number,
 ): string | null {
-  const key = STATIC_DESTINATIONS[flow]?.[emailNumber];
+  const key = STATIC_DESTINATIONS[flow as LifecycleFlow]?.[emailNumber];
   return key ? safeStorefrontUrl(storefrontDomain, PATHS[key]) : null;
 }
 

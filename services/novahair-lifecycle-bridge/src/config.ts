@@ -41,6 +41,15 @@ export function lifecycleConfig(env: LifecycleEnv) {
     dataKey: clean(env.LIFECYCLE_DATA_KEY),
     hashKey: clean(env.LIFECYCLE_HASH_KEY),
     activatedAt: clean(env.LIFECYCLE_ACTIVATED_AT),
+    // Plan ceilings. The defaults are Resend's free tier; raising the plan is a
+    // variable change, not a code change.
+    resendDailyEmailLimit: boundedInteger(env.RESEND_DAILY_EMAIL_LIMIT, 100, 10, 2_000_000),
+    resendMonthlyEmailLimit: boundedInteger(env.RESEND_MONTHLY_EMAIL_LIMIT, 3000, 100, 50_000_000),
+    resendMonthlyRunLimit: boundedInteger(env.RESEND_MONTHLY_RUN_LIMIT, 10000, 100, 50_000_000),
+    // Emails held back each day for lifecycle mail, so a campaign can never
+    // starve an order confirmation or a shipping update.
+    campaignLifecycleReserve: boundedInteger(env.CAMPAIGN_LIFECYCLE_RESERVE, 30, 0, 100_000),
+    campaignBatchSize: boundedInteger(env.CAMPAIGN_BATCH_SIZE, 25, 1, 200),
     syncIntervalMinutes: boundedInteger(env.LIFECYCLE_SYNC_INTERVAL_MINUTES, 10, 5, 60),
     syncOverlapMinutes: boundedInteger(env.LIFECYCLE_SYNC_OVERLAP_MINUTES, 30, 10, 180),
     maxPages: boundedInteger(env.LIFECYCLE_MAX_PAGES, 10, 1, 30),
@@ -49,6 +58,20 @@ export function lifecycleConfig(env: LifecycleEnv) {
     shipmentCustomerMessagesEnabled: env.SHIPMENT_CUSTOMER_MESSAGES_ENABLED === "true"
       && env.SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED === "true",
     shipmentNotificationOwnershipVerified: env.SHIPMENT_NOTIFICATION_OWNERSHIP_VERIFIED === "true",
+  };
+}
+
+/** Plan ceilings in the shape `usageSnapshot` expects. */
+export function usageLimitsFor(env: LifecycleEnv): {
+  dailyEmails: number;
+  monthlyEmails: number;
+  monthlyRuns: number;
+} {
+  const config = lifecycleConfig(env);
+  return {
+    dailyEmails: config.resendDailyEmailLimit,
+    monthlyEmails: config.resendMonthlyEmailLimit,
+    monthlyRuns: config.resendMonthlyRunLimit,
   };
 }
 
