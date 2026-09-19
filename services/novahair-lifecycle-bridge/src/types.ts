@@ -326,6 +326,10 @@ export interface ShopifyCustomerNode {
   id: string;
   firstName: string | null;
   updatedAt: string;
+  createdAt?: string | null;
+  numberOfOrders?: number | string | null;
+  amountSpent?: { amount: string | number; currencyCode: string } | null;
+  lastOrder?: { createdAt: string } | null;
   defaultEmailAddress: {
     emailAddress: string;
     marketingState: ConsentState;

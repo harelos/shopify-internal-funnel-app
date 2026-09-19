@@ -8,6 +8,7 @@ import {
 } from "./db";
 import { FLOW_SPECS, dueAt } from "./flow-specs";
 import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex } from "./crypto";
+import { touchCustomerConsent, upsertCustomerFromShopify } from "./customers";
 import { queueResendUnsubscribe } from "./resend";
 import { processFulfillmentObservation, processPaidOrder } from "./webhooks";
 import type {
@@ -130,7 +131,11 @@ const CUSTOMERS_QUERY = `query NovaHairCustomerConsent(
     nodes {
       id
       firstName
+      createdAt
       updatedAt
+      numberOfOrders
+      amountSpent { amount currencyCode }
+      lastOrder { createdAt }
       defaultEmailAddress {
         emailAddress
         marketingState
@@ -967,6 +972,9 @@ export async function syncCustomerConsent(
         await env.DB.prepare(
           `UPDATE abandoned_checkouts SET consent_state = ?, updated_record_at = ? WHERE email_hash = ?`,
         ).bind(consentState, current, emailHash).run();
+        // Keep the customer-intelligence row converging on Shopify's truth.
+        await upsertCustomerFromShopify(env, customer, now, "SHOPIFY_SYNC");
+        await touchCustomerConsent(env, emailHash, consentState, consentUpdatedAt, now);
         updated += 1;
 
         // NOT_SUBSCRIBED is Shopify's value for a customer who was never asked,

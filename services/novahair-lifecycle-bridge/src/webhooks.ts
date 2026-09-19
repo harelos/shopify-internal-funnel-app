@@ -1,5 +1,6 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
 import { encryptSensitive, hashEmail, hashPayload, hmacSha256Hex, sha256Hex, verifyShopifyHmac, verifySvixSignature } from "./crypto";
+import { touchCustomerOnEmailEvent, touchCustomerOnOrder } from "./customers";
 import {
   cancelEntitySchedules,
   incrementUsageOnce,
@@ -481,6 +482,18 @@ export async function processPaidOrder(
 
   await purchaseGlobalStop(env, emailHash, gid, completedAt);
 
+  await touchCustomerOnOrder(env, {
+    email,
+    emailHash,
+    shopifyCustomerId: customerId(payload),
+    firstName: text(payload.customer?.first_name) ?? null,
+    consentState,
+    completedAt,
+    total: money(payload.current_total_price ?? payload.total_price),
+    currency: text(payload.presentment_currency ?? payload.currency)?.toUpperCase() ?? null,
+    productHandles: merchandise.purchasedProductHandles,
+  }, now);
+
   // Persist order attribution on any first-party clicks that could have driven this
   // order. Matches by exact checkout id first (strongest), then by recipient email
   // hash within a 30-day pre-purchase window. Only fills rows that have not yet
@@ -937,6 +950,10 @@ export async function handleResendWebhook(env: LifecycleEnv, request: Request, n
           candidate.id,
         ).run();
       }
+    }
+
+    if (recipientHash && ["email.sent", "email.opened", "email.clicked"].includes(payload.type)) {
+      await touchCustomerOnEmailEvent(env, recipientHash, payload.type, payload.created_at, now);
     }
 
     const hardBounce = payload.type === "email.bounced"

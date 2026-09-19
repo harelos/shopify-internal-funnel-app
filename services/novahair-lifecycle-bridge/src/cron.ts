@@ -1,9 +1,10 @@
 import { assertCoreConfiguration, lifecycleConfig, lifecycleMode } from "./config";
 import { acquireCronLock, healthValue, isoNow, releaseCronLock, setHealth } from "./db";
+import { recomputeEngagementScores, syncCustomerBackfill, syncCustomerProducts } from "./customers";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { monitorResendQuota } from "./quota";
 import { dispatchResendContactUpdates } from "./resend";
-import { ensureLifecycleWebhooks, syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
+import { ensureLifecycleWebhooks, shopifyGraphql, syncAbandonedCheckouts, syncCustomerConsent, syncPaidOrders } from "./shopify";
 import { reconcilePostPurchaseTransitUpdates } from "./webhooks";
 import { processLifecycleIdentityClaims, processStorefrontLifecycleEvents } from "./storefront";
 import { reconcileShipmentAssurance } from "./shipment-assurance";
@@ -66,6 +67,14 @@ export async function runLifecycleCron(
     const lastConsentSync = await healthValue(env.DB, "last_shopify_consent_sync");
     if (syncIsDue(lastConsentSync, now, config.syncIntervalMinutes)) {
       await syncCustomerConsent(env, now);
+    }
+    // Customer-intelligence layer. Both syncs are resumable and no-op once done;
+    // the score refresh is cheap and runs a few times a day.
+    await syncCustomerBackfill(env, now, shopifyGraphql);
+    await syncCustomerProducts(env, now, shopifyGraphql);
+    const lastScoreRefresh = await healthValue(env.DB, "last_customer_score_refresh");
+    if (syncIsDue(lastScoreRefresh, now, 6 * 60)) {
+      await recomputeEngagementScores(env, now);
     }
     await processLifecycleIdentityClaims(env, now);
     await processStorefrontLifecycleEvents(env, now);

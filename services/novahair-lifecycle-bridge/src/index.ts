@@ -1,6 +1,7 @@
 import { lifecycleConfig, lifecycleMode } from "./config";
 import { lifecycleAnalytics, lifecycleAudienceActivity, lifecycleFlowCatalog } from "./analytics";
 import { decryptSensitive, hashPayload } from "./crypto";
+import { customerDirectory } from "./customers";
 import { dispatchDueLifecycleEvents } from "./dispatch";
 import { consumeClickToken, isoNow, setHealth } from "./db";
 import { isLifecycleAdmin, lifecycleHealth } from "./health";
@@ -202,6 +203,10 @@ export async function handleLifecycleRequest(
   if (url.pathname === "/api/lifecycle/admin/flows" && request.method === "GET") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
     return json(await lifecycleFlowCatalog(env));
+  }
+  if (url.pathname === "/api/lifecycle/admin/customers" && request.method === "GET") {
+    if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
+    return json(await customerDirectory(env, url));
   }
   if (url.pathname === "/api/lifecycle/admin/analytics" && request.method === "GET") {
     if (!isLifecycleAdmin(request, env)) return new Response("Not found", { status: 404 });
