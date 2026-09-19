@@ -414,6 +414,13 @@ export async function syncCustomerProducts(
   if ((await healthValue(env.DB, "customers_products_done")) === "true") {
     return { pages: 0, customersTouched: 0, done: true };
   }
+  // Orders are joined to customers by Shopify id, and an order whose customer
+  // row does not exist yet is skipped for good once the cursor moves past it.
+  // So this must not start until every customer row is in place.
+  if ((await healthValue(env.DB, "customers_backfill_done")) !== "true") {
+    await setHealth(env.DB, "customers_products_status", JSON.stringify({ pages: 0, customersTouched: 0, done: false, waitingFor: "customers_backfill" }), "OK", current);
+    return { pages: 0, customersTouched: 0, done: false };
+  }
   let after = await healthValue(env.DB, "customers_products_cursor");
   let pages = 0;
   let done = false;

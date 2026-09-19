@@ -39,6 +39,8 @@ export interface LifecycleEnv {
   SHOPIFY_STOREFRONT_DOMAIN?: string;
   SHOPIFY_API_VERSION?: string;
   SHOPIFY_ADMIN_ACCESS_TOKEN?: string;
+  /** Optional token with read_all_orders, used only for order-history syncs that need no PII. */
+  SHOPIFY_ORDERS_ACCESS_TOKEN?: string;
   SHOPIFY_ACCESS_TOKEN?: string;
   SHOPIFY_WEBHOOK_SECRET?: string;
   SHOPIFY_CLIENT_SECRET?: string;

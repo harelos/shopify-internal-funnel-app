@@ -13,6 +13,7 @@ import {
   upsertCustomerFromShopify,
 } from "../src/customers";
 import { lifecycleConfig } from "../src/config";
+import { setHealth } from "../src/db";
 import { TEST_EMAIL, testDatabase, testEnv } from "./helpers/d1";
 
 const context = { waitUntil() {} };
@@ -222,20 +223,34 @@ test("product history joins orders to customers by Shopify id without needing PI
       defaultEmailAddress: { emailAddress: "p@example.com", marketingState: "SUBSCRIBED", marketingOptInLevel: null, marketingUpdatedAt: null, validFormat: true },
     }, NOW, "SHOPIFY_BACKFILL");
 
-    const graphql = async <T>(): Promise<T> => ({
-      orders: {
-        nodes: [
-          { id: "gid://shopify/Order/1", customer: { id: "gid://shopify/Customer/7" }, lineItems: { nodes: [{ product: { handle: "NovaSale-4" } }, { product: null }] } },
-          { id: "gid://shopify/Order/2", customer: { id: "gid://shopify/Customer/7" }, lineItems: { nodes: [{ product: { handle: "hair-gloss" } }] } },
-          { id: "gid://shopify/Order/3", customer: null, lineItems: { nodes: [{ product: { handle: "ignored" } }] } },
-          { id: "gid://shopify/Order/4", customer: { id: "gid://shopify/Customer/404" }, lineItems: { nodes: [{ product: { handle: "unknown-customer" } }] } },
-        ],
-        pageInfo: { hasNextPage: false, endCursor: null },
-      },
-    }) as T;
+    let calls = 0;
+    const graphql = async <T>(): Promise<T> => {
+      calls += 1;
+      return {
+        orders: {
+          nodes: [
+            { id: "gid://shopify/Order/1", customer: { id: "gid://shopify/Customer/7" }, lineItems: { nodes: [{ product: { handle: "NovaSale-4" } }, { product: null }] } },
+            { id: "gid://shopify/Order/2", customer: { id: "gid://shopify/Customer/7" }, lineItems: { nodes: [{ product: { handle: "hair-gloss" } }] } },
+            { id: "gid://shopify/Order/3", customer: null, lineItems: { nodes: [{ product: { handle: "ignored" } }] } },
+            { id: "gid://shopify/Order/4", customer: { id: "gid://shopify/Customer/404" }, lineItems: { nodes: [{ product: { handle: "unknown-customer" } }] } },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      } as T;
+    };
 
-    const r = await syncCustomerProducts(env, NOW, graphql);
+    // Until the customer backfill has finished, the products sync must not
+    // touch Shopify: an order whose customer row is missing would be skipped
+    // for good once the cursor moved past it.
+    let r = await syncCustomerProducts(env, NOW, graphql);
+    assert.deepEqual(r, { pages: 0, customersTouched: 0, done: false });
+    assert.equal(calls, 0);
+    assert.match(String(await db.prepare("SELECT value FROM health_state WHERE key='customers_products_status'").first("value")), /waitingFor/);
+
+    await setHealth(db, "customers_backfill_done", "true", "OK", NOW.toISOString());
+    r = await syncCustomerProducts(env, NOW, graphql);
     assert.deepEqual(r, { pages: 1, customersTouched: 1, done: true });
+    assert.equal(calls, 1);
     const row = await db.prepare("SELECT products_json, novahair_buyer FROM customers WHERE shopify_customer_id = ?").bind("gid://shopify/Customer/7").first<Record<string, unknown>>();
     assert.deepEqual(JSON.parse(String(row!.products_json)), ["hair-gloss", "novasale-4"]);
     assert.equal(Number(row!.novahair_buyer), 1);

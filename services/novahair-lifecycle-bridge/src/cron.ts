@@ -71,7 +71,14 @@ export async function runLifecycleCron(
     // Customer-intelligence layer. Both syncs are resumable and no-op once done;
     // the score refresh is cheap and runs a few times a day.
     await syncCustomerBackfill(env, now, shopifyGraphql);
-    await syncCustomerProducts(env, now, shopifyGraphql);
+    // The main token only sees 60 days of orders. Product history needs the
+    // whole order book but no PII, so it may use a read_all_orders token.
+    const ordersToken = env.SHOPIFY_ORDERS_ACCESS_TOKEN?.trim();
+    const ordersGraphql = ordersToken
+      ? <T>(e: LifecycleEnv, query: string, variables: Record<string, unknown>) =>
+          shopifyGraphql<T>(e, query, variables, { accessToken: ordersToken })
+      : shopifyGraphql;
+    await syncCustomerProducts(env, now, ordersGraphql);
     const lastScoreRefresh = await healthValue(env.DB, "last_customer_score_refresh");
     if (syncIsDue(lastScoreRefresh, now, 6 * 60)) {
       await recomputeEngagementScores(env, now);

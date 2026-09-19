@@ -222,10 +222,13 @@ export async function shopifyGraphql<T>(
   env: LifecycleEnv,
   query: string,
   variables: Record<string, unknown>,
-  dependencies: { fetcher?: typeof fetch; sleeper?: (milliseconds: number) => Promise<void> } = {},
+  dependencies: { fetcher?: typeof fetch; sleeper?: (milliseconds: number) => Promise<void>; accessToken?: string } = {},
 ): Promise<T> {
   const config = lifecycleConfig(env);
-  if (!config.shopDomain || !config.shopifyAccessToken) throw new Error("shopify_credentials_unavailable");
+  // A caller may substitute a token with different scopes (the order-history
+  // sync uses one with read_all_orders and no customer PII).
+  const accessToken = dependencies.accessToken?.trim() || config.shopifyAccessToken;
+  if (!config.shopDomain || !accessToken) throw new Error("shopify_credentials_unavailable");
   const endpoint = `https://${config.shopDomain}/admin/api/${config.shopifyApiVersion}/graphql.json`;
   let lastCode = "shopify_request_failed";
   const fetcher = dependencies.fetcher ?? fetch;
@@ -238,7 +241,7 @@ export async function shopifyGraphql<T>(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Shopify-Access-Token": config.shopifyAccessToken,
+          "X-Shopify-Access-Token": accessToken,
           "User-Agent": "novahair-lifecycle-worker/1.0",
         },
         body: JSON.stringify({ query, variables }),
