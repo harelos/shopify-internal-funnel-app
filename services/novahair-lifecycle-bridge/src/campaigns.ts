@@ -403,6 +403,20 @@ export function renderSubject(subject: string, firstName: string | null): string
   return (name ? rendered : rendered.replace(/^[\s,،]+/, "")).trim();
 }
 
+/**
+ * The preheader is the grey line the inbox shows after the subject. There is no
+ * API field for it: it has to be the first text in the body, hidden from the
+ * rendered email. The run of zero-width spaces stops the client from filling
+ * the rest of the preview with whatever follows.
+ */
+export function preheaderBlock(preheader: string | null): string {
+  const text = preheader?.trim();
+  if (!text) return "";
+  return `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#faf7f4;opacity:0;">`
+    + `${escapeHtml(text)}${"&#8203;&nbsp;".repeat(60)}`
+    + `</div>`;
+}
+
 async function renderForRecipient(
   env: LifecycleEnv,
   campaign: CampaignRow,
@@ -429,11 +443,11 @@ async function renderForRecipient(
     ctaUrl = `${config.appUrl}/api/lifecycle/click/${clickToken}`;
   }
 
-  const html = campaign.html
+  const body = campaign.html
     .replaceAll("{{FIRST_NAME}}", escapeHtml(recipient.first_name?.trim() ?? ""))
     .replaceAll("{{UNSUBSCRIBE_URL}}", unsubUrl ?? "")
     .replaceAll("{{CTA_URL}}", ctaUrl);
-  return { html, unsubscribeUrl: unsubUrl };
+  return { html: preheaderBlock(campaign.preheader) + body, unsubscribeUrl: unsubUrl };
 }
 
 async function sendOne(

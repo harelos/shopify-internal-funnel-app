@@ -11,6 +11,7 @@ import {
   createCampaign,
   dispatchDueCampaigns,
   ensureUnsubscribeToken,
+  preheaderBlock,
   renderSubject,
   setCampaignStatus,
 } from "../src/campaigns";
@@ -644,4 +645,17 @@ test("a subject line carries her name, and collapses cleanly when there is none"
   assert.equal(renderSubject("{{FIRST_NAME}}, השורשים תמיד חוזרים", null), "השורשים תמיד חוזרים");
   assert.equal(renderSubject("{{FIRST_NAME}}, השורשים תמיד חוזרים", "   "), "השורשים תמיד חוזרים");
   assert.equal(renderSubject("חזרנו למלאי", "שרי"), "חזרנו למלאי");
+});
+
+test("the preheader is hidden in the body, because no API field carries it", () => {
+  const block = preheaderBlock("כתבתי לך כי הזמנת מאיתנו פעם.");
+  assert.match(block, /display:none/);
+  assert.match(block, /mso-hide:all/);
+  assert.match(block, /כתבתי לך כי הזמנת מאיתנו פעם\./);
+  // Padding stops the inbox filling the preview with the body that follows.
+  assert.ok((block.match(/&#8203;/g) ?? []).length > 20);
+  assert.equal(preheaderBlock(null), "");
+  assert.equal(preheaderBlock("   "), "");
+  // It is escaped, so a stray angle bracket cannot break out of the div.
+  assert.match(preheaderBlock("<b>x</b>"), /&lt;b&gt;x&lt;\/b&gt;/);
 });
